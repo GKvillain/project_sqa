@@ -1,0 +1,31 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: com.google.javascript.jscomp.ScopedAliases
+* Starting Client-0
+* Connecting to master process on port 12531
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/Closure-174b/build/classes
+  - /home/user/d4j-workspace/Closure-174b/lib/args4j.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/guava.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/json.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/jsr305.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/protobuf-java.jar
+  - /home/user/d4j-workspace/Closure-174b/build/lib/rhino.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/ant.jar
+  - /home/user/d4j-workspace/Closure-174b/build/classes
+  - /home/user/d4j-workspace/Closure-174b/lib/args4j.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/guava.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/json.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/jsr305.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/protobuf-java.jar
+  - /home/user/d4j-workspace/Closure-174b/build/lib/rhino.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/ant.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/ant-launcher.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/caja-r4314.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/jarjar.jar
+  - /home/user/d4j-workspace/Closure-174b/lib/junit.jar
+  - /home/user/d4j-workspace/Closure-174b/build/test
+  - /home/user/d4j-workspace/Closure-174b/build/classes
+  - /home/user/d4j-workspace/Closure-174b/build/test
+  - /home/user/d4j-workspace/Closure-174b/build
+[MASTER] 23:18:20.438 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.util.Locale$IsoCountryCode
+[MASTER] 23:18:20.468 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.io.ObjectInputFilter

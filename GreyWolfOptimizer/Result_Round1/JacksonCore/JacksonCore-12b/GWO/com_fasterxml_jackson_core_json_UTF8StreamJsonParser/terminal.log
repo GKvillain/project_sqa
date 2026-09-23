@@ -1,0 +1,138 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: com.fasterxml.jackson.core.json.UTF8StreamJsonParser
+* Starting Client-0
+* Connecting to master process on port 19035
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/JacksonCore-12b/target/classes
+  - /home/user/defects4j/framework/projects/JacksonCore/lib/junit/junit/4.12/junit-4.12.jar
+  - /home/user/defects4j/framework/projects/JacksonCore/lib/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+  - /home/user/d4j-workspace/JacksonCore-12b/target/classes
+  - /home/user/d4j-workspace/JacksonCore-12b/target/test-classes
+  - /home/user/defects4j/framework/projects/lib/junit-4.12-hamcrest-1.3.jar
+  - /home/user/defects4j/framework/projects/JacksonCore/lib/junit/junit/4.11/junit-4.11.jar
+  - /home/user/defects4j/framework/projects/JacksonCore/lib/junit/junit/4.8.2/junit-4.8.2.jar
+  - /home/user/d4j-workspace/JacksonCore-12b/target/classes
+  - /home/user/d4j-workspace/JacksonCore-12b/target/test-classes
+[MASTER] 22:18:40.346 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.io.ObjectInputFilter
+[MASTER] 22:18:40.396 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.util.Locale$IsoCountryCode
+* Finished analyzing classpath
+* Generating tests for class com.fasterxml.jackson.core.json.UTF8StreamJsonParser
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 1813
+  - Branch 1458
+  - Exception 0
+  - MutationFactory 1226
+  - Output 213
+  - Method 58
+  - MethodNoException 58
+  - CBranchFitnessFactory 1458
+[Progress:>                             0%] [Cov:>                                  0%]* Using seed 1789744717636
+* Starting evolution
+[Progress:>                             0%] [Cov:====>                              12%][Progress:>                             0%] [Cov:====>                              13%][Progress:=>                            5%] [Cov:>                                  0%][Progress:=>                            5%] [Cov:====>                              12%][Progress:=>                            5%] [Cov:====>                              13%][Progress:==>                           9%] [Cov:>                                  0%][Progress:==>                           9%] [Cov:====>                              12%][Progress:==>                           9%] [Cov:====>                              13%][Progress:==>                           9%] [Cov:====>                              14%][Progress:===>                          13%] [Cov:>                                  0%][Progress:===>                          13%] [Cov:====>                              13%][Progress:===>                          13%] [Cov:====>                              14%][Progress:====>                         14%] [Cov:>                                  0%][Progress:====>                         14%] [Cov:====>                              12%][Progress:=====>                        18%] [Cov:>                                  0%][Progress:=====>                        18%] [Cov:====>                              12%][Progress:======>                       23%] [Cov:>                                  0%][Progress:======>                       23%] [Cov:====>                              12%][Progress:========>                     27%] [Cov:>                                  0%][Progress:========>                     27%] [Cov:====>                              12%][Progress:========>                     27%] [Cov:====>                              14%]========== GWO EVOLVE iteration=0 population=50 ==========
+[Progress:========>                     27%] [Cov:=====>                             15%][Progress:========>                     28%] [Cov:====>                              12%][Progress:========>                     28%] [Cov:====>                              14%][Progress:========>                     28%] [Cov:=====>                             15%]GWO iteration=1 bestFitness=15476.815780232657 population=50 a=1.98
+========== GWO EVOLVE iteration=1 population=50 ==========
+[Progress:========>                     29%] [Cov:====>                              14%][Progress:========>                     29%] [Cov:=====>                             15%][Progress:========>                     29%] [Cov:=====>                             15%]GWO iteration=2 bestFitness=15331.25665613587 population=50 a=1.96
+========== GWO EVOLVE iteration=2 population=50 ==========
+[Progress:========>                     29%] [Cov:=====>                             16%][Progress:=========>                    30%] [Cov:=====>                             15%][Progress:=========>                    30%] [Cov:=====>                             16%][Progress:=========>                    30%] [Cov:=====>                             16%]GWO iteration=3 bestFitness=15289.874211667213 population=50 a=1.94
+========== GWO EVOLVE iteration=3 population=50 ==========
+[Progress:==========>                   35%] [Cov:=====>                             15%][Progress:==========>                   35%] [Cov:=====>                             16%][Progress:==========>                   35%] [Cov:=====>                             16%]GWO iteration=4 bestFitness=15277.702788488845 population=50 a=1.92
+========== GWO EVOLVE iteration=4 population=50 ==========
+[Progress:==========>                   36%] [Cov:=====>                             16%][Progress:==========>                   36%] [Cov:=====>                             16%]GWO iteration=5 bestFitness=15207.374208899031 population=50 a=1.9
+[Progress:===========>                  37%] [Cov:=====>                             16%][Progress:===========>                  37%] [Cov:=====>                             16%][Progress:===========>                  38%] [Cov:=====>                             16%][Progress:===========>                  38%] [Cov:=====>                             17%][Progress:===========>                  39%] [Cov:=====>                             17%][Progress:===========>                  39%] [Cov:=====>                             17%][Progress:============>                 40%] [Cov:=====>                             16%][Progress:============>                 40%] [Cov:=====>                             17%][Progress:============>                 40%] [Cov:=====>                             17%][Progress:============>                 41%] [Cov:=====>                             17%][Progress:============>                 42%] [Cov:=====>                             15%][Progress:============>                 42%] [Cov:=====>                             17%][Progress:============>                 42%] [Cov:=====>                             17%][Progress:============>                 43%] [Cov:=====>                             17%][Progress:=============>                44%] [Cov:=====>                             17%][Progress:=============>                44%] [Cov:=====>                             17%][Progress:=============>                45%] [Cov:=====>                             17%][Progress:=============>                45%] [Cov:======>                            18%][Progress:=============>                45%] [Cov:======>                            18%][Progress:=============>                46%] [Cov:=====>                             17%][Progress:=============>                46%] [Cov:======>                            18%][Progress:=============>                46%] [Cov:======>                            19%][Progress:==============>               47%] [Cov:======>                            18%][Progress:===============>              52%] [Cov:=====>                             16%][Progress:===============>              52%] [Cov:======>                            19%][Progress:===============>              53%] [Cov:======>                            18%][Progress:===============>              53%] [Cov:======>                            19%][Progress:================>             54%] [Cov:=====>                             17%][Progress:================>             54%] [Cov:======>                            18%][Progress:================>             54%] [Cov:======>                            19%][Progress:================>             54%] [Cov:======>                            19%][Progress:================>             55%] [Cov:======>                            18%][Progress:================>             55%] [Cov:======>                            19%][Progress:================>             55%] [Cov:=======>                           20%][Progress:================>             55%] [Cov:======>                            19%][Progress:================>             56%] [Cov:======>                            19%][Progress:================>             56%] [Cov:=======>                           20%][Progress:=================>            57%] [Cov:======>                            19%][Progress:=================>            57%] [Cov:=======>                           20%][Progress:=================>            58%] [Cov:======>                            19%][Progress:=================>            58%] [Cov:=======>                           20%][Progress:=================>            59%] [Cov:======>                            19%][Progress:=================>            59%] [Cov:=======>                           20%][Progress:==================>           60%] [Cov:=======>                           20%][Progress:==================>           60%] [Cov:=======>                           20%][Progress:==================>           61%] [Cov:=======>                           20%][Progress:==================>           61%] [Cov:=======>                           20%][Progress:==================>           62%] [Cov:=======>                           20%][Progress:==================>           63%] [Cov:======>                            19%][Progress:==================>           63%] [Cov:=======>                           20%][Progress:===================>          64%] [Cov:======>                            19%][Progress:===================>          64%] [Cov:=======>                           20%][Progress:===================>          64%] [Cov:=======>                           21%][Progress:===================>          64%] [Cov:=======>                           21%][Progress:===================>          65%] [Cov:=======>                           21%][Progress:===================>          65%] [Cov:=======>                           21%][Progress:===================>          66%] [Cov:=======>                           21%][Progress:===================>          66%] [Cov:=======>                           22%][Progress:====================>         67%] [Cov:=======>                           20%][Progress:====================>         67%] [Cov:=======>                           21%][Progress:====================>         68%] [Cov:=======>                           20%][Progress:====================>         68%] [Cov:=======>                           21%][Progress:====================>         68%] [Cov:=======>                           22%]GWO iteration=20 bestFitness=14641.446090240133 population=50 a=1.6
+========== GWO EVOLVE iteration=20 population=50 ==========
+[Progress:====================>         69%] [Cov:=======>                           21%][Progress:====================>         69%] [Cov:=======>                           22%][Progress:=====================>        70%] [Cov:=======>                           21%][Progress:=====================>        70%] [Cov:=======>                           22%][Progress:=====================>        70%] [Cov:========>                          23%][Progress:=====================>        70%] [Cov:========>                          23%][Progress:=====================>        71%] [Cov:=======>                           22%][Progress:=====================>        71%] [Cov:========>                          23%][Progress:=====================>        72%] [Cov:=======>                           21%][Progress:=====================>        72%] [Cov:========>                          23%][Progress:=====================>        73%] [Cov:=====>                             17%][Progress:=====================>        73%] [Cov:========>                          23%][Progress:======================>       74%] [Cov:========>                          23%][Progress:======================>       75%] [Cov:=======>                           22%][Progress:======================>       75%] [Cov:========>                          23%][Progress:======================>       75%] [Cov:========>                          23%][Progress:=======================>      77%] [Cov:========>                          23%][Progress:=======================>      78%] [Cov:========>                          23%][Progress:=======================>      79%] [Cov:========>                          23%][Progress:=======================>      79%] [Cov:========>                          23%][Progress:========================>     80%] [Cov:========>                          23%][Progress:========================>     81%] [Cov:=======>                           21%][Progress:========================>     81%] [Cov:========>                          23%][Progress:========================>     81%] [Cov:========>                          23%][Progress:========================>     82%] [Cov:========>                          23%][Progress:========================>     83%] [Cov:========>                          23%][Progress:========================>     83%] [Cov:========>                          24%][Progress:=========================>    84%] [Cov:========>                          23%][Progress:=========================>    84%] [Cov:========>                          24%][Progress:=========================>    84%] [Cov:========>                          24%][Progress:=========================>    85%] [Cov:========>                          24%][Progress:=========================>    86%] [Cov:========>                          23%][Progress:=========================>    86%] [Cov:========>                          24%][Progress:==========================>   87%] [Cov:========>                          23%][Progress:==========================>   87%] [Cov:========>                          24%][Progress:==========================>   87%] [Cov:========>                          24%][Progress:==========================>   88%] [Cov:========>                          24%][Progress:==========================>   89%] [Cov:========>                          24%][Progress:===========================>  90%] [Cov:========>                          24%][Progress:===========================>  90%] [Cov:========>                          24%][Progress:============================> 95%] [Cov:========>                          24%][Progress:============================> 96%] [Cov:========>                          24%][Progress:============================> 96%] [Cov:========>                          24%][Progress:=============================>97%] [Cov:========>                          24%][Progress:=============================>98%] [Cov:========>                          24%][Progress:=============================>99%] [Cov:========>                          24%][Progress:=============================>99%] [Cov:========>                          25%][Progress:==============================100%] [Cov:========>                          24%][Progress:==============================100%] [Cov:========>                          24%][Progress:==============================100%] [Cov:========>                          25%][Progress:==============================100%] [Cov:========>                          24%][Progress:==============================100%] [Cov:==============>                    41%]
+* Search finished after 122s and 31 generations, 24050 statements, best individual has fitness: 12180.288547062992
+* Minimizing test suite
+* Going to analyze the coverage criteria
+* Coverage analysis for criterion LINE
+* Coverage of criterion LINE: 22%
+* Total number of goals: 1813
+* Number of covered goals: 406
+* Coverage analysis for criterion BRANCH
+* Coverage of criterion BRANCH: 18%
+* Total number of goals: 1458
+* Number of covered goals: 263
+* Coverage analysis for criterion EXCEPTION
+* Coverage of criterion EXCEPTION: 100%
+* Total number of goals: 81
+* Number of covered goals: 81
+* Coverage analysis for criterion WEAKMUTATION
+* Coverage of criterion WEAKMUTATION: 20%
+* Total number of goals: 1226
+* Number of covered goals: 244
+* Coverage analysis for criterion OUTPUT
+* Coverage of criterion OUTPUT: 21%
+* Total number of goals: 213
+* Number of covered goals: 44
+* Coverage analysis for criterion METHOD
+* Coverage of criterion METHOD: 95%
+* Total number of goals: 58
+* Number of covered goals: 55
+* Coverage analysis for criterion METHODNOEXCEPTION
+* Coverage of criterion METHODNOEXCEPTION: 52%
+* Total number of goals: 58
+* Number of covered goals: 30
+* Coverage analysis for criterion CBRANCH
+* Coverage of criterion CBRANCH: 18%
+* Total number of goals: 1458
+* Number of covered goals: 256
+* Generated 126 tests with total length 1035
+* Resulting test suite's coverage: 41% (average coverage for all fitness functions)
+* Generating assertions
+* Resulting test suite's mutation score: 3%
+* Compiling and checking tests
+[MASTER] 22:21:31.213 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test0 -> class com.fasterxml.jackson.core.JsonParseException: Unexpected end-of-input in field name
+ at [Source: UNKNOWN; line: 2, column: 5]
+[MASTER] 22:21:31.213 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ BufferRecycler bufferRecycler0 = new BufferRecycler();
+IOContext iOContext0 = new IOContext(bufferRecycler0, (Object) null, false);
+byte[] byteArray0 = new byte[2];
+ByteArrayInputStream byteArrayInputStream0 = new ByteArrayInputStream(byteArray0, 0, 1361);
+ObjectCodec objectCodec0 = mock(ObjectCodec.class, new ViolatedAssumptionAnswer());
+ByteQuadsCanonicalizer byteQuadsCanonicalizer0 = ByteQuadsCanonicalizer.createRoot();
+UTF8StreamJsonParser uTF8StreamJsonParser0 = new UTF8StreamJsonParser(iOContext0, 48, byteArrayInputStream0, objectCodec0, byteQuadsCanonicalizer0, byteArray0, 32, 0, false);
+uTF8StreamJsonParser0._skipCR();
+uTF8StreamJsonParser0.parseMediumName2((byte)91, 0);
+
+[MASTER] 22:21:35.616 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test0 -> class com.fasterxml.jackson.core.JsonParseException: Illegal unquoted character ((CTRL-CHAR, code 0)): has to be escaped using backslash to be included in name
+ at [Source: com.fasterxml.jackson.core.util.BufferRecycler@1; line: 1, column: 2]
+[MASTER] 22:21:35.616 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ BufferRecycler bufferRecycler0 = new BufferRecycler();
+IOContext iOContext0 = new IOContext(bufferRecycler0, bufferRecycler0, false);
+FileDescriptor fileDescriptor0 = new FileDescriptor();
+MockFileInputStream mockFileInputStream0 = new MockFileInputStream(fileDescriptor0);
+ObjectCodec objectCodec0 = mock(ObjectCodec.class, new ViolatedAssumptionAnswer());
+ByteQuadsCanonicalizer byteQuadsCanonicalizer0 = ByteQuadsCanonicalizer.createRoot();
+byte[] byteArray0 = new byte[2];
+UTF8StreamJsonParser uTF8StreamJsonParser0 = new UTF8StreamJsonParser(iOContext0, 1024, mockFileInputStream0, objectCodec0, byteQuadsCanonicalizer0, byteArray0, 1, 77, true);
+uTF8StreamJsonParser0._parseAposName();
+
+[MASTER] 22:21:41.003 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test0 -> class com.fasterxml.jackson.core.JsonParseException: Illegal unquoted character ((CTRL-CHAR, code 0)): has to be escaped using backslash to be included in name
+ at [Source: java.io.PipedInputStream@4c84c3a; line: 1, column: 1]
+[MASTER] 22:21:41.003 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ BufferRecycler bufferRecycler0 = new BufferRecycler();
+PipedInputStream pipedInputStream0 = new PipedInputStream();
+IOContext iOContext0 = new IOContext(bufferRecycler0, pipedInputStream0, true);
+ObjectCodec objectCodec0 = mock(ObjectCodec.class, new ViolatedAssumptionAnswer());
+ByteQuadsCanonicalizer byteQuadsCanonicalizer0 = ByteQuadsCanonicalizer.createRoot();
+byte[] byteArray0 = new byte[0];
+UTF8StreamJsonParser uTF8StreamJsonParser0 = new UTF8StreamJsonParser(iOContext0, 3, pipedInputStream0, objectCodec0, byteQuadsCanonicalizer0, byteArray0, 0, 3, true);
+int[] intArray0 = new int[4];
+uTF8StreamJsonParser0.parseEscapedName(intArray0, 2000, 0, 0, 0);
+
+* Writing tests to file
+* Writing JUnit test case 'UTF8StreamJsonParser_ESTest' to /home/user/evosuite-results/JacksonCore-12b/GWO/com_fasterxml_jackson_core_json_UTF8StreamJsonParser/evosuite-tests
+* Done!
+
+* Computation finished

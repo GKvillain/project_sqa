@@ -1,0 +1,356 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: com.google.gson.stream.JsonReader
+* Starting Client-0
+* Connecting to master process on port 17996
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/Gson-4b/target/classes
+  - /home/user/defects4j/framework/projects/Gson/lib/junit/junit/3.8.2/junit-3.8.2.jar
+  - /home/user/d4j-workspace/Gson-4b/target/classes
+  - /home/user/d4j-workspace/Gson-4b/target/test-classes
+  - /home/user/defects4j/framework/projects/lib/junit-4.12-hamcrest-1.3.jar
+  - /home/user/defects4j/framework/projects/Gson/lib/com/google/code/findbugs/jsr305/3.0.0/jsr305-3.0.0.jar
+  - /home/user/defects4j/framework/projects/Gson/lib/junit/junit/4.12/junit-4.12.jar
+  - /home/user/defects4j/framework/projects/Gson/lib/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+  - /home/user/d4j-workspace/Gson-4b/target/classes
+  - /home/user/d4j-workspace/Gson-4b/target/test-classes
+* Finished analyzing classpath
+* Generating tests for class com.google.gson.stream.JsonReader
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 684
+  - Branch 662
+  - Exception 0
+  - MutationFactory 705
+  - Output 38
+  - Method 23
+  - MethodNoException 23
+  - CBranchFitnessFactory 662
+[Progress:>                             0%] [Cov:>                                  0%]* Using seed 1789739116152
+* Starting evolution
+[Progress:>                             0%] [Cov:>                                  1%][Progress:>                             0%] [Cov:====>                              13%][Progress:>                             0%] [Cov:=====>                             15%][Progress:>                             0%] [Cov:=====>                             16%][Progress:>                             0%] [Cov:=====>                             17%][Progress:>                             0%] [Cov:======>                            19%][Progress:>                             0%] [Cov:=======>                           21%][Progress:>                             0%] [Cov:=======>                           22%][Progress:>                             0%] [Cov:========>                          23%][Progress:>                             0%] [Cov:========>                          24%][Progress:>                             1%] [Cov:>                                  2%][Progress:>                             1%] [Cov:=>                                 5%][Progress:>                             1%] [Cov:=====>                             17%][Progress:>                             1%] [Cov:======>                            19%][Progress:>                             1%] [Cov:========>                          24%][Progress:>                             1%] [Cov:=========>                         26%][Progress:>                             1%] [Cov:=========>                         26%]========== GWO EVOLVE iteration=0 population=50 ==========
+[Progress:>                             1%] [Cov:=========>                         27%][Progress:>                             2%] [Cov:========>                          24%][Progress:>                             2%] [Cov:=========>                         26%][Progress:>                             2%] [Cov:=========>                         27%]GWO iteration=1 bestFitness=4799.132163972983 population=50 a=1.98
+========== GWO EVOLVE iteration=1 population=50 ==========
+[Progress:>                             3%] [Cov:=========>                         27%][Progress:=>                            4%] [Cov:=========>                         27%][Progress:=>                            4%] [Cov:=========>                         27%]GWO iteration=2 bestFitness=4777.3396905009495 population=50 a=1.96
+========== GWO EVOLVE iteration=2 population=50 ==========
+[Progress:=>                            5%] [Cov:=========>                         27%][Progress:=>                            5%] [Cov:=========>                         28%][Progress:=>                            5%] [Cov:=========>                         27%]GWO iteration=3 bestFitness=4732.298805952124 population=50 a=1.94
+========== GWO EVOLVE iteration=3 population=50 ==========
+[Progress:=>                            5%] [Cov:=========>                         28%][Progress:=>                            6%] [Cov:=========>                         27%][Progress:=>                            6%] [Cov:=========>                         28%][Progress:=>                            6%] [Cov:==========>                        29%][Progress:=>                            6%] [Cov:=========>                         27%]GWO iteration=4 bestFitness=4732.298805952124 population=50 a=1.92
+========== GWO EVOLVE iteration=4 population=50 ==========
+[Progress:==>                           7%] [Cov:=========>                         27%][Progress:==>                           7%] [Cov:=========>                         28%][Progress:==>                           7%] [Cov:==========>                        29%][Progress:==>                           8%] [Cov:=========>                         27%][Progress:==>                           8%] [Cov:=========>                         28%][Progress:==>                           8%] [Cov:=========>                         27%]GWO iteration=5 bestFitness=4726.798805952124 population=50 a=1.9
+[Progress:==>                           8%] [Cov:=========>                         28%][Progress:==>                           9%] [Cov:=========>                         27%][Progress:==>                           9%] [Cov:=========>                         28%][Progress:==>                           9%] [Cov:==========>                        29%][Progress:===>                          10%] [Cov:=========>                         27%][Progress:===>                          10%] [Cov:=========>                         28%][Progress:===>                          10%] [Cov:==========>                        29%][Progress:===>                          10%] [Cov:==========>                        30%][Progress:===>                          11%] [Cov:========>                          25%][Progress:===>                          11%] [Cov:==========>                        30%][Progress:===>                          12%] [Cov:=========>                         28%][Progress:===>                          12%] [Cov:==========>                        30%][Progress:===>                          12%] [Cov:==========>                        31%][Progress:===>                          12%] [Cov:==========>                        30%][Progress:===>                          13%] [Cov:==========>                        30%][Progress:===>                          13%] [Cov:==========>                        31%][Progress:====>                         14%] [Cov:==========>                        30%][Progress:====>                         14%] [Cov:==========>                        31%][Progress:====>                         15%] [Cov:==========>                        30%][Progress:====>                         15%] [Cov:==========>                        31%][Progress:====>                         16%] [Cov:==========>                        31%][Progress:====>                         16%] [Cov:==========>                        31%][Progress:=====>                        17%] [Cov:==========>                        31%][Progress:=====>                        17%] [Cov:===========>                       32%][Progress:=====>                        18%] [Cov:==========>                        29%][Progress:=====>                        18%] [Cov:==========>                        31%][Progress:=====>                        18%] [Cov:===========>                       32%][Progress:=====>                        19%] [Cov:==========>                        31%][Progress:=====>                        19%] [Cov:===========>                       32%][Progress:=====>                        19%] [Cov:===========>                       33%][Progress:======>                       20%] [Cov:==========>                        31%][Progress:======>                       20%] [Cov:===========>                       33%][Progress:======>                       21%] [Cov:==========>                        31%][Progress:======>                       21%] [Cov:===========>                       33%][Progress:======>                       22%] [Cov:=========>                         28%][Progress:======>                       22%] [Cov:==========>                        29%][Progress:======>                       22%] [Cov:===========>                       32%][Progress:======>                       22%] [Cov:===========>                       33%][Progress:======>                       22%] [Cov:===========>                       33%][Progress:======>                       23%] [Cov:===========>                       33%][Progress:=======>                      24%] [Cov:===========>                       33%][Progress:=======>                      24%] [Cov:===========>                       34%][Progress:=======>                      25%] [Cov:=========>                         28%][Progress:=======>                      25%] [Cov:===========>                       32%][Progress:=======>                      25%] [Cov:===========>                       33%][Progress:=======>                      25%] [Cov:===========>                       33%][Progress:=======>                      25%] [Cov:===========>                       34%][Progress:=======>                      26%] [Cov:===========>                       33%][Progress:=======>                      26%] [Cov:===========>                       33%][Progress:========>                     27%] [Cov:===========>                       33%][Progress:========>                     28%] [Cov:===========>                       33%][Progress:========>                     28%] [Cov:===========>                       34%][Progress:========>                     29%] [Cov:===========>                       33%][Progress:========>                     29%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       33%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    31%] [Cov:===========>                       33%][Progress:=========>                    31%] [Cov:===========>                       34%][Progress:=========>                    31%] [Cov:===========>                       34%][Progress:=========>                    32%] [Cov:===========>                       33%][Progress:=========>                    32%] [Cov:===========>                       34%][Progress:=========>                    33%] [Cov:===========>                       33%][Progress:=========>                    33%] [Cov:===========>                       34%][Progress:==========>                   35%] [Cov:===========>                       34%][Progress:==========>                   36%] [Cov:==========>                        29%][Progress:==========>                   36%] [Cov:===========>                       33%][Progress:==========>                   36%] [Cov:===========>                       34%][Progress:==========>                   36%] [Cov:===========>                       34%][Progress:===========>                  37%] [Cov:===========>                       34%][Progress:===========>                  37%] [Cov:============>                      35%][Progress:===========>                  38%] [Cov:===========>                       34%][Progress:===========>                  39%] [Cov:===========>                       34%][Progress:============>                 40%] [Cov:===========>                       34%][Progress:============>                 40%] [Cov:============>                      35%][Progress:============>                 41%] [Cov:============>                      35%][Progress:============>                 42%] [Cov:===========>                       34%][Progress:============>                 42%] [Cov:============>                      35%][Progress:============>                 42%] [Cov:============>                      36%][Progress:============>                 43%] [Cov:============>                      35%][Progress:============>                 43%] [Cov:============>                      36%]GWO iteration=20 bestFitness=4436.934611753 population=50 a=1.6
+========== GWO EVOLVE iteration=20 population=50 ==========
+[Progress:=============>                44%] [Cov:============>                      36%][Progress:=============>                45%] [Cov:============>                      35%][Progress:=============>                45%] [Cov:============>                      36%][Progress:=============>                45%] [Cov:============>                      36%][Progress:=============>                46%] [Cov:============>                      35%][Progress:=============>                46%] [Cov:============>                      36%][Progress:==============>               47%] [Cov:============>                      36%][Progress:==============>               48%] [Cov:============>                      36%][Progress:==============>               48%] [Cov:============>                      36%][Progress:==============>               49%] [Cov:============>                      36%][Progress:===============>              50%] [Cov:============>                      36%][Progress:===============>              51%] [Cov:============>                      36%][Progress:===============>              51%] [Cov:============>                      36%][Progress:===============>              52%] [Cov:============>                      36%][Progress:===============>              53%] [Cov:============>                      36%][Progress:===============>              53%] [Cov:============>                      37%][Progress:================>             54%] [Cov:============>                      35%][Progress:================>             54%] [Cov:============>                      36%][Progress:================>             54%] [Cov:============>                      36%][Progress:================>             55%] [Cov:============>                      36%][Progress:================>             56%] [Cov:============>                      36%][Progress:=================>            57%] [Cov:===========>                       34%][Progress:=================>            57%] [Cov:============>                      36%][Progress:=================>            58%] [Cov:============>                      36%][Progress:=================>            59%] [Cov:============>                      36%][Progress:==================>           60%] [Cov:============>                      36%][Progress:==================>           60%] [Cov:============>                      36%][Progress:==================>           60%] [Cov:============>                      37%][Progress:==================>           61%] [Cov:============>                      36%][Progress:==================>           61%] [Cov:============>                      37%][Progress:==================>           63%] [Cov:============>                      36%][Progress:==================>           63%] [Cov:============>                      36%][Progress:===================>          64%] [Cov:============>                      36%][Progress:===================>          65%] [Cov:============>                      36%][Progress:===================>          65%] [Cov:============>                      37%][Progress:===================>          65%] [Cov:=============>                     38%][Progress:===================>          65%] [Cov:=============>                     38%][Progress:===================>          66%] [Cov:============>                      36%][Progress:===================>          66%] [Cov:=============>                     38%][Progress:====================>         67%] [Cov:=============>                     38%][Progress:====================>         68%] [Cov:============>                      36%][Progress:====================>         68%] [Cov:=============>                     38%][Progress:====================>         69%] [Cov:============>                      35%][Progress:====================>         69%] [Cov:=============>                     38%][Progress:====================>         69%] [Cov:============>                      36%][Progress:====================>         69%] [Cov:=============>                     38%][Progress:=====================>        70%] [Cov:=============>                     38%][Progress:=====================>        71%] [Cov:=============>                     38%][Progress:=====================>        71%] [Cov:============>                      36%][Progress:=====================>        72%] [Cov:============>                      36%][Progress:=====================>        72%] [Cov:=============>                     38%][Progress:=====================>        73%] [Cov:============>                      36%][Progress:=====================>        73%] [Cov:=============>                     38%][Progress:======================>       74%] [Cov:============>                      35%][Progress:======================>       74%] [Cov:============>                      36%][Progress:======================>       74%] [Cov:============>                      37%][Progress:======================>       74%] [Cov:=============>                     38%][Progress:======================>       75%] [Cov:============>                      37%][Progress:======================>       75%] [Cov:=============>                     38%][Progress:======================>       76%] [Cov:============>                      35%][Progress:======================>       76%] [Cov:=============>                     38%][Progress:=======================>      77%] [Cov:============>                      37%][Progress:=======================>      77%] [Cov:=============>                     38%][Progress:=======================>      78%] [Cov:============>                      37%][Progress:=======================>      78%] [Cov:=============>                     38%][Progress:=======================>      79%] [Cov:=============>                     38%][Progress:=======================>      79%] [Cov:============>                      37%][Progress:=======================>      79%] [Cov:=============>                     38%][Progress:========================>     80%] [Cov:=============>                     38%][Progress:========================>     81%] [Cov:============>                      37%][Progress:========================>     81%] [Cov:=============>                     38%][Progress:========================>     81%] [Cov:============>                      37%][Progress:========================>     82%] [Cov:============>                      37%][Progress:========================>     82%] [Cov:=============>                     38%][Progress:========================>     83%] [Cov:============>                      37%][Progress:========================>     83%] [Cov:=============>                     38%][Progress:=========================>    84%] [Cov:============>                      37%][Progress:=========================>    84%] [Cov:=============>                     38%][Progress:=========================>    85%] [Cov:============>                      37%][Progress:=========================>    85%] [Cov:============>                      37%][Progress:=========================>    85%] [Cov:=============>                     38%][Progress:=========================>    86%] [Cov:============>                      37%][Progress:=========================>    86%] [Cov:=============>                     38%][Progress:==========================>   87%] [Cov:============>                      37%][Progress:==========================>   87%] [Cov:=============>                     38%][Progress:==========================>   88%] [Cov:============>                      37%][Progress:==========================>   88%] [Cov:=============>                     38%][Progress:==========================>   89%] [Cov:============>                      37%][Progress:==========================>   89%] [Cov:=============>                     38%][Progress:===========================>  90%] [Cov:=============>                     38%][Progress:===========================>  91%] [Cov:=============>                     38%][Progress:===========================>  91%] [Cov:=============>                     38%][Progress:===========================>  92%] [Cov:=============>                     38%][Progress:===========================>  93%] [Cov:============>                      37%][Progress:===========================>  93%] [Cov:=============>                     38%][Progress:============================> 94%] [Cov:============>                      37%][Progress:============================> 94%] [Cov:=============>                     38%][Progress:============================> 94%] [Cov:=============>                     38%][Progress:============================> 95%] [Cov:=============>                     38%][Progress:============================> 95%] [Cov:=============>                     39%][Progress:============================> 96%] [Cov:============>                      37%][Progress:============================> 96%] [Cov:=============>                     38%][Progress:============================> 96%] [Cov:=============>                     39%][Progress:=============================>97%] [Cov:=============>                     39%][Progress:=============================>98%] [Cov:=============>                     38%][Progress:=============================>98%] [Cov:=============>                     39%][Progress:=============================>99%] [Cov:=============>                     38%][Progress:=============================>99%] [Cov:=============>                     39%][Progress:==============================100%] [Cov:============>                      37%][Progress:==============================100%] [Cov:=============>                     39%][Progress:==============================100%] [Cov:=============>                     39%]GWO iteration=40 bestFitness=4089.1614462672546 population=50 a=1.2
+========== GWO EVOLVE iteration=40 population=50 ==========
+[Progress:==============================100%] [Cov:==============>                    40%][Progress:==============================100%] [Cov:=============>                     39%][Progress:==============================100%] [Cov:===============>                   45%]
+* Search finished after 121s and 41 generations, 7757 statements, best individual has fitness: 3759.4073657637173
+* Minimizing test suite
+* Going to analyze the coverage criteria
+* Coverage analysis for criterion LINE
+* Coverage of criterion LINE: 36%
+* Total number of goals: 684
+* Number of covered goals: 248
+* Coverage analysis for criterion BRANCH
+* Coverage of criterion BRANCH: 33%
+* Total number of goals: 662
+* Number of covered goals: 218
+* Coverage analysis for criterion EXCEPTION
+* Coverage of criterion EXCEPTION: 100%
+* Total number of goals: 58
+* Number of covered goals: 58
+* Coverage analysis for criterion WEAKMUTATION
+* Coverage of criterion WEAKMUTATION: 27%
+* Total number of goals: 705
+* Number of covered goals: 193
+* Coverage analysis for criterion OUTPUT
+* Coverage of criterion OUTPUT: 18%
+* Total number of goals: 38
+* Number of covered goals: 7
+* Coverage analysis for criterion METHOD
+* Coverage of criterion METHOD: 100%
+* Total number of goals: 23
+* Number of covered goals: 23
+* Coverage analysis for criterion METHODNOEXCEPTION
+* Coverage of criterion METHODNOEXCEPTION: 48%
+* Total number of goals: 23
+* Number of covered goals: 11
+* Coverage analysis for criterion CBRANCH
+* Coverage of criterion CBRANCH: 32%
+* Total number of goals: 662
+* Number of covered goals: 211
+* Generated 73 tests with total length 257
+* Resulting test suite's coverage: 46% (average coverage for all fitness functions)
+* Generating assertions
+* Resulting test suite's mutation score: 3%
+* Compiling and checking tests
+[MASTER] 20:47:36.931 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.ServerException: RemoteException occurred in server thread; nested exception is: 
+	java.rmi.UnmarshalException: error unmarshalling arguments; nested exception is: 
+	java.lang.ClassNotFoundException: com.google.gson.stream.JsonToken (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:391)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.TestSuiteGenerator.postProcessTests(TestSuiteGenerator.java:502)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:218)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.rmi.UnmarshalException: error unmarshalling arguments; nested exception is: 
+	java.lang.ClassNotFoundException: com.google.gson.stream.JsonToken (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:350)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	... 3 common frames omitted
+Caused by: java.lang.ClassNotFoundException: com.google.gson.stream.JsonToken (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.LoaderHandler.loadClass(LoaderHandler.java:396)
+	at java.rmi/sun.rmi.server.LoaderHandler.loadClass(LoaderHandler.java:186)
+	at java.rmi/java.rmi.server.RMIClassLoader$2.loadClass(RMIClassLoader.java:637)
+	at java.rmi/java.rmi.server.RMIClassLoader.loadClass(RMIClassLoader.java:264)
+	at java.rmi/sun.rmi.server.MarshalInputStream.resolveClass(MarshalInputStream.java:213)
+	at java.base/java.io.ObjectInputStream.readNonProxyDesc(ObjectInputStream.java:2003)
+	at java.base/java.io.ObjectInputStream.readClassDesc(ObjectInputStream.java:1870)
+	at java.base/java.io.ObjectInputStream.readEnum(ObjectInputStream.java:2153)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1681)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.assertion.Assertion.readObject(Assertion.java:264)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.HashSet.readObject(HashSet.java:342)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor4.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at jdk.internal.reflect.GeneratedMethodAccessor13.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	... 12 common frames omitted
+* Writing tests to file
+* Writing JUnit test case 'JsonReader_ESTest' to /home/user/evosuite-results/Gson-4b/GWO/com_google_gson_stream_JsonReader/evosuite-tests
+* Done!
+
+[MASTER] 20:47:45.861 [logback-2] ERROR ClientNodeImpl - Error when generating tests for: com.google.gson.stream.JsonReader with seed 1789739116152. Configuration id : null
+java.rmi.ServerException: RemoteException occurred in server thread; nested exception is: 
+	java.rmi.UnmarshalException: error unmarshalling arguments; nested exception is: 
+	java.lang.ClassNotFoundException: com.google.gson.stream.JsonToken (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:391)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectTestGenerationResult(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:144)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.rmi.UnmarshalException: error unmarshalling arguments; nested exception is: 
+	java.lang.ClassNotFoundException: com.google.gson.stream.JsonToken (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:350)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	... 3 common frames omitted
+Caused by: java.lang.ClassNotFoundException: com.google.gson.stream.JsonToken (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.LoaderHandler.loadClass(LoaderHandler.java:396)
+	at java.rmi/sun.rmi.server.LoaderHandler.loadClass(LoaderHandler.java:186)
+	at java.rmi/java.rmi.server.RMIClassLoader$2.loadClass(RMIClassLoader.java:637)
+	at java.rmi/java.rmi.server.RMIClassLoader.loadClass(RMIClassLoader.java:264)
+	at java.rmi/sun.rmi.server.MarshalInputStream.resolveClass(MarshalInputStream.java:213)
+	at java.base/java.io.ObjectInputStream.readNonProxyDesc(ObjectInputStream.java:2003)
+	at java.base/java.io.ObjectInputStream.readClassDesc(ObjectInputStream.java:1870)
+	at java.base/java.io.ObjectInputStream.readEnum(ObjectInputStream.java:2153)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1681)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.assertion.Assertion.readObject(Assertion.java:264)
+	at jdk.internal.reflect.GeneratedMethodAccessor22.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.HashSet.readObject(HashSet.java:342)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor4.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at jdk.internal.reflect.GeneratedMethodAccessor13.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.HashMap.readObject(HashMap.java:1466)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor8.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	... 12 common frames omitted
+* Computation finished

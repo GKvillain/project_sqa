@@ -1,0 +1,85 @@
+JUnit version 4.12
+22:40:45.745 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.cli.CommandLine_ESTest
+22:40:45.746 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.cli.CommandLine_ESTest'.
+22:40:45.772 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.cli.CommandLine_ESTest_scaffolding
+22:40:45.772 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.cli.CommandLine_ESTest_scaffolding'.
+22:40:45.775 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.cli.CommandLine_ESTest_scaffolding
+22:40:45.775 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.cli.CommandLine_ESTest
+WARNING: An illegal reflective access operation has occurred
+WARNING: Illegal reflective access by org.evosuite.runtime.GuiSupport (file:/home/user/evosuite-gwo/evosuite/runtime/target/evosuite-runtime-1.2.1-SNAPSHOT.jar) to field java.awt.GraphicsEnvironment.headless
+WARNING: Please consider reporting this to the maintainers of org.evosuite.runtime.GuiSupport
+WARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operations
+WARNING: All illegal access operations will be denied in a future release
+22:40:45.993 [main] DEBUG org.evosuite.runtime.sandbox.MSecurityManager - Adding privileged thread: "Reference Handler"
+22:40:45.993 [main] DEBUG org.evosuite.runtime.sandbox.MSecurityManager - Adding privileged thread: "Finalizer"
+22:40:45.993 [main] DEBUG org.evosuite.runtime.sandbox.MSecurityManager - Adding privileged thread: "Signal Dispatcher"
+22:40:45.993 [main] DEBUG org.evosuite.runtime.sandbox.MSecurityManager - Adding privileged thread: "Java2D Disposer"
+22:40:45.993 [main] DEBUG org.evosuite.runtime.sandbox.MSecurityManager - Adding privileged thread: "AWT-XAWT"
+22:40:45.993 [main] DEBUG org.evosuite.runtime.sandbox.MSecurityManager - Adding privileged thread: "main"
+22:40:45.993 [main] DEBUG org.evosuite.runtime.sandbox.MSecurityManager - Adding privileged thread: "Common-Cleaner"
+22:40:46.012 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.cli.PatternOptionBuilder
+22:40:46.012 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.cli.PatternOptionBuilder'.
+22:40:46.017 [main] INFO org.evosuite.runtime.instrumentation.MethodCallReplacementClassAdapter - Adding mock interface to class org/apache/commons/cli/PatternOptionBuilder
+22:40:46.096 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Found static initializer in class org/apache/commons/cli/PatternOptionBuilder
+22:40:46.098 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.cli.PatternOptionBuilder
+22:40:46.098 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.cli.OptionValidator
+22:40:46.098 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.cli.OptionValidator'.
+22:40:46.099 [main] INFO org.evosuite.runtime.instrumentation.MethodCallReplacementClassAdapter - Adding mock interface to class org/apache/commons/cli/OptionValidator
+22:40:46.102 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Creating brand-new static initializer in class org/apache/commons/cli/OptionValidator
+22:40:46.102 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.cli.OptionValidator
+22:40:46.102 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.cli.CommandLine
+22:40:46.102 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.cli.CommandLine'.
+22:40:46.103 [main] INFO org.evosuite.runtime.instrumentation.MethodCallReplacementClassAdapter - Adding mock interface to class org/apache/commons/cli/CommandLine
+22:40:46.105 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Creating brand-new static initializer in class org/apache/commons/cli/CommandLine
+22:40:46.105 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.cli.CommandLine
+22:40:46.106 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.cli.TypeHandler
+22:40:46.106 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.cli.TypeHandler'.
+22:40:46.106 [main] INFO org.evosuite.runtime.instrumentation.MethodCallReplacementClassAdapter - Adding mock interface to class org/apache/commons/cli/TypeHandler
+22:40:46.109 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Creating brand-new static initializer in class org/apache/commons/cli/TypeHandler
+22:40:46.109 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.cli.TypeHandler
+22:40:46.110 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.cli.Option
+22:40:46.110 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.cli.Option'.
+22:40:46.112 [main] INFO org.evosuite.runtime.instrumentation.MethodCallReplacementClassAdapter - Adding mock interface to class org/apache/commons/cli/Option
+22:40:46.116 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Creating brand-new static initializer in class org/apache/commons/cli/Option
+22:40:46.116 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Adding bytecode for initializing field UNINITIALIZED
+22:40:46.116 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Adding bytecode for initializing field UNLIMITED_VALUES
+22:40:46.117 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.cli.Option
+22:40:46.117 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.cli.Util
+22:40:46.117 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.cli.Util'.
+22:40:46.118 [main] INFO org.evosuite.runtime.instrumentation.MethodCallReplacementClassAdapter - Adding mock interface to class org/apache/commons/cli/Util
+22:40:46.119 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Creating brand-new static initializer in class org/apache/commons/cli/Util
+22:40:46.119 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.cli.Util
+22:40:46.119 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.cli.Options
+22:40:46.119 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.cli.Options'.
+22:40:46.120 [main] INFO org.evosuite.runtime.instrumentation.MethodCallReplacementClassAdapter - Adding mock interface to class org/apache/commons/cli/Options
+22:40:46.121 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Creating brand-new static initializer in class org/apache/commons/cli/Options
+22:40:46.121 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.cli.Options
+.22:40:46.130 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Seeing class for first time: org.apache.commons.lang.StringUtils
+22:40:46.130 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Instrumenting class 'org.apache.commons.lang.StringUtils'.
+22:40:46.133 [main] INFO org.evosuite.runtime.instrumentation.MethodCallReplacementClassAdapter - Adding mock interface to class org/apache/commons/lang/StringUtils
+22:40:46.133 [main] INFO org.evosuite.runtime.instrumentation.CreateClassResetClassAdapter - Found static initializer in class org/apache/commons/lang/StringUtils
+22:40:46.145 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Defined package (3): package org.apache.commons.lang, 802260682
+22:40:46.146 [main] INFO org.evosuite.runtime.instrumentation.EvoClassLoader - Keeping class: org.apache.commons.lang.StringUtils
+..22:40:46.157 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.160 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.162 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.164 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.166 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+...22:40:46.174 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+..22:40:46.178 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.180 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+..22:40:46.184 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.....22:40:46.195 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.196 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.198 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.......22:40:46.214 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+..22:40:46.219 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+....22:40:46.228 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.229 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.231 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+.22:40:46.233 [main] INFO org.evosuite.runtime.thread.ThreadStopper - Found new thread
+
+Time: 0.426
+
+OK (38 tests)
+
