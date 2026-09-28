@@ -12,8 +12,6 @@
 - บันทึกผลเป็น CSV
 - Resume การทำงานจากจุดเดิมได้
 
-โปรแกรมใช้ External Test Suite ผ่าน `defects4j test -s` และ `defects4j coverage -s` โดยไม่แก้ไข Developer Tests เดิม
-
 ## 1. Requirements
 
 ต้องติดตั้ง:
