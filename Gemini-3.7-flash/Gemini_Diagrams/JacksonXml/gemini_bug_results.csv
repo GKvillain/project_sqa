@@ -1,0 +1,7 @@
+project,bug_id,line_total,line_covered,line_coverage,condition_total,condition_covered,condition_coverage,refinement_rounds,tokens_used,compile_rate,fault_detected
+JacksonXml,1,0.0,0.0,,0.0,0.0,,1.0,23364.0,0.0,0
+JacksonXml,2,170.0,138.0,81.18,74.0,52.0,70.27,0.0,9325.0,100.0,1
+JacksonXml,3,0.0,0.0,,0.0,0.0,,1.0,24386.0,0.0,0
+JacksonXml,4,119.0,88.0,73.95,58.0,37.0,63.79,0.0,7728.0,100.0,1
+JacksonXml,5,0.0,0.0,,0.0,0.0,,1.0,6318.0,0.0,0
+JacksonXml,6,485.0,173.0,35.67,222.0,58.0,26.13,1.0,26941.0,100.0,0
