@@ -30,9 +30,24 @@ PROJECT="$1"
 START_BUG="$2"
 END_BUG="$3"
 
+# ============================================================
+# Paths
+# ============================================================
+
 WORKSPACE="$HOME/d4j-workspace"
-RESULT_BASE="$HOME/evosuite-results"
+
+# Result:
+# ~/Result_Round1/
+# ├── Chart/
+# ├── Lang/
+# ├── Math/
+# ├── Time/
+# └── Closure/
+
+RESULT_BASE="$HOME/Result_Round1/$PROJECT"
+
 EVOSUITE_JAR="$HOME/evosuite-gwo/evosuite/master/target/evosuite-master-1.2.1-SNAPSHOT.jar"
+
 
 # ============================================================
 # Validate input
@@ -56,6 +71,11 @@ fi
 
 mkdir -p "$RESULT_BASE"
 
+
+# ============================================================
+# Header
+# ============================================================
+
 echo
 echo "======================================================"
 echo "EvoSuite GWO"
@@ -76,12 +96,25 @@ echo
 for BUG in $(seq "$START_BUG" "$END_BUG"); do
 
     PROJECT_DIR="$WORKSPACE/${PROJECT}-${BUG}b"
-    RESULT_DIR="$RESULT_BASE/${PROJECT}-${BUG}b/GWO"
+
+    # --------------------------------------------------------
+    # Result structure
+    #
+    # Result_Round1/
+    # └── Chart/
+    #     └── Chart-10b/
+    #         ├── GWO/
+    #         └── GWO-compile.log
+    # --------------------------------------------------------
+
+    BUG_RESULT_BASE="$RESULT_BASE/${PROJECT}-${BUG}b"
+    RESULT_DIR="$BUG_RESULT_BASE/GWO"
 
     echo
     echo "======================================================"
     echo "Running ${PROJECT}-${BUG}b"
     echo "======================================================"
+
 
     # --------------------------------------------------------
     # Check project directory
@@ -98,7 +131,13 @@ for BUG in $(seq "$START_BUG" "$END_BUG"); do
         continue
     }
 
+
+    # --------------------------------------------------------
+    # Create result directory
+    # --------------------------------------------------------
+
     mkdir -p "$RESULT_DIR"
+
 
     # --------------------------------------------------------
     # Clean old build files
@@ -115,12 +154,14 @@ for BUG in $(seq "$START_BUG" "$END_BUG"); do
 
     echo "Compiling ${PROJECT}-${BUG}b..."
 
-    defects4j compile > "$RESULT_DIR-compile.log" 2>&1
+    defects4j compile > "$BUG_RESULT_BASE/GWO-compile.log" 2>&1
 
-    if [ $? -ne 0 ]; then
+    COMPILE_EXIT=$?
+
+    if [ $COMPILE_EXIT -ne 0 ]; then
         echo "COMPILE FAILED: ${PROJECT}-${BUG}b"
         echo "See:"
-        echo "$RESULT_DIR-compile.log"
+        echo "$BUG_RESULT_BASE/GWO-compile.log"
         continue
     fi
 
@@ -188,7 +229,6 @@ for BUG in $(seq "$START_BUG" "$END_BUG"); do
     add_cp "$PROJECT_DIR/$BIN_CLASSES"
     add_cp "$PROJECT_DIR/$BIN_TESTS"
 
-    # Some Defects4J projects use these directories
     add_cp "$PROJECT_DIR/build"
     add_cp "$PROJECT_DIR/build-tests"
 
@@ -286,6 +326,7 @@ for BUG in $(seq "$START_BUG" "$END_BUG"); do
 
         echo "Exit code: $EXIT_CODE"
 
+
     done <<< "$TARGETS"
 
 
@@ -303,5 +344,5 @@ echo
 echo "======================================================"
 echo "All ${PROJECT} bugs finished"
 echo "Bug range: ${START_BUG}-${END_BUG}"
+echo "Result directory: $RESULT_BASE"
 echo "======================================================"
-
