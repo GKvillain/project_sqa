@@ -1,0 +1,9 @@
+Project: Lang
+Bug: Lang-1b
+Algorithm: GWO
+Target Class: org.apache.commons.lang3.math.NumberUtils
+Search Budget: 120s
+Start Time: 2026-09-17 11:03:07
+End Time: 2026-09-17 11:03:09
+Exit Code: 0
+Project Classpath: /home/user/d4j-workspace/Lang-1b/target/classes

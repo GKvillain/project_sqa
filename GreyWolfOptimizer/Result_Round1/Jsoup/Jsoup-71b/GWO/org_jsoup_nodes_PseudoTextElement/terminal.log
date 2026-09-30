@@ -1,0 +1,3 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: org.jsoup.nodes.PseudoTextElement
+* Unknown class: org.jsoup.nodes.PseudoTextElement. Be sure its full qualifying name  is correct and the classpath is properly set with '-projectCP'

@@ -1,0 +1,822 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: org.jsoup.nodes.Node
+* Starting Client-0
+* Connecting to master process on port 19033
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/Jsoup-10b/target/classes
+  - /home/user/defects4j/framework/projects/Jsoup/lib/junit/junit/4.5/junit-4.5.jar
+  - /home/user/d4j-workspace/Jsoup-10b/target/classes
+  - /home/user/d4j-workspace/Jsoup-10b/target/test-classes
+  - /home/user/defects4j/framework/projects/lib/junit-4.12-hamcrest-1.3.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/com/google/code/gson/gson/2.7/gson-2.7.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/commons-lang/commons-lang/2.4/commons-lang-2.4.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/junit/junit/4.12/junit-4.12.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-http/9.2.22.v20170606/jetty-http-9.2.22.v20170606.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-http/9.2.26.v20180806/jetty-http-9.2.26.v20180806.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-http/9.2.28.v20190418/jetty-http-9.2.28.v20190418.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-io/9.2.22.v20170606/jetty-io-9.2.22.v20170606.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-io/9.2.26.v20180806/jetty-io-9.2.26.v20180806.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-io/9.2.28.v20190418/jetty-io-9.2.28.v20190418.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-security/9.2.22.v20170606/jetty-security-9.2.22.v20170606.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-security/9.2.26.v20180806/jetty-security-9.2.26.v20180806.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-security/9.2.28.v20190418/jetty-security-9.2.28.v20190418.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-server/9.2.22.v20170606/jetty-server-9.2.22.v20170606.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-server/9.2.26.v20180806/jetty-server-9.2.26.v20180806.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-server/9.2.28.v20190418/jetty-server-9.2.28.v20190418.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-servlet/9.2.22.v20170606/jetty-servlet-9.2.22.v20170606.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-servlet/9.2.26.v20180806/jetty-servlet-9.2.26.v20180806.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-servlet/9.2.28.v20190418/jetty-servlet-9.2.28.v20190418.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-util/9.2.22.v20170606/jetty-util-9.2.22.v20170606.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-util/9.2.26.v20180806/jetty-util-9.2.26.v20180806.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/eclipse/jetty/jetty-util/9.2.28.v20190418/jetty-util-9.2.28.v20190418.jar
+  - /home/user/defects4j/framework/projects/Jsoup/lib/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+  - /home/user/d4j-workspace/Jsoup-10b/target/classes
+  - /home/user/d4j-workspace/Jsoup-10b/target/test-classes
+[MASTER] 07:55:45.990 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.util.Locale$IsoCountryCode
+* Finished analyzing classpath
+* Generating tests for class org.jsoup.nodes.Node
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 153
+  - Branch 73
+  - Exception 0
+  - MutationFactory 297
+  - Output 62
+  - Method 36
+  - MethodNoException 36
+  - CBranchFitnessFactory 73
+[Progress:>                             0%] [Cov:>                                  0%]* Using seed 1789865743968
+* Starting evolution
+[Progress:>                             0%] [Cov:>                                  2%][Progress:>                             0%] [Cov:=>                                 3%][Progress:>                             0%] [Cov:=====>                             16%][Progress:>                             0%] [Cov:======>                            18%][Progress:>                             0%] [Cov:======>                            19%][Progress:>                             0%] [Cov:========>                          24%][Progress:>                             0%] [Cov:=========>                         27%][Progress:>                             0%] [Cov:==========>                        30%][Progress:>                             0%] [Cov:===========>                       32%][Progress:>                             0%] [Cov:============>                      36%][Progress:>                             0%] [Cov:============>                      37%][Progress:>                             0%] [Cov:=============>                     38%][Progress:>                             0%] [Cov:===============>                   44%][Progress:>                             2%] [Cov:>                                  2%][Progress:>                             2%] [Cov:=>                                 4%][Progress:>                             2%] [Cov:=====>                             17%][Progress:>                             2%] [Cov:======>                            18%][Progress:>                             2%] [Cov:======>                            19%][Progress:>                             2%] [Cov:=======>                           20%][Progress:>                             2%] [Cov:=======>                           22%][Progress:>                             2%] [Cov:========>                          23%][Progress:>                             2%] [Cov:==========>                        31%][Progress:>                             2%] [Cov:===========>                       32%][Progress:>                             2%] [Cov:============>                      37%][Progress:>                             3%] [Cov:=>                                 4%][Progress:>                             3%] [Cov:===>                               9%][Progress:>                             3%] [Cov:=======>                           22%][Progress:>                             3%] [Cov:=========>                         27%][Progress:>                             3%] [Cov:=========>                         28%][Progress:>                             3%] [Cov:===========>                       32%][Progress:>                             3%] [Cov:===========>                       34%][Progress:>                             3%] [Cov:============>                      35%][Progress:>                             3%] [Cov:==============>                    40%][Progress:=>                            5%] [Cov:==>                                6%][Progress:=>                            5%] [Cov:====>                              12%][Progress:=>                            5%] [Cov:========>                          25%][Progress:=>                            5%] [Cov:===========>                       33%][Progress:=>                            5%] [Cov:============>                      35%][Progress:=>                            5%] [Cov:============>                      36%][Progress:=>                            5%] [Cov:==============>                    40%][Progress:=>                            5%] [Cov:==============>                    41%][Progress:=>                            5%] [Cov:==============>                    42%][Progress:=>                            6%] [Cov:=>                                 4%][Progress:=>                            6%] [Cov:==>                                8%][Progress:=>                            6%] [Cov:=======>                           21%][Progress:=>                            6%] [Cov:=========>                         26%][Progress:=>                            6%] [Cov:=========>                         27%][Progress:=>                            6%] [Cov:=========>                         28%][Progress:=>                            6%] [Cov:==========>                        31%][Progress:=>                            6%] [Cov:===========>                       32%][Progress:=>                            6%] [Cov:===========>                       34%][Progress:=>                            6%] [Cov:=============>                     38%][Progress:=>                            6%] [Cov:==============>                    40%][Progress:==>                           9%] [Cov:=>                                 4%][Progress:==>                           9%] [Cov:==>                                7%][Progress:==>                           9%] [Cov:=======>                           20%][Progress:==>                           9%] [Cov:========>                          24%][Progress:==>                           9%] [Cov:========>                          25%][Progress:==>                           9%] [Cov:=========>                         26%][Progress:==>                           9%] [Cov:==========>                        29%][Progress:==>                           9%] [Cov:==========>                        30%][Progress:==>                           9%] [Cov:===========>                       34%][Progress:==>                           9%] [Cov:============>                      35%][Progress:==>                           9%] [Cov:============>                      36%][Progress:==>                           9%] [Cov:==============>                    41%][Progress:==>                           9%] [Cov:==============>                    41%]========== GWO EVOLVE iteration=0 population=50 ==========
+[Progress:==>                           9%] [Cov:===============>                   44%][Progress:==>                           9%] [Cov:==============>                    42%]GWO iteration=1 bestFitness=414.9857142848113 population=50 a=1.98
+========== GWO EVOLVE iteration=1 population=50 ==========
+[Progress:==>                           9%] [Cov:===============>                   43%][Progress:==>                           9%] [Cov:===============>                   44%][Progress:==>                           9%] [Cov:===============>                   45%][Progress:==>                           9%] [Cov:================>                  46%][Progress:==>                           9%] [Cov:===============>                   44%]GWO iteration=2 bestFitness=385.98333333193636 population=50 a=1.96
+========== GWO EVOLVE iteration=2 population=50 ==========
+[Progress:==>                           9%] [Cov:================>                  46%][Progress:==>                           9%] [Cov:================>                  47%][Progress:==>                           9%] [Cov:================>                  48%][Progress:===>                          10%] [Cov:==============>                    42%][Progress:===>                          10%] [Cov:===============>                   43%][Progress:===>                          10%] [Cov:===============>                   44%][Progress:===>                          10%] [Cov:================>                  46%][Progress:===>                          10%] [Cov:================>                  48%]GWO iteration=3 bestFitness=362.48275861978664 population=50 a=1.94
+========== GWO EVOLVE iteration=3 population=50 ==========
+[Progress:===>                          10%] [Cov:================>                  47%]GWO iteration=4 bestFitness=361.4824561394479 population=50 a=1.92
+========== GWO EVOLVE iteration=4 population=50 ==========
+[Progress:===>                          10%] [Cov:================>                  48%][Progress:===>                          10%] [Cov:=================>                 49%][Progress:===>                          10%] [Cov:================>                  48%]GWO iteration=5 bestFitness=341.9811320738713 population=50 a=1.9
+[Progress:===>                          10%] [Cov:=================>                 49%][Progress:===>                          10%] [Cov:=================>                 49%][Progress:===>                          10%] [Cov:=================>                 50%][Progress:===>                          12%] [Cov:================>                  48%][Progress:===>                          12%] [Cov:=================>                 49%][Progress:===>                          12%] [Cov:=================>                 50%][Progress:===>                          13%] [Cov:=================>                 50%][Progress:====>                         15%] [Cov:================>                  46%][Progress:====>                         15%] [Cov:=================>                 49%][Progress:====>                         15%] [Cov:=================>                 50%][Progress:====>                         15%] [Cov:=================>                 50%][Progress:====>                         15%] [Cov:=================>                 51%][Progress:=====>                        18%] [Cov:===============>                   45%][Progress:=====>                        18%] [Cov:=================>                 50%][Progress:=====>                        18%] [Cov:=================>                 51%][Progress:======>                       20%] [Cov:===============>                   43%][Progress:======>                       20%] [Cov:=================>                 49%][Progress:======>                       20%] [Cov:=================>                 50%][Progress:======>                       20%] [Cov:=================>                 51%][Progress:======>                       23%] [Cov:=================>                 50%][Progress:======>                       23%] [Cov:=================>                 51%][Progress:======>                       23%] [Cov:=================>                 51%][Progress:======>                       23%] [Cov:==================>                52%][Progress:======>                       23%] [Cov:==================>                53%][Progress:======>                       23%] [Cov:==================>                53%][Progress:=======>                      25%] [Cov:=================>                 50%][Progress:=======>                      25%] [Cov:=================>                 51%][Progress:=======>                      25%] [Cov:==================>                53%][Progress:=======>                      25%] [Cov:==================>                54%][Progress:=======>                      25%] [Cov:===================>               55%][Progress:=======>                      26%] [Cov:=================>                 51%][Progress:=======>                      26%] [Cov:==================>                53%][Progress:=======>                      26%] [Cov:==================>                54%][Progress:=======>                      26%] [Cov:===================>               55%][Progress:=======>                      26%] [Cov:===================>               55%][Progress:=======>                      26%] [Cov:===================>               56%][Progress:=======>                      26%] [Cov:===================>               57%][Progress:========>                     27%] [Cov:==================>                53%][Progress:========>                     27%] [Cov:===================>               55%][Progress:========>                     27%] [Cov:===================>               57%][Progress:========>                     27%] [Cov:====================>              58%][Progress:========>                     27%] [Cov:====================>              58%][Progress:========>                     27%] [Cov:====================>              59%][Progress:========>                     27%] [Cov:====================>              59%][Progress:========>                     27%] [Cov:====================>              59%][Progress:========>                     27%] [Cov:=====================>             60%][Progress:=========>                    30%] [Cov:====================>              59%][Progress:=========>                    30%] [Cov:=====================>             60%][Progress:=========>                    30%] [Cov:=====================>             60%][Progress:=========>                    33%] [Cov:=====================>             60%][Progress:=========>                    33%] [Cov:=====================>             60%][Progress:==========>                   35%] [Cov:====================>              59%][Progress:==========>                   35%] [Cov:=====================>             60%][Progress:==========>                   35%] [Cov:=====================>             60%][Progress:===========>                  38%] [Cov:=====================>             60%][Progress:============>                 40%] [Cov:==================>                54%][Progress:============>                 40%] [Cov:=====================>             60%][Progress:============>                 40%] [Cov:=====================>             60%]GWO iteration=20 bestFitness=253.47058823022854 population=50 a=1.6
+========== GWO EVOLVE iteration=20 population=50 ==========
+[Progress:============>                 41%] [Cov:=====================>             60%][Progress:============>                 41%] [Cov:=====================>             61%][Progress:============>                 41%] [Cov:=====================>             61%][Progress:============>                 41%] [Cov:=====================>             61%][Progress:============>                 41%] [Cov:=====================>             61%][Progress:============>                 42%] [Cov:=====================>             61%][Progress:============>                 42%] [Cov:=====================>             62%][Progress:============>                 42%] [Cov:=====================>             62%][Progress:============>                 42%] [Cov:======================>            63%][Progress:============>                 42%] [Cov:======================>            64%][Progress:============>                 42%] [Cov:======================>            64%][Progress:============>                 42%] [Cov:======================>            64%][Progress:=============>                45%] [Cov:=====================>             62%][Progress:=============>                45%] [Cov:======================>            64%][Progress:=============>                45%] [Cov:======================>            65%][Progress:=============>                45%] [Cov:======================>            65%][Progress:==============>               48%] [Cov:======================>            64%][Progress:==============>               48%] [Cov:======================>            65%][Progress:===============>              50%] [Cov:======================>            64%][Progress:===============>              50%] [Cov:======================>            65%][Progress:===============>              50%] [Cov:=======================>           66%][Progress:===============>              50%] [Cov:=======================>           66%][Progress:===============>              51%] [Cov:=======================>           66%][Progress:===============>              51%] [Cov:=======================>           66%][Progress:===============>              51%] [Cov:=======================>           67%][Progress:===============>              51%] [Cov:=======================>           68%][Progress:===============>              51%] [Cov:=======================>           67%][Progress:===============>              51%] [Cov:=======================>           68%][Progress:===============>              51%] [Cov:=======================>           67%][Progress:===============>              51%] [Cov:=======================>           68%][Progress:===============>              52%] [Cov:=======================>           66%][Progress:===============>              52%] [Cov:=======================>           67%][Progress:===============>              52%] [Cov:=======================>           67%][Progress:===============>              52%] [Cov:=======================>           68%][Progress:===============>              52%] [Cov:========================>          69%][Progress:================>             55%] [Cov:=======================>           66%][Progress:================>             55%] [Cov:=======================>           67%][Progress:================>             55%] [Cov:========================>          69%][Progress:================>             56%] [Cov:========================>          69%][Progress:================>             56%] [Cov:========================>          69%][Progress:================>             56%] [Cov:========================>          69%][Progress:================>             56%] [Cov:========================>          70%][Progress:================>             56%] [Cov:========================>          69%][Progress:================>             56%] [Cov:========================>          70%][Progress:=================>            57%] [Cov:=======================>           68%][Progress:=================>            57%] [Cov:========================>          69%][Progress:=================>            57%] [Cov:========================>          70%][Progress:=================>            57%] [Cov:========================>          71%][Progress:=================>            57%] [Cov:========================>          70%][Progress:=================>            57%] [Cov:========================>          71%][Progress:=================>            57%] [Cov:========================>          70%][Progress:=================>            57%] [Cov:========================>          71%][Progress:=================>            58%] [Cov:========================>          70%][Progress:=================>            58%] [Cov:========================>          70%]GWO iteration=40 bestFitness=163.9545454494799 population=50 a=1.2
+========== GWO EVOLVE iteration=40 population=50 ==========
+[Progress:=================>            58%] [Cov:========================>          71%][Progress:=================>            58%] [Cov:=========================>         72%][Progress:=================>            58%] [Cov:=========================>         72%][Progress:=================>            59%] [Cov:========================>          70%][Progress:=================>            59%] [Cov:========================>          71%][Progress:=================>            59%] [Cov:=========================>         72%][Progress:=================>            59%] [Cov:=========================>         72%][Progress:==================>           60%] [Cov:========================>          71%][Progress:==================>           60%] [Cov:=========================>         72%][Progress:==================>           60%] [Cov:=========================>         72%][Progress:==================>           62%] [Cov:========================>          70%][Progress:==================>           62%] [Cov:========================>          71%][Progress:==================>           62%] [Cov:=========================>         72%][Progress:==================>           62%] [Cov:=========================>         72%][Progress:==================>           62%] [Cov:=========================>         73%][Progress:==================>           63%] [Cov:=========================>         72%][Progress:==================>           63%] [Cov:=========================>         73%][Progress:==================>           63%] [Cov:=========================>         73%][Progress:==================>           63%] [Cov:=========================>         74%][Progress:===================>          64%] [Cov:=========================>         73%][Progress:===================>          64%] [Cov:=========================>         74%][Progress:===================>          66%] [Cov:=========================>         73%][Progress:===================>          66%] [Cov:=========================>         74%][Progress:===================>          66%] [Cov:=========================>         74%][Progress:====================>         67%] [Cov:=========================>         74%][Progress:====================>         67%] [Cov:=========================>         74%][Progress:====================>         67%] [Cov:==========================>        75%][Progress:=====================>        70%] [Cov:=========================>         73%][Progress:=====================>        70%] [Cov:=========================>         74%][Progress:=====================>        70%] [Cov:==========================>        75%][Progress:=====================>        70%] [Cov:=========================>         74%][Progress:=====================>        70%] [Cov:==========================>        75%][Progress:=====================>        70%] [Cov:==========================>        75%][Progress:=====================>        71%] [Cov:=========================>         74%][Progress:=====================>        71%] [Cov:==========================>        75%][Progress:=====================>        71%] [Cov:==========================>        75%][Progress:=====================>        71%] [Cov:==========================>        75%][Progress:=====================>        72%] [Cov:==========================>        75%][Progress:=====================>        72%] [Cov:==========================>        75%][Progress:=====================>        73%] [Cov:==========================>        75%][Progress:=====================>        73%] [Cov:==========================>        75%][Progress:=====================>        73%] [Cov:==========================>        76%][Progress:=====================>        73%] [Cov:==========================>        76%][Progress:======================>       74%] [Cov:==========================>        76%][Progress:======================>       74%] [Cov:==========================>        76%][Progress:======================>       75%] [Cov:==========================>        76%][Progress:======================>       75%] [Cov:==========================>        76%][Progress:======================>       75%] [Cov:==========================>        76%]GWO iteration=60 bestFitness=130.6111111002673 population=50 a=0.8
+========== GWO EVOLVE iteration=60 population=50 ==========
+[Progress:======================>       75%] [Cov:==========================>        77%][Progress:======================>       75%] [Cov:==========================>        77%][Progress:======================>       76%] [Cov:==========================>        77%][Progress:======================>       76%] [Cov:==========================>        77%][Progress:=======================>      77%] [Cov:==========================>        77%][Progress:=======================>      77%] [Cov:==========================>        77%][Progress:=======================>      77%] [Cov:==========================>        77%][Progress:=======================>      78%] [Cov:==========================>        77%][Progress:========================>     80%] [Cov:==========================>        77%][Progress:========================>     80%] [Cov:==========================>        77%][Progress:========================>     81%] [Cov:==========================>        77%][Progress:========================>     81%] [Cov:===========================>       78%][Progress:========================>     81%] [Cov:==========================>        77%][Progress:========================>     82%] [Cov:==========================>        77%][Progress:========================>     82%] [Cov:===========================>       78%][Progress:========================>     83%] [Cov:==========================>        77%][Progress:========================>     83%] [Cov:===========================>       78%][Progress:========================>     83%] [Cov:===========================>       78%][Progress:=========================>    84%] [Cov:===========================>       78%][Progress:=========================>    84%] [Cov:===========================>       78%][Progress:=========================>    85%] [Cov:===========================>       78%][Progress:=========================>    85%] [Cov:===========================>       78%][Progress:=========================>    85%] [Cov:===========================>       78%][Progress:=========================>    86%] [Cov:===========================>       78%][Progress:=========================>    86%] [Cov:===========================>       78%][Progress:==========================>   87%] [Cov:===========================>       78%][Progress:==========================>   87%] [Cov:===========================>       78%][Progress:==========================>   88%] [Cov:===========================>       78%][Progress:==========================>   88%] [Cov:===========================>       78%][Progress:==========================>   88%] [Cov:===========================>       79%][Progress:===========================>  90%] [Cov:===========================>       78%][Progress:===========================>  90%] [Cov:===========================>       79%][Progress:===========================>  91%] [Cov:===========================>       79%][Progress:===========================>  91%] [Cov:===========================>       79%][Progress:===========================>  92%] [Cov:===========================>       79%][Progress:===========================>  92%] [Cov:===========================>       79%][Progress:===========================>  93%] [Cov:===========================>       79%][Progress:============================> 94%] [Cov:===========================>       79%][Progress:============================> 94%] [Cov:============================>      80%][Progress:============================> 94%] [Cov:===========================>       79%][Progress:============================> 94%] [Cov:============================>      80%][Progress:============================> 96%] [Cov:===========================>       79%][Progress:============================> 96%] [Cov:============================>      80%][Progress:=============================>97%] [Cov:===========================>       79%][Progress:=============================>97%] [Cov:============================>      80%][Progress:=============================>97%] [Cov:===========================>       79%][Progress:=============================>97%] [Cov:============================>      80%][Progress:=============================>98%] [Cov:===========================>       79%][Progress:=============================>98%] [Cov:===========================>       79%]GWO iteration=80 bestFitness=110.11111110026732 population=50 a=0.3999999999999999
+========== GWO EVOLVE iteration=80 population=50 ==========
+[Progress:=============================>98%] [Cov:============================>      80%][Progress:=============================>99%] [Cov:===========================>       79%][Progress:=============================>99%] [Cov:============================>      80%][Progress:=============================>99%] [Cov:============================>      80%][Progress:==============================100%] [Cov:============================>      80%][Progress:==============================100%] [Cov:============================>      80%][Progress:==============================100%] [Cov:===========================>       79%][Progress:==============================100%] [Cov:============================>      80%][Progress:==============================100%] [Cov:=============================>     85%]
+* Search finished after 124s and 83 generations, 34260 statements, best individual has fitness: 69.4211469317462
+* Minimizing test suite
+[MASTER] 07:58:51.430 [logback-1] WARN  TestSuiteMinimizer - Minimization timeout. Roll back to original test suite
+* Going to analyze the coverage criteria
+* Coverage analysis for criterion LINE
+* Coverage of criterion LINE: 95%
+* Total number of goals: 153
+* Number of covered goals: 145
+* Coverage analysis for criterion BRANCH
+* Coverage of criterion BRANCH: 97%
+* Total number of goals: 73
+* Number of covered goals: 71
+* Coverage analysis for criterion EXCEPTION
+* Coverage of criterion EXCEPTION: 100%
+* Total number of goals: 30
+* Number of covered goals: 30
+* Coverage analysis for criterion WEAKMUTATION
+* Coverage of criterion WEAKMUTATION: 94%
+* Total number of goals: 297
+* Number of covered goals: 278
+* Coverage analysis for criterion OUTPUT
+* Coverage of criterion OUTPUT: 42%
+* Total number of goals: 62
+* Number of covered goals: 26
+* Coverage analysis for criterion METHOD
+* Coverage of criterion METHOD: 94%
+* Total number of goals: 36
+* Number of covered goals: 34
+* Coverage analysis for criterion METHODNOEXCEPTION
+* Coverage of criterion METHODNOEXCEPTION: 92%
+* Total number of goals: 36
+* Number of covered goals: 33
+* Coverage analysis for criterion CBRANCH
+* Coverage of criterion CBRANCH: 96%
+* Total number of goals: 73
+* Number of covered goals: 70
+* Generated 69 tests with total length 1265
+* Resulting test suite's coverage: 86% (average coverage for all fitness functions)
+* Generating assertions
+[MASTER] 07:59:42.590 [logback-1] WARN  SimpleMutationAssertionGenerator - Assertion minimization is taking too long (0.8509% of time used, but only 2/69 tests minimized), falling back to using all assertions
+* Resulting test suite's mutation score: 6%
+* Compiling and checking tests
+[MASTER] 07:59:43.763 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.ServerException: RemoteException occurred in server thread; nested exception is: 
+	java.rmi.UnmarshalException: error unmarshalling arguments; nested exception is: 
+	java.lang.ClassNotFoundException: org.jsoup.nodes.Entities$EscapeMode (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:391)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.TestSuiteGenerator.postProcessTests(TestSuiteGenerator.java:502)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:218)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.rmi.UnmarshalException: error unmarshalling arguments; nested exception is: 
+	java.lang.ClassNotFoundException: org.jsoup.nodes.Entities$EscapeMode (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:350)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	... 3 common frames omitted
+Caused by: java.lang.ClassNotFoundException: org.jsoup.nodes.Entities$EscapeMode (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.LoaderHandler.loadClass(LoaderHandler.java:396)
+	at java.rmi/sun.rmi.server.LoaderHandler.loadClass(LoaderHandler.java:186)
+	at java.rmi/java.rmi.server.RMIClassLoader$2.loadClass(RMIClassLoader.java:637)
+	at java.rmi/java.rmi.server.RMIClassLoader.loadClass(RMIClassLoader.java:264)
+	at java.rmi/sun.rmi.server.MarshalInputStream.resolveClass(MarshalInputStream.java:213)
+	at java.base/java.io.ObjectInputStream.readNonProxyDesc(ObjectInputStream.java:2003)
+	at java.base/java.io.ObjectInputStream.readClassDesc(ObjectInputStream.java:1870)
+	at java.base/java.io.ObjectInputStream.readEnum(ObjectInputStream.java:2153)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1681)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.assertion.Assertion.readObject(Assertion.java:264)
+	at jdk.internal.reflect.GeneratedMethodAccessor24.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.HashSet.readObject(HashSet.java:342)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor4.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at jdk.internal.reflect.GeneratedMethodAccessor16.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	... 12 common frames omitted
+[MASTER] 07:59:51.980 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test0 -> class java.lang.StackOverflowError: null
+[MASTER] 07:59:51.982 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ String string0 = "*,";
+Document document0 = new Document("*,");
+assertNotNull(document0);
+assertEquals("#document", document0.nodeName());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("*,", document0.baseUri());
+assertFalse(document0.isBlock());
+
+Document document1 = (Document)document0.appendText("&<G0'?6 ){|qXy]2");
+assertNotNull(document1);
+assertSame(document0, document1);
+assertSame(document1, document0);
+assertEquals("#document", document0.nodeName());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("*,", document0.baseUri());
+assertFalse(document0.isBlock());
+assertEquals(0, (int)document1.siblingIndex());
+assertEquals("#document", document1.nodeName());
+assertEquals("*,", document1.baseUri());
+assertFalse(document1.isBlock());
+
+String string1 = document0.outerHtml();
+assertEquals("&amp;&lt;G0'?6 ){|qXy]2", string1);
+assertFalse(string1.equals((Object)string0));
+assertNotNull(string1);
+assertSame(document0, document1);
+assertEquals("#document", document0.nodeName());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("*,", document0.baseUri());
+assertFalse(document0.isBlock());
+
+Document document2 = document0.normalise();
+assertNotNull(document2);
+assertSame(document0, document1);
+assertSame(document0, document2);
+assertSame(document2, document1);
+assertSame(document2, document0);
+assertEquals("#document", document0.nodeName());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("*,", document0.baseUri());
+assertFalse(document0.isBlock());
+assertFalse(document2.isBlock());
+assertEquals("#document", document2.nodeName());
+assertEquals(0, (int)document2.siblingIndex());
+assertEquals("*,", document2.baseUri());
+
+Document document3 = document1.normalise();
+assertNotNull(document3);
+assertSame(document0, document1);
+assertSame(document0, document2);
+assertSame(document0, document3);
+assertSame(document1, document0);
+assertSame(document1, document3);
+assertSame(document1, document2);
+assertSame(document3, document2);
+assertSame(document3, document0);
+assertSame(document3, document1);
+assertEquals("#document", document0.nodeName());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("*,", document0.baseUri());
+assertFalse(document0.isBlock());
+assertEquals(0, (int)document1.siblingIndex());
+assertEquals("#document", document1.nodeName());
+assertEquals("*,", document1.baseUri());
+assertFalse(document1.isBlock());
+assertEquals(0, (int)document3.siblingIndex());
+assertFalse(document3.isBlock());
+assertEquals("#document", document3.nodeName());
+assertEquals("*,", document3.baseUri());
+
+Document document4 = document3.clone();
+assertFalse(document4.equals((Object)document2));
+assertFalse(document4.equals((Object)document0));
+assertFalse(document4.equals((Object)document3));
+assertFalse(document4.equals((Object)document1));
+assertNotNull(document4);
+assertSame(document0, document1);
+assertSame(document0, document2);
+assertNotSame(document0, document4);
+assertSame(document0, document3);
+assertNotSame(document1, document4);
+assertSame(document1, document0);
+assertSame(document1, document3);
+assertSame(document1, document2);
+assertSame(document3, document2);
+assertSame(document3, document0);
+assertSame(document3, document1);
+assertNotSame(document3, document4);
+assertNotSame(document4, document2);
+assertNotSame(document4, document0);
+assertNotSame(document4, document3);
+assertNotSame(document4, document1);
+assertEquals("#document", document0.nodeName());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("*,", document0.baseUri());
+assertFalse(document0.isBlock());
+assertEquals(0, (int)document1.siblingIndex());
+assertEquals("#document", document1.nodeName());
+assertEquals("*,", document1.baseUri());
+assertFalse(document1.isBlock());
+assertEquals(0, (int)document3.siblingIndex());
+assertFalse(document3.isBlock());
+assertEquals("#document", document3.nodeName());
+assertEquals("*,", document3.baseUri());
+assertEquals(0, (int)document4.siblingIndex());
+assertFalse(document4.isBlock());
+assertEquals("*,", document4.baseUri());
+assertEquals("#document", document4.nodeName());
+
+Document document5 = (Document)document2.appendChild(document3);
+assertFalse(document0.equals((Object)document4));
+assertFalse(document1.equals((Object)document4));
+assertFalse(document2.equals((Object)document4));
+assertFalse(document3.equals((Object)document4));
+assertFalse(document5.equals((Object)document4));
+assertNotNull(document5);
+assertSame(document0, document1);
+assertSame(document0, document2);
+assertSame(document0, document5);
+assertNotSame(document0, document4);
+assertSame(document0, document3);
+assertNotSame(document1, document4);
+assertSame(document1, document5);
+assertSame(document1, document0);
+assertSame(document1, document3);
+assertSame(document1, document2);
+assertSame(document2, document1);
+assertSame(document2, document3);
+assertSame(document2, document0);
+assertSame(document2, document5);
+assertNotSame(document2, document4);
+assertSame(document3, document5);
+assertSame(document3, document2);
+assertSame(document3, document0);
+assertSame(document3, document1);
+assertNotSame(document3, document4);
+assertSame(document5, document3);
+assertSame(document5, document2);
+assertNotSame(document5, document4);
+assertSame(document5, document0);
+assertSame(document5, document1);
+assertEquals("#document", document0.nodeName());
+assertEquals(1, (int)document0.siblingIndex());
+assertEquals("*,", document0.baseUri());
+assertFalse(document0.isBlock());
+assertEquals(1, (int)document1.siblingIndex());
+assertEquals("#document", document1.nodeName());
+assertEquals("*,", document1.baseUri());
+assertFalse(document1.isBlock());
+assertFalse(document2.isBlock());
+assertEquals(1, (int)document2.siblingIndex());
+assertEquals("#document", document2.nodeName());
+assertEquals("*,", document2.baseUri());
+assertFalse(document3.isBlock());
+assertEquals(1, (int)document3.siblingIndex());
+assertEquals("#document", document3.nodeName());
+assertEquals("*,", document3.baseUri());
+assertEquals(1, (int)document5.siblingIndex());
+assertEquals("#document", document5.nodeName());
+assertEquals("*,", document5.baseUri());
+assertFalse(document5.isBlock());
+
+Document document6 = new Document("*,");
+assertFalse(document6.equals((Object)document3));
+assertFalse(document6.equals((Object)document4));
+assertFalse(document6.equals((Object)document2));
+assertFalse(document6.equals((Object)document0));
+assertFalse(document6.equals((Object)document1));
+assertFalse(document6.equals((Object)document5));
+assertNotNull(document6);
+assertFalse(document6.isBlock());
+assertEquals("*,", document6.baseUri());
+assertEquals(0, (int)document6.siblingIndex());
+assertEquals("#document", document6.nodeName());
+
+String string2 = "oslash";
+boolean boolean0 = document3.hasText();
+assertTrue(boolean0);
+assertFalse(document0.equals((Object)document6));
+assertFalse(document0.equals((Object)document4));
+assertFalse(document1.equals((Object)document4));
+assertFalse(document1.equals((Object)document6));
+assertFalse(document3.equals((Object)document6));
+assertFalse(document3.equals((Object)document4));
+assertSame(document0, document1);
+assertSame(document0, document2);
+assertNotSame(document0, document6);
+assertSame(document0, document5);
+assertNotSame(document0, document4);
+assertSame(document0, document3);
+assertNotSame(document1, document4);
+assertSame(document1, document5);
+assertSame(document1, document0);
+assertSame(document1, document3);
+assertNotSame(document1, document6);
+assertSame(document1, document2);
+assertSame(document3, document5);
+assertNotSame(document3, document6);
+assertSame(document3, document2);
+assertSame(document3, document0);
+assertSame(document3, document1);
+assertNotSame(document3, document4);
+assertEquals("#document", document0.nodeName());
+assertEquals(1, (int)document0.siblingIndex());
+assertEquals("*,", document0.baseUri());
+assertFalse(document0.isBlock());
+assertEquals(1, (int)document1.siblingIndex());
+assertEquals("#document", document1.nodeName());
+assertEquals("*,", document1.baseUri());
+assertFalse(document1.isBlock());
+assertFalse(document3.isBlock());
+assertEquals(1, (int)document3.siblingIndex());
+assertEquals("#document", document3.nodeName());
+assertEquals("*,", document3.baseUri());
+
+Document document7 = (Document)document4.text("&<G0'?6 ){|qXy]2");
+assertFalse(document0.equals((Object)document6));
+assertFalse(document0.equals((Object)document4));
+assertFalse(document1.equals((Object)document4));
+assertFalse(document1.equals((Object)document6));
+assertFalse(document3.equals((Object)document6));
+assertFalse(document3.equals((Object)document4));
+assertFalse(document4.equals((Object)document2));
+assertFalse(document4.equals((Object)document0));
+assertFalse(document4.equals((Object)document3));
+assertFalse(document4.equals((Object)document1));
+assertFalse(document4.equals((Object)document6));
+assertFalse(document4.equals((Object)document5));
+assertFalse(document7.equals((Object)document1));
+assertFalse(document7.equals((Object)document2));
+assertFalse(document7.equals((Object)document0));
+assertFalse(document7.equals((Object)document3));
+assertFalse(document7.equals((Object)document5));
+assertFalse(document7.equals((Object)document6));
+assertNotNull(document7);
+assertSame(document0, document1);
+assertSame(document0, document2);
+assertNotSame(document0, document6);
+assertSame(document0, document5);
+assertNotSame(document0, document4);
+assertSame(document0, document3);
+assertNotSame(document0, document7);
+assertNotSame(document1, document4);
+assertSame(document1, document5);
+assertSame(document1, document0);
+assertNotSame(document1, document7);
+assertSame(document1, document3);
+assertNotSame(document1, document6);
+assertSame(document1, document2);
+assertSame(document3, document5);
+assertNotSame(document3, document6);
+assertSame(document3, document2);
+assertSame(document3, document0);
+assertSame(document3, document1);
+assertNotSame(document3, document7);
+assertNotSame(document3, document4);
+assertNotSame(document4, document2);
+assertNotSame(document4, document0);
+assertNotSame(document4, document3);
+assertNotSame(document4, document1);
+assertNotSame(document4, document6);
+assertSame(document4, document7);
+assertNotSame(document4, document5);
+assertNotSame(document7, document1);
+assertNotSame(document7, document2);
+assertNotSame(document7, document0);
+assertNotSame(document7, document3);
+assertSame(document7, document4);
+assertNotSame(document7, document5);
+assertNotSame(document7, document6);
+assertEquals("#document", document0.nodeName());
+assertEquals(1, (int)document0.siblingIndex());
+assertEquals("*,", document0.baseUri());
+assertFalse(document0.isBlock());
+assertEquals(1, (int)document1.siblingIndex());
+assertEquals("#document", document1.nodeName());
+assertEquals("*,", document1.baseUri());
+assertFalse(document1.isBlock());
+assertFalse(document3.isBlock());
+assertEquals(1, (int)document3.siblingIndex());
+assertEquals("#document", document3.nodeName());
+assertEquals("*,", document3.baseUri());
+assertEquals(0, (int)document4.siblingIndex());
+assertFalse(document4.isBlock());
+assertEquals("*,", document4.baseUri());
+assertEquals("#document", document4.nodeName());
+assertEquals("#document", document7.nodeName());
+assertEquals(0, (int)document7.siblingIndex());
+assertEquals("*,", document7.baseUri());
+assertFalse(document7.isBlock());
+
+document0.outerHtml();
+
+[MASTER] 07:59:53.347 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test0 -> class java.lang.StackOverflowError: null
+[MASTER] 07:59:53.348 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ String string0 = "abs:7qkmuji_jq";
+Document document0 = new Document("abs:7qkmuji_jq");
+assertNotNull(document0);
+assertFalse(document0.isBlock());
+assertEquals("abs:7qkmuji_jq", document0.baseUri());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("#document", document0.nodeName());
+
+Integer integer0 = document0.siblingIndex();
+assertEquals(0, (int)integer0);
+assertNotNull(integer0);
+assertFalse(document0.isBlock());
+assertEquals("abs:7qkmuji_jq", document0.baseUri());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("#document", document0.nodeName());
+
+String string1 = document0.ownText();
+assertEquals("", string1);
+assertFalse(string1.equals((Object)string0));
+assertNotNull(string1);
+assertFalse(document0.isBlock());
+assertEquals("abs:7qkmuji_jq", document0.baseUri());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("#document", document0.nodeName());
+
+Document document1 = (Document)document0.attr("abs:id", "abs:id");
+assertNotNull(document1);
+assertSame(document0, document1);
+assertSame(document1, document0);
+assertFalse(document0.isBlock());
+assertEquals("abs:7qkmuji_jq", document0.baseUri());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("#document", document0.nodeName());
+assertEquals("#document", document1.nodeName());
+assertFalse(document1.isBlock());
+assertEquals(0, (int)document1.siblingIndex());
+assertEquals("abs:7qkmuji_jq", document1.baseUri());
+
+Locale locale0 = Locale.PRC;
+assertNotNull(locale0);
+assertEquals("", locale0.getVariant());
+assertEquals("zh_CN", locale0.toString());
+assertEquals("zh", locale0.getLanguage());
+assertEquals("CN", locale0.getCountry());
+assertEquals("CHN", locale0.getISO3Country());
+assertEquals("zho", locale0.getISO3Language());
+
+document0.parentNode = (Node) document1;
+assertFalse(document0.isBlock());
+assertEquals("abs:7qkmuji_jq", document0.baseUri());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("#document", document0.nodeName());
+assertEquals("#document", document1.nodeName());
+assertFalse(document1.isBlock());
+assertEquals(0, (int)document1.siblingIndex());
+assertEquals("abs:7qkmuji_jq", document1.baseUri());
+assertEquals("abs:7qkmuji_jq", document0.parentNode.baseUri());
+assertEquals(0, (int)document0.parentNode.siblingIndex());
+
+Locale.Category locale_Category0 = Locale.Category.DISPLAY;
+Locale.setDefault(locale_Category0, locale0);
+assertEquals("", locale0.getVariant());
+assertEquals("zh_CN", locale0.toString());
+assertEquals("zh", locale0.getLanguage());
+assertEquals("CN", locale0.getCountry());
+assertEquals("CHN", locale0.getISO3Country());
+assertEquals("zho", locale0.getISO3Language());
+
+String string2 = locale0.getDisplayVariant();
+assertEquals("", string2);
+assertFalse(string2.equals((Object)string0));
+assertTrue(string2.equals((Object)string1));
+assertNotNull(string2);
+assertEquals("", locale0.getVariant());
+assertEquals("zh_CN", locale0.toString());
+assertEquals("zh", locale0.getLanguage());
+assertEquals("CN", locale0.getCountry());
+assertEquals("CHN", locale0.getISO3Country());
+assertEquals("zho", locale0.getISO3Language());
+
+Set<String> set0 = locale0.getUnicodeLocaleAttributes();
+assertFalse(set0.contains(string0));
+assertNotNull(set0);
+assertEquals("", locale0.getVariant());
+assertEquals("zh_CN", locale0.toString());
+assertEquals("zh", locale0.getLanguage());
+assertEquals("CN", locale0.getCountry());
+assertEquals("CHN", locale0.getISO3Country());
+assertEquals("zho", locale0.getISO3Language());
+assertTrue(set0.isEmpty());
+assertEquals(0, set0.size());
+
+List<Node> list0 = document0.childNodes();
+assertNotNull(list0);
+assertSame(document0, document1);
+assertFalse(document0.isBlock());
+assertEquals("abs:7qkmuji_jq", document0.baseUri());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("#document", document0.nodeName());
+assertTrue(list0.isEmpty());
+assertEquals(0, list0.size());
+
+Document document2 = (Document)document0.html("abs:7qkmuji_jq");
+assertNotNull(document2);
+assertSame(document0, document2);
+assertSame(document0, document1);
+assertSame(document2, document1);
+assertSame(document2, document0);
+assertFalse(document0.isBlock());
+assertEquals("abs:7qkmuji_jq", document0.baseUri());
+assertEquals(0, (int)document0.siblingIndex());
+assertEquals("#document", document0.nodeName());
+assertEquals("abs:7qkmuji_jq", document2.baseUri());
+assertEquals("#document", document2.nodeName());
+assertFalse(document2.isBlock());
+assertEquals(0, (int)document2.siblingIndex());
+
+StringBuilder stringBuilder0 = new StringBuilder("");
+assertNotNull(stringBuilder0);
+assertEquals("", stringBuilder0.toString());
+
+document2.outerHtml(stringBuilder0);
+
+[MASTER] 07:59:54.775 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test00 -> class java.lang.StackOverflowError: null
+[MASTER] 07:59:54.775 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ Document document0 = new Document("#text");
+Document document1 = (Document)document0.append("wke`/");
+document1.childNodesAsArray();
+Document document2 = document1.ownerDocument();
+Document document3 = (Document)document2.appendChild(document0);
+document2.appendElement("#text");
+Document document4 = (Document)document3.firstElementSibling();
+DataNode dataNode0 = new DataNode("wke`/", "#text");
+dataNode0.removeAttr("UpperLeftArrow");
+dataNode0.attr("#text");
+dataNode0.attributes();
+document1.previousSibling();
+String string0 = "7qkm";
+dataNode0.setWholeData("7qkm");
+document1.nodeName();
+document2.replaceWith(document1);
+document4.text("7qkm");
+
+* Writing tests to file
+* Writing JUnit test case 'Node_ESTest' to /home/user/evosuite-results/Jsoup-10b/GWO/org_jsoup_nodes_Node/evosuite-tests
+* Done!
+
+* Computation finished
+[MASTER] 07:59:56.384 [logback-2] ERROR ClientNodeImpl - Error when generating tests for: org.jsoup.nodes.Node with seed 1789865743968. Configuration id : null
+java.rmi.ServerException: RemoteException occurred in server thread; nested exception is: 
+	java.rmi.UnmarshalException: error unmarshalling arguments; nested exception is: 
+	java.lang.ClassNotFoundException: org.jsoup.nodes.Entities$EscapeMode (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:391)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectTestGenerationResult(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:144)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.rmi.UnmarshalException: error unmarshalling arguments; nested exception is: 
+	java.lang.ClassNotFoundException: org.jsoup.nodes.Entities$EscapeMode (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:350)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	... 3 common frames omitted
+Caused by: java.lang.ClassNotFoundException: org.jsoup.nodes.Entities$EscapeMode (no security manager: RMI class loader disabled)
+	at java.rmi/sun.rmi.server.LoaderHandler.loadClass(LoaderHandler.java:396)
+	at java.rmi/sun.rmi.server.LoaderHandler.loadClass(LoaderHandler.java:186)
+	at java.rmi/java.rmi.server.RMIClassLoader$2.loadClass(RMIClassLoader.java:637)
+	at java.rmi/java.rmi.server.RMIClassLoader.loadClass(RMIClassLoader.java:264)
+	at java.rmi/sun.rmi.server.MarshalInputStream.resolveClass(MarshalInputStream.java:213)
+	at java.base/java.io.ObjectInputStream.readNonProxyDesc(ObjectInputStream.java:2003)
+	at java.base/java.io.ObjectInputStream.readClassDesc(ObjectInputStream.java:1870)
+	at java.base/java.io.ObjectInputStream.readEnum(ObjectInputStream.java:2153)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1681)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.assertion.Assertion.readObject(Assertion.java:264)
+	at jdk.internal.reflect.GeneratedMethodAccessor24.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.HashSet.readObject(HashSet.java:342)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor4.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at jdk.internal.reflect.GeneratedMethodAccessor16.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.HashMap.readObject(HashMap.java:1466)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor8.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	... 12 common frames omitted

@@ -1,0 +1,931 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: com.google.javascript.jscomp.NodeUtil
+* Starting Client-0
+* Connecting to master process on port 7247
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/Closure-141b/build/classes
+  - /home/user/d4j-workspace/Closure-141b/lib/ant_deploy.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/args4j_deploy.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/google_common_deploy.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/hamcrest-core-1.1.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/junit.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/libtrunk_rhino_parser_jarjared.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/protobuf_deploy.jar
+  - /home/user/d4j-workspace/Closure-141b/build/classes
+  - /home/user/d4j-workspace/Closure-141b/lib/ant_deploy.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/args4j_deploy.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/google_common_deploy.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/hamcrest-core-1.1.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/junit.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/libtrunk_rhino_parser_jarjared.jar
+  - /home/user/d4j-workspace/Closure-141b/lib/protobuf_deploy.jar
+  - /home/user/d4j-workspace/Closure-141b/build/test
+  - /home/user/d4j-workspace/Closure-141b/build/classes
+  - /home/user/d4j-workspace/Closure-141b/build/test
+  - /home/user/d4j-workspace/Closure-141b/build
+[MASTER] 20:06:12.638 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.util.Locale$IsoCountryCode
+* Finished analyzing classpath
+* Generating tests for class com.google.javascript.jscomp.NodeUtil
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 557
+  - Branch 1676
+  - Exception 0
+  - MutationFactory 406
+  - Output 773
+  - Method 107
+  - MethodNoException 107
+  - CBranchFitnessFactory 1676
+[Progress:>                             0%] [Cov:>                                  0%]* Using seed 1789823170692
+* Starting evolution
+[Progress:>                             0%] [Cov:>                                  1%][Progress:>                             0%] [Cov:====>                              13%][Progress:>                             0%] [Cov:====>                              14%][Progress:>                             0%] [Cov:=====>                             15%][Progress:>                             0%] [Cov:=====>                             16%][Progress:>                             0%] [Cov:=====>                             17%][Progress:>                             0%] [Cov:======>                            18%][Progress:>                             1%] [Cov:>                                  0%][Progress:>                             1%] [Cov:====>                              12%][MASTER] 20:06:14.827 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.ServerError: Error occurred in server thread; nested exception is: 
+	java.lang.NoClassDefFoundError: Lcom/google/javascript/rhino/jstype/JSTypeRegistry;
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:388)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsListener.lambda$new$0(StatisticsListener.java:76)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.lang.NoClassDefFoundError: Lcom/google/javascript/rhino/jstype/JSTypeRegistry;
+	at java.base/java.lang.Class.getDeclaredFields0(Native Method)
+	at java.base/java.lang.Class.privateGetDeclaredFields(Class.java:3061)
+	at java.base/java.lang.Class.getDeclaredField(Class.java:2409)
+	at org.evosuite.utils.generic.GenericField.readObject(GenericField.java:224)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.skipCustomData(ObjectInputStream.java:2451)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2400)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.skipCustomData(ObjectInputStream.java:2451)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2400)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	... 1 common frames omitted
+Caused by: java.lang.ClassNotFoundException: Class not found: com/google/javascript/rhino/jstype/NamedType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/NamedType
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:158)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.loadClass(InstrumentingClassLoader.java:126)
+	... 77 common frames omitted
+Caused by: java.lang.RuntimeException: Class not found: com/google/javascript/rhino/jstype/NamedType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/NamedType
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:56)
+	at org.evosuite.shaded.org.objectweb.asm.SymbolTable.addMergedType(SymbolTable.java:1202)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1299)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1197)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.computeAllFrames(MethodWriter.java:1610)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.visitMaxs(MethodWriter.java:1546)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.runtime.instrumentation.LoopCounterMethodAdapter.visitMaxs(LoopCounterMethodAdapter.java:48)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:769)
+	at org.evosuite.shaded.org.objectweb.asm.commons.JSRInlinerAdapter.visitEnd(JSRInlinerAdapter.java:158)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:649)
+	at org.evosuite.shaded.org.objectweb.asm.tree.ClassNode.accept(ClassNode.java:452)
+	at org.evosuite.instrumentation.BytecodeInstrumentation.transformBytes(BytecodeInstrumentation.java:282)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.getTransformedBytes(InstrumentingClassLoader.java:135)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:149)
+	... 78 common frames omitted
+Caused by: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/NamedType
+	at org.evosuite.runtime.util.ComputeClassWriter.typeInfo(ComputeClassWriter.java:179)
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:53)
+	... 98 common frames omitted
+[Progress:>                             1%] [Cov:====>                              13%][MASTER] 20:06:14.970 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.ServerError: Error occurred in server thread; nested exception is: 
+	java.lang.NoClassDefFoundError: com/google/javascript/rhino/jstype/FunctionType
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:388)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsListener.lambda$new$0(StatisticsListener.java:76)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.lang.NoClassDefFoundError: com/google/javascript/rhino/jstype/FunctionType
+	at java.base/java.lang.Class.getDeclaredMethods0(Native Method)
+	at java.base/java.lang.Class.privateGetDeclaredMethods(Class.java:3166)
+	at java.base/java.lang.Class.getDeclaredMethods(Class.java:2309)
+	at org.evosuite.utils.generic.GenericMethod.readObject(GenericMethod.java:406)
+	at jdk.internal.reflect.GeneratedMethodAccessor10.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.skipCustomData(ObjectInputStream.java:2451)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2400)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	... 1 common frames omitted
+Caused by: java.lang.ClassNotFoundException: Class not found: com/google/javascript/rhino/jstype/ObjectType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/ObjectType
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:158)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.loadClass(InstrumentingClassLoader.java:126)
+	... 68 common frames omitted
+Caused by: java.lang.RuntimeException: Class not found: com/google/javascript/rhino/jstype/ObjectType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/ObjectType
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:56)
+	at org.evosuite.shaded.org.objectweb.asm.SymbolTable.addMergedType(SymbolTable.java:1202)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1299)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1244)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.computeAllFrames(MethodWriter.java:1610)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.visitMaxs(MethodWriter.java:1546)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.runtime.instrumentation.LoopCounterMethodAdapter.visitMaxs(LoopCounterMethodAdapter.java:48)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:769)
+	at org.evosuite.shaded.org.objectweb.asm.commons.JSRInlinerAdapter.visitEnd(JSRInlinerAdapter.java:158)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:649)
+	at org.evosuite.shaded.org.objectweb.asm.tree.ClassNode.accept(ClassNode.java:452)
+	at org.evosuite.instrumentation.BytecodeInstrumentation.transformBytes(BytecodeInstrumentation.java:282)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.getTransformedBytes(InstrumentingClassLoader.java:135)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:149)
+	... 69 common frames omitted
+Caused by: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/ObjectType
+	at org.evosuite.runtime.util.ComputeClassWriter.typeInfo(ComputeClassWriter.java:179)
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:53)
+	... 90 common frames omitted
+[Progress:>                             1%] [Cov:====>                              14%][Progress:>                             1%] [Cov:=====>                             15%][Progress:>                             1%] [Cov:=====>                             16%][Progress:>                             3%] [Cov:>                                  0%][Progress:>                             3%] [Cov:====>                              13%][Progress:>                             3%] [Cov:====>                              14%][Progress:>                             3%] [Cov:=====>                             15%][Progress:>                             3%] [Cov:=====>                             16%][Progress:>                             3%] [Cov:=====>                             17%][Progress:>                             3%] [Cov:======>                            18%][Progress:=>                            4%] [Cov:>                                  0%][Progress:=>                            4%] [Cov:====>                              12%][Progress:=>                            4%] [Cov:====>                              14%][Progress:=>                            4%] [Cov:=====>                             15%][Progress:=>                            4%] [Cov:=====>                             17%]========== GWO EVOLVE iteration=0 population=50 ==========
+[Progress:=>                            4%] [Cov:======>                            18%][Progress:=>                            4%] [Cov:======>                            19%][Progress:=>                            4%] [Cov:======>                            19%]GWO iteration=1 bestFitness=8200.807440597011 population=50 a=1.98
+========== GWO EVOLVE iteration=1 population=50 ==========
+[Progress:=>                            5%] [Cov:=======>                           20%][Progress:=>                            5%] [Cov:=======>                           20%]GWO iteration=2 bestFitness=8182.107437016784 population=50 a=1.96
+========== GWO EVOLVE iteration=2 population=50 ==========
+[Progress:=>                            5%] [Cov:=======>                           20%]GWO iteration=3 bestFitness=8127.274063386869 population=50 a=1.94
+========== GWO EVOLVE iteration=3 population=50 ==========
+[Progress:=>                            5%] [Cov:=======>                           21%][Progress:=>                            5%] [Cov:=======>                           21%]GWO iteration=4 bestFitness=8084.974048305106 population=50 a=1.92
+========== GWO EVOLVE iteration=4 population=50 ==========
+[Progress:=>                            6%] [Cov:=======>                           20%][Progress:=>                            6%] [Cov:=======>                           21%][Progress:=>                            6%] [Cov:=======>                           21%]GWO iteration=5 bestFitness=8024.22402133826 population=50 a=1.9
+[Progress:=>                            6%] [Cov:=======>                           22%][Progress:==>                           7%] [Cov:=======>                           20%][Progress:==>                           7%] [Cov:=======>                           21%][Progress:==>                           7%] [Cov:=======>                           22%][Progress:==>                           7%] [Cov:========>                          23%][Progress:==>                           7%] [Cov:========>                          24%][Progress:==>                           8%] [Cov:=======>                           22%][Progress:==>                           8%] [Cov:========>                          24%][Progress:==>                           8%] [Cov:========>                          25%][Progress:==>                           9%] [Cov:=======>                           22%][Progress:==>                           9%] [Cov:========>                          24%][Progress:==>                           9%] [Cov:========>                          25%][Progress:===>                          10%] [Cov:=======>                           20%][Progress:===>                          10%] [Cov:========>                          25%][Progress:===>                          10%] [Cov:========>                          25%][Progress:===>                          10%] [Cov:========>                          25%][Progress:===>                          11%] [Cov:========>                          25%][Progress:===>                          11%] [Cov:========>                          25%][Progress:===>                          12%] [Cov:========>                          25%][Progress:===>                          12%] [Cov:=========>                         26%][Progress:===>                          12%] [Cov:=========>                         26%][Progress:===>                          13%] [Cov:========>                          25%][Progress:===>                          13%] [Cov:=========>                         26%][Progress:===>                          13%] [Cov:=========>                         27%][Progress:===>                          13%] [Cov:=========>                         27%][Progress:====>                         14%] [Cov:=========>                         27%][Progress:====>                         15%] [Cov:=========>                         27%][Progress:====>                         15%] [Cov:=========>                         27%][Progress:====>                         15%] [Cov:=========>                         28%][Progress:====>                         15%] [Cov:==========>                        29%][Progress:====>                         15%] [Cov:=========>                         28%][Progress:====>                         15%] [Cov:==========>                        29%][Progress:====>                         16%] [Cov:=========>                         28%][Progress:====>                         16%] [Cov:==========>                        29%][Progress:====>                         16%] [Cov:==========>                        29%][Progress:=====>                        17%] [Cov:=========>                         28%][Progress:=====>                        17%] [Cov:==========>                        29%][Progress:=====>                        18%] [Cov:=========>                         27%][Progress:=====>                        18%] [Cov:=========>                         28%][Progress:=====>                        18%] [Cov:==========>                        29%][Progress:=====>                        18%] [Cov:==========>                        29%][Progress:=====>                        19%] [Cov:=========>                         28%][Progress:=====>                        19%] [Cov:==========>                        29%][Progress:=====>                        19%] [Cov:==========>                        29%][Progress:======>                       20%] [Cov:==========>                        29%][Progress:======>                       20%] [Cov:==========>                        30%][Progress:======>                       20%] [Cov:==========>                        29%][Progress:======>                       20%] [Cov:==========>                        30%][Progress:======>                       21%] [Cov:==========>                        29%][Progress:======>                       21%] [Cov:==========>                        29%]GWO iteration=20 bestFitness=7091.554751765184 population=50 a=1.6
+========== GWO EVOLVE iteration=20 population=50 ==========
+[Progress:======>                       22%] [Cov:==========>                        29%][Progress:======>                       22%] [Cov:==========>                        30%][Progress:======>                       23%] [Cov:=========>                         28%][Progress:======>                       23%] [Cov:==========>                        29%][Progress:======>                       23%] [Cov:==========>                        30%][Progress:=======>                      24%] [Cov:=========>                         28%][Progress:=======>                      24%] [Cov:==========>                        29%][Progress:=======>                      24%] [Cov:==========>                        30%][Progress:=======>                      24%] [Cov:==========>                        30%][Progress:=======>                      25%] [Cov:==========>                        30%][Progress:=======>                      25%] [Cov:==========>                        31%][Progress:=======>                      25%] [Cov:==========>                        31%][Progress:=======>                      26%] [Cov:==========>                        30%][Progress:=======>                      26%] [Cov:==========>                        31%][Progress:========>                     27%] [Cov:==========>                        31%][Progress:========>                     27%] [Cov:==========>                        31%][Progress:========>                     28%] [Cov:==========>                        31%][Progress:========>                     28%] [Cov:==========>                        31%][Progress:========>                     29%] [Cov:==========>                        31%][Progress:=========>                    30%] [Cov:==========>                        31%][Progress:=========>                    30%] [Cov:==========>                        31%][Progress:=========>                    31%] [Cov:==========>                        31%][Progress:=========>                    31%] [Cov:==========>                        31%][Progress:=========>                    32%] [Cov:==========>                        31%][Progress:=========>                    33%] [Cov:==========>                        31%][Progress:=========>                    33%] [Cov:==========>                        31%][Progress:=========>                    33%] [Cov:===========>                       32%][Progress:==========>                   34%] [Cov:==========>                        31%][Progress:==========>                   34%] [Cov:===========>                       32%][Progress:==========>                   35%] [Cov:==========>                        31%][Progress:==========>                   35%] [Cov:==========>                        31%][Progress:==========>                   35%] [Cov:===========>                       32%][Progress:==========>                   35%] [Cov:===========>                       33%][Progress:==========>                   35%] [Cov:===========>                       33%][Progress:==========>                   36%] [Cov:==========>                        31%][Progress:==========>                   36%] [Cov:===========>                       32%][Progress:==========>                   36%] [Cov:===========>                       33%][Progress:===========>                  37%] [Cov:===========>                       33%][Progress:===========>                  37%] [Cov:===========>                       33%][Progress:===========>                  38%] [Cov:===========>                       33%][Progress:===========>                  38%] [Cov:===========>                       34%][Progress:===========>                  39%] [Cov:===========>                       33%][Progress:===========>                  39%] [Cov:===========>                       34%][Progress:===========>                  39%] [Cov:===========>                       34%][Progress:============>                 40%] [Cov:===========>                       33%][Progress:============>                 40%] [Cov:===========>                       34%][Progress:============>                 40%] [Cov:===========>                       34%][Progress:============>                 40%] [Cov:============>                      35%][Progress:============>                 41%] [Cov:===========>                       34%][Progress:============>                 42%] [Cov:===========>                       34%][Progress:============>                 42%] [Cov:============>                      35%][Progress:============>                 43%] [Cov:===========>                       34%][Progress:============>                 43%] [Cov:============>                      35%][Progress:=============>                44%] [Cov:============>                      35%][Progress:=============>                44%] [Cov:============>                      35%][Progress:=============>                45%] [Cov:============>                      35%][Progress:=============>                45%] [Cov:============>                      35%][Progress:=============>                46%] [Cov:===========>                       34%][Progress:=============>                46%] [Cov:============>                      35%][Progress:==============>               47%] [Cov:============>                      35%][Progress:==============>               47%] [Cov:============>                      36%][Progress:==============>               48%] [Cov:============>                      35%][Progress:==============>               48%] [Cov:============>                      36%][Progress:==============>               48%] [Cov:============>                      35%][Progress:==============>               48%] [Cov:============>                      36%][Progress:==============>               49%] [Cov:============>                      36%][Progress:===============>              50%] [Cov:============>                      36%][Progress:===============>              50%] [Cov:============>                      36%][Progress:===============>              51%] [Cov:============>                      36%][Progress:===============>              51%] [Cov:============>                      36%][Progress:===============>              52%] [Cov:============>                      36%][Progress:===============>              53%] [Cov:============>                      36%][Progress:================>             54%] [Cov:============>                      36%][Progress:================>             54%] [Cov:============>                      37%][Progress:================>             55%] [Cov:============>                      36%][Progress:================>             55%] [Cov:============>                      37%][Progress:================>             55%] [Cov:============>                      37%]GWO iteration=40 bestFitness=6307.972948254085 population=50 a=1.2
+========== GWO EVOLVE iteration=40 population=50 ==========
+[Progress:================>             56%] [Cov:============>                      36%][Progress:================>             56%] [Cov:============>                      37%][Progress:==============================100%] [Cov:============>                      37%][Progress:==============================100%] [Cov:============>                      37%][Progress:==============================100%] [Cov:==================>                54%]
+* Search finished after 229s and 41 generations, 16214 statements, best individual has fitness: 4945.0097027469055
+[MASTER] 20:10:02.018 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.MarshalException: error marshalling arguments; nested exception is: 
+	java.net.SocketException: Broken pipe (Write failed)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:160)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsSender.executedAndThenSendIndividualToMaster(StatisticsSender.java:91)
+	at org.evosuite.TestSuiteGenerator.generateTests(TestSuiteGenerator.java:636)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:208)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.net.SocketException: Broken pipe (Write failed)
+	at java.base/java.net.SocketOutputStream.socketWrite0(Native Method)
+	at java.base/java.net.SocketOutputStream.socketWrite(SocketOutputStream.java:110)
+	at java.base/java.net.SocketOutputStream.write(SocketOutputStream.java:150)
+	at java.base/java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:81)
+	at java.base/java.io.BufferedOutputStream.write(BufferedOutputStream.java:127)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.drain(ObjectOutputStream.java:1873)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.setBlockDataMode(ObjectOutputStream.java:1782)
+	at java.base/java.io.ObjectOutputStream.writeNonProxyDesc(ObjectOutputStream.java:1277)
+	at java.base/java.io.ObjectOutputStream.writeClassDesc(ObjectOutputStream.java:1222)
+	at java.base/java.io.ObjectOutputStream.writeOrdinaryObject(ObjectOutputStream.java:1418)
+	at java.base/java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1169)
+	at java.base/java.io.ObjectOutputStream.writeFatalException(ObjectOutputStream.java:1573)
+	at java.base/java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:348)
+	at java.rmi/sun.rmi.server.UnicastRef.marshalValue(UnicastRef.java:293)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:155)
+	... 14 common frames omitted
+[MASTER] 20:10:02.108 [logback-1] WARN  TimeController - Phase SEARCH lasted too long, 109 seconds more than allowed.
+* Minimizing test suite
+* Going to analyze the coverage criteria
+* Coverage analysis for criterion LINE
+* Coverage of criterion LINE: 51%
+* Total number of goals: 557
+* Number of covered goals: 285
+* Coverage analysis for criterion BRANCH
+* Coverage of criterion BRANCH: 49%
+* Total number of goals: 1676
+* Number of covered goals: 826
+* Coverage analysis for criterion EXCEPTION
+* Coverage of criterion EXCEPTION: 100%
+* Total number of goals: 97
+* Number of covered goals: 97
+* Coverage analysis for criterion WEAKMUTATION
+* Coverage of criterion WEAKMUTATION: 39%
+* Total number of goals: 406
+* Number of covered goals: 159
+* Coverage analysis for criterion OUTPUT
+* Coverage of criterion OUTPUT: 22%
+* Total number of goals: 773
+* Number of covered goals: 173
+* Coverage analysis for criterion METHOD
+* Coverage of criterion METHOD: 95%
+* Total number of goals: 107
+* Number of covered goals: 102
+* Coverage analysis for criterion METHODNOEXCEPTION
+* Coverage of criterion METHODNOEXCEPTION: 79%
+* Total number of goals: 107
+* Number of covered goals: 84
+* Coverage analysis for criterion CBRANCH
+* Coverage of criterion CBRANCH: 49%
+* Total number of goals: 1676
+* Number of covered goals: 826
+* Generated 224 tests with total length 474
+* Resulting test suite's coverage: 55% (average coverage for all fitness functions)
+* Generating assertions
+[MASTER] 20:10:57.200 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.MarshalException: error marshalling arguments; nested exception is: 
+	java.net.SocketException: Broken pipe (Write failed)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:160)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsSender.executedAndThenSendIndividualToMaster(StatisticsSender.java:91)
+	at org.evosuite.TestSuiteGenerator.postProcessTests(TestSuiteGenerator.java:445)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:218)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.net.SocketException: Broken pipe (Write failed)
+	at java.base/java.net.SocketOutputStream.socketWrite0(Native Method)
+	at java.base/java.net.SocketOutputStream.socketWrite(SocketOutputStream.java:110)
+	at java.base/java.net.SocketOutputStream.write(SocketOutputStream.java:150)
+	at java.base/java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:81)
+	at java.base/java.io.BufferedOutputStream.write(BufferedOutputStream.java:127)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.drain(ObjectOutputStream.java:1873)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.setBlockDataMode(ObjectOutputStream.java:1782)
+	at java.base/java.io.ObjectOutputStream.writeFatalException(ObjectOutputStream.java:1576)
+	at java.base/java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:348)
+	at java.rmi/sun.rmi.server.UnicastRef.marshalValue(UnicastRef.java:293)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:155)
+	... 14 common frames omitted
+* Resulting test suite's mutation score: 21%
+[MASTER] 20:12:00.029 [logback-1] WARN  SimpleMutationAssertionGenerator - Reached maximum time to generate assertions, aborting assertion generation
+* Compiling and checking tests
+[MASTER] 20:12:00.565 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.MarshalException: error marshalling arguments; nested exception is: 
+	java.net.SocketException: Broken pipe (Write failed)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:160)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.TestSuiteGenerator.postProcessTests(TestSuiteGenerator.java:502)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:218)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.net.SocketException: Broken pipe (Write failed)
+	at java.base/java.net.SocketOutputStream.socketWrite0(Native Method)
+	at java.base/java.net.SocketOutputStream.socketWrite(SocketOutputStream.java:110)
+	at java.base/java.net.SocketOutputStream.write(SocketOutputStream.java:150)
+	at java.base/java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:81)
+	at java.base/java.io.BufferedOutputStream.write(BufferedOutputStream.java:127)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.drain(ObjectOutputStream.java:1873)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.setBlockDataMode(ObjectOutputStream.java:1782)
+	at java.base/java.io.ObjectOutputStream.writeNonProxyDesc(ObjectOutputStream.java:1277)
+	at java.base/java.io.ObjectOutputStream.writeClassDesc(ObjectOutputStream.java:1222)
+	at java.base/java.io.ObjectOutputStream.writeOrdinaryObject(ObjectOutputStream.java:1418)
+	at java.base/java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1169)
+	at java.base/java.io.ObjectOutputStream.writeFatalException(ObjectOutputStream.java:1573)
+	at java.base/java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:348)
+	at java.rmi/sun.rmi.server.UnicastRef.marshalValue(UnicastRef.java:293)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:155)
+	... 13 common frames omitted
+[MASTER] 20:12:08.266 [logback-2] ERROR JUnitAnalyzer - Compilation failed on compilation units: [SimpleFileObject[/tmp/EvoSuite_103_1789823525228/com/google/javascript/jscomp/NodeUtil_103_tmp__ESTest.java], SimpleFileObject[/tmp/EvoSuite_103_1789823525228/com/google/javascript/jscomp/NodeUtil_103_tmp__ESTest_scaffolding.java]]
+[MASTER] 20:12:08.266 [logback-2] ERROR JUnitAnalyzer - Classpath: /home/user/d4j-workspace/Closure-141b/build/classes:/home/user/d4j-workspace/Closure-141b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/args4j_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-141b/lib/junit.jar:/home/user/d4j-workspace/Closure-141b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-141b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-141b/build/classes:/home/user/d4j-workspace/Closure-141b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/args4j_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-141b/lib/junit.jar:/home/user/d4j-workspace/Closure-141b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-141b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-141b/build/test:/home/user/d4j-workspace/Closure-141b/build/classes:/home/user/d4j-workspace/Closure-141b/build/test:/home/user/d4j-workspace/Closure-141b/build:/home/user/evosuite-gwo/evosuite/master/target/evosuite-master-1.2.1-SNAPSHOT.jar:/home/user/d4j-workspace/Closure-141b/build/classes:/home/user/d4j-workspace/Closure-141b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/args4j_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-141b/lib/junit.jar:/home/user/d4j-workspace/Closure-141b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-141b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-141b/build/classes:/home/user/d4j-workspace/Closure-141b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/args4j_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-141b/lib/junit.jar:/home/user/d4j-workspace/Closure-141b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-141b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-141b/build/test:/home/user/d4j-workspace/Closure-141b/build/classes:/home/user/d4j-workspace/Closure-141b/build/test:/home/user/d4j-workspace/Closure-141b/build
+[MASTER] 20:12:08.266 [logback-2] ERROR JUnitAnalyzer - evosuiteCP: /home/user/evosuite-gwo/evosuite/master/target/evosuite-master-1.2.1-SNAPSHOT.jar:/home/user/d4j-workspace/Closure-141b/build/classes:/home/user/d4j-workspace/Closure-141b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/args4j_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-141b/lib/junit.jar:/home/user/d4j-workspace/Closure-141b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-141b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-141b/build/classes:/home/user/d4j-workspace/Closure-141b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/args4j_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-141b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-141b/lib/junit.jar:/home/user/d4j-workspace/Closure-141b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-141b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-141b/build/test:/home/user/d4j-workspace/Closure-141b/build/classes:/home/user/d4j-workspace/Closure-141b/build/test:/home/user/d4j-workspace/Closure-141b/build
+[MASTER] 20:12:08.269 [logback-2] ERROR JUnitAnalyzer - Diagnostic: cannot find symbol
+  symbol:   class AfterClass
+  location: class com.google.javascript.jscomp.NodeUtil_103_tmp__ESTest_scaffolding: 40
+[MASTER] 20:12:08.269 [logback-2] ERROR JUnitAnalyzer - SimpleFileObject[/tmp/EvoSuite_103_1789823525228/com/google/javascript/jscomp/NodeUtil_103_tmp__ESTest.java]
+1: /*
+2:  * This file was automatically generated by EvoSuite
+3:  * Algorithm: GWO
+4:  * Sat Sep 19 13:12:08 GMT 2026
+5:  */
+6: 
+7: package com.google.javascript.jscomp;
+8: 
+9: import org.junit.Test;
+10: import static org.junit.Assert.*;
+11: import static org.evosuite.runtime.EvoAssertions.*;
+12: import com.google.javascript.jscomp.NodeUtil;
+13: import com.google.javascript.rhino.Node;
+14: import org.evosuite.runtime.EvoRunner;
+15: import org.evosuite.runtime.EvoRunnerParameters;
+16: import org.junit.runner.RunWith;
+17: 
+18: @RunWith(EvoRunner.class) @EvoRunnerParameters(mockJVMNonDeterminism = true, useVFS = true, useVNET = true, resetStaticState = true) 
+19: public class NodeUtil_103_tmp__ESTest extends NodeUtil_103_tmp__ESTest_scaffolding {
+20: 
+21:   @Test(timeout = 4000)
+22:   public void test0()  throws Throwable  {
+23:       Node node0 = Node.newString(95, "\"SY&I", 95, 95);
+24:       node0.addChildToFront(node0);
+25:       NodeUtil.containsCall(node0);
+26:   }
+27: }
+SimpleFileObject[/tmp/EvoSuite_103_1789823525228/com/google/javascript/jscomp/NodeUtil_103_tmp__ESTest.java]
+1: /**
+2:  * Scaffolding file used to store all the setups needed to run 
+3:  * tests automatically generated by EvoSuite
+4:  * Sat Sep 19 13:12:08 GMT 2026
+5:  */
+6: 
+7: package com.google.javascript.jscomp;
+8: 
+9: import org.evosuite.runtime.annotation.EvoSuiteClassExclude;
+10: import org.junit.BeforeClass;
+11: import org.junit.Before;
+12: import org.junit.After;
+13: import org.evosuite.runtime.sandbox.Sandbox;
+14: import org.evosuite.runtime.sandbox.Sandbox.SandboxMode;
+15: 
+16: @EvoSuiteClassExclude
+17: public class NodeUtil_103_tmp__ESTest_scaffolding {
+18: 
+19:   @org.junit.Rule
+20:   public org.evosuite.runtime.vnet.NonFunctionalRequirementRule nfr = new org.evosuite.runtime.vnet.NonFunctionalRequirementRule();
+21: 
+22:   private org.evosuite.runtime.thread.ThreadStopper threadStopper =  new org.evosuite.runtime.thread.ThreadStopper (org.evosuite.runtime.thread.KillSwitchHandler.getInstance(), 3000);
+23: 
+24: 
+25:   @BeforeClass
+26:   public static void initEvoSuiteFramework() { 
+27:     org.evosuite.runtime.RuntimeSettings.className = "com.google.javascript.jscomp.NodeUtil"; 
+28:     org.evosuite.runtime.GuiSupport.initialize(); 
+29:     org.evosuite.runtime.RuntimeSettings.maxNumberOfThreads = 100; 
+30:     org.evosuite.runtime.RuntimeSettings.maxNumberOfIterationsPerLoop = 10000; 
+31:     org.evosuite.runtime.RuntimeSettings.mockSystemIn = true; 
+32:     org.evosuite.runtime.RuntimeSettings.sandboxMode = org.evosuite.runtime.sandbox.Sandbox.SandboxMode.RECOMMENDED; 
+33:     org.evosuite.runtime.sandbox.Sandbox.initializeSecurityManagerForSUT(); 
+34:     org.evosuite.runtime.classhandling.JDKClassResetter.init();
+35:     setSystemProperties();
+36:     initializeClasses();
+37:     org.evosuite.runtime.Runtime.getInstance().resetRuntime(); 
+38:   } 
+39: 
+40:   @AfterClass
+41:   public static void clearEvoSuiteFramework(){ 
+42:     Sandbox.resetDefaultSecurityManager(); 
+43:   } 
+44: 
+45:   @Before
+46:   public void initTestCase(){ 
+47:     threadStopper.storeCurrentThreads();
+48:     threadStopper.startRecordingTime();
+49:     org.evosuite.runtime.jvm.ShutdownHookHandler.getInstance().initHandler(); 
+50:     org.evosuite.runtime.sandbox.Sandbox.goingToExecuteSUTCode(); 
+51:     org.evosuite.runtime.GuiSupport.setHeadless(); 
+52:     org.evosuite.runtime.Runtime.getInstance().resetRuntime(); 
+53:     org.evosuite.runtime.agent.InstrumentingAgent.activate(); 
+54:   } 
+55: 
+56:   @After
+57:   public void doneWithTestCase(){ 
+58:     threadStopper.killAndJoinClientThreads();
+59:     org.evosuite.runtime.jvm.ShutdownHookHandler.getInstance().safeExecuteAddedHooks(); 
+60:     org.evosuite.runtime.classhandling.JDKClassResetter.reset(); 
+61:     resetClasses(); 
+62:     org.evosuite.runtime.sandbox.Sandbox.doneWithExecutingSUTCode(); 
+63:     org.evosuite.runtime.agent.InstrumentingAgent.deactivate(); 
+64:     org.evosuite.runtime.GuiSupport.restoreHeadlessMode(); 
+65:   } 
+66: 
+67:   public static void setSystemProperties() {
+68:  
+69:     /*No java.lang.System property to set*/
+70:   }
+71: 
+72:   private static void initializeClasses() {
+73:     org.evosuite.runtime.classhandling.ClassStateSupport.initializeClasses(NodeUtil_103_tmp__ESTest_scaffolding.class.getClassLoader() ,
+74:       "com.google.common.collect.ArrayListMultimap",
+75:       "com.google.javascript.rhino.jstype.NoType",
+76:       "com.google.common.collect.ListMultimap",
+77:       "com.google.javascript.rhino.jstype.PrototypeObjectType",
+78:       "com.google.javascript.rhino.jstype.ArrowType",
+79:       "com.google.javascript.rhino.SimpleErrorReporter",
+80:       "com.google.common.collect.AbstractMultimap$WrappedCollection",
+81:       "com.google.common.collect.Lists$RandomAccessPartition",
+82:       "com.google.javascript.rhino.TokenStream",
+83:       "com.google.common.collect.Collections2",
+84:       "com.google.javascript.rhino.jstype.NumberType",
+85:       "com.google.javascript.rhino.jstype.FunctionParamBuilder",
+86:       "com.google.javascript.rhino.EvaluatorException",
+87:       "com.google.common.collect.RegularImmutableList",
+88:       "com.google.javascript.rhino.jstype.StaticScope",
+89:       "com.google.javascript.rhino.jstype.InstanceObjectType",
+90:       "com.google.common.collect.Lists$TransformingRandomAccessList",
+91:       "com.google.javascript.rhino.Node$PropListItem",
+92:       "com.google.javascript.rhino.RhinoException",
+93:       "com.google.common.collect.Sets$2",
+94:       "com.google.common.collect.Sets$3",
+95:       "com.google.javascript.rhino.Node",
+96:       "com.google.javascript.rhino.jstype.ObjectType",
+97:       "com.google.common.collect.Sets$1",
+98:       "com.google.javascript.rhino.Node$NodeMismatch",
+99:       "com.google.javascript.rhino.jstype.RecordType",
+100:       "com.google.javascript.rhino.jstype.FunctionPrototypeType",
+101:       "com.google.javascript.jscomp.NodeUtil",
+102:       "com.google.javascript.rhino.jstype.JSType$1",
+103:       "com.google.javascript.rhino.jstype.NoObjectType$GreatestSupertypeVisitor",
+104:       "com.google.common.base.Predicate",
+105:       "com.google.common.collect.AbstractMultimap$AsMap",
+106:       "com.google.javascript.rhino.jstype.VoidType",
+107:       "com.google.common.base.Joiner",
+108:       "com.google.javascript.rhino.Node$SiblingNodeIterable",
+109:       "com.google.common.collect.AbstractListMultimap",
+110:       "com.google.javascript.rhino.jstype.JSType",
+111:       "com.google.common.collect.ImmutableAsList",
+112:       "com.google.javascript.rhino.Node$StringNode",
+113:       "com.google.javascript.rhino.jstype.ProxyObjectType",
+114:       "com.google.common.collect.Sets$SetView",
+115:       "com.google.javascript.rhino.jstype.TemplateType",
+116:       "com.google.javascript.rhino.jstype.NamedType",
+117:       "com.google.javascript.rhino.jstype.UnionTypeBuilder",
+118:       "com.google.common.collect.Lists$Partition",
+119:       "com.google.common.collect.Lists",
+120:       "com.google.javascript.rhino.jstype.ParameterizedType",
+121:       "com.google.common.base.Predicates",
+122:       "com.google.javascript.rhino.jstype.NullType",
+123:       "com.google.common.collect.Lists$TransformingSequentialList",
+124:       "com.google.javascript.rhino.ErrorReporter",
+125:       "com.google.javascript.rhino.jstype.UnknownType",
+126:       "com.google.javascript.rhino.jstype.ValueType",
+127:       "com.google.javascript.rhino.Token",
+128:       "com.google.javascript.rhino.Node$FileLevelJsDocBuilder",
+129:       "com.google.javascript.rhino.jstype.BooleanType",
+130:       "com.google.javascript.rhino.jstype.NoObjectType",
+131:       "com.google.javascript.rhino.jstype.JSType$TypePair",
+132:       "com.google.common.base.Joiner$MapJoiner",
+133:       "com.google.common.collect.MapDifference",
+134:       "com.google.javascript.rhino.jstype.ErrorFunctionType",
+135:       "com.google.javascript.rhino.jstype.FunctionType",
+136:       "com.google.common.collect.Lists$ImmutableListWithNullElementsException",
+137:       "com.google.common.base.Preconditions",
+138:       "com.google.javascript.rhino.JSDocInfo",
+139:       "com.google.common.collect.EmptyImmutableList",
+140:       "com.google.common.base.Joiner$1",
+141:       "com.google.common.base.Joiner$2",
+142:       "com.google.common.collect.AbstractMultimap$WrappedList",
+143:       "com.google.javascript.jscomp.NodeUtil$Visitor",
+144:       "com.google.common.collect.ImmutableCollection",
+145:       "com.google.javascript.rhino.jstype.TernaryValue",
+146:       "com.google.common.collect.AbstractMultimap$EntrySet",
+147:       "com.google.javascript.rhino.Node$AncestorIterable",
+148:       "com.google.javascript.rhino.jstype.IndexedType",
+149:       "com.google.common.collect.AbstractMultimap$RandomAccessWrappedList",
+150:       "com.google.javascript.jscomp.NodeUtil$MatchNodeType",
+151:       "com.google.common.collect.ImmutableEnumSet",
+152:       "com.google.common.collect.AbstractMultimap$Entries",
+153:       "com.google.common.collect.HashMultimap",
+154:       "com.google.javascript.rhino.jstype.EnumElementType",
+155:       "com.google.javascript.rhino.jstype.UnionType",
+156:       "com.google.javascript.rhino.jstype.JSTypeRegistry$2",
+157:       "com.google.javascript.jscomp.NodeUtil$VarCollector",
+158:       "com.google.javascript.rhino.Node$NumberNode",
+159:       "com.google.javascript.rhino.jstype.JSTypeRegistry$3",
+160:       "com.google.common.collect.SingletonImmutableList",
+161:       "com.google.javascript.rhino.jstype.JSTypeRegistry$1",
+162:       "com.google.common.collect.BiMap",
+163:       "com.google.javascript.rhino.jstype.NoObjectType$LeastSupertypeVisitor",
+164:       "com.google.common.collect.AbstractSetMultimap",
+165:       "com.google.common.collect.ImmutableSet",
+166:       "com.google.javascript.rhino.ObjArray",
+167:       "com.google.javascript.rhino.jstype.EnumType",
+168:       "com.google.common.collect.AbstractMultimap$SortedKeySet",
+169:       "com.google.common.base.Predicates$NotPredicate",
+170:       "com.google.common.collect.Sets",
+171:       "com.google.common.collect.ImmutableCollection$EmptyImmutableCollection",
+172:       "com.google.javascript.rhino.ScriptOrFnNode",
+173:       "com.google.javascript.rhino.jstype.BooleanLiteralSet",
+174:       "com.google.common.collect.AbstractMultimap$SortedAsMap",
+175:       "com.google.common.collect.Multiset",
+176:       "com.google.common.collect.AbstractMultimap",
+177:       "com.google.common.collect.Multimap",
+178:       "com.google.javascript.rhino.Kit",
+179:       "com.google.common.collect.ImmutableList",
+180:       "com.google.javascript.rhino.jstype.StringType",
+181:       "com.google.javascript.rhino.jstype.JSTypeRegistry",
+182:       "com.google.common.collect.AbstractMultimap$KeySet",
+183:       "com.google.javascript.rhino.jstype.Visitor",
+184:       "com.google.javascript.rhino.jstype.JSTypeNative",
+185:       "com.google.javascript.rhino.jstype.AllType",
+186:       "com.google.javascript.rhino.FunctionNode",
+187:       "com.google.common.collect.Maps",
+188:       "com.google.common.collect.SetMultimap",
+189:       "com.google.javascript.rhino.ObjToIntMap",
+190:       "com.google.javascript.rhino.jstype.FunctionType$Kind",
+191:       "com.google.common.base.Predicates$AlwaysTruePredicate",
+192:       "com.google.javascript.jscomp.NodeUtil$MatchNameNode"
+193:     );
+194:   } 
+195: 
+196:   private static void resetClasses() {
+197:     org.evosuite.runtime.classhandling.ClassResetter.getInstance().setClassLoader(NodeUtil_103_tmp__ESTest_scaffolding.class.getClassLoader()); 
+198: 
+199:     org.evosuite.runtime.classhandling.ClassStateSupport.resetClasses(
+200:       "com.google.javascript.jscomp.NodeUtil",
+201:       "com.google.javascript.jscomp.NodeUtil$MatchNodeType",
+202:       "com.google.javascript.jscomp.NodeUtil$MatchNameNode",
+203:       "com.google.javascript.jscomp.NodeUtil$VarCollector",
+204:       "com.google.common.base.Predicates$AlwaysTruePredicate",
+205:       "com.google.javascript.rhino.SimpleErrorReporter",
+206:       "com.google.javascript.rhino.jstype.JSTypeRegistry",
+207:       "com.google.common.base.Joiner",
+208:       "com.google.common.base.Preconditions",
+209:       "com.google.common.collect.Collections2",
+210:       "com.google.common.base.Joiner$MapJoiner",
+211:       "com.google.common.collect.Maps",
+212:       "com.google.common.collect.AbstractMultimap",
+213:       "com.google.common.collect.AbstractSetMultimap",
+214:       "com.google.common.collect.HashMultimap",
+215:       "com.google.common.collect.AbstractListMultimap",
+216:       "com.google.common.collect.ArrayListMultimap",
+217:       "com.google.javascript.rhino.jstype.JSType$1",
+218:       "com.google.javascript.rhino.jstype.JSType",
+219:       "com.google.javascript.rhino.jstype.ValueType",
+220:       "com.google.javascript.rhino.jstype.BooleanType",
+221:       "com.google.javascript.rhino.jstype.NullType",
+222:       "com.google.javascript.rhino.jstype.NumberType",
+223:       "com.google.javascript.rhino.jstype.StringType",
+224:       "com.google.javascript.rhino.jstype.ObjectType",
+225:       "com.google.javascript.rhino.jstype.UnknownType",
+226:       "com.google.javascript.rhino.jstype.VoidType",
+227:       "com.google.javascript.rhino.jstype.AllType",
+228:       "com.google.javascript.rhino.jstype.PrototypeObjectType",
+229:       "com.google.javascript.rhino.jstype.FunctionPrototypeType",
+230:       "com.google.javascript.rhino.jstype.FunctionType",
+231:       "com.google.javascript.rhino.jstype.FunctionParamBuilder",
+232:       "com.google.javascript.rhino.Node",
+233:       "com.google.javascript.rhino.Node$StringNode",
+234:       "com.google.javascript.rhino.Node$PropListItem",
+235:       "com.google.common.collect.ImmutableCollection$EmptyImmutableCollection",
+236:       "com.google.common.collect.ImmutableCollection",
+237:       "com.google.common.collect.ImmutableList",
+238:       "com.google.common.collect.EmptyImmutableList",
+239:       "com.google.javascript.rhino.jstype.FunctionType$Kind",
+240:       "com.google.javascript.rhino.jstype.InstanceObjectType",
+241:       "com.google.javascript.rhino.jstype.ArrowType",
+242:       "com.google.common.collect.Sets",
+243:       "com.google.common.collect.Lists",
+244:       "com.google.javascript.rhino.jstype.NoObjectType",
+245:       "com.google.javascript.rhino.jstype.NoType",
+246:       "com.google.javascript.rhino.jstype.NoObjectType$LeastSupertypeVisitor",
+247:       "com.google.javascript.rhino.jstype.NoObjectType$GreatestSupertypeVisitor",
+248:       "com.google.javascript.rhino.jstype.JSTypeRegistry$1",
+249:       "com.google.javascript.rhino.jstype.ErrorFunctionType",
+250:       "com.google.javascript.rhino.jstype.JSTypeRegistry$2",
+251:       "com.google.javascript.rhino.jstype.UnionTypeBuilder",
+252:       "com.google.javascript.rhino.jstype.UnionType",
+253:       "com.google.javascript.rhino.jstype.JSTypeRegistry$3",
+254:       "com.google.javascript.rhino.RhinoException",
+255:       "com.google.javascript.rhino.Token",
+256:       "com.google.javascript.rhino.Node$NumberNode",
+257:       "com.google.javascript.rhino.jstype.RecordType",
+258:       "com.google.javascript.rhino.jstype.ProxyObjectType",
+259:       "com.google.javascript.rhino.jstype.NamedType",
+260:       "com.google.javascript.rhino.Node$AncestorIterable",
+261:       "com.google.javascript.rhino.jstype.EnumType",
+262:       "com.google.javascript.rhino.jstype.EnumElementType",
+263:       "com.google.common.base.Predicates",
+264:       "com.google.common.base.Predicates$NotPredicate",
+265:       "com.google.javascript.rhino.Kit",
+266:       "com.google.javascript.rhino.TokenStream",
+267:       "com.google.javascript.rhino.ScriptOrFnNode",
+268:       "com.google.javascript.rhino.FunctionNode",
+269:       "com.google.javascript.rhino.ObjArray",
+270:       "com.google.javascript.rhino.ObjToIntMap",
+271:       "com.google.javascript.rhino.Node$NodeMismatch",
+272:       "com.google.javascript.rhino.Node$FileLevelJsDocBuilder",
+273:       "com.google.javascript.rhino.jstype.RecordTypeBuilder",
+274:       "com.google.common.collect.ImmutableMap",
+275:       "com.google.common.collect.ImmutableMap$Builder",
+276:       "com.google.javascript.rhino.testing.EmptyScope",
+277:       "com.google.javascript.rhino.EvaluatorException",
+278:       "com.google.javascript.rhino.jstype.TernaryValue",
+279:       "com.google.javascript.rhino.jstype.JSType$2",
+280:       "com.google.javascript.rhino.jstype.JSType$TypePair",
+281:       "com.google.javascript.rhino.Node$SiblingNodeIterable",
+282:       "com.google.common.base.Objects",
+283:       "com.google.common.collect.AbstractMultimap$WrappedCollection",
+284:       "com.google.common.collect.AbstractMultimap$WrappedList",
+285:       "com.google.common.collect.AbstractMultimap$RandomAccessWrappedList",
+286:       "com.google.common.collect.AbstractMultimap$WrappedCollection$WrappedIterator",
+287:       "com.google.javascript.rhino.jstype.JSTypeNative",
+288:       "com.google.javascript.rhino.jstype.BooleanLiteralSet"
+289:     );
+290:   }
+291: }
+
+[MASTER] 20:12:08.270 [logback-2] ERROR JUnitAnalyzer - Failed to compile test case:
+Node node0 = Node.newString(95, "\"SY&I", 95, 95);
+node0.addChildToFront(node0);
+NodeUtil.containsCall(node0);
+
+* Writing tests to file
+* Writing JUnit test case 'NodeUtil_ESTest' to /home/user/evosuite-results/Closure-141b/GWO/com_google_javascript_jscomp_NodeUtil/evosuite-tests
+* Done!
+
+* Computation finished
+[MASTER] 20:12:46.240 [logback-2] ERROR ClientNodeImpl - Error when generating tests for: com.google.javascript.jscomp.NodeUtil with seed 1789823170692. Configuration id : null
+java.rmi.ServerError: Error occurred in server thread; nested exception is: 
+	java.lang.NoClassDefFoundError: com/google/javascript/rhino/jstype/JSTypeRegistry
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:388)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectTestGenerationResult(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:144)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.lang.NoClassDefFoundError: com/google/javascript/rhino/jstype/JSTypeRegistry
+	at java.base/java.lang.Class.getDeclaredConstructors0(Native Method)
+	at java.base/java.lang.Class.privateGetDeclaredConstructors(Class.java:3137)
+	at java.base/java.lang.Class.getDeclaredConstructors(Class.java:2357)
+	at org.evosuite.utils.generic.GenericConstructor.readObject(GenericConstructor.java:314)
+	at jdk.internal.reflect.GeneratedMethodAccessor16.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2346)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.skipCustomData(ObjectInputStream.java:2451)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2400)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at jdk.internal.reflect.GeneratedMethodAccessor15.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.skipCustomData(ObjectInputStream.java:2451)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2400)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	... 3 common frames omitted
+Caused by: java.lang.ClassNotFoundException: Class not found: com/google/javascript/rhino/jstype/NamedType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/NamedType
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:158)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.loadClass(InstrumentingClassLoader.java:126)
+	... 67 common frames omitted
+Caused by: java.lang.RuntimeException: Class not found: com/google/javascript/rhino/jstype/NamedType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/NamedType
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:56)
+	at org.evosuite.shaded.org.objectweb.asm.SymbolTable.addMergedType(SymbolTable.java:1202)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1299)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1197)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.computeAllFrames(MethodWriter.java:1610)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.visitMaxs(MethodWriter.java:1546)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.runtime.instrumentation.LoopCounterMethodAdapter.visitMaxs(LoopCounterMethodAdapter.java:48)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:769)
+	at org.evosuite.shaded.org.objectweb.asm.commons.JSRInlinerAdapter.visitEnd(JSRInlinerAdapter.java:158)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:649)
+	at org.evosuite.shaded.org.objectweb.asm.tree.ClassNode.accept(ClassNode.java:452)
+	at org.evosuite.instrumentation.BytecodeInstrumentation.transformBytes(BytecodeInstrumentation.java:282)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.getTransformedBytes(InstrumentingClassLoader.java:135)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:149)
+	... 68 common frames omitted
+Caused by: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/NamedType
+	at org.evosuite.runtime.util.ComputeClassWriter.typeInfo(ComputeClassWriter.java:179)
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:53)
+	... 88 common frames omitted

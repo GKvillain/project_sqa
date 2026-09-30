@@ -1,0 +1,65 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: org.apache.commons.cli2.WriteableCommandLine
+* Starting Client-0
+* Connecting to master process on port 5484
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/Cli-21b/target/classes
+  - /home/user/d4j-workspace/Cli-21b/target/lib/commons-lang/jars/commons-lang-2.1.jar
+  - /home/user/d4j-workspace/Cli-21b/target/lib/jdepend/jars/jdepend-2.5.jar
+  - /home/user/d4j-workspace/Cli-21b/target/lib/commons-lang/jars/commons-lang-2.1.jar
+  - /home/user/d4j-workspace/Cli-21b/target/lib/jdepend/jars/jdepend-2.5.jar
+  - /home/user/d4j-workspace/Cli-21b/target/classes
+  - /home/user/d4j-workspace/Cli-21b/target/test-classes
+  - /home/user/d4j-workspace/Cli-21b/target/classes
+  - /home/user/d4j-workspace/Cli-21b/target/test-classes
+* Finished analyzing classpath
+* Generating tests for class org.apache.commons.cli2.WriteableCommandLine
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 0
+  - Branch 0
+  - Exception 0
+  - MutationFactory 0
+  - Output 0
+  - Method 0
+  - MethodNoException 0
+  - CBranchFitnessFactory 0
+* Found no testable methods in the target class org.apache.commons.cli2.WriteableCommandLine
+* Minimizing test suite
+* Going to analyze the coverage criteria
+* Coverage analysis for criterion LINE
+* Coverage of criterion LINE: 100% (no goals)
+* Coverage analysis for criterion BRANCH
+* Coverage of criterion BRANCH: 100% (no goals)
+* Coverage analysis for criterion EXCEPTION
+* Coverage of criterion EXCEPTION: 100% (no goals)
+* Coverage analysis for criterion WEAKMUTATION
+* Coverage of criterion WEAKMUTATION: 100% (no goals)
+* Coverage analysis for criterion OUTPUT
+* Coverage of criterion OUTPUT: 100% (no goals)
+* Coverage analysis for criterion METHOD
+* Coverage of criterion METHOD: 100% (no goals)
+* Coverage analysis for criterion METHODNOEXCEPTION
+* Coverage of criterion METHODNOEXCEPTION: 100% (no goals)
+* Coverage analysis for criterion CBRANCH
+* Coverage of criterion CBRANCH: 100% (no goals)
+* Generated 0 tests with total length 0
+* Resulting test suite's coverage: 0% (average coverage for all fitness functions)
+* Generating assertions
+* Resulting test suite's mutation score: 100%
+* Compiling and checking tests
+* Writing tests to file
+* Writing JUnit test case 'WriteableCommandLine_ESTest' to /home/user/evosuite-results/Cli-21b/GWO/org_apache_commons_cli2_WriteableCommandLine/evosuite-tests
+* Done!
+
+* Computation finished

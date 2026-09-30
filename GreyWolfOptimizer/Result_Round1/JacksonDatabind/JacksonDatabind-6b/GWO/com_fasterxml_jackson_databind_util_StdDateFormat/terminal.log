@@ -1,0 +1,263 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: com.fasterxml.jackson.databind.util.StdDateFormat
+* Starting Client-0
+* Connecting to master process on port 21127
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/JacksonDatabind-6b/target/classes
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.4.0/jackson-annotations-2.4.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.4.3/jackson-core-2.4.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.4.0/jackson-annotations-2.4.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.4.3/jackson-core-2.4.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/cglib/cglib/2.2.2/cglib-2.2.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/asm/asm/3.3.1/asm-3.3.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/codehaus/groovy/groovy/1.7.9/groovy-1.7.9.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/antlr/antlr/2.7.7/antlr-2.7.7.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/asm/asm-commons/3.2/asm-commons-3.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/asm/asm-util/3.2/asm-util-3.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/asm/asm-analysis/3.2/asm-analysis-3.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/asm/asm-tree/3.2/asm-tree-3.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/hibernate/hibernate-cglib-repack/2.1_3/hibernate-cglib-repack-2.1_3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/junit/junit/4.8.2/junit-4.8.2.jar
+  - /home/user/d4j-workspace/JacksonDatabind-6b/target/classes
+  - /home/user/d4j-workspace/JacksonDatabind-6b/target/test-classes
+  - /home/user/defects4j/framework/projects/lib/junit-4.12-hamcrest-1.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/cglib/cglib/3.1/cglib-3.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.10.0-SNAPSHOT/jackson-annotations-2.10.0-20190519.085045-3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.2.0/jackson-annotations-2.2.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.2.1/jackson-annotations-2.2.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.3.0/jackson-annotations-2.3.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.4.0-rc3/jackson-annotations-2.4.0-rc3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.5.0/jackson-annotations-2.5.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.6.0-rc1/jackson-annotations-2.6.0-rc1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.6.0-rc2/jackson-annotations-2.6.0-rc2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.6.0-rc3/jackson-annotations-2.6.0-rc3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.6.0/jackson-annotations-2.6.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.7.0-rc2/jackson-annotations-2.7.0-rc2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.7.0/jackson-annotations-2.7.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.8.0.rc1/jackson-annotations-2.8.0.rc1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.8.0/jackson-annotations-2.8.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.9.0.pr3/jackson-annotations-2.9.0.pr3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/2.9.0/jackson-annotations-2.9.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/3.0-SNAPSHOT/jackson-annotations-3.0-20190323.173155-41.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-annotations/3.0-SNAPSHOT/jackson-annotations-3.0-20190519.085339-43.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.10.0-SNAPSHOT/jackson-core-2.10.0-20190518.180547-60.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.2.0/jackson-core-2.2.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.2.1/jackson-core-2.2.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.3.0/jackson-core-2.3.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.4.0-rc3/jackson-core-2.4.0-rc3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.4.0/jackson-core-2.4.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.4.1.1/jackson-core-2.4.1.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.4.2/jackson-core-2.4.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.4.5/jackson-core-2.4.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.4.6/jackson-core-2.4.6.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.5.0/jackson-core-2.5.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.5.1/jackson-core-2.5.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.5.3/jackson-core-2.5.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.5.4/jackson-core-2.5.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.5.5/jackson-core-2.5.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.0-rc1/jackson-core-2.6.0-rc1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.0-rc2/jackson-core-2.6.0-rc2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.0-rc3/jackson-core-2.6.0-rc3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.0/jackson-core-2.6.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.1/jackson-core-2.6.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.2/jackson-core-2.6.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.3/jackson-core-2.6.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.4/jackson-core-2.6.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.5/jackson-core-2.6.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.6/jackson-core-2.6.6.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.6.7/jackson-core-2.6.7.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.0-rc2/jackson-core-2.7.0-rc2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.0/jackson-core-2.7.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.1/jackson-core-2.7.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.2/jackson-core-2.7.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.4/jackson-core-2.7.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.5/jackson-core-2.7.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.6/jackson-core-2.7.6.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.7/jackson-core-2.7.7.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.8/jackson-core-2.7.8.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.7.9/jackson-core-2.7.9.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.0.rc1/jackson-core-2.8.0.rc1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.0.rc2/jackson-core-2.8.0.rc2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.0/jackson-core-2.8.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.10/jackson-core-2.8.10.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.3/jackson-core-2.8.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.4/jackson-core-2.8.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.5/jackson-core-2.8.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.6/jackson-core-2.8.6.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.7/jackson-core-2.8.7.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.8-SNAPSHOT/jackson-core-2.8.8-20170301.000803-1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.8/jackson-core-2.8.8.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.8.9/jackson-core-2.8.9.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.9.0.pr3/jackson-core-2.9.0.pr3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.9.6/jackson-core-2.9.6.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.9.7/jackson-core-2.9.7.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.9.8/jackson-core-2.9.8.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/2.9.9/jackson-core-2.9.9.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/fasterxml/jackson/core/jackson-core/3.0.0-SNAPSHOT/jackson-core-3.0.0-20190516.032312-448.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/google/guava/guava/18.0/guava-18.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/com/google/jimfs/jimfs/1.1/jimfs-1.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/javax/measure/jsr-275/0.9.1/jsr-275-0.9.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/javax/measure/jsr-275/0.9.2/jsr-275-0.9.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/junit/junit/4.10/junit-4.10.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/junit/junit/4.11/junit-4.11.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/junit/junit/4.12/junit-4.12.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/net/bytebuddy/byte-buddy-agent/1.7.5/byte-buddy-agent-1.7.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/net/bytebuddy/byte-buddy-agent/1.9.3/byte-buddy-agent-1.9.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/net/bytebuddy/byte-buddy/1.7.5/byte-buddy-1.7.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/net/bytebuddy/byte-buddy/1.9.3/byte-buddy-1.9.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/assertj/assertj-core/3.8.0/assertj-core-3.8.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/assertj/assertj-core/3.9.1/assertj-core-3.9.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/codehaus/groovy/groovy/2.4.0/groovy-2.4.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/hamcrest/hamcrest-core/1.1/hamcrest-core-1.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/javassist/javassist/3.19.0-GA/javassist-3.19.0-GA.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/javassist/javassist/3.20.0-GA/javassist-3.20.0-GA.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/javassist/javassist/3.21.0-GA/javassist-3.21.0-GA.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/javassist/javassist/3.22.0-CR2/javassist-3.22.0-CR2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/javassist/javassist/3.24.0-GA/javassist-3.24.0-GA.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/mockito/mockito-all/1.10.19/mockito-all-1.10.19.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/mockito/mockito-core/1.10.19/mockito-core-1.10.19.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/mockito/mockito-core/2.10.0/mockito-core-2.10.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/mockito/mockito-core/2.23.0/mockito-core-2.23.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/objenesis/objenesis/2.1/objenesis-2.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/objenesis/objenesis/2.6/objenesis-2.6.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/objenesis/objenesis/3.0.1/objenesis-3.0.1.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/ow2/asm/asm/4.2/asm-4.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito-common/1.6.5/powermock-api-mockito-common-1.6.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito-common/1.7.3/powermock-api-mockito-common-1.7.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito-common/1.7.4/powermock-api-mockito-common-1.7.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito/1.6.2/powermock-api-mockito-1.6.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito/1.6.3/powermock-api-mockito-1.6.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito/1.6.5/powermock-api-mockito-1.6.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito/1.7.3/powermock-api-mockito-1.7.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito/1.7.4/powermock-api-mockito-1.7.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito2/2.0.0-beta.5/powermock-api-mockito2-2.0.0-beta.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-mockito2/2.0.0/powermock-api-mockito2-2.0.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-support/1.6.2/powermock-api-support-1.6.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-support/1.6.3/powermock-api-support-1.6.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-support/1.6.5/powermock-api-support-1.6.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-support/1.7.3/powermock-api-support-1.7.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-support/1.7.4/powermock-api-support-1.7.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-support/2.0.0-beta.5/powermock-api-support-2.0.0-beta.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-api-support/2.0.0/powermock-api-support-2.0.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-core/1.6.2/powermock-core-1.6.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-core/1.6.3/powermock-core-1.6.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-core/1.6.5/powermock-core-1.6.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-core/1.7.3/powermock-core-1.7.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-core/1.7.4/powermock-core-1.7.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-core/2.0.0-beta.5/powermock-core-2.0.0-beta.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-core/2.0.0/powermock-core-2.0.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4-common/1.6.2/powermock-module-junit4-common-1.6.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4-common/1.6.3/powermock-module-junit4-common-1.6.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4-common/1.6.5/powermock-module-junit4-common-1.6.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4-common/1.7.3/powermock-module-junit4-common-1.7.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4-common/1.7.4/powermock-module-junit4-common-1.7.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4-common/2.0.0-beta.5/powermock-module-junit4-common-2.0.0-beta.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4-common/2.0.0/powermock-module-junit4-common-2.0.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4/1.6.2/powermock-module-junit4-1.6.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4/1.6.3/powermock-module-junit4-1.6.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4/1.6.5/powermock-module-junit4-1.6.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4/1.7.3/powermock-module-junit4-1.7.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4/1.7.4/powermock-module-junit4-1.7.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4/2.0.0-beta.5/powermock-module-junit4-2.0.0-beta.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-module-junit4/2.0.0/powermock-module-junit4-2.0.0.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-reflect/1.6.2/powermock-reflect-1.6.2.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-reflect/1.6.3/powermock-reflect-1.6.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-reflect/1.6.5/powermock-reflect-1.6.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-reflect/1.7.3/powermock-reflect-1.7.3.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-reflect/1.7.4/powermock-reflect-1.7.4.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-reflect/2.0.0-beta.5/powermock-reflect-2.0.0-beta.5.jar
+  - /home/user/defects4j/framework/projects/JacksonDatabind/lib/org/powermock/powermock-reflect/2.0.0/powermock-reflect-2.0.0.jar
+  - /home/user/d4j-workspace/JacksonDatabind-6b/target/classes
+  - /home/user/d4j-workspace/JacksonDatabind-6b/target/test-classes
+[MASTER] 21:53:39.221 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.util.Locale$IsoCountryCode
+* Finished analyzing classpath
+* Generating tests for class com.fasterxml.jackson.databind.util.StdDateFormat
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 136
+  - Branch 105
+  - Exception 0
+  - MutationFactory 885
+  - Output 53
+  - Method 21
+  - MethodNoException 21
+  - CBranchFitnessFactory 105
+[Progress:>                             0%] [Cov:>                                  0%]* Using seed 1789916017325
+* Starting evolution
+[MASTER] 21:53:39.807 [logback-1] WARN  TestCluster - Failed to check cache for java.util.List<E> : Type points to itself
+[Progress:>                             0%] [Cov:=>                                 4%][Progress:>                             0%] [Cov:==>                                8%][Progress:>                             0%] [Cov:=======>                           20%][Progress:>                             0%] [Cov:========>                          24%][Progress:>                             0%] [Cov:========>                          25%][Progress:>                             0%] [Cov:==========>                        30%][Progress:>                             0%] [Cov:===========>                       34%][Progress:>                             0%] [Cov:============>                      35%][Progress:>                             0%] [Cov:=============>                     39%][Progress:>                             0%] [Cov:==============>                    41%][Progress:>                             0%] [Cov:===============>                   45%][Progress:>                             0%] [Cov:==================>                52%][Progress:>                             0%] [Cov:==================>                54%][MASTER] 21:53:41.002 [logback-1] WARN  TestCluster - Failed to check cache for java.time.temporal.TemporalQuery<R> : Type points to itself
+[Progress:>                             0%] [Cov:==================>                54%]========== GWO EVOLVE iteration=0 population=50 ==========
+[Progress:>                             1%] [Cov:==================>                54%][Progress:>                             1%] [Cov:==================>                54%]GWO iteration=1 bestFitness=592.1862912707129 population=50 a=1.98
+========== GWO EVOLVE iteration=1 population=50 ==========
+[Progress:>                             1%] [Cov:===================>               55%][Progress:>                             1%] [Cov:===================>               56%][Progress:>                             1%] [Cov:===================>               57%][Progress:>                             2%] [Cov:=========>                         28%][Progress:>                             2%] [Cov:==================>                54%][Progress:>                             2%] [Cov:===================>               55%][Progress:>                             2%] [Cov:===================>               56%][Progress:>                             2%] [Cov:===================>               57%]GWO iteration=2 bestFitness=572.6851007945224 population=50 a=1.96
+========== GWO EVOLVE iteration=2 population=50 ==========
+[Progress:>                             2%] [Cov:====================>              58%][Progress:>                             2%] [Cov:====================>              59%][Progress:>                             2%] [Cov:====================>              59%]GWO iteration=3 bestFitness=491.65945602019343 population=50 a=1.94
+========== GWO EVOLVE iteration=3 population=50 ==========
+[Progress:>                             3%] [Cov:====================>              59%][Progress:>                             3%] [Cov:====================>              59%]GWO iteration=4 bestFitness=478.764381547023 population=50 a=1.92
+========== GWO EVOLVE iteration=4 population=50 ==========
+[Progress:>                             3%] [Cov:=====================>             60%][Progress:>                             3%] [Cov:=====================>             61%][Progress:>                             3%] [Cov:=====================>             62%][Progress:>                             3%] [Cov:======================>            63%][Progress:=>                            4%] [Cov:====================>              58%][Progress:=>                            4%] [Cov:====================>              59%][Progress:=>                            4%] [Cov:======================>            63%]GWO iteration=5 bestFitness=477.4919957027331 population=50 a=1.9
+[Progress:=>                            4%] [Cov:=====================>             62%][Progress:=>                            4%] [Cov:======================>            63%][Progress:=>                            5%] [Cov:======================>            63%][Progress:=>                            5%] [Cov:=====================>             62%][Progress:=>                            5%] [Cov:======================>            63%][Progress:=>                            5%] [Cov:======================>            63%][Progress:=>                            5%] [Cov:======================>            64%][Progress:=>                            5%] [Cov:======================>            65%][Progress:=>                            6%] [Cov:=====================>             62%][Progress:=>                            6%] [Cov:======================>            63%][Progress:=>                            6%] [Cov:======================>            65%][Progress:=>                            6%] [Cov:======================>            65%][Progress:==>                           7%] [Cov:======================>            65%][Progress:==>                           7%] [Cov:=======================>           66%][Progress:==>                           7%] [Cov:=======================>           67%][Progress:==>                           7%] [Cov:=======================>           67%][Progress:==>                           8%] [Cov:======================>            65%][Progress:==>                           8%] [Cov:=======================>           67%][Progress:==>                           8%] [Cov:=======================>           67%][Progress:==>                           8%] [Cov:=======================>           68%][Progress:==>                           8%] [Cov:========================>          69%][Progress:==>                           9%] [Cov:======================>            65%][Progress:==>                           9%] [Cov:=======================>           67%][Progress:==>                           9%] [Cov:========================>          69%][Progress:===>                          10%] [Cov:======================>            65%][Progress:===>                          10%] [Cov:=======================>           67%][Progress:===>                          10%] [Cov:=======================>           68%][Progress:===>                          10%] [Cov:========================>          69%][Progress:===>                          10%] [Cov:========================>          69%][Progress:===>                          10%] [Cov:========================>          69%][Progress:===>                          11%] [Cov:========================>          69%][Progress:===>                          11%] [Cov:========================>          70%][Progress:===>                          12%] [Cov:========================>          69%][Progress:===>                          13%] [Cov:========================>          69%][Progress:===>                          13%] [Cov:========================>          70%][Progress:====>                         14%] [Cov:========================>          70%][Progress:====>                         14%] [Cov:========================>          70%][Progress:====>                         15%] [Cov:========================>          70%][Progress:====>                         15%] [Cov:========================>          71%][Progress:====>                         15%] [Cov:========================>          70%][Progress:====>                         15%] [Cov:========================>          71%][Progress:====>                         15%] [Cov:=========================>         72%][Progress:====>                         15%] [Cov:=========================>         72%]GWO iteration=20 bestFitness=380.57987660487663 population=50 a=1.6
+========== GWO EVOLVE iteration=20 population=50 ==========
+[Progress:====>                         16%] [Cov:========================>          70%][Progress:====>                         16%] [Cov:=========================>         72%][Progress:====>                         16%] [Cov:=========================>         72%][Progress:=====>                        17%] [Cov:========================>          71%][Progress:=====>                        17%] [Cov:=========================>         72%][Progress:=====>                        18%] [Cov:========================>          71%][Progress:=====>                        18%] [Cov:=========================>         72%][Progress:=====>                        18%] [Cov:=========================>         72%][Progress:=====>                        19%] [Cov:========================>          69%][Progress:=====>                        19%] [Cov:=========================>         72%][Progress:=====>                        19%] [Cov:=========================>         73%][Progress:=====>                        19%] [Cov:=========================>         74%][Progress:=====>                        19%] [Cov:=========================>         74%][Progress:======>                       20%] [Cov:=========================>         74%][Progress:======>                       20%] [Cov:=========================>         74%][Progress:======>                       20%] [Cov:==========================>        75%][Progress:======>                       20%] [Cov:==========================>        75%][Progress:======>                       21%] [Cov:==========================>        75%][Progress:======>                       21%] [Cov:==========================>        75%][Progress:======>                       22%] [Cov:=========================>         74%][Progress:======>                       22%] [Cov:==========================>        75%][Progress:======>                       22%] [Cov:==========================>        75%][Progress:======>                       23%] [Cov:==========================>        75%][Progress:======>                       23%] [Cov:==========================>        75%][Progress:=======>                      24%] [Cov:==========================>        75%][Progress:=======>                      24%] [Cov:==========================>        76%][Progress:=======>                      24%] [Cov:==========================>        76%][Progress:=======>                      25%] [Cov:==========================>        75%][Progress:=======>                      25%] [Cov:==========================>        76%][Progress:=======>                      25%] [Cov:==========================>        77%][Progress:=======>                      25%] [Cov:==========================>        77%][Progress:=======>                      25%] [Cov:==========================>        77%][Progress:=======>                      26%] [Cov:=========================>         73%][Progress:=======>                      26%] [Cov:==========================>        77%][Progress:=======>                      26%] [Cov:==========================>        77%][Progress:=======>                      26%] [Cov:===========================>       78%][Progress:========>                     27%] [Cov:==========================>        77%][Progress:========>                     27%] [Cov:===========================>       78%][Progress:========>                     28%] [Cov:===========================>       78%][Progress:========>                     28%] [Cov:===========================>       78%][Progress:========>                     29%] [Cov:===========================>       78%][Progress:========>                     29%] [Cov:===========================>       78%][Progress:=========>                    30%] [Cov:===========================>       78%][Progress:=========>                    30%] [Cov:===========================>       78%][Progress:=========>                    30%] [Cov:===========================>       78%][Progress:=========>                    31%] [Cov:===========================>       78%][Progress:=========>                    31%] [Cov:===========================>       79%][Progress:=========>                    31%] [Cov:===========================>       79%][Progress:=========>                    32%] [Cov:===========================>       78%][Progress:=========>                    32%] [Cov:===========================>       79%][Progress:=========>                    32%] [Cov:===========================>       78%]GWO iteration=40 bestFitness=226.55918438859615 population=50 a=1.2
+========== GWO EVOLVE iteration=40 population=50 ==========
+[Progress:=========>                    32%] [Cov:===========================>       79%][Progress:=========>                    33%] [Cov:===========================>       79%][Progress:=========>                    33%] [Cov:===========================>       78%][Progress:==========>                   34%] [Cov:===========================>       78%][Progress:==========>                   34%] [Cov:===========================>       79%][Progress:==========>                   35%] [Cov:===========================>       78%][Progress:==========>                   35%] [Cov:===========================>       78%][Progress:==========>                   35%] [Cov:===========================>       79%][Progress:==========>                   35%] [Cov:===========================>       79%][Progress:==========>                   36%] [Cov:===========================>       78%][Progress:==========>                   36%] [Cov:===========================>       79%][Progress:==========>                   36%] [Cov:===========================>       79%][Progress:===========>                  37%] [Cov:===========================>       79%][Progress:===========>                  37%] [Cov:===========================>       79%][Progress:===========>                  38%] [Cov:===========================>       79%][Progress:===========>                  38%] [Cov:===========================>       79%][Progress:===========>                  38%] [Cov:============================>      80%][Progress:===========>                  39%] [Cov:===========================>       79%][Progress:===========>                  39%] [Cov:============================>      80%][Progress:============>                 40%] [Cov:===========================>       79%][Progress:============>                 40%] [Cov:============================>      80%][Progress:============>                 41%] [Cov:===========================>       78%][Progress:============>                 41%] [Cov:============================>      80%][Progress:============>                 42%] [Cov:============================>      80%][Progress:============>                 42%] [Cov:============================>      80%][Progress:============>                 43%] [Cov:============================>      80%][Progress:============>                 43%] [Cov:============================>      80%][Progress:=============>                44%] [Cov:============================>      80%][Progress:=============>                44%] [Cov:============================>      80%][Progress:=============>                45%] [Cov:============================>      80%][Progress:=============>                45%] [Cov:============================>      80%][Progress:=============>                46%] [Cov:============================>      80%][Progress:=============>                46%] [Cov:============================>      80%][Progress:=============>                46%] [Cov:============================>      81%][Progress:==============>               47%] [Cov:============================>      80%][Progress:==============>               47%] [Cov:============================>      81%][Progress:==============>               48%] [Cov:============================>      81%][Progress:==============>               48%] [Cov:============================>      81%][Progress:==============>               49%] [Cov:============================>      81%][Progress:===============>              50%] [Cov:============================>      80%][Progress:===============>              50%] [Cov:============================>      81%][Progress:===============>              50%] [Cov:============================>      81%][Progress:===============>              50%] [Cov:============================>      81%][Progress:===============>              51%] [Cov:============================>      81%][Progress:===============>              51%] [Cov:============================>      81%][Progress:===============>              52%] [Cov:============================>      81%][Progress:===============>              53%] [Cov:============================>      81%][Progress:===============>              53%] [Cov:============================>      81%][Progress:================>             54%] [Cov:============================>      81%][Progress:================>             54%] [Cov:============================>      81%]GWO iteration=60 bestFitness=165.46648166648166 population=50 a=0.8
+========== GWO EVOLVE iteration=60 population=50 ==========
+[Progress:================>             55%] [Cov:============================>      81%][Progress:================>             55%] [Cov:============================>      81%][Progress:================>             56%] [Cov:============================>      81%][Progress:================>             56%] [Cov:============================>      81%][Progress:=================>            57%] [Cov:============================>      81%][Progress:=================>            57%] [Cov:============================>      81%][Progress:=================>            58%] [Cov:============================>      81%][Progress:=================>            59%] [Cov:===========================>       79%][Progress:=================>            59%] [Cov:============================>      81%][Progress:=================>            59%] [Cov:=============================>     83%][Progress:=================>            59%] [Cov:=============================>     83%][Progress:==================>           60%] [Cov:=============================>     83%][Progress:==================>           60%] [Cov:=============================>     83%][Progress:==================>           61%] [Cov:=============================>     83%][Progress:==================>           61%] [Cov:=============================>     83%][Progress:==================>           62%] [Cov:=============================>     83%][Progress:==================>           62%] [Cov:=============================>     83%][Progress:==================>           63%] [Cov:=============================>     83%][Progress:==================>           63%] [Cov:=============================>     83%][Progress:===================>          64%] [Cov:=============================>     83%][Progress:===================>          65%] [Cov:=============================>     83%][Progress:===================>          65%] [Cov:=============================>     83%][Progress:===================>          65%] [Cov:=============================>     83%][Progress:===================>          66%] [Cov:=============================>     83%][Progress:===================>          66%] [Cov:=============================>     84%][Progress:====================>         67%] [Cov:=============================>     83%][Progress:====================>         67%] [Cov:=============================>     84%][Progress:====================>         68%] [Cov:=============================>     84%][Progress:====================>         69%] [Cov:=============================>     84%][Progress:====================>         69%] [Cov:=============================>     84%][Progress:=====================>        70%] [Cov:=============================>     84%][Progress:=====================>        70%] [Cov:=============================>     84%][Progress:=====================>        71%] [Cov:=============================>     84%][Progress:=====================>        71%] [Cov:=============================>     84%][Progress:=====================>        72%] [Cov:=============================>     84%][Progress:=====================>        73%] [Cov:=============================>     84%][Progress:=====================>        73%] [Cov:=============================>     84%][Progress:======================>       74%] [Cov:=============================>     84%][Progress:======================>       74%] [Cov:=============================>     84%][Progress:======================>       75%] [Cov:=============================>     84%][Progress:======================>       75%] [Cov:=============================>     84%][Progress:======================>       76%] [Cov:=============================>     84%][Progress:======================>       76%] [Cov:=============================>     84%][Progress:=======================>      77%] [Cov:=============================>     84%][Progress:=======================>      78%] [Cov:=============================>     84%][Progress:=======================>      78%] [Cov:=============================>     84%][Progress:=======================>      79%] [Cov:=============================>     84%][Progress:=======================>      79%] [Cov:=============================>     84%]GWO iteration=80 bestFitness=141.48996003996004 population=50 a=0.3999999999999999
+========== GWO EVOLVE iteration=80 population=50 ==========
+[Progress:========================>     80%] [Cov:=============================>     84%][Progress:========================>     80%] [Cov:=============================>     84%][Progress:========================>     81%] [Cov:=============================>     84%][Progress:========================>     82%] [Cov:=============================>     84%][Progress:========================>     82%] [Cov:=============================>     84%][Progress:========================>     83%] [Cov:=============================>     84%][Progress:========================>     83%] [Cov:=============================>     84%][Progress:=========================>    84%] [Cov:=============================>     84%][Progress:=========================>    85%] [Cov:=============================>     84%][Progress:=========================>    85%] [Cov:=============================>     84%][Progress:=========================>    85%] [Cov:=============================>     84%][Progress:=========================>    86%] [Cov:=============================>     84%][Progress:==========================>   87%] [Cov:=============================>     84%][Progress:==========================>   87%] [Cov:=============================>     84%][Progress:==========================>   88%] [Cov:=============================>     84%][Progress:==========================>   88%] [Cov:=============================>     84%][Progress:==========================>   89%] [Cov:=============================>     84%][Progress:==========================>   89%] [Cov:=============================>     84%][Progress:===========================>  90%] [Cov:=============================>     84%][Progress:===========================>  90%] [Cov:=============================>     84%][Progress:===========================>  91%] [Cov:=============================>     84%][Progress:===========================>  91%] [Cov:=============================>     84%][Progress:===========================>  92%] [Cov:=============================>     84%][Progress:===========================>  93%] [Cov:=============================>     84%][Progress:===========================>  93%] [Cov:=============================>     84%][Progress:============================> 94%] [Cov:=============================>     84%][Progress:============================> 94%] [Cov:=============================>     84%][Progress:============================> 95%] [Cov:=============================>     84%][Progress:============================> 95%] [Cov:=============================>     84%][Progress:============================> 96%] [Cov:=============================>     84%][Progress:============================> 96%] [Cov:=============================>     84%][Progress:=============================>97%] [Cov:=============================>     84%][Progress:=============================>98%] [Cov:=============================>     84%][Progress:=============================>98%] [Cov:=============================>     84%][Progress:=============================>99%] [Cov:=============================>     84%][Progress:=============================>99%] [Cov:=============================>     84%][Progress:==============================100%] [Cov:=============================>     84%][Progress:==============================100%] [Cov:=============================>     84%][Progress:==============================100%] [Cov:=============================>     85%]
+* Search finished after 121s and 97 generations, 38870 statements, best individual has fitness: 129.01033549783548
+* Minimizing test suite
+* Going to analyze the coverage criteria
+* Coverage analysis for criterion LINE
+* Coverage of criterion LINE: 92%
+* Total number of goals: 136
+* Number of covered goals: 125
+* Coverage analysis for criterion BRANCH
+* Coverage of criterion BRANCH: 90%
+* Total number of goals: 105
+* Number of covered goals: 94
+* Coverage analysis for criterion EXCEPTION
+* Coverage of criterion EXCEPTION: 100%
+* Total number of goals: 15
+* Number of covered goals: 15
+* Coverage analysis for criterion WEAKMUTATION
+* Coverage of criterion WEAKMUTATION: 94%
+* Total number of goals: 885
+* Number of covered goals: 829
+* Coverage analysis for criterion OUTPUT
+* Coverage of criterion OUTPUT: 28%
+* Total number of goals: 53
+* Number of covered goals: 15
+* Coverage analysis for criterion METHOD
+* Coverage of criterion METHOD: 100%
+* Total number of goals: 21
+* Number of covered goals: 21
+* Coverage analysis for criterion METHODNOEXCEPTION
+* Coverage of criterion METHODNOEXCEPTION: 100%
+* Total number of goals: 21
+* Number of covered goals: 21
+* Coverage analysis for criterion CBRANCH
+* Coverage of criterion CBRANCH: 90%
+* Total number of goals: 105
+* Number of covered goals: 94
+* Generated 42 tests with total length 134
+* Resulting test suite's coverage: 85% (average coverage for all fitness functions)
+* Generating assertions
+* Resulting test suite's mutation score: 33%
+* Compiling and checking tests
+* Writing tests to file
+* Writing JUnit test case 'StdDateFormat_ESTest' to /home/user/evosuite-results/JacksonDatabind-6b/GWO/com_fasterxml_jackson_databind_util_StdDateFormat/evosuite-tests
+* Done!
+
+* Computation finished

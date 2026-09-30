@@ -1,0 +1,80 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: org.apache.commons.math3.optimization.univariate.BrentOptimizer
+* Starting Client-0
+* Connecting to master process on port 10189
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/Math-23b/target/classes
+* Finished analyzing classpath
+* Generating tests for class org.apache.commons.math3.optimization.univariate.BrentOptimizer
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 119
+  - Branch 75
+  - Exception 0
+  - MutationFactory 171
+  - Output 7
+  - Method 3
+  - MethodNoException 3
+  - CBranchFitnessFactory 75
+[Progress:>                             0%] [Cov:>                                  0%]* Using seed 1789533310414
+* Starting evolution
+[MASTER] 11:35:16.018 [logback-1] WARN  TestCluster - Failed to check cache for org.apache.commons.math3.optimization.ConvergenceChecker<PAIR> : Type points to itself
+[Progress:>                             0%] [Cov:=>                                 4%][Progress:>                             0%] [Cov:==>                                6%][Progress:>                             0%] [Cov:======>                            18%][Progress:>                             0%] [Cov:========>                          25%][Progress:>                             0%] [Cov:=========>                         28%][Progress:>                             0%] [Cov:==============>                    40%][Progress:>                             0%] [Cov:================>                  47%][Progress:>                             0%] [Cov:================>                  48%][Progress:>                             0%] [Cov:===================>               56%][Progress:>                             0%] [Cov:====================>              59%][Progress:>                             0%] [Cov:====================>              59%]========== GWO EVOLVE iteration=0 population=50 ==========
+[Progress:>                             1%] [Cov:====================>              59%][Progress:>                             1%] [Cov:====================>              59%]GWO iteration=1 bestFitness=252.4777777684247 population=50 a=1.98
+========== GWO EVOLVE iteration=1 population=50 ==========
+[Progress:>                             1%] [Cov:=====================>             60%][Progress:>                             1%] [Cov:======================>            63%][Progress:>                             1%] [Cov:=====================>             60%]GWO iteration=2 bestFitness=249.4777777684247 population=50 a=1.96
+========== GWO EVOLVE iteration=2 population=50 ==========
+[Progress:>                             1%] [Cov:======================>            63%][Progress:>                             2%] [Cov:===========>                       32%][Progress:>                             2%] [Cov:============>                      36%][Progress:>                             2%] [Cov:=====================>             60%][Progress:>                             2%] [Cov:======================>            63%][Progress:>                             2%] [Cov:=====================>             60%]GWO iteration=3 bestFitness=249.4777777684247 population=50 a=1.94
+========== GWO EVOLVE iteration=3 population=50 ==========
+[Progress:>                             2%] [Cov:======================>            63%][Progress:>                             2%] [Cov:======================>            64%][Progress:>                             2%] [Cov:=======================>           66%][Progress:>                             2%] [Cov:=======================>           67%][Progress:>                             2%] [Cov:=======================>           68%][Progress:>                             2%] [Cov:=======================>           68%]GWO iteration=4 bestFitness=225.4777777684247 population=50 a=1.92
+========== GWO EVOLVE iteration=4 population=50 ==========
+[Progress:>                             2%] [Cov:=======================>           68%]GWO iteration=5 bestFitness=225.4777777684247 population=50 a=1.9
+[Progress:>                             3%] [Cov:=======================>           68%][Progress:>                             3%] [Cov:=======================>           68%][Progress:>                             3%] [Cov:=======================>           68%][Progress:=>                            4%] [Cov:=======================>           68%][Progress:=>                            4%] [Cov:=======================>           68%][Progress:=>                            4%] [Cov:========================>          69%][Progress:=>                            4%] [Cov:========================>          69%][Progress:===>                          12%] [Cov:========================>          69%][Progress:===>                          12%] [Cov:========================>          70%][Progress:===>                          12%] [Cov:========================>          70%][Progress:===>                          12%] [Cov:========================>          70%][Progress:===>                          13%] [Cov:========================>          70%][Progress:===>                          13%] [Cov:========================>          71%][Progress:===>                          13%] [Cov:=========================>         72%]* Computation finished
+[MASTER] 11:35:47.114 [logback-2] ERROR ClientNodeImpl - Error when generating tests for: org.apache.commons.math3.optimization.univariate.BrentOptimizer with seed 1789533310414. Configuration id : null
+java.lang.OutOfMemoryError: Java heap space
+	at java.base/java.lang.Thread.dumpThreads(Native Method)
+	at java.base/java.lang.Thread.getStackTrace(Thread.java:1593)
+	at org.evosuite.testcase.execution.TestCaseExecutor.isInStaticInit(TestCaseExecutor.java:491)
+	at org.evosuite.testcase.execution.TestCaseExecutor.execute(TestCaseExecutor.java:408)
+	at org.evosuite.testcase.execution.TestCaseExecutor.execute(TestCaseExecutor.java:269)
+	at org.evosuite.testcase.execution.TestCaseExecutor.execute(TestCaseExecutor.java:257)
+	at org.evosuite.testsuite.TestSuiteFitnessFunction.runTest(TestSuiteFitnessFunction.java:63)
+	at org.evosuite.testcase.TestChromosome.executeForFitnessFunction(TestChromosome.java:657)
+	at org.evosuite.testsuite.TestSuiteFitnessFunction.runTestSuite(TestSuiteFitnessFunction.java:95)
+	at org.evosuite.coverage.line.LineCoverageSuiteFitness.getFitness(LineCoverageSuiteFitness.java:155)
+	at org.evosuite.coverage.line.LineCoverageSuiteFitness.getFitness(LineCoverageSuiteFitness.java:44)
+	at org.evosuite.ga.metaheuristics.GeneticAlgorithm.lambda$calculateFitness$1(GeneticAlgorithm.java:585)
+	at org.evosuite.ga.metaheuristics.GeneticAlgorithm$$Lambda$225/0x0000000840268840.accept(Unknown Source)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1541)
+	at org.evosuite.ga.metaheuristics.GeneticAlgorithm.calculateFitness(GeneticAlgorithm.java:584)
+	at org.evosuite.ga.metaheuristics.GeneticAlgorithm.calculateFitness(GeneticAlgorithm.java:573)
+	at org.evosuite.ga.metaheuristics.GeneticAlgorithm.calculateFitnessAndSortPopulation(GeneticAlgorithm.java:594)
+	at org.evosuite.ga.metaheuristics.GreyWolfAlgorithm.generateSolution(GreyWolfAlgorithm.java:715)
+	at org.evosuite.strategy.WholeTestSuiteStrategy.generateTests(WholeTestSuiteStrategy.java:108)
+	at org.evosuite.TestSuiteGenerator.generateTests(TestSuiteGenerator.java:630)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:208)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at org.evosuite.rmi.service.ClientNodeImpl$$Lambda$89/0x000000084010e840.run(Unknown Source)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+[MASTER] 11:35:47.226 [main] ERROR SearchStatistics - No obtained value for output variable: Total_Goals
+[MASTER] 11:35:52.159 [main] ERROR SearchStatistics - No obtained value for output variable: Total_Goals
+[MASTER] 11:35:53.159 [main] ERROR SearchStatistics - No obtained value for output variable: Total_Goals
+[MASTER] 11:35:54.159 [main] ERROR SearchStatistics - No obtained value for output variable: Total_Goals
+[MASTER] 11:35:55.160 [main] ERROR SearchStatistics - No obtained value for output variable: Total_Goals
+[MASTER] 11:35:56.160 [main] ERROR SearchStatistics - No obtained value for output variable: Total_Goals
+[MASTER] 11:35:56.160 [main] ERROR SearchStatistics - Not going to write down statistics data, as some are missing
+[MASTER] 11:35:56.261 [main] ERROR TestGeneration - failed to write statistics data

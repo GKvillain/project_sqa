@@ -1,0 +1,1626 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: com.google.javascript.rhino.jstype.UnionType
+* Starting Client-0
+* Connecting to master process on port 16487
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/Closure-104b/build/classes
+  - /home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar
+  - /home/user/d4j-workspace/Closure-104b/build/classes
+  - /home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar
+  - /home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar
+  - /home/user/d4j-workspace/Closure-104b/build/test
+  - /home/user/d4j-workspace/Closure-104b/build/classes
+  - /home/user/d4j-workspace/Closure-104b/build/test
+  - /home/user/d4j-workspace/Closure-104b/build
+[MASTER] 17:37:58.183 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.util.Locale$IsoCountryCode
+* Finished analyzing classpath
+* Generating tests for class com.google.javascript.rhino.jstype.UnionType
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 192
+  - Branch 131
+  - Exception 0
+  - MutationFactory 185
+  - Output 398
+  - Method 30
+  - MethodNoException 30
+  - CBranchFitnessFactory 131
+[Progress:>                             0%] [Cov:>                                  0%]* Using seed 1789814276500
+* Starting evolution
+[Progress:>                             0%] [Cov:====>                              12%][Progress:>                             0%] [Cov:=====>                             17%][Progress:>                             0%] [Cov:======>                            18%][Progress:>                             0%] [Cov:======>                            19%][Progress:>                             0%] [Cov:========>                          25%][Progress:>                             0%] [Cov:==========>                        30%][MASTER] 17:37:59.455 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.ServerError: Error occurred in server thread; nested exception is: 
+	java.lang.NoClassDefFoundError: com/google/javascript/rhino/jstype/JSTypeRegistry
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:388)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsListener.lambda$new$0(StatisticsListener.java:76)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.lang.NoClassDefFoundError: com/google/javascript/rhino/jstype/JSTypeRegistry
+	at java.base/java.lang.Class.getDeclaredConstructors0(Native Method)
+	at java.base/java.lang.Class.privateGetDeclaredConstructors(Class.java:3137)
+	at java.base/java.lang.Class.getDeclaredConstructors(Class.java:2357)
+	at org.evosuite.utils.generic.GenericConstructor.readObject(GenericConstructor.java:314)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2346)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.skipCustomData(ObjectInputStream.java:2451)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2400)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	... 1 common frames omitted
+Caused by: java.lang.ClassNotFoundException: Class not found: com/google/javascript/rhino/jstype/NamedType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/NamedType
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:158)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.loadClass(InstrumentingClassLoader.java:126)
+	... 69 common frames omitted
+Caused by: java.lang.RuntimeException: Class not found: com/google/javascript/rhino/jstype/NamedType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/NamedType
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:56)
+	at org.evosuite.shaded.org.objectweb.asm.SymbolTable.addMergedType(SymbolTable.java:1202)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1299)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1197)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.computeAllFrames(MethodWriter.java:1610)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.visitMaxs(MethodWriter.java:1546)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.runtime.instrumentation.LoopCounterMethodAdapter.visitMaxs(LoopCounterMethodAdapter.java:48)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:769)
+	at org.evosuite.shaded.org.objectweb.asm.commons.JSRInlinerAdapter.visitEnd(JSRInlinerAdapter.java:158)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:649)
+	at org.evosuite.shaded.org.objectweb.asm.tree.ClassNode.accept(ClassNode.java:452)
+	at org.evosuite.instrumentation.BytecodeInstrumentation.transformBytes(BytecodeInstrumentation.java:282)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.getTransformedBytes(InstrumentingClassLoader.java:135)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:149)
+	... 70 common frames omitted
+Caused by: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/NamedType
+	at org.evosuite.runtime.util.ComputeClassWriter.typeInfo(ComputeClassWriter.java:179)
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:53)
+	... 90 common frames omitted
+[Progress:>                             0%] [Cov:==========>                        31%][Progress:>                             0%] [Cov:==============>                    40%][Progress:>                             0%] [Cov:================>                  48%][Progress:>                             0%] [Cov:=================>                 49%][Progress:>                             1%] [Cov:>                                  0%][Progress:>                             1%] [Cov:>                                  1%][Progress:>                             1%] [Cov:====>                              13%][Progress:>                             1%] [Cov:=====>                             15%][Progress:>                             1%] [Cov:=====>                             17%][Progress:>                             1%] [Cov:=======>                           20%][Progress:>                             1%] [Cov:========>                          23%][Progress:=>                            5%] [Cov:>                                  1%][Progress:=>                            5%] [Cov:=>                                 3%][Progress:=>                            5%] [Cov:=====>                             15%][Progress:=>                            5%] [Cov:=====>                             16%][Progress:=>                            5%] [Cov:=======>                           21%][Progress:=>                            5%] [Cov:========>                          24%][Progress:===>                          10%] [Cov:>                                  1%][Progress:===>                          10%] [Cov:>                                  2%][Progress:===>                          10%] [Cov:====>                              14%][Progress:===>                          10%] [Cov:=====>                             15%][Progress:===>                          10%] [Cov:=====>                             17%][Progress:===>                          10%] [Cov:=======>                           20%][Progress:===>                          10%] [Cov:=======>                           21%][Progress:===>                          10%] [Cov:=========>                         27%][Progress:===>                          10%] [Cov:===========>                       34%][Progress:===>                          10%] [Cov:============>                      35%][Progress:===>                          12%] [Cov:>                                  2%][Progress:===>                          12%] [Cov:=>                                 4%][Progress:===>                          12%] [Cov:=====>                             16%][Progress:===>                          12%] [Cov:=====>                             17%][Progress:===>                          12%] [Cov:=======>                           22%][Progress:===>                          12%] [Cov:=========>                         26%][Progress:===>                          12%] [Cov:=========>                         27%][Progress:=====>                        17%] [Cov:=>                                 5%][Progress:=====>                        17%] [Cov:==>                                8%][Progress:=====>                        17%] [Cov:=======>                           21%][Progress:=====>                        17%] [Cov:========>                          25%][Progress:=====>                        17%] [Cov:=========>                         28%][Progress:=====>                        17%] [Cov:============>                      37%][Progress:=====>                        17%] [Cov:===============>                   45%][Progress:=====>                        17%] [Cov:================>                  47%][Progress:======>                       20%] [Cov:>                                  2%][Progress:======>                       20%] [Cov:=>                                 3%][Progress:======>                       20%] [Cov:=====>                             16%][Progress:======>                       20%] [Cov:=======>                           21%][Progress:======>                       20%] [Cov:========>                          25%][Progress:======>                       23%] [Cov:>                                  0%][Progress:======>                       23%] [Cov:====>                              12%][Progress:=======>                      25%] [Cov:>                                  1%][Progress:=======>                      25%] [Cov:>                                  2%][Progress:=======>                      25%] [Cov:=====>                             15%][Progress:=======>                      25%] [Cov:=====>                             17%][Progress:=======>                      25%] [Cov:======>                            18%][Progress:========>                     28%] [Cov:=>                                 4%][Progress:========>                     28%] [Cov:==>                                7%][Progress:========>                     28%] [Cov:=======>                           20%][Progress:========>                     28%] [Cov:========>                          24%][Progress:========>                     28%] [Cov:==========>                        30%][Progress:========>                     28%] [Cov:============>                      35%][Progress:========>                     28%] [Cov:============>                      37%][Progress:=========>                    30%] [Cov:>                                  1%][Progress:=========>                    30%] [Cov:=>                                 3%][Progress:=========>                    30%] [Cov:=====>                             15%][Progress:=========>                    30%] [Cov:=====>                             16%][Progress:=========>                    30%] [Cov:======>                            19%][Progress:=========>                    30%] [Cov:=======>                           21%][Progress:=========>                    30%] [Cov:=======>                           22%][Progress:=========>                    30%] [Cov:========>                          23%][Progress:=========>                    30%] [Cov:==========>                        31%][Progress:=========>                    30%] [Cov:=============>                     39%][Progress:=========>                    32%] [Cov:>                                  1%][Progress:=========>                    32%] [Cov:>                                  2%][Progress:=========>                    32%] [Cov:=====>                             15%][Progress:=========>                    32%] [Cov:======>                            19%][Progress:=========>                    32%] [Cov:=======>                           22%][Progress:==========>                   35%] [Cov:=>                                 3%][Progress:==========>                   35%] [Cov:==>                                6%][Progress:==========>                   35%] [Cov:======>                            18%][Progress:==========>                   35%] [Cov:=======>                           21%][Progress:==========>                   35%] [Cov:=========>                         27%][Progress:==========>                   35%] [Cov:===========>                       33%][Progress:==========>                   35%] [Cov:===========>                       34%][Progress:==========>                   35%] [Cov:=============>                     39%][Progress:==========>                   35%] [Cov:==============>                    41%][Progress:===========>                  37%] [Cov:>                                  1%][Progress:===========>                  37%] [Cov:=>                                 3%][Progress:===========>                  37%] [Cov:=====>                             15%][Progress:===========>                  37%] [Cov:======>                            18%][Progress:===========>                  37%] [Cov:=======>                           22%][Progress:============>                 40%] [Cov:=>                                 3%][Progress:============>                 40%] [Cov:=>                                 5%][Progress:============>                 40%] [Cov:======>                            18%][Progress:============>                 40%] [Cov:======>                            19%][Progress:============>                 40%] [Cov:=========>                         26%][Progress:============>                 40%] [Cov:===========>                       32%][Progress:============>                 40%] [Cov:============>                      37%][Progress:============>                 40%] [Cov:================>                  46%][Progress:============>                 40%] [Cov:================>                  47%][Progress:=============>                45%] [Cov:>                                  2%][Progress:=============>                45%] [Cov:=>                                 4%][Progress:=============>                45%] [Cov:=====>                             17%][Progress:=============>                45%] [Cov:======>                            18%][Progress:=============>                45%] [Cov:========>                          24%][Progress:=============>                45%] [Cov:==========>                        30%][Progress:===============>              51%] [Cov:>                                  2%][Progress:===============>              51%] [Cov:=>                                 3%][Progress:===============>              51%] [Cov:=====>                             15%][Progress:===============>              51%] [Cov:=====>                             16%][Progress:===============>              51%] [Cov:=======>                           20%][Progress:===============>              51%] [Cov:========>                          24%][Progress:================>             54%] [Cov:=>                                 3%][Progress:================>             54%] [Cov:=>                                 5%][Progress:================>             54%] [Cov:======>                            18%][Progress:================>             54%] [Cov:======>                            19%][Progress:================>             54%] [Cov:========>                          25%][Progress:================>             54%] [Cov:==========>                        30%][Progress:================>             54%] [Cov:==========>                        31%][Progress:================>             56%] [Cov:=>                                 3%][Progress:================>             56%] [Cov:=>                                 4%][Progress:================>             56%] [Cov:=====>                             17%][Progress:================>             56%] [Cov:======>                            18%][Progress:================>             56%] [Cov:========>                          24%][Progress:================>             56%] [Cov:==========>                        29%][Progress:================>             56%] [Cov:==========>                        30%][Progress:================>             56%] [Cov:===========>                       32%][Progress:================>             56%] [Cov:===========>                       33%][Progress:=================>            59%] [Cov:=>                                 3%][Progress:=================>            59%] [Cov:==>                                6%][Progress:=================>            59%] [Cov:======>                            18%][Progress:=================>            59%] [Cov:=======>                           21%][Progress:=================>            59%] [Cov:=========>                         26%][Progress:=================>            59%] [Cov:==========>                        30%][Progress:=================>            59%] [Cov:=================>                 49%]========== GWO EVOLVE iteration=0 population=50 ==========
+[Progress:==================>           61%] [Cov:====>                              12%][Progress:==================>           61%] [Cov:=================>                 49%]GWO iteration=1 bestFitness=814.4897959183673 population=50 a=1.98
+========== GWO EVOLVE iteration=1 population=50 ==========
+[Progress:==================>           62%] [Cov:=================>                 49%][Progress:==================>           62%] [Cov:=================>                 50%][Progress:==================>           62%] [Cov:=================>                 51%][Progress:==================>           62%] [Cov:==================>                53%][Progress:==================>           62%] [Cov:==================>                54%][Progress:==================>           62%] [Cov:===================>               55%][Progress:===================>          65%] [Cov:============>                      37%][Progress:===================>          65%] [Cov:=================>                 49%][Progress:===================>          65%] [Cov:=================>                 50%][Progress:===================>          65%] [Cov:=================>                 51%][Progress:===================>          65%] [Cov:==================>                53%][Progress:===================>          65%] [Cov:====================>              58%][Progress:===================>          65%] [Cov:====================>              59%][Progress:===================>          65%] [Cov:=====================>             61%][Progress:===================>          65%] [Cov:=====================>             61%]GWO iteration=2 bestFitness=636.9846153846154 population=50 a=1.96
+========== GWO EVOLVE iteration=2 population=50 ==========
+[Progress:===================>          65%] [Cov:=====================>             62%][Progress:====================>         67%] [Cov:=========>                         26%][Progress:====================>         67%] [Cov:==================>                53%][Progress:====================>         67%] [Cov:===================>               55%][Progress:====================>         67%] [Cov:=====================>             62%]GWO iteration=3 bestFitness=623.1510416666667 population=50 a=1.94
+========== GWO EVOLVE iteration=3 population=50 ==========
+[Progress:====================>         68%] [Cov:=====================>             62%][Progress:====================>         68%] [Cov:======================>            63%][Progress:====================>         68%] [Cov:======================>            64%][Progress:====================>         68%] [Cov:======================>            65%][Progress:====================>         68%] [Cov:=======================>           66%][Progress:====================>         68%] [Cov:=======================>           66%]GWO iteration=4 bestFitness=577.9830508474577 population=50 a=1.92
+========== GWO EVOLVE iteration=4 population=50 ==========
+[Progress:====================>         69%] [Cov:======================>            65%][Progress:=====================>        71%] [Cov:=================>                 49%][Progress:======================>       74%] [Cov:======================>            64%][Progress:======================>       74%] [Cov:======================>            65%][Progress:======================>       74%] [Cov:=======================>           66%][Progress:======================>       74%] [Cov:=======================>           66%]GWO iteration=5 bestFitness=576.6474358974359 population=50 a=1.9
+[Progress:======================>       74%] [Cov:=======================>           67%][Progress:======================>       74%] [Cov:=======================>           67%][Progress:======================>       75%] [Cov:=======================>           66%][Progress:======================>       75%] [Cov:=======================>           67%][Progress:======================>       75%] [Cov:=======================>           68%][Progress:=======================>      77%] [Cov:=======================>           66%][Progress:=======================>      77%] [Cov:=======================>           67%][Progress:=======================>      78%] [Cov:=======================>           67%][Progress:=======================>      78%] [Cov:=======================>           67%][Progress:=======================>      78%] [Cov:=======================>           68%][Progress:=======================>      79%] [Cov:=======================>           66%][Progress:=======================>      79%] [Cov:=======================>           67%][Progress:=======================>      79%] [Cov:=======================>           68%][Progress:=======================>      79%] [Cov:=======================>           68%][Progress:========================>     80%] [Cov:=======================>           67%][Progress:========================>     80%] [Cov:=======================>           68%][Progress:========================>     80%] [Cov:========================>          69%][Progress:========================>     80%] [Cov:========================>          69%][Progress:========================>     80%] [Cov:========================>          70%][Progress:========================>     80%] [Cov:========================>          71%][Progress:========================>     80%] [Cov:=========================>         72%][Progress:========================>     80%] [Cov:=========================>         73%][Progress:========================>     83%] [Cov:========================>          69%][Progress:========================>     83%] [Cov:=========================>         73%][Progress:=========================>    84%] [Cov:======================>            65%][Progress:=========================>    84%] [Cov:========================>          69%][Progress:=========================>    84%] [Cov:========================>          70%][Progress:=========================>    84%] [Cov:=========================>         73%][Progress:=========================>    84%] [Cov:=========================>         73%][Progress:=========================>    86%] [Cov:=========================>         73%][Progress:=========================>    86%] [Cov:=========================>         74%][Progress:=========================>    86%] [Cov:==========================>        76%][Progress:=========================>    86%] [Cov:==========================>        76%][Progress:==========================>   88%] [Cov:=========================>         74%][Progress:==========================>   88%] [Cov:==========================>        76%][Progress:==========================>   89%] [Cov:=========================>         73%][Progress:==========================>   89%] [Cov:==========================>        76%][Progress:==========================>   89%] [Cov:==========================>        76%][Progress:===========================>  90%] [Cov:==========================>        76%][Progress:===========================>  90%] [Cov:==========================>        76%][Progress:===========================>  91%] [Cov:==========================>        76%][Progress:===========================>  91%] [Cov:==========================>        77%][Progress:===========================>  91%] [Cov:==========================>        77%][Progress:===========================>  91%] [Cov:==========================>        77%][Progress:===========================>  91%] [Cov:===========================>       78%][Progress:===========================>  92%] [Cov:==========================>        77%][Progress:============================> 95%] [Cov:==========================>        77%][Progress:============================> 95%] [Cov:===========================>       78%][MASTER] 17:39:52.916 [logback-1] WARN  TestCluster - Failed to check cache for java.util.function.Function<T, R> : Type points to itself
+[Progress:=============================>97%] [Cov:==========================>        76%][Progress:=============================>97%] [Cov:==========================>        77%][Progress:=============================>97%] [Cov:===========================>       78%][Progress:=============================>97%] [Cov:===========================>       79%][Progress:=============================>97%] [Cov:===========================>       79%][Progress:=============================>98%] [Cov:===========================>       78%][Progress:=============================>98%] [Cov:===========================>       79%][Progress:=============================>98%] [Cov:===========================>       79%][Progress:==============================100%] [Cov:===========================>       79%][Progress:==============================100%] [Cov:===========================>       79%]GWO iteration=20 bestFitness=346.96000000000004 population=50 a=1.6
+[Progress:==============================100%] [Cov:==============================>    88%]
+* Search finished after 122s and 20 generations, 15425 statements, best individual has fitness: 217.92222222222222
+[MASTER] 17:40:00.052 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.MarshalException: error marshalling arguments; nested exception is: 
+	java.net.SocketException: Broken pipe (Write failed)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:160)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsSender.executedAndThenSendIndividualToMaster(StatisticsSender.java:91)
+	at org.evosuite.TestSuiteGenerator.generateTests(TestSuiteGenerator.java:636)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:208)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.net.SocketException: Broken pipe (Write failed)
+	at java.base/java.net.SocketOutputStream.socketWrite0(Native Method)
+	at java.base/java.net.SocketOutputStream.socketWrite(SocketOutputStream.java:110)
+	at java.base/java.net.SocketOutputStream.write(SocketOutputStream.java:150)
+	at java.base/java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:81)
+	at java.base/java.io.BufferedOutputStream.write(BufferedOutputStream.java:127)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.drain(ObjectOutputStream.java:1873)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.setBlockDataMode(ObjectOutputStream.java:1782)
+	at java.base/java.io.ObjectOutputStream.writeFatalException(ObjectOutputStream.java:1576)
+	at java.base/java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:348)
+	at java.rmi/sun.rmi.server.UnicastRef.marshalValue(UnicastRef.java:293)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:155)
+	... 14 common frames omitted
+* Minimizing test suite
+[MASTER] 17:41:13.804 [logback-1] WARN  TestSuiteMinimizer - Minimization timeout. Roll back to original test suite
+* Going to analyze the coverage criteria
+* Coverage analysis for criterion LINE
+* Coverage of criterion LINE: 96%
+* Total number of goals: 192
+* Number of covered goals: 184
+* Coverage analysis for criterion BRANCH
+* Coverage of criterion BRANCH: 89%
+* Total number of goals: 131
+* Number of covered goals: 116
+* Coverage analysis for criterion EXCEPTION
+* Coverage of criterion EXCEPTION: 100%
+* Total number of goals: 29
+* Number of covered goals: 29
+* Coverage analysis for criterion WEAKMUTATION
+* Coverage of criterion WEAKMUTATION: 89%
+* Total number of goals: 185
+* Number of covered goals: 165
+* Coverage analysis for criterion OUTPUT
+* Coverage of criterion OUTPUT: 65%
+* Total number of goals: 398
+* Number of covered goals: 257
+* Coverage analysis for criterion METHOD
+* Coverage of criterion METHOD: 100%
+* Total number of goals: 30
+* Number of covered goals: 30
+* Coverage analysis for criterion METHODNOEXCEPTION
+* Coverage of criterion METHODNOEXCEPTION: 100%
+* Total number of goals: 30
+* Number of covered goals: 30
+* Coverage analysis for criterion CBRANCH
+* Coverage of criterion CBRANCH: 89%
+* Total number of goals: 131
+* Number of covered goals: 116
+* Generated 69 tests with total length 1462
+* Resulting test suite's coverage: 88% (average coverage for all fitness functions)
+[MASTER] 17:41:13.897 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.MarshalException: error marshalling arguments; nested exception is: 
+	java.net.SocketException: Broken pipe (Write failed)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:160)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsSender.executedAndThenSendIndividualToMaster(StatisticsSender.java:91)
+	at org.evosuite.TestSuiteGenerator.postProcessTests(TestSuiteGenerator.java:445)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:218)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.net.SocketException: Broken pipe (Write failed)
+	at java.base/java.net.SocketOutputStream.socketWrite0(Native Method)
+	at java.base/java.net.SocketOutputStream.socketWrite(SocketOutputStream.java:110)
+	at java.base/java.net.SocketOutputStream.write(SocketOutputStream.java:150)
+	at java.base/java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:81)
+	at java.base/java.io.BufferedOutputStream.write(BufferedOutputStream.java:127)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.drain(ObjectOutputStream.java:1873)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.setBlockDataMode(ObjectOutputStream.java:1782)
+	at java.base/java.io.ObjectOutputStream.writeFatalException(ObjectOutputStream.java:1576)
+	at java.base/java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:348)
+	at java.rmi/sun.rmi.server.UnicastRef.marshalValue(UnicastRef.java:293)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:155)
+	... 14 common frames omitted
+* Generating assertions
+* Resulting test suite's mutation score: 59%
+* Compiling and checking tests
+[MASTER] 17:41:52.044 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.MarshalException: error marshalling arguments; nested exception is: 
+	java.net.SocketException: Broken pipe (Write failed)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:160)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.TestSuiteGenerator.postProcessTests(TestSuiteGenerator.java:502)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:218)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.net.SocketException: Broken pipe (Write failed)
+	at java.base/java.net.SocketOutputStream.socketWrite0(Native Method)
+	at java.base/java.net.SocketOutputStream.socketWrite(SocketOutputStream.java:110)
+	at java.base/java.net.SocketOutputStream.write(SocketOutputStream.java:150)
+	at java.base/java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:81)
+	at java.base/java.io.BufferedOutputStream.write(BufferedOutputStream.java:127)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.drain(ObjectOutputStream.java:1873)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.setBlockDataMode(ObjectOutputStream.java:1782)
+	at java.base/java.io.ObjectOutputStream.writeNonProxyDesc(ObjectOutputStream.java:1277)
+	at java.base/java.io.ObjectOutputStream.writeClassDesc(ObjectOutputStream.java:1222)
+	at java.base/java.io.ObjectOutputStream.writeOrdinaryObject(ObjectOutputStream.java:1418)
+	at java.base/java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1169)
+	at java.base/java.io.ObjectOutputStream.writeFatalException(ObjectOutputStream.java:1573)
+	at java.base/java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:348)
+	at java.rmi/sun.rmi.server.UnicastRef.marshalValue(UnicastRef.java:293)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:155)
+	... 13 common frames omitted
+[MASTER] 17:41:59.364 [logback-2] ERROR JUnitAnalyzer - Compilation failed on compilation units: [SimpleFileObject[/tmp/EvoSuite_28_1789814516322/com/google/javascript/rhino/jstype/UnionType_28_tmp__ESTest.java], SimpleFileObject[/tmp/EvoSuite_28_1789814516322/com/google/javascript/rhino/jstype/UnionType_28_tmp__ESTest_scaffolding.java]]
+[MASTER] 17:41:59.364 [logback-2] ERROR JUnitAnalyzer - Classpath: /home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build:/home/user/evosuite-gwo/evosuite/master/target/evosuite-master-1.2.1-SNAPSHOT.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build
+[MASTER] 17:41:59.364 [logback-2] ERROR JUnitAnalyzer - evosuiteCP: /home/user/evosuite-gwo/evosuite/master/target/evosuite-master-1.2.1-SNAPSHOT.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build
+[MASTER] 17:41:59.366 [logback-2] ERROR JUnitAnalyzer - Diagnostic: cannot find symbol
+  symbol:   class AfterClass
+  location: class com.google.javascript.rhino.jstype.UnionType_28_tmp__ESTest_scaffolding: 42
+[MASTER] 17:41:59.366 [logback-2] ERROR JUnitAnalyzer - Diagnostic: /tmp/EvoSuite_28_1789814516322/com/google/javascript/rhino/jstype/UnionType_28_tmp__ESTest.java uses unchecked or unsafe operations.: -1
+[MASTER] 17:41:59.366 [logback-2] ERROR JUnitAnalyzer - Diagnostic: Recompile with -Xlint:unchecked for details.: -1
+[MASTER] 17:41:59.367 [logback-2] ERROR JUnitAnalyzer - SimpleFileObject[/tmp/EvoSuite_28_1789814516322/com/google/javascript/rhino/jstype/UnionType_28_tmp__ESTest.java]
+1: /*
+2:  * This file was automatically generated by EvoSuite
+3:  * Algorithm: GWO
+4:  * Sat Sep 19 10:41:59 GMT 2026
+5:  */
+6: 
+7: package com.google.javascript.rhino.jstype;
+8: 
+9: import org.junit.Test;
+10: import static org.junit.Assert.*;
+11: import static org.evosuite.shaded.org.mockito.Mockito.*;
+12: import static org.evosuite.runtime.EvoAssertions.*;
+13: import com.google.javascript.rhino.SimpleErrorReporter;
+14: import com.google.javascript.rhino.jstype.AllType;
+15: import com.google.javascript.rhino.jstype.JSType;
+16: import com.google.javascript.rhino.jstype.JSTypeRegistry;
+17: import com.google.javascript.rhino.jstype.UnionType;
+18: import com.google.javascript.rhino.jstype.Visitor;
+19: import java.util.LinkedHashSet;
+20: import org.evosuite.runtime.EvoRunner;
+21: import org.evosuite.runtime.EvoRunnerParameters;
+22: import org.evosuite.runtime.ViolatedAssumptionAnswer;
+23: import org.junit.runner.RunWith;
+24: 
+25: @RunWith(EvoRunner.class) @EvoRunnerParameters(mockJVMNonDeterminism = true, useVFS = true, useVNET = true, resetStaticState = true) 
+26: public class UnionType_28_tmp__ESTest extends UnionType_28_tmp__ESTest_scaffolding {
+27: 
+28:   @Test(timeout = 4000)
+29:   public void test0()  throws Throwable  {
+30:       SimpleErrorReporter simpleErrorReporter0 = new SimpleErrorReporter();
+31:       JSTypeRegistry jSTypeRegistry0 = new JSTypeRegistry(simpleErrorReporter0);
+32:       jSTypeRegistry0.setTemplateTypeName("(");
+33:       LinkedHashSet<JSType> linkedHashSet0 = new LinkedHashSet<JSType>();
+34:       UnionType unionType0 = new UnionType(jSTypeRegistry0, linkedHashSet0);
+35:       boolean boolean0 = linkedHashSet0.add(unionType0);
+36:       unionType0.getPossibleToBooleanOutcomes();
+37:       int int0 = (-32);
+38:       linkedHashSet0.add(unionType0);
+39:       String string0 = "k|}v;";
+40:       String string1 = "";
+41:       simpleErrorReporter0.warning(unionType0.NOT_A_TYPE, string0, int0, string1, unionType0.NOT_ENUMDECL);
+42:       String string2 = "k)k};a+5.+9S LYu|";
+43:       int int1 = 835;
+44:       simpleErrorReporter0.error(unionType0.NOT_A_TYPE, unionType0.NOT_A_CLASS, int0, string2, int1);
+45:       unionType0.matchesStringContext();
+46:       String string3 = "|";
+47:       String string4 = null;
+48:       String string5 = "";
+49:       int int2 = (-1148);
+50:       simpleErrorReporter0.error(string4, string5, int0, string5, int2);
+51:       JSType jSType0 = unionType0.findPropertyType(string3);
+52:       JSType jSType1 = unionType0.getRestrictedUnion(jSType0);
+53:       unionType0.getTypesUnderShallowInequality(jSType0);
+54:       String string6 = "";
+55:       unionType0.findPropertyType(string6);
+56:       unionType0.isSubtype(jSType1);
+57:       JSType jSType2 = unionType0.getRestrictedTypeGivenToBooleanOutcome(boolean0);
+58:       unionType0.testForEquality(jSType2);
+59:       unionType0.isNullable();
+60:       Visitor<AllType> visitor0 = (Visitor<AllType>) mock(Visitor.class, new ViolatedAssumptionAnswer());
+61:       unionType0.visit(visitor0);
+62:       unionType0.getTypesUnderShallowInequality(jSType2);
+63:   }
+64: }
+SimpleFileObject[/tmp/EvoSuite_28_1789814516322/com/google/javascript/rhino/jstype/UnionType_28_tmp__ESTest.java]
+1: /**
+2:  * Scaffolding file used to store all the setups needed to run 
+3:  * tests automatically generated by EvoSuite
+4:  * Sat Sep 19 10:41:59 GMT 2026
+5:  */
+6: 
+7: package com.google.javascript.rhino.jstype;
+8: 
+9: import org.evosuite.runtime.annotation.EvoSuiteClassExclude;
+10: import org.junit.BeforeClass;
+11: import org.junit.Before;
+12: import org.junit.After;
+13: import org.evosuite.runtime.sandbox.Sandbox;
+14: import org.evosuite.runtime.sandbox.Sandbox.SandboxMode;
+15: 
+16: import static org.evosuite.shaded.org.mockito.Mockito.*;
+17: @EvoSuiteClassExclude
+18: public class UnionType_28_tmp__ESTest_scaffolding {
+19: 
+20:   @org.junit.Rule
+21:   public org.evosuite.runtime.vnet.NonFunctionalRequirementRule nfr = new org.evosuite.runtime.vnet.NonFunctionalRequirementRule();
+22: 
+23:   private org.evosuite.runtime.thread.ThreadStopper threadStopper =  new org.evosuite.runtime.thread.ThreadStopper (org.evosuite.runtime.thread.KillSwitchHandler.getInstance(), 3000);
+24: 
+25: 
+26:   @BeforeClass
+27:   public static void initEvoSuiteFramework() { 
+28:     org.evosuite.runtime.RuntimeSettings.className = "com.google.javascript.rhino.jstype.UnionType"; 
+29:     org.evosuite.runtime.GuiSupport.initialize(); 
+30:     org.evosuite.runtime.RuntimeSettings.maxNumberOfThreads = 100; 
+31:     org.evosuite.runtime.RuntimeSettings.maxNumberOfIterationsPerLoop = 10000; 
+32:     org.evosuite.runtime.RuntimeSettings.mockSystemIn = true; 
+33:     org.evosuite.runtime.RuntimeSettings.sandboxMode = org.evosuite.runtime.sandbox.Sandbox.SandboxMode.RECOMMENDED; 
+34:     org.evosuite.runtime.sandbox.Sandbox.initializeSecurityManagerForSUT(); 
+35:     org.evosuite.runtime.classhandling.JDKClassResetter.init();
+36:     setSystemProperties();
+37:     initializeClasses();
+38:     org.evosuite.runtime.Runtime.getInstance().resetRuntime(); 
+39:     try { initMocksToAvoidTimeoutsInTheTests(); } catch(ClassNotFoundException e) {} 
+40:   } 
+41: 
+42:   @AfterClass
+43:   public static void clearEvoSuiteFramework(){ 
+44:     Sandbox.resetDefaultSecurityManager(); 
+45:   } 
+46: 
+47:   @Before
+48:   public void initTestCase(){ 
+49:     threadStopper.storeCurrentThreads();
+50:     threadStopper.startRecordingTime();
+51:     org.evosuite.runtime.jvm.ShutdownHookHandler.getInstance().initHandler(); 
+52:     org.evosuite.runtime.sandbox.Sandbox.goingToExecuteSUTCode(); 
+53:     org.evosuite.runtime.GuiSupport.setHeadless(); 
+54:     org.evosuite.runtime.Runtime.getInstance().resetRuntime(); 
+55:     org.evosuite.runtime.agent.InstrumentingAgent.activate(); 
+56:   } 
+57: 
+58:   @After
+59:   public void doneWithTestCase(){ 
+60:     threadStopper.killAndJoinClientThreads();
+61:     org.evosuite.runtime.jvm.ShutdownHookHandler.getInstance().safeExecuteAddedHooks(); 
+62:     org.evosuite.runtime.classhandling.JDKClassResetter.reset(); 
+63:     resetClasses(); 
+64:     org.evosuite.runtime.sandbox.Sandbox.doneWithExecutingSUTCode(); 
+65:     org.evosuite.runtime.agent.InstrumentingAgent.deactivate(); 
+66:     org.evosuite.runtime.GuiSupport.restoreHeadlessMode(); 
+67:   } 
+68: 
+69:   public static void setSystemProperties() {
+70:  
+71:     /*No java.lang.System property to set*/
+72:   }
+73: 
+74:   private static void initializeClasses() {
+75:     org.evosuite.runtime.classhandling.ClassStateSupport.initializeClasses(UnionType_28_tmp__ESTest_scaffolding.class.getClassLoader() ,
+76:       "com.google.common.collect.ArrayListMultimap",
+77:       "com.google.javascript.rhino.jstype.NoType",
+78:       "com.google.common.collect.ListMultimap",
+79:       "com.google.javascript.rhino.JSDocInfo$Visibility",
+80:       "com.google.javascript.rhino.jstype.PrototypeObjectType",
+81:       "com.google.javascript.rhino.jstype.ArrowType",
+82:       "com.google.javascript.rhino.SimpleErrorReporter",
+83:       "com.google.common.collect.AbstractMultimap$WrappedCollection",
+84:       "com.google.common.collect.Lists$RandomAccessPartition",
+85:       "com.google.common.collect.Collections2",
+86:       "com.google.javascript.rhino.jstype.NumberType",
+87:       "com.google.javascript.rhino.jstype.FunctionParamBuilder",
+88:       "com.google.common.collect.PeekingIterator",
+89:       "com.google.javascript.rhino.EvaluatorException",
+90:       "com.google.javascript.rhino.jstype.TernaryValue$1",
+91:       "com.google.common.collect.RegularImmutableList",
+92:       "com.google.common.collect.AbstractMultimap$WrappedCollection$WrappedIterator",
+93:       "com.google.javascript.rhino.jstype.TernaryValue$3",
+94:       "com.google.javascript.rhino.jstype.InstanceObjectType",
+95:       "com.google.javascript.rhino.jstype.StaticScope",
+96:       "com.google.javascript.rhino.jstype.TernaryValue$2",
+97:       "com.google.common.collect.Lists$TransformingRandomAccessList",
+98:       "com.google.javascript.rhino.Node$PropListItem",
+99:       "com.google.javascript.rhino.RhinoException",
+100:       "com.google.common.collect.Sets$2",
+101:       "com.google.common.collect.Sets$3",
+102:       "com.google.javascript.rhino.jstype.ObjectType",
+103:       "com.google.javascript.rhino.Node",
+104:       "com.google.common.collect.Sets$1",
+105:       "com.google.common.collect.ImmutableSet$ArrayImmutableSet",
+106:       "com.google.javascript.rhino.jstype.RecordType",
+107:       "com.google.javascript.rhino.Node$NodeMismatch",
+108:       "com.google.javascript.rhino.jstype.FunctionPrototypeType",
+109:       "com.google.common.collect.RegularImmutableSet",
+110:       "com.google.common.collect.Iterators$12",
+111:       "com.google.javascript.rhino.jstype.JSType$1",
+112:       "com.google.javascript.rhino.jstype.NoObjectType$GreatestSupertypeVisitor",
+113:       "com.google.common.base.Predicate",
+114:       "com.google.javascript.rhino.jstype.JSType$2",
+115:       "com.google.common.collect.AbstractMultimap$AsMap",
+116:       "com.google.javascript.rhino.jstype.VoidType",
+117:       "com.google.common.base.Joiner",
+118:       "com.google.javascript.rhino.Node$SiblingNodeIterable",
+119:       "com.google.common.collect.AbstractMultimap$ValueIterator",
+120:       "com.google.common.collect.AbstractListMultimap",
+121:       "com.google.javascript.rhino.jstype.JSType",
+122:       "com.google.common.collect.ImmutableAsList",
+123:       "com.google.javascript.rhino.Node$StringNode",
+124:       "com.google.common.collect.AbstractMultimap$Values",
+125:       "com.google.javascript.rhino.jstype.ProxyObjectType",
+126:       "com.google.common.collect.Sets$SetView",
+127:       "com.google.common.collect.ImmutableSet$Builder",
+128:       "com.google.javascript.rhino.jstype.TemplateType",
+129:       "com.google.common.collect.SingletonImmutableSet",
+130:       "com.google.javascript.rhino.jstype.NamedType",
+131:       "com.google.common.collect.Iterators$14",
+132:       "com.google.common.collect.Iterators$13",
+133:       "com.google.common.collect.Iterators$15",
+134:       "com.google.javascript.rhino.jstype.UnionTypeBuilder",
+135:       "com.google.common.collect.Lists$Partition",
+136:       "com.google.common.collect.Lists",
+137:       "com.google.javascript.rhino.jstype.ParameterizedType",
+138:       "com.google.javascript.rhino.jstype.NullType",
+139:       "com.google.common.collect.Lists$TransformingSequentialList",
+140:       "com.google.javascript.rhino.ErrorReporter",
+141:       "com.google.javascript.rhino.jstype.UnknownType",
+142:       "com.google.javascript.rhino.jstype.ValueType",
+143:       "com.google.javascript.rhino.Node$FileLevelJsDocBuilder",
+144:       "com.google.javascript.rhino.jstype.BooleanType",
+145:       "com.google.javascript.rhino.jstype.NoObjectType",
+146:       "com.google.common.collect.AbstractIterator",
+147:       "com.google.javascript.rhino.jstype.JSType$TypePair",
+148:       "com.google.common.base.Joiner$MapJoiner",
+149:       "com.google.common.collect.MapDifference",
+150:       "com.google.common.collect.AbstractMultimap$EntryIterator",
+151:       "com.google.javascript.rhino.jstype.ErrorFunctionType",
+152:       "com.google.javascript.rhino.jstype.FunctionType",
+153:       "com.google.common.collect.Lists$ImmutableListWithNullElementsException",
+154:       "com.google.common.base.Preconditions",
+155:       "com.google.common.collect.UnmodifiableIterator",
+156:       "com.google.javascript.rhino.JSDocInfo",
+157:       "com.google.common.collect.EmptyImmutableList",
+158:       "com.google.common.base.Joiner$1",
+159:       "com.google.common.base.Joiner$2",
+160:       "com.google.common.collect.AbstractMultimap$WrappedList",
+161:       "com.google.common.collect.ImmutableCollection",
+162:       "com.google.javascript.rhino.jstype.TernaryValue",
+163:       "com.google.javascript.rhino.jstype.PrototypeObjectType$Property",
+164:       "com.google.common.collect.AbstractMultimap$EntrySet",
+165:       "com.google.javascript.rhino.jstype.IndexedType",
+166:       "com.google.javascript.rhino.Node$AncestorIterable",
+167:       "com.google.common.collect.AbstractMultimap$RandomAccessWrappedList",
+168:       "com.google.javascript.rhino.testing.EmptyScope",
+169:       "com.google.common.collect.ImmutableEnumSet",
+170:       "com.google.common.collect.AbstractMultimap$Entries",
+171:       "com.google.common.collect.HashMultimap",
+172:       "com.google.javascript.rhino.jstype.EnumElementType",
+173:       "com.google.javascript.rhino.jstype.UnionType",
+174:       "com.google.javascript.rhino.jstype.JSTypeRegistry$2",
+175:       "com.google.javascript.rhino.jstype.JSTypeRegistry$3",
+176:       "com.google.javascript.rhino.Node$NumberNode",
+177:       "com.google.common.collect.SingletonImmutableList",
+178:       "com.google.javascript.rhino.jstype.JSTypeRegistry$1",
+179:       "com.google.common.collect.ImmutableCollection$Builder",
+180:       "com.google.javascript.rhino.jstype.StaticSlot",
+181:       "com.google.common.collect.Iterators$6",
+182:       "com.google.common.collect.BiMap",
+183:       "com.google.javascript.rhino.jstype.NoObjectType$LeastSupertypeVisitor",
+184:       "com.google.common.collect.AbstractSetMultimap",
+185:       "com.google.common.collect.Iterators$8",
+186:       "com.google.common.collect.ImmutableSet",
+187:       "com.google.javascript.rhino.Node$1",
+188:       "com.google.javascript.rhino.jstype.EnumType",
+189:       "com.google.common.collect.Iterators$1",
+190:       "com.google.common.collect.AbstractMultimap$SortedKeySet",
+191:       "com.google.common.collect.Iterators$2",
+192:       "com.google.common.collect.Iterators$3",
+193:       "com.google.common.collect.Sets",
+194:       "com.google.common.collect.ImmutableCollection$EmptyImmutableCollection",
+195:       "com.google.javascript.rhino.jstype.BooleanLiteralSet",
+196:       "com.google.common.collect.AbstractMultimap$SortedAsMap",
+197:       "com.google.common.collect.ImmutableList$Builder",
+198:       "com.google.common.collect.Multiset",
+199:       "com.google.common.collect.AbstractMultimap",
+200:       "com.google.common.collect.Multimap",
+201:       "com.google.common.collect.EmptyImmutableSet",
+202:       "com.google.common.collect.Iterators",
+203:       "com.google.common.collect.ImmutableList",
+204:       "com.google.javascript.rhino.jstype.StringType",
+205:       "com.google.javascript.rhino.jstype.JSTypeRegistry",
+206:       "com.google.common.collect.AbstractMultimap$KeySet",
+207:       "com.google.javascript.rhino.jstype.Visitor",
+208:       "com.google.javascript.rhino.jstype.JSTypeNative",
+209:       "com.google.javascript.rhino.jstype.AllType",
+210:       "com.google.common.collect.Maps",
+211:       "com.google.common.collect.SetMultimap",
+212:       "com.google.javascript.rhino.jstype.FunctionType$Kind",
+213:       "com.google.javascript.rhino.JSTypeExpression"
+214:     );
+215:   } 
+216:   private static void initMocksToAvoidTimeoutsInTheTests() throws ClassNotFoundException { 
+217:     mock(Class.forName("com.google.javascript.rhino.jstype.Visitor", false, UnionType_28_tmp__ESTest_scaffolding.class.getClassLoader()));
+218:   }
+219: 
+220:   private static void resetClasses() {
+221:     org.evosuite.runtime.classhandling.ClassResetter.getInstance().setClassLoader(UnionType_28_tmp__ESTest_scaffolding.class.getClassLoader()); 
+222: 
+223:     org.evosuite.runtime.classhandling.ClassStateSupport.resetClasses(
+224:       "com.google.javascript.rhino.jstype.JSType$1",
+225:       "com.google.javascript.rhino.jstype.JSType",
+226:       "com.google.javascript.rhino.jstype.UnionType",
+227:       "com.google.javascript.rhino.jstype.TernaryValue",
+228:       "com.google.javascript.rhino.jstype.JSTypeNative",
+229:       "com.google.javascript.rhino.jstype.BooleanLiteralSet",
+230:       "com.google.javascript.rhino.SimpleErrorReporter",
+231:       "com.google.javascript.rhino.jstype.JSTypeRegistry",
+232:       "com.google.common.base.Joiner",
+233:       "com.google.common.base.Preconditions",
+234:       "com.google.common.collect.Collections2",
+235:       "com.google.common.base.Joiner$MapJoiner",
+236:       "com.google.common.collect.Maps",
+237:       "com.google.common.collect.AbstractMultimap",
+238:       "com.google.common.collect.AbstractSetMultimap",
+239:       "com.google.common.collect.HashMultimap",
+240:       "com.google.common.collect.AbstractListMultimap",
+241:       "com.google.common.collect.ArrayListMultimap",
+242:       "com.google.javascript.rhino.jstype.ValueType",
+243:       "com.google.javascript.rhino.jstype.BooleanType",
+244:       "com.google.javascript.rhino.jstype.NullType",
+245:       "com.google.javascript.rhino.jstype.NumberType",
+246:       "com.google.javascript.rhino.jstype.StringType",
+247:       "com.google.javascript.rhino.jstype.ObjectType",
+248:       "com.google.javascript.rhino.jstype.UnknownType",
+249:       "com.google.javascript.rhino.jstype.VoidType",
+250:       "com.google.javascript.rhino.jstype.AllType",
+251:       "com.google.javascript.rhino.jstype.PrototypeObjectType",
+252:       "com.google.javascript.rhino.jstype.FunctionPrototypeType",
+253:       "com.google.javascript.rhino.jstype.FunctionType",
+254:       "com.google.javascript.rhino.jstype.FunctionParamBuilder",
+255:       "com.google.javascript.rhino.Node",
+256:       "com.google.javascript.rhino.Node$StringNode",
+257:       "com.google.javascript.rhino.Node$PropListItem",
+258:       "com.google.common.collect.ImmutableCollection$EmptyImmutableCollection",
+259:       "com.google.common.collect.ImmutableCollection",
+260:       "com.google.common.collect.ImmutableList",
+261:       "com.google.common.collect.EmptyImmutableList",
+262:       "com.google.javascript.rhino.jstype.FunctionType$Kind",
+263:       "com.google.javascript.rhino.jstype.InstanceObjectType",
+264:       "com.google.javascript.rhino.jstype.ArrowType",
+265:       "com.google.common.collect.Sets",
+266:       "com.google.common.collect.Lists",
+267:       "com.google.javascript.rhino.jstype.NoObjectType",
+268:       "com.google.javascript.rhino.jstype.NoType",
+269:       "com.google.javascript.rhino.jstype.NoObjectType$LeastSupertypeVisitor",
+270:       "com.google.javascript.rhino.jstype.NoObjectType$GreatestSupertypeVisitor",
+271:       "com.google.javascript.rhino.jstype.JSTypeRegistry$1",
+272:       "com.google.javascript.rhino.jstype.ErrorFunctionType",
+273:       "com.google.javascript.rhino.jstype.JSTypeRegistry$2",
+274:       "com.google.javascript.rhino.jstype.UnionTypeBuilder",
+275:       "com.google.javascript.rhino.jstype.JSTypeRegistry$3",
+276:       "com.google.javascript.rhino.RhinoException",
+277:       "com.google.javascript.rhino.EvaluatorException",
+278:       "com.google.javascript.rhino.testing.EmptyScope",
+279:       "com.google.common.collect.ImmutableSet",
+280:       "com.google.common.collect.ImmutableCollection$Builder",
+281:       "com.google.common.collect.ImmutableSet$Builder",
+282:       "com.google.javascript.rhino.jstype.RecordType",
+283:       "com.google.javascript.rhino.jstype.PrototypeObjectType$Property",
+284:       "com.google.javascript.rhino.jstype.JSType$TypePair",
+285:       "com.google.javascript.rhino.jstype.EnumElementType",
+286:       "com.google.javascript.rhino.jstype.EnumType",
+287:       "com.google.javascript.rhino.Node$NumberNode",
+288:       "com.google.javascript.rhino.jstype.ProxyObjectType",
+289:       "com.google.javascript.rhino.jstype.NamedType",
+290:       "com.google.common.collect.AbstractMultimap$WrappedCollection",
+291:       "com.google.common.collect.AbstractMultimap$WrappedList",
+292:       "com.google.common.collect.AbstractMultimap$RandomAccessWrappedList",
+293:       "com.google.common.collect.AbstractMultimap$WrappedCollection$WrappedIterator",
+294:       "com.google.common.collect.EmptyImmutableSet",
+295:       "com.google.javascript.rhino.jstype.JSType$2",
+296:       "com.google.javascript.rhino.Token",
+297:       "com.google.javascript.rhino.jstype.ParameterizedType",
+298:       "com.google.common.collect.ImmutableList$Builder",
+299:       "com.google.common.collect.UnmodifiableIterator",
+300:       "com.google.common.collect.Iterators$1",
+301:       "com.google.common.collect.Iterators$2",
+302:       "com.google.common.collect.Iterators",
+303:       "com.google.javascript.rhino.jstype.TemplateType",
+304:       "com.google.javascript.rhino.jstype.RecordTypeBuilder",
+305:       "com.google.common.collect.ImmutableMap",
+306:       "com.google.common.collect.ImmutableMap$Builder",
+307:       "com.google.javascript.rhino.jstype.IndexedType",
+308:       "com.google.common.collect.AbstractMultimap$WrappedSet",
+309:       "com.google.common.collect.AbstractMapEntry",
+310:       "com.google.common.collect.ImmutableEntry",
+311:       "com.google.common.collect.SingletonImmutableMap",
+312:       "com.google.common.collect.Iterables",
+313:       "com.google.common.collect.SingletonImmutableSet",
+314:       "com.google.common.collect.Iterators$14",
+315:       "com.google.common.collect.AbstractMultimap$Values",
+316:       "com.google.common.collect.AbstractMultimap$ValueIterator",
+317:       "com.google.common.collect.AbstractMultimap$EntryIterator",
+318:       "com.google.common.collect.AbstractMultimap$Entries",
+319:       "com.google.javascript.rhino.Node$NodeMismatch",
+320:       "com.google.javascript.rhino.JSDocInfo",
+321:       "com.google.common.collect.Iterables$3",
+322:       "com.google.common.collect.Iterables$IterableWithToString",
+323:       "com.google.common.collect.Iterables$10",
+324:       "com.google.common.collect.Iterables$4"
+325:     );
+326:   }
+327: }
+
+[MASTER] 17:41:59.367 [logback-2] ERROR JUnitAnalyzer - Failed to compile test case:
+SimpleErrorReporter simpleErrorReporter0 = new SimpleErrorReporter();
+JSTypeRegistry jSTypeRegistry0 = new JSTypeRegistry(simpleErrorReporter0);
+jSTypeRegistry0.setTemplateTypeName("(");
+LinkedHashSet<JSType> linkedHashSet0 = new LinkedHashSet<JSType>();
+UnionType unionType0 = new UnionType(jSTypeRegistry0, linkedHashSet0);
+boolean boolean0 = linkedHashSet0.add(unionType0);
+unionType0.getPossibleToBooleanOutcomes();
+int int0 = (-32);
+linkedHashSet0.add(unionType0);
+String string0 = "k|}v;";
+String string1 = "";
+simpleErrorReporter0.warning(unionType0.NOT_A_TYPE, string0, int0, string1, unionType0.NOT_ENUMDECL);
+String string2 = "k)k};a+5.+9S LYu|";
+int int1 = 835;
+simpleErrorReporter0.error(unionType0.NOT_A_TYPE, unionType0.NOT_A_CLASS, int0, string2, int1);
+unionType0.matchesStringContext();
+String string3 = "|";
+String string4 = null;
+String string5 = "";
+int int2 = (-1148);
+simpleErrorReporter0.error(string4, string5, int0, string5, int2);
+JSType jSType0 = unionType0.findPropertyType(string3);
+JSType jSType1 = unionType0.getRestrictedUnion(jSType0);
+unionType0.getTypesUnderShallowInequality(jSType0);
+String string6 = "";
+unionType0.findPropertyType(string6);
+unionType0.isSubtype(jSType1);
+JSType jSType2 = unionType0.getRestrictedTypeGivenToBooleanOutcome(boolean0);
+unionType0.testForEquality(jSType2);
+unionType0.isNullable();
+Visitor<AllType> visitor0 = (Visitor<AllType>) mock(Visitor.class, new ViolatedAssumptionAnswer());
+unionType0.visit(visitor0);
+unionType0.getTypesUnderShallowInequality(jSType2);
+
+[MASTER] 17:42:10.351 [logback-2] ERROR JUnitAnalyzer - Compilation failed on compilation units: [SimpleFileObject[/tmp/EvoSuite_95_1789814527318/com/google/javascript/rhino/jstype/UnionType_95_tmp__ESTest.java], SimpleFileObject[/tmp/EvoSuite_95_1789814527318/com/google/javascript/rhino/jstype/UnionType_95_tmp__ESTest_scaffolding.java]]
+[MASTER] 17:42:10.351 [logback-2] ERROR JUnitAnalyzer - Classpath: /home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build:/home/user/evosuite-gwo/evosuite/master/target/evosuite-master-1.2.1-SNAPSHOT.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build
+[MASTER] 17:42:10.351 [logback-2] ERROR JUnitAnalyzer - evosuiteCP: /home/user/evosuite-gwo/evosuite/master/target/evosuite-master-1.2.1-SNAPSHOT.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build
+[MASTER] 17:42:10.351 [logback-2] ERROR JUnitAnalyzer - Diagnostic: cannot find symbol
+  symbol:   class AfterClass
+  location: class com.google.javascript.rhino.jstype.UnionType_95_tmp__ESTest_scaffolding: 40
+[MASTER] 17:42:10.352 [logback-1] WARN  JUnitAnalyzer - Failed to compile the test cases 
+[MASTER] 17:42:10.352 [logback-2] ERROR JUnitAnalyzer - SimpleFileObject[/tmp/EvoSuite_95_1789814527318/com/google/javascript/rhino/jstype/UnionType_95_tmp__ESTest.java]
+1: /*
+2:  * This file was automatically generated by EvoSuite
+3:  * Algorithm: GWO
+4:  * Sat Sep 19 10:42:10 GMT 2026
+5:  */
+6: 
+7: package com.google.javascript.rhino.jstype;
+8: 
+9: import org.junit.Test;
+10: import static org.junit.Assert.*;
+11: import static org.evosuite.runtime.EvoAssertions.*;
+12: import com.google.javascript.rhino.SimpleErrorReporter;
+13: import com.google.javascript.rhino.jstype.JSType;
+14: import com.google.javascript.rhino.jstype.JSTypeRegistry;
+15: import com.google.javascript.rhino.jstype.NoType;
+16: import com.google.javascript.rhino.jstype.ObjectType;
+17: import com.google.javascript.rhino.jstype.UnionType;
+18: import java.util.LinkedHashSet;
+19: import java.util.LinkedList;
+20: import java.util.List;
+21: import org.evosuite.runtime.EvoRunner;
+22: import org.evosuite.runtime.EvoRunnerParameters;
+23: import org.junit.runner.RunWith;
+24: 
+25: @RunWith(EvoRunner.class) @EvoRunnerParameters(mockJVMNonDeterminism = true, useVFS = true, useVNET = true, resetStaticState = true) 
+26: public class UnionType_95_tmp__ESTest extends UnionType_95_tmp__ESTest_scaffolding {
+27: 
+28:   @Test(timeout = 4000)
+29:   public void test0()  throws Throwable  {
+30:       SimpleErrorReporter simpleErrorReporter0 = new SimpleErrorReporter();
+31:       JSTypeRegistry jSTypeRegistry0 = new JSTypeRegistry(simpleErrorReporter0);
+32:       LinkedHashSet<JSType> linkedHashSet0 = new LinkedHashSet<JSType>();
+33:       UnionType unionType0 = new UnionType(jSTypeRegistry0, linkedHashSet0);
+34:       unionType0.equals(simpleErrorReporter0);
+35:       NoType noType0 = new NoType(jSTypeRegistry0);
+36:       ObjectType objectType0 = noType0.getInstanceType();
+37:       unionType0.canTestForShallowEqualityWith(objectType0);
+38:       linkedHashSet0.add(unionType0);
+39:       LinkedList<JSType> linkedList0 = new LinkedList<JSType>();
+40:       jSTypeRegistry0.createFunctionTypeWithVarArgs((ObjectType) noType0, (JSType) unionType0, (List<JSType>) linkedList0);
+41:       unionType0.meet(objectType0);
+42:   }
+43: }
+SimpleFileObject[/tmp/EvoSuite_95_1789814527318/com/google/javascript/rhino/jstype/UnionType_95_tmp__ESTest.java]
+1: /**
+2:  * Scaffolding file used to store all the setups needed to run 
+3:  * tests automatically generated by EvoSuite
+4:  * Sat Sep 19 10:42:10 GMT 2026
+5:  */
+6: 
+7: package com.google.javascript.rhino.jstype;
+8: 
+9: import org.evosuite.runtime.annotation.EvoSuiteClassExclude;
+10: import org.junit.BeforeClass;
+11: import org.junit.Before;
+12: import org.junit.After;
+13: import org.evosuite.runtime.sandbox.Sandbox;
+14: import org.evosuite.runtime.sandbox.Sandbox.SandboxMode;
+15: 
+16: @EvoSuiteClassExclude
+17: public class UnionType_95_tmp__ESTest_scaffolding {
+18: 
+19:   @org.junit.Rule
+20:   public org.evosuite.runtime.vnet.NonFunctionalRequirementRule nfr = new org.evosuite.runtime.vnet.NonFunctionalRequirementRule();
+21: 
+22:   private org.evosuite.runtime.thread.ThreadStopper threadStopper =  new org.evosuite.runtime.thread.ThreadStopper (org.evosuite.runtime.thread.KillSwitchHandler.getInstance(), 3000);
+23: 
+24: 
+25:   @BeforeClass
+26:   public static void initEvoSuiteFramework() { 
+27:     org.evosuite.runtime.RuntimeSettings.className = "com.google.javascript.rhino.jstype.UnionType"; 
+28:     org.evosuite.runtime.GuiSupport.initialize(); 
+29:     org.evosuite.runtime.RuntimeSettings.maxNumberOfThreads = 100; 
+30:     org.evosuite.runtime.RuntimeSettings.maxNumberOfIterationsPerLoop = 10000; 
+31:     org.evosuite.runtime.RuntimeSettings.mockSystemIn = true; 
+32:     org.evosuite.runtime.RuntimeSettings.sandboxMode = org.evosuite.runtime.sandbox.Sandbox.SandboxMode.RECOMMENDED; 
+33:     org.evosuite.runtime.sandbox.Sandbox.initializeSecurityManagerForSUT(); 
+34:     org.evosuite.runtime.classhandling.JDKClassResetter.init();
+35:     setSystemProperties();
+36:     initializeClasses();
+37:     org.evosuite.runtime.Runtime.getInstance().resetRuntime(); 
+38:   } 
+39: 
+40:   @AfterClass
+41:   public static void clearEvoSuiteFramework(){ 
+42:     Sandbox.resetDefaultSecurityManager(); 
+43:   } 
+44: 
+45:   @Before
+46:   public void initTestCase(){ 
+47:     threadStopper.storeCurrentThreads();
+48:     threadStopper.startRecordingTime();
+49:     org.evosuite.runtime.jvm.ShutdownHookHandler.getInstance().initHandler(); 
+50:     org.evosuite.runtime.sandbox.Sandbox.goingToExecuteSUTCode(); 
+51:     org.evosuite.runtime.GuiSupport.setHeadless(); 
+52:     org.evosuite.runtime.Runtime.getInstance().resetRuntime(); 
+53:     org.evosuite.runtime.agent.InstrumentingAgent.activate(); 
+54:   } 
+55: 
+56:   @After
+57:   public void doneWithTestCase(){ 
+58:     threadStopper.killAndJoinClientThreads();
+59:     org.evosuite.runtime.jvm.ShutdownHookHandler.getInstance().safeExecuteAddedHooks(); 
+60:     org.evosuite.runtime.classhandling.JDKClassResetter.reset(); 
+61:     resetClasses(); 
+62:     org.evosuite.runtime.sandbox.Sandbox.doneWithExecutingSUTCode(); 
+63:     org.evosuite.runtime.agent.InstrumentingAgent.deactivate(); 
+64:     org.evosuite.runtime.GuiSupport.restoreHeadlessMode(); 
+65:   } 
+66: 
+67:   public static void setSystemProperties() {
+68:  
+69:     /*No java.lang.System property to set*/
+70:   }
+71: 
+72:   private static void initializeClasses() {
+73:     org.evosuite.runtime.classhandling.ClassStateSupport.initializeClasses(UnionType_95_tmp__ESTest_scaffolding.class.getClassLoader() ,
+74:       "com.google.common.collect.ArrayListMultimap",
+75:       "com.google.javascript.rhino.jstype.NoType",
+76:       "com.google.common.collect.ListMultimap",
+77:       "com.google.javascript.rhino.JSDocInfo$Visibility",
+78:       "com.google.javascript.rhino.jstype.PrototypeObjectType",
+79:       "com.google.javascript.rhino.jstype.ArrowType",
+80:       "com.google.javascript.rhino.SimpleErrorReporter",
+81:       "com.google.common.collect.AbstractMultimap$WrappedCollection",
+82:       "com.google.common.collect.Lists$RandomAccessPartition",
+83:       "com.google.common.collect.Collections2",
+84:       "com.google.javascript.rhino.jstype.NumberType",
+85:       "com.google.javascript.rhino.jstype.FunctionParamBuilder",
+86:       "com.google.common.collect.PeekingIterator",
+87:       "com.google.javascript.rhino.EvaluatorException",
+88:       "com.google.javascript.rhino.jstype.TernaryValue$1",
+89:       "com.google.common.collect.RegularImmutableList",
+90:       "com.google.common.collect.AbstractMultimap$WrappedCollection$WrappedIterator",
+91:       "com.google.javascript.rhino.jstype.TernaryValue$3",
+92:       "com.google.javascript.rhino.jstype.InstanceObjectType",
+93:       "com.google.javascript.rhino.jstype.StaticScope",
+94:       "com.google.javascript.rhino.jstype.TernaryValue$2",
+95:       "com.google.common.collect.Lists$TransformingRandomAccessList",
+96:       "com.google.javascript.rhino.Node$PropListItem",
+97:       "com.google.javascript.rhino.RhinoException",
+98:       "com.google.common.collect.Sets$2",
+99:       "com.google.common.collect.Sets$3",
+100:       "com.google.javascript.rhino.jstype.ObjectType",
+101:       "com.google.javascript.rhino.Node",
+102:       "com.google.common.collect.Sets$1",
+103:       "com.google.common.collect.ImmutableSet$ArrayImmutableSet",
+104:       "com.google.javascript.rhino.jstype.RecordType",
+105:       "com.google.javascript.rhino.Node$NodeMismatch",
+106:       "com.google.javascript.rhino.jstype.FunctionPrototypeType",
+107:       "com.google.common.collect.RegularImmutableSet",
+108:       "com.google.common.collect.Iterators$12",
+109:       "com.google.javascript.rhino.jstype.JSType$1",
+110:       "com.google.javascript.rhino.jstype.NoObjectType$GreatestSupertypeVisitor",
+111:       "com.google.common.base.Predicate",
+112:       "com.google.javascript.rhino.jstype.JSType$2",
+113:       "com.google.common.collect.AbstractMultimap$AsMap",
+114:       "com.google.javascript.rhino.jstype.VoidType",
+115:       "com.google.common.base.Joiner",
+116:       "com.google.javascript.rhino.Node$SiblingNodeIterable",
+117:       "com.google.common.collect.AbstractMultimap$ValueIterator",
+118:       "com.google.common.collect.AbstractListMultimap",
+119:       "com.google.javascript.rhino.jstype.JSType",
+120:       "com.google.common.collect.ImmutableAsList",
+121:       "com.google.javascript.rhino.Node$StringNode",
+122:       "com.google.common.collect.AbstractMultimap$Values",
+123:       "com.google.javascript.rhino.jstype.ProxyObjectType",
+124:       "com.google.common.collect.Sets$SetView",
+125:       "com.google.common.collect.ImmutableSet$Builder",
+126:       "com.google.javascript.rhino.jstype.TemplateType",
+127:       "com.google.common.collect.SingletonImmutableSet",
+128:       "com.google.javascript.rhino.jstype.NamedType",
+129:       "com.google.common.collect.Iterators$14",
+130:       "com.google.common.collect.Iterators$13",
+131:       "com.google.common.collect.Iterators$15",
+132:       "com.google.javascript.rhino.jstype.UnionTypeBuilder",
+133:       "com.google.common.collect.Lists$Partition",
+134:       "com.google.common.collect.Lists",
+135:       "com.google.javascript.rhino.jstype.ParameterizedType",
+136:       "com.google.javascript.rhino.jstype.NullType",
+137:       "com.google.common.collect.Lists$TransformingSequentialList",
+138:       "com.google.javascript.rhino.ErrorReporter",
+139:       "com.google.javascript.rhino.jstype.UnknownType",
+140:       "com.google.javascript.rhino.jstype.ValueType",
+141:       "com.google.javascript.rhino.Node$FileLevelJsDocBuilder",
+142:       "com.google.javascript.rhino.jstype.BooleanType",
+143:       "com.google.javascript.rhino.jstype.NoObjectType",
+144:       "com.google.common.collect.AbstractIterator",
+145:       "com.google.javascript.rhino.jstype.JSType$TypePair",
+146:       "com.google.common.base.Joiner$MapJoiner",
+147:       "com.google.common.collect.MapDifference",
+148:       "com.google.common.collect.AbstractMultimap$EntryIterator",
+149:       "com.google.javascript.rhino.jstype.ErrorFunctionType",
+150:       "com.google.javascript.rhino.jstype.FunctionType",
+151:       "com.google.common.collect.Lists$ImmutableListWithNullElementsException",
+152:       "com.google.common.base.Preconditions",
+153:       "com.google.common.collect.UnmodifiableIterator",
+154:       "com.google.javascript.rhino.JSDocInfo",
+155:       "com.google.common.collect.EmptyImmutableList",
+156:       "com.google.common.base.Joiner$1",
+157:       "com.google.common.base.Joiner$2",
+158:       "com.google.common.collect.AbstractMultimap$WrappedList",
+159:       "com.google.common.collect.ImmutableCollection",
+160:       "com.google.javascript.rhino.jstype.TernaryValue",
+161:       "com.google.javascript.rhino.jstype.PrototypeObjectType$Property",
+162:       "com.google.common.collect.AbstractMultimap$EntrySet",
+163:       "com.google.javascript.rhino.jstype.IndexedType",
+164:       "com.google.javascript.rhino.Node$AncestorIterable",
+165:       "com.google.common.collect.AbstractMultimap$RandomAccessWrappedList",
+166:       "com.google.javascript.rhino.testing.EmptyScope",
+167:       "com.google.common.collect.ImmutableEnumSet",
+168:       "com.google.common.collect.AbstractMultimap$Entries",
+169:       "com.google.common.collect.HashMultimap",
+170:       "com.google.javascript.rhino.jstype.EnumElementType",
+171:       "com.google.javascript.rhino.jstype.UnionType",
+172:       "com.google.javascript.rhino.jstype.JSTypeRegistry$2",
+173:       "com.google.javascript.rhino.jstype.JSTypeRegistry$3",
+174:       "com.google.javascript.rhino.Node$NumberNode",
+175:       "com.google.common.collect.SingletonImmutableList",
+176:       "com.google.javascript.rhino.jstype.JSTypeRegistry$1",
+177:       "com.google.common.collect.ImmutableCollection$Builder",
+178:       "com.google.javascript.rhino.jstype.StaticSlot",
+179:       "com.google.common.collect.Iterators$6",
+180:       "com.google.common.collect.BiMap",
+181:       "com.google.javascript.rhino.jstype.NoObjectType$LeastSupertypeVisitor",
+182:       "com.google.common.collect.AbstractSetMultimap",
+183:       "com.google.common.collect.Iterators$8",
+184:       "com.google.common.collect.ImmutableSet",
+185:       "com.google.javascript.rhino.Node$1",
+186:       "com.google.javascript.rhino.jstype.EnumType",
+187:       "com.google.common.collect.Iterators$1",
+188:       "com.google.common.collect.AbstractMultimap$SortedKeySet",
+189:       "com.google.common.collect.Iterators$2",
+190:       "com.google.common.collect.Iterators$3",
+191:       "com.google.common.collect.Sets",
+192:       "com.google.common.collect.ImmutableCollection$EmptyImmutableCollection",
+193:       "com.google.javascript.rhino.jstype.BooleanLiteralSet",
+194:       "com.google.common.collect.AbstractMultimap$SortedAsMap",
+195:       "com.google.common.collect.ImmutableList$Builder",
+196:       "com.google.common.collect.Multiset",
+197:       "com.google.common.collect.AbstractMultimap",
+198:       "com.google.common.collect.Multimap",
+199:       "com.google.common.collect.EmptyImmutableSet",
+200:       "com.google.common.collect.Iterators",
+201:       "com.google.common.collect.ImmutableList",
+202:       "com.google.javascript.rhino.jstype.StringType",
+203:       "com.google.javascript.rhino.jstype.JSTypeRegistry",
+204:       "com.google.common.collect.AbstractMultimap$KeySet",
+205:       "com.google.javascript.rhino.jstype.Visitor",
+206:       "com.google.javascript.rhino.jstype.JSTypeNative",
+207:       "com.google.javascript.rhino.jstype.AllType",
+208:       "com.google.common.collect.Maps",
+209:       "com.google.common.collect.SetMultimap",
+210:       "com.google.javascript.rhino.jstype.FunctionType$Kind",
+211:       "com.google.javascript.rhino.JSTypeExpression"
+212:     );
+213:   } 
+214: 
+215:   private static void resetClasses() {
+216:     org.evosuite.runtime.classhandling.ClassResetter.getInstance().setClassLoader(UnionType_95_tmp__ESTest_scaffolding.class.getClassLoader()); 
+217: 
+218:     org.evosuite.runtime.classhandling.ClassStateSupport.resetClasses(
+219:       "com.google.javascript.rhino.jstype.JSType$1",
+220:       "com.google.javascript.rhino.jstype.JSType",
+221:       "com.google.javascript.rhino.jstype.UnionType",
+222:       "com.google.javascript.rhino.jstype.TernaryValue",
+223:       "com.google.javascript.rhino.jstype.JSTypeNative",
+224:       "com.google.javascript.rhino.jstype.BooleanLiteralSet",
+225:       "com.google.javascript.rhino.SimpleErrorReporter",
+226:       "com.google.javascript.rhino.jstype.JSTypeRegistry",
+227:       "com.google.common.base.Joiner",
+228:       "com.google.common.base.Preconditions",
+229:       "com.google.common.collect.Collections2",
+230:       "com.google.common.base.Joiner$MapJoiner",
+231:       "com.google.common.collect.Maps",
+232:       "com.google.common.collect.AbstractMultimap",
+233:       "com.google.common.collect.AbstractSetMultimap",
+234:       "com.google.common.collect.HashMultimap",
+235:       "com.google.common.collect.AbstractListMultimap",
+236:       "com.google.common.collect.ArrayListMultimap",
+237:       "com.google.javascript.rhino.jstype.ValueType",
+238:       "com.google.javascript.rhino.jstype.BooleanType",
+239:       "com.google.javascript.rhino.jstype.NullType",
+240:       "com.google.javascript.rhino.jstype.NumberType",
+241:       "com.google.javascript.rhino.jstype.StringType",
+242:       "com.google.javascript.rhino.jstype.ObjectType",
+243:       "com.google.javascript.rhino.jstype.UnknownType",
+244:       "com.google.javascript.rhino.jstype.VoidType",
+245:       "com.google.javascript.rhino.jstype.AllType",
+246:       "com.google.javascript.rhino.jstype.PrototypeObjectType",
+247:       "com.google.javascript.rhino.jstype.FunctionPrototypeType",
+248:       "com.google.javascript.rhino.jstype.FunctionType",
+249:       "com.google.javascript.rhino.jstype.FunctionParamBuilder",
+250:       "com.google.javascript.rhino.Node",
+251:       "com.google.javascript.rhino.Node$StringNode",
+252:       "com.google.javascript.rhino.Node$PropListItem",
+253:       "com.google.common.collect.ImmutableCollection$EmptyImmutableCollection",
+254:       "com.google.common.collect.ImmutableCollection",
+255:       "com.google.common.collect.ImmutableList",
+256:       "com.google.common.collect.EmptyImmutableList",
+257:       "com.google.javascript.rhino.jstype.FunctionType$Kind",
+258:       "com.google.javascript.rhino.jstype.InstanceObjectType",
+259:       "com.google.javascript.rhino.jstype.ArrowType",
+260:       "com.google.common.collect.Sets",
+261:       "com.google.common.collect.Lists",
+262:       "com.google.javascript.rhino.jstype.NoObjectType",
+263:       "com.google.javascript.rhino.jstype.NoType",
+264:       "com.google.javascript.rhino.jstype.NoObjectType$LeastSupertypeVisitor",
+265:       "com.google.javascript.rhino.jstype.NoObjectType$GreatestSupertypeVisitor",
+266:       "com.google.javascript.rhino.jstype.JSTypeRegistry$1",
+267:       "com.google.javascript.rhino.jstype.ErrorFunctionType",
+268:       "com.google.javascript.rhino.jstype.JSTypeRegistry$2",
+269:       "com.google.javascript.rhino.jstype.UnionTypeBuilder",
+270:       "com.google.javascript.rhino.jstype.JSTypeRegistry$3",
+271:       "com.google.javascript.rhino.RhinoException",
+272:       "com.google.javascript.rhino.EvaluatorException",
+273:       "com.google.javascript.rhino.testing.EmptyScope",
+274:       "com.google.common.collect.ImmutableSet",
+275:       "com.google.common.collect.ImmutableCollection$Builder",
+276:       "com.google.common.collect.ImmutableSet$Builder",
+277:       "com.google.javascript.rhino.jstype.RecordType",
+278:       "com.google.javascript.rhino.jstype.PrototypeObjectType$Property",
+279:       "com.google.javascript.rhino.jstype.JSType$TypePair",
+280:       "com.google.javascript.rhino.jstype.EnumElementType",
+281:       "com.google.javascript.rhino.jstype.EnumType",
+282:       "com.google.javascript.rhino.Node$NumberNode",
+283:       "com.google.javascript.rhino.jstype.ProxyObjectType",
+284:       "com.google.javascript.rhino.jstype.NamedType",
+285:       "com.google.common.collect.AbstractMultimap$WrappedCollection",
+286:       "com.google.common.collect.AbstractMultimap$WrappedList",
+287:       "com.google.common.collect.AbstractMultimap$RandomAccessWrappedList",
+288:       "com.google.common.collect.AbstractMultimap$WrappedCollection$WrappedIterator",
+289:       "com.google.common.collect.EmptyImmutableSet",
+290:       "com.google.javascript.rhino.jstype.JSType$2",
+291:       "com.google.javascript.rhino.Token",
+292:       "com.google.javascript.rhino.jstype.ParameterizedType",
+293:       "com.google.common.collect.ImmutableList$Builder",
+294:       "com.google.common.collect.UnmodifiableIterator",
+295:       "com.google.common.collect.Iterators$1",
+296:       "com.google.common.collect.Iterators$2",
+297:       "com.google.common.collect.Iterators",
+298:       "com.google.javascript.rhino.jstype.TemplateType",
+299:       "com.google.javascript.rhino.jstype.RecordTypeBuilder",
+300:       "com.google.common.collect.ImmutableMap",
+301:       "com.google.common.collect.ImmutableMap$Builder",
+302:       "com.google.javascript.rhino.jstype.IndexedType",
+303:       "com.google.common.collect.AbstractMultimap$WrappedSet",
+304:       "com.google.common.collect.AbstractMapEntry",
+305:       "com.google.common.collect.ImmutableEntry",
+306:       "com.google.common.collect.SingletonImmutableMap",
+307:       "com.google.common.collect.Iterables",
+308:       "com.google.common.collect.SingletonImmutableSet",
+309:       "com.google.common.collect.Iterators$14",
+310:       "com.google.common.collect.AbstractMultimap$Values",
+311:       "com.google.common.collect.AbstractMultimap$ValueIterator",
+312:       "com.google.common.collect.AbstractMultimap$EntryIterator",
+313:       "com.google.common.collect.AbstractMultimap$Entries",
+314:       "com.google.javascript.rhino.Node$NodeMismatch",
+315:       "com.google.javascript.rhino.JSDocInfo",
+316:       "com.google.common.collect.Iterables$3",
+317:       "com.google.common.collect.Iterables$IterableWithToString",
+318:       "com.google.common.collect.Iterables$10",
+319:       "com.google.common.collect.Iterables$4"
+320:     );
+321:   }
+322: }
+
+[MASTER] 17:42:16.757 [logback-2] ERROR JUnitAnalyzer - Compilation failed on compilation units: [SimpleFileObject[/tmp/EvoSuite_105_1789814533732/com/google/javascript/rhino/jstype/UnionType_105_tmp__ESTest.java], SimpleFileObject[/tmp/EvoSuite_105_1789814533732/com/google/javascript/rhino/jstype/UnionType_105_tmp__ESTest_scaffolding.java]]
+[MASTER] 17:42:16.757 [logback-2] ERROR JUnitAnalyzer - Classpath: /home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build:/home/user/evosuite-gwo/evosuite/master/target/evosuite-master-1.2.1-SNAPSHOT.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build
+[MASTER] 17:42:16.757 [logback-2] ERROR JUnitAnalyzer - evosuiteCP: /home/user/evosuite-gwo/evosuite/master/target/evosuite-master-1.2.1-SNAPSHOT.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/lib/ant_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/google_common_deploy.jar:/home/user/d4j-workspace/Closure-104b/lib/hamcrest-core-1.1.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-core.jar:/home/user/d4j-workspace/Closure-104b/lib/junit4-legacy.jar:/home/user/d4j-workspace/Closure-104b/lib/libtrunk_rhino_parser_jarjared.jar:/home/user/d4j-workspace/Closure-104b/lib/protobuf_deploy.jar:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build/classes:/home/user/d4j-workspace/Closure-104b/build/test:/home/user/d4j-workspace/Closure-104b/build
+[MASTER] 17:42:16.758 [logback-2] ERROR JUnitAnalyzer - Diagnostic: cannot find symbol
+  symbol:   class AfterClass
+  location: class com.google.javascript.rhino.jstype.UnionType_105_tmp__ESTest_scaffolding: 40
+[MASTER] 17:42:16.758 [logback-1] WARN  JUnitAnalyzer - Failed to compile the test cases 
+[MASTER] 17:42:16.758 [logback-2] ERROR JUnitAnalyzer - SimpleFileObject[/tmp/EvoSuite_105_1789814533732/com/google/javascript/rhino/jstype/UnionType_105_tmp__ESTest.java]
+1: /*
+2:  * This file was automatically generated by EvoSuite
+3:  * Algorithm: GWO
+4:  * Sat Sep 19 10:42:16 GMT 2026
+5:  */
+6: 
+7: package com.google.javascript.rhino.jstype;
+8: 
+9: import org.junit.Test;
+10: import static org.junit.Assert.*;
+11: import static org.evosuite.runtime.EvoAssertions.*;
+12: import com.google.javascript.rhino.SimpleErrorReporter;
+13: import com.google.javascript.rhino.jstype.JSType;
+14: import com.google.javascript.rhino.jstype.JSTypeRegistry;
+15: import com.google.javascript.rhino.jstype.NamedType;
+16: import com.google.javascript.rhino.jstype.UnionType;
+17: import java.util.LinkedHashSet;
+18: import org.evosuite.runtime.EvoRunner;
+19: import org.evosuite.runtime.EvoRunnerParameters;
+20: import org.junit.runner.RunWith;
+21: 
+22: @RunWith(EvoRunner.class) @EvoRunnerParameters(mockJVMNonDeterminism = true, useVFS = true, useVNET = true, resetStaticState = true) 
+23: public class UnionType_105_tmp__ESTest extends UnionType_105_tmp__ESTest_scaffolding {
+24: 
+25:   @Test(timeout = 4000)
+26:   public void test0()  throws Throwable  {
+27:       SimpleErrorReporter simpleErrorReporter0 = new SimpleErrorReporter();
+28:       JSTypeRegistry jSTypeRegistry0 = new JSTypeRegistry(simpleErrorReporter0);
+29:       LinkedHashSet<JSType> linkedHashSet0 = new LinkedHashSet<JSType>();
+30:       UnionType unionType0 = new UnionType(jSTypeRegistry0, linkedHashSet0);
+31:       jSTypeRegistry0.clearTemplateTypeName();
+32:       JSType[] jSTypeArray0 = new JSType[6];
+33:       jSTypeArray0[0] = (JSType) unionType0;
+34:       jSTypeArray0[1] = (JSType) unionType0;
+35:       jSTypeArray0[2] = (JSType) unionType0;
+36:       jSTypeArray0[3] = (JSType) unionType0;
+37:       NamedType namedType0 = new NamedType(jSTypeRegistry0, ":$>\"-^u", "Not declared as a constructor", (-1712), 1);
+38:       jSTypeArray0[4] = (JSType) namedType0;
+39:       jSTypeArray0[5] = (JSType) unionType0;
+40:       jSTypeRegistry0.createUnionType(jSTypeArray0);
+41:       simpleErrorReporter0.error("S3!YY:Rs`H", "MA#^(", 305, "Not declared as a constructor", (-1928));
+42:       unionType0.isUnknownType();
+43:       linkedHashSet0.add(unionType0);
+44:       unionType0.findPropertyType("");
+45:   }
+46: }
+SimpleFileObject[/tmp/EvoSuite_105_1789814533732/com/google/javascript/rhino/jstype/UnionType_105_tmp__ESTest.java]
+1: /**
+2:  * Scaffolding file used to store all the setups needed to run 
+3:  * tests automatically generated by EvoSuite
+4:  * Sat Sep 19 10:42:16 GMT 2026
+5:  */
+6: 
+7: package com.google.javascript.rhino.jstype;
+8: 
+9: import org.evosuite.runtime.annotation.EvoSuiteClassExclude;
+10: import org.junit.BeforeClass;
+11: import org.junit.Before;
+12: import org.junit.After;
+13: import org.evosuite.runtime.sandbox.Sandbox;
+14: import org.evosuite.runtime.sandbox.Sandbox.SandboxMode;
+15: 
+16: @EvoSuiteClassExclude
+17: public class UnionType_105_tmp__ESTest_scaffolding {
+18: 
+19:   @org.junit.Rule
+20:   public org.evosuite.runtime.vnet.NonFunctionalRequirementRule nfr = new org.evosuite.runtime.vnet.NonFunctionalRequirementRule();
+21: 
+22:   private org.evosuite.runtime.thread.ThreadStopper threadStopper =  new org.evosuite.runtime.thread.ThreadStopper (org.evosuite.runtime.thread.KillSwitchHandler.getInstance(), 3000);
+23: 
+24: 
+25:   @BeforeClass
+26:   public static void initEvoSuiteFramework() { 
+27:     org.evosuite.runtime.RuntimeSettings.className = "com.google.javascript.rhino.jstype.UnionType"; 
+28:     org.evosuite.runtime.GuiSupport.initialize(); 
+29:     org.evosuite.runtime.RuntimeSettings.maxNumberOfThreads = 100; 
+30:     org.evosuite.runtime.RuntimeSettings.maxNumberOfIterationsPerLoop = 10000; 
+31:     org.evosuite.runtime.RuntimeSettings.mockSystemIn = true; 
+32:     org.evosuite.runtime.RuntimeSettings.sandboxMode = org.evosuite.runtime.sandbox.Sandbox.SandboxMode.RECOMMENDED; 
+33:     org.evosuite.runtime.sandbox.Sandbox.initializeSecurityManagerForSUT(); 
+34:     org.evosuite.runtime.classhandling.JDKClassResetter.init();
+35:     setSystemProperties();
+36:     initializeClasses();
+37:     org.evosuite.runtime.Runtime.getInstance().resetRuntime(); 
+38:   } 
+39: 
+40:   @AfterClass
+41:   public static void clearEvoSuiteFramework(){ 
+42:     Sandbox.resetDefaultSecurityManager(); 
+43:   } 
+44: 
+45:   @Before
+46:   public void initTestCase(){ 
+47:     threadStopper.storeCurrentThreads();
+48:     threadStopper.startRecordingTime();
+49:     org.evosuite.runtime.jvm.ShutdownHookHandler.getInstance().initHandler(); 
+50:     org.evosuite.runtime.sandbox.Sandbox.goingToExecuteSUTCode(); 
+51:     org.evosuite.runtime.GuiSupport.setHeadless(); 
+52:     org.evosuite.runtime.Runtime.getInstance().resetRuntime(); 
+53:     org.evosuite.runtime.agent.InstrumentingAgent.activate(); 
+54:   } 
+55: 
+56:   @After
+57:   public void doneWithTestCase(){ 
+58:     threadStopper.killAndJoinClientThreads();
+59:     org.evosuite.runtime.jvm.ShutdownHookHandler.getInstance().safeExecuteAddedHooks(); 
+60:     org.evosuite.runtime.classhandling.JDKClassResetter.reset(); 
+61:     resetClasses(); 
+62:     org.evosuite.runtime.sandbox.Sandbox.doneWithExecutingSUTCode(); 
+63:     org.evosuite.runtime.agent.InstrumentingAgent.deactivate(); 
+64:     org.evosuite.runtime.GuiSupport.restoreHeadlessMode(); 
+65:   } 
+66: 
+67:   public static void setSystemProperties() {
+68:  
+69:     /*No java.lang.System property to set*/
+70:   }
+71: 
+72:   private static void initializeClasses() {
+73:     org.evosuite.runtime.classhandling.ClassStateSupport.initializeClasses(UnionType_105_tmp__ESTest_scaffolding.class.getClassLoader() ,
+74:       "com.google.common.collect.ArrayListMultimap",
+75:       "com.google.javascript.rhino.jstype.NoType",
+76:       "com.google.common.collect.ListMultimap",
+77:       "com.google.javascript.rhino.JSDocInfo$Visibility",
+78:       "com.google.javascript.rhino.jstype.PrototypeObjectType",
+79:       "com.google.javascript.rhino.jstype.ArrowType",
+80:       "com.google.javascript.rhino.SimpleErrorReporter",
+81:       "com.google.common.collect.AbstractMultimap$WrappedCollection",
+82:       "com.google.common.collect.Lists$RandomAccessPartition",
+83:       "com.google.common.collect.Collections2",
+84:       "com.google.javascript.rhino.jstype.NumberType",
+85:       "com.google.javascript.rhino.jstype.FunctionParamBuilder",
+86:       "com.google.common.collect.PeekingIterator",
+87:       "com.google.javascript.rhino.EvaluatorException",
+88:       "com.google.javascript.rhino.jstype.TernaryValue$1",
+89:       "com.google.common.collect.RegularImmutableList",
+90:       "com.google.common.collect.AbstractMultimap$WrappedCollection$WrappedIterator",
+91:       "com.google.javascript.rhino.jstype.TernaryValue$3",
+92:       "com.google.javascript.rhino.jstype.InstanceObjectType",
+93:       "com.google.javascript.rhino.jstype.StaticScope",
+94:       "com.google.javascript.rhino.jstype.TernaryValue$2",
+95:       "com.google.common.collect.Lists$TransformingRandomAccessList",
+96:       "com.google.javascript.rhino.Node$PropListItem",
+97:       "com.google.javascript.rhino.RhinoException",
+98:       "com.google.common.collect.Sets$2",
+99:       "com.google.common.collect.Sets$3",
+100:       "com.google.javascript.rhino.jstype.ObjectType",
+101:       "com.google.javascript.rhino.Node",
+102:       "com.google.common.collect.Sets$1",
+103:       "com.google.common.collect.ImmutableSet$ArrayImmutableSet",
+104:       "com.google.javascript.rhino.jstype.RecordType",
+105:       "com.google.javascript.rhino.Node$NodeMismatch",
+106:       "com.google.javascript.rhino.jstype.FunctionPrototypeType",
+107:       "com.google.common.collect.RegularImmutableSet",
+108:       "com.google.common.collect.Iterators$12",
+109:       "com.google.javascript.rhino.jstype.JSType$1",
+110:       "com.google.javascript.rhino.jstype.NoObjectType$GreatestSupertypeVisitor",
+111:       "com.google.common.base.Predicate",
+112:       "com.google.javascript.rhino.jstype.JSType$2",
+113:       "com.google.common.collect.AbstractMultimap$AsMap",
+114:       "com.google.javascript.rhino.jstype.VoidType",
+115:       "com.google.common.base.Joiner",
+116:       "com.google.javascript.rhino.Node$SiblingNodeIterable",
+117:       "com.google.common.collect.AbstractMultimap$ValueIterator",
+118:       "com.google.common.collect.AbstractListMultimap",
+119:       "com.google.javascript.rhino.jstype.JSType",
+120:       "com.google.common.collect.ImmutableAsList",
+121:       "com.google.javascript.rhino.Node$StringNode",
+122:       "com.google.common.collect.AbstractMultimap$Values",
+123:       "com.google.javascript.rhino.jstype.ProxyObjectType",
+124:       "com.google.common.collect.Sets$SetView",
+125:       "com.google.common.collect.ImmutableSet$Builder",
+126:       "com.google.javascript.rhino.jstype.TemplateType",
+127:       "com.google.common.collect.SingletonImmutableSet",
+128:       "com.google.javascript.rhino.jstype.NamedType",
+129:       "com.google.common.collect.Iterators$14",
+130:       "com.google.common.collect.Iterators$13",
+131:       "com.google.common.collect.Iterators$15",
+132:       "com.google.javascript.rhino.jstype.UnionTypeBuilder",
+133:       "com.google.common.collect.Lists$Partition",
+134:       "com.google.common.collect.Lists",
+135:       "com.google.javascript.rhino.jstype.ParameterizedType",
+136:       "com.google.javascript.rhino.jstype.NullType",
+137:       "com.google.common.collect.Lists$TransformingSequentialList",
+138:       "com.google.javascript.rhino.ErrorReporter",
+139:       "com.google.javascript.rhino.jstype.UnknownType",
+140:       "com.google.javascript.rhino.jstype.ValueType",
+141:       "com.google.javascript.rhino.Node$FileLevelJsDocBuilder",
+142:       "com.google.javascript.rhino.jstype.BooleanType",
+143:       "com.google.javascript.rhino.jstype.NoObjectType",
+144:       "com.google.common.collect.AbstractIterator",
+145:       "com.google.javascript.rhino.jstype.JSType$TypePair",
+146:       "com.google.common.base.Joiner$MapJoiner",
+147:       "com.google.common.collect.MapDifference",
+148:       "com.google.common.collect.AbstractMultimap$EntryIterator",
+149:       "com.google.javascript.rhino.jstype.ErrorFunctionType",
+150:       "com.google.javascript.rhino.jstype.FunctionType",
+151:       "com.google.common.collect.Lists$ImmutableListWithNullElementsException",
+152:       "com.google.common.base.Preconditions",
+153:       "com.google.common.collect.UnmodifiableIterator",
+154:       "com.google.javascript.rhino.JSDocInfo",
+155:       "com.google.common.collect.EmptyImmutableList",
+156:       "com.google.common.base.Joiner$1",
+157:       "com.google.common.base.Joiner$2",
+158:       "com.google.common.collect.AbstractMultimap$WrappedList",
+159:       "com.google.common.collect.ImmutableCollection",
+160:       "com.google.javascript.rhino.jstype.TernaryValue",
+161:       "com.google.javascript.rhino.jstype.PrototypeObjectType$Property",
+162:       "com.google.common.collect.AbstractMultimap$EntrySet",
+163:       "com.google.javascript.rhino.jstype.IndexedType",
+164:       "com.google.javascript.rhino.Node$AncestorIterable",
+165:       "com.google.common.collect.AbstractMultimap$RandomAccessWrappedList",
+166:       "com.google.javascript.rhino.testing.EmptyScope",
+167:       "com.google.common.collect.ImmutableEnumSet",
+168:       "com.google.common.collect.AbstractMultimap$Entries",
+169:       "com.google.common.collect.HashMultimap",
+170:       "com.google.javascript.rhino.jstype.EnumElementType",
+171:       "com.google.javascript.rhino.jstype.UnionType",
+172:       "com.google.javascript.rhino.jstype.JSTypeRegistry$2",
+173:       "com.google.javascript.rhino.jstype.JSTypeRegistry$3",
+174:       "com.google.javascript.rhino.Node$NumberNode",
+175:       "com.google.common.collect.SingletonImmutableList",
+176:       "com.google.javascript.rhino.jstype.JSTypeRegistry$1",
+177:       "com.google.common.collect.ImmutableCollection$Builder",
+178:       "com.google.javascript.rhino.jstype.StaticSlot",
+179:       "com.google.common.collect.Iterators$6",
+180:       "com.google.common.collect.BiMap",
+181:       "com.google.javascript.rhino.jstype.NoObjectType$LeastSupertypeVisitor",
+182:       "com.google.common.collect.AbstractSetMultimap",
+183:       "com.google.common.collect.Iterators$8",
+184:       "com.google.common.collect.ImmutableSet",
+185:       "com.google.javascript.rhino.Node$1",
+186:       "com.google.javascript.rhino.jstype.EnumType",
+187:       "com.google.common.collect.Iterators$1",
+188:       "com.google.common.collect.AbstractMultimap$SortedKeySet",
+189:       "com.google.common.collect.Iterators$2",
+190:       "com.google.common.collect.Iterators$3",
+191:       "com.google.common.collect.Sets",
+192:       "com.google.common.collect.ImmutableCollection$EmptyImmutableCollection",
+193:       "com.google.javascript.rhino.jstype.BooleanLiteralSet",
+194:       "com.google.common.collect.AbstractMultimap$SortedAsMap",
+195:       "com.google.common.collect.ImmutableList$Builder",
+196:       "com.google.common.collect.Multiset",
+197:       "com.google.common.collect.AbstractMultimap",
+198:       "com.google.common.collect.Multimap",
+199:       "com.google.common.collect.EmptyImmutableSet",
+200:       "com.google.common.collect.Iterators",
+201:       "com.google.common.collect.ImmutableList",
+202:       "com.google.javascript.rhino.jstype.StringType",
+203:       "com.google.javascript.rhino.jstype.JSTypeRegistry",
+204:       "com.google.common.collect.AbstractMultimap$KeySet",
+205:       "com.google.javascript.rhino.jstype.Visitor",
+206:       "com.google.javascript.rhino.jstype.JSTypeNative",
+207:       "com.google.javascript.rhino.jstype.AllType",
+208:       "com.google.common.collect.Maps",
+209:       "com.google.common.collect.SetMultimap",
+210:       "com.google.javascript.rhino.jstype.FunctionType$Kind",
+211:       "com.google.javascript.rhino.JSTypeExpression"
+212:     );
+213:   } 
+214: 
+215:   private static void resetClasses() {
+216:     org.evosuite.runtime.classhandling.ClassResetter.getInstance().setClassLoader(UnionType_105_tmp__ESTest_scaffolding.class.getClassLoader()); 
+217: 
+218:     org.evosuite.runtime.classhandling.ClassStateSupport.resetClasses(
+219:       "com.google.javascript.rhino.jstype.JSType$1",
+220:       "com.google.javascript.rhino.jstype.JSType",
+221:       "com.google.javascript.rhino.jstype.UnionType",
+222:       "com.google.javascript.rhino.jstype.TernaryValue",
+223:       "com.google.javascript.rhino.jstype.JSTypeNative",
+224:       "com.google.javascript.rhino.jstype.BooleanLiteralSet",
+225:       "com.google.javascript.rhino.SimpleErrorReporter",
+226:       "com.google.javascript.rhino.jstype.JSTypeRegistry",
+227:       "com.google.common.base.Joiner",
+228:       "com.google.common.base.Preconditions",
+229:       "com.google.common.collect.Collections2",
+230:       "com.google.common.base.Joiner$MapJoiner",
+231:       "com.google.common.collect.Maps",
+232:       "com.google.common.collect.AbstractMultimap",
+233:       "com.google.common.collect.AbstractSetMultimap",
+234:       "com.google.common.collect.HashMultimap",
+235:       "com.google.common.collect.AbstractListMultimap",
+236:       "com.google.common.collect.ArrayListMultimap",
+237:       "com.google.javascript.rhino.jstype.ValueType",
+238:       "com.google.javascript.rhino.jstype.BooleanType",
+239:       "com.google.javascript.rhino.jstype.NullType",
+240:       "com.google.javascript.rhino.jstype.NumberType",
+241:       "com.google.javascript.rhino.jstype.StringType",
+242:       "com.google.javascript.rhino.jstype.ObjectType",
+243:       "com.google.javascript.rhino.jstype.UnknownType",
+244:       "com.google.javascript.rhino.jstype.VoidType",
+245:       "com.google.javascript.rhino.jstype.AllType",
+246:       "com.google.javascript.rhino.jstype.PrototypeObjectType",
+247:       "com.google.javascript.rhino.jstype.FunctionPrototypeType",
+248:       "com.google.javascript.rhino.jstype.FunctionType",
+249:       "com.google.javascript.rhino.jstype.FunctionParamBuilder",
+250:       "com.google.javascript.rhino.Node",
+251:       "com.google.javascript.rhino.Node$StringNode",
+252:       "com.google.javascript.rhino.Node$PropListItem",
+253:       "com.google.common.collect.ImmutableCollection$EmptyImmutableCollection",
+254:       "com.google.common.collect.ImmutableCollection",
+255:       "com.google.common.collect.ImmutableList",
+256:       "com.google.common.collect.EmptyImmutableList",
+257:       "com.google.javascript.rhino.jstype.FunctionType$Kind",
+258:       "com.google.javascript.rhino.jstype.InstanceObjectType",
+259:       "com.google.javascript.rhino.jstype.ArrowType",
+260:       "com.google.common.collect.Sets",
+261:       "com.google.common.collect.Lists",
+262:       "com.google.javascript.rhino.jstype.NoObjectType",
+263:       "com.google.javascript.rhino.jstype.NoType",
+264:       "com.google.javascript.rhino.jstype.NoObjectType$LeastSupertypeVisitor",
+265:       "com.google.javascript.rhino.jstype.NoObjectType$GreatestSupertypeVisitor",
+266:       "com.google.javascript.rhino.jstype.JSTypeRegistry$1",
+267:       "com.google.javascript.rhino.jstype.ErrorFunctionType",
+268:       "com.google.javascript.rhino.jstype.JSTypeRegistry$2",
+269:       "com.google.javascript.rhino.jstype.UnionTypeBuilder",
+270:       "com.google.javascript.rhino.jstype.JSTypeRegistry$3",
+271:       "com.google.javascript.rhino.RhinoException",
+272:       "com.google.javascript.rhino.EvaluatorException",
+273:       "com.google.javascript.rhino.testing.EmptyScope",
+274:       "com.google.common.collect.ImmutableSet",
+275:       "com.google.common.collect.ImmutableCollection$Builder",
+276:       "com.google.common.collect.ImmutableSet$Builder",
+277:       "com.google.javascript.rhino.jstype.RecordType",
+278:       "com.google.javascript.rhino.jstype.PrototypeObjectType$Property",
+279:       "com.google.javascript.rhino.jstype.JSType$TypePair",
+280:       "com.google.javascript.rhino.jstype.EnumElementType",
+281:       "com.google.javascript.rhino.jstype.EnumType",
+282:       "com.google.javascript.rhino.Node$NumberNode",
+283:       "com.google.javascript.rhino.jstype.ProxyObjectType",
+284:       "com.google.javascript.rhino.jstype.NamedType",
+285:       "com.google.common.collect.AbstractMultimap$WrappedCollection",
+286:       "com.google.common.collect.AbstractMultimap$WrappedList",
+287:       "com.google.common.collect.AbstractMultimap$RandomAccessWrappedList",
+288:       "com.google.common.collect.AbstractMultimap$WrappedCollection$WrappedIterator",
+289:       "com.google.common.collect.EmptyImmutableSet",
+290:       "com.google.javascript.rhino.jstype.JSType$2",
+291:       "com.google.javascript.rhino.Token",
+292:       "com.google.javascript.rhino.jstype.ParameterizedType",
+293:       "com.google.common.collect.ImmutableList$Builder",
+294:       "com.google.common.collect.UnmodifiableIterator",
+295:       "com.google.common.collect.Iterators$1",
+296:       "com.google.common.collect.Iterators$2",
+297:       "com.google.common.collect.Iterators",
+298:       "com.google.javascript.rhino.jstype.TemplateType",
+299:       "com.google.javascript.rhino.jstype.RecordTypeBuilder",
+300:       "com.google.common.collect.ImmutableMap",
+301:       "com.google.common.collect.ImmutableMap$Builder",
+302:       "com.google.javascript.rhino.jstype.IndexedType",
+303:       "com.google.common.collect.AbstractMultimap$WrappedSet",
+304:       "com.google.common.collect.AbstractMapEntry",
+305:       "com.google.common.collect.ImmutableEntry",
+306:       "com.google.common.collect.SingletonImmutableMap",
+307:       "com.google.common.collect.Iterables",
+308:       "com.google.common.collect.SingletonImmutableSet",
+309:       "com.google.common.collect.Iterators$14",
+310:       "com.google.common.collect.AbstractMultimap$Values",
+311:       "com.google.common.collect.AbstractMultimap$ValueIterator",
+312:       "com.google.common.collect.AbstractMultimap$EntryIterator",
+313:       "com.google.common.collect.AbstractMultimap$Entries",
+314:       "com.google.javascript.rhino.Node$NodeMismatch",
+315:       "com.google.javascript.rhino.JSDocInfo",
+316:       "com.google.common.collect.Iterables$3",
+317:       "com.google.common.collect.Iterables$IterableWithToString",
+318:       "com.google.common.collect.Iterables$10",
+319:       "com.google.common.collect.Iterables$4"
+320:     );
+321:   }
+322: }
+
+[MASTER] 17:42:31.959 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test26 -> class java.lang.StackOverflowError: null
+[MASTER] 17:42:31.959 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ SimpleErrorReporter simpleErrorReporter0 = new SimpleErrorReporter();
+JSTypeRegistry jSTypeRegistry0 = new JSTypeRegistry(simpleErrorReporter0);
+LinkedHashSet<JSType> linkedHashSet0 = new LinkedHashSet<JSType>();
+UnionType unionType0 = new UnionType(jSTypeRegistry0, linkedHashSet0);
+unionType0.equals(simpleErrorReporter0);
+NoType noType0 = new NoType(jSTypeRegistry0);
+ObjectType objectType0 = noType0.getInstanceType();
+unionType0.canTestForShallowEqualityWith(objectType0);
+linkedHashSet0.add(unionType0);
+LinkedList<JSType> linkedList0 = new LinkedList<JSType>();
+jSTypeRegistry0.createFunctionTypeWithVarArgs((ObjectType) noType0, (JSType) unionType0, (List<JSType>) linkedList0);
+unionType0.meet(objectType0);
+
+[MASTER] 17:42:31.959 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test34 -> class java.lang.StackOverflowError: null
+[MASTER] 17:42:31.960 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ JSTypeRegistry jSTypeRegistry0 = null;
+LinkedHashSet<JSType> linkedHashSet0 = new LinkedHashSet<JSType>();
+UnionType unionType0 = new UnionType((JSTypeRegistry) null, linkedHashSet0);
+unionType0.restrictByNotNullOrUndefined();
+
+[MASTER] 17:42:31.960 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test36 -> class java.lang.StackOverflowError: null
+[MASTER] 17:42:31.960 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ SimpleErrorReporter simpleErrorReporter0 = new SimpleErrorReporter();
+JSTypeRegistry jSTypeRegistry0 = new JSTypeRegistry(simpleErrorReporter0);
+UnionType unionType0 = new UnionType(jSTypeRegistry0, (Set<JSType>) null);
+unionType0.isNullable();
+
+[MASTER] 17:42:41.341 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test31 -> class java.lang.StackOverflowError: null
+[MASTER] 17:42:41.341 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ SimpleErrorReporter simpleErrorReporter0 = new SimpleErrorReporter();
+JSTypeRegistry jSTypeRegistry0 = new JSTypeRegistry(simpleErrorReporter0);
+LinkedHashSet<JSType> linkedHashSet0 = new LinkedHashSet<JSType>();
+UnionType unionType0 = new UnionType(jSTypeRegistry0, linkedHashSet0);
+linkedHashSet0.add(unionType0);
+NoType noType0 = new NoType(jSTypeRegistry0);
+JSType jSType0 = noType0.getReturnType();
+unionType0.getTypesUnderInequality(jSType0);
+
+[MASTER] 17:42:41.341 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test30 -> class java.lang.StackOverflowError: null
+[MASTER] 17:42:41.342 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ SimpleErrorReporter simpleErrorReporter0 = new SimpleErrorReporter();
+JSTypeRegistry jSTypeRegistry0 = new JSTypeRegistry(simpleErrorReporter0);
+LinkedHashSet<JSType> linkedHashSet0 = new LinkedHashSet<JSType>();
+UnionType unionType0 = new UnionType(jSTypeRegistry0, linkedHashSet0);
+jSTypeRegistry0.clearTemplateTypeName();
+JSType[] jSTypeArray0 = new JSType[6];
+jSTypeArray0[0] = (JSType) unionType0;
+jSTypeArray0[1] = (JSType) unionType0;
+jSTypeArray0[2] = (JSType) unionType0;
+jSTypeArray0[3] = (JSType) unionType0;
+NamedType namedType0 = new NamedType(jSTypeRegistry0, ":$>\"-^u", "Not declared as a constructor", (-1712), 1);
+jSTypeArray0[4] = (JSType) namedType0;
+jSTypeArray0[5] = (JSType) unionType0;
+jSTypeRegistry0.createUnionType(jSTypeArray0);
+simpleErrorReporter0.error("S3!YY:Rs`H", "MA#^(", 305, "Not declared as a constructor", (-1928));
+unionType0.isUnknownType();
+linkedHashSet0.add(unionType0);
+unionType0.findPropertyType("");
+
+[MASTER] 17:42:41.342 [logback-1] WARN  JUnitAnalyzer - Found unstable test named test08 -> class java.lang.StackOverflowError: null
+[MASTER] 17:42:41.342 [logback-1] WARN  JUnitAnalyzer - Failing test:
+ SimpleErrorReporter simpleErrorReporter0 = new SimpleErrorReporter();
+JSTypeRegistry jSTypeRegistry0 = new JSTypeRegistry(simpleErrorReporter0);
+LinkedHashSet<JSType> linkedHashSet0 = new LinkedHashSet<JSType>();
+UnionType unionType0 = new UnionType(jSTypeRegistry0, linkedHashSet0);
+JSTypeRegistry jSTypeRegistry1 = new JSTypeRegistry(simpleErrorReporter0);
+linkedHashSet0.add(unionType0);
+BooleanType booleanType0 = new BooleanType(jSTypeRegistry1);
+booleanType0.isNumberObjectType();
+EmptyScope emptyScope0 = new EmptyScope();
+emptyScope0.getTypeOfThis();
+linkedHashSet0.add((JSType) null);
+unionType0.testForEquality(booleanType0);
+
+* Writing tests to file
+* Writing JUnit test case 'UnionType_ESTest' to /home/user/evosuite-results/Closure-104b/GWO/com_google_javascript_rhino_jstype_UnionType/evosuite-tests
+* Done!
+
+* Computation finished
+[MASTER] 17:42:41.471 [logback-2] ERROR ClientNodeImpl - Error when generating tests for: com.google.javascript.rhino.jstype.UnionType with seed 1789814276500. Configuration id : null
+java.rmi.MarshalException: error marshalling arguments; nested exception is: 
+	java.net.SocketException: Broken pipe (Write failed)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:160)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectTestGenerationResult(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:144)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.net.SocketException: Broken pipe (Write failed)
+	at java.base/java.net.SocketOutputStream.socketWrite0(Native Method)
+	at java.base/java.net.SocketOutputStream.socketWrite(SocketOutputStream.java:110)
+	at java.base/java.net.SocketOutputStream.write(SocketOutputStream.java:150)
+	at java.base/java.io.BufferedOutputStream.flushBuffer(BufferedOutputStream.java:81)
+	at java.base/java.io.BufferedOutputStream.write(BufferedOutputStream.java:127)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.drain(ObjectOutputStream.java:1873)
+	at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.setBlockDataMode(ObjectOutputStream.java:1782)
+	at java.base/java.io.ObjectOutputStream.writeFatalException(ObjectOutputStream.java:1570)
+	at java.base/java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:348)
+	at java.rmi/sun.rmi.server.UnicastRef.marshalValue(UnicastRef.java:293)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:155)
+	... 9 common frames omitted
+[MASTER] 17:42:41.577 [main] ERROR SearchStatistics - No statistics has been saved because EvoSuite failed to generate any test case
+[MASTER] 17:42:41.679 [main] ERROR TestGeneration - failed to write statistics data

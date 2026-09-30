@@ -1,0 +1,95 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: org.apache.commons.cli.HelpFormatter
+* Starting Client-0
+* Connecting to master process on port 9179
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/Cli-11b/target/classes
+  - /home/user/d4j-workspace/Cli-11b/target/classes
+  - /home/user/d4j-workspace/Cli-11b/target/lib/junit-3.8.1.jar
+  - /home/user/d4j-workspace/Cli-11b/target/lib/junit-3.8.1.jar
+  - /home/user/d4j-workspace/Cli-11b/target/classes
+  - /home/user/d4j-workspace/Cli-11b/target/test-classes
+[MASTER] 20:53:49.940 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.util.Locale$IsoCountryCode
+* Finished analyzing classpath
+* Generating tests for class org.apache.commons.cli.HelpFormatter
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 198
+  - Branch 138
+  - Exception 0
+  - MutationFactory 482
+  - Output 43
+  - Method 38
+  - MethodNoException 38
+  - CBranchFitnessFactory 138
+[Progress:>                             0%] [Cov:>                                  0%]* Using seed 1789566828590
+* Starting evolution
+[MASTER] 20:53:50.510 [logback-1] WARN  TestCluster - Failed to check cache for java.util.Comparator<T> : Type points to itself
+[Progress:>                             0%] [Cov:>                                  2%][Progress:>                             0%] [Cov:=>                                 3%][Progress:>                             0%] [Cov:=====>                             15%][Progress:>                             0%] [Cov:=====>                             17%][Progress:>                             0%] [Cov:======>                            19%][Progress:>                             0%] [Cov:=======>                           20%][Progress:>                             0%] [Cov:=======>                           21%][Progress:>                             0%] [Cov:=======>                           22%][Progress:>                             1%] [Cov:=========>                         26%][Progress:>                             1%] [Cov:=========>                         27%][Progress:>                             1%] [Cov:==========>                        30%][Progress:>                             1%] [Cov:===========>                       33%][Progress:>                             1%] [Cov:============>                      35%][Progress:>                             2%] [Cov:========>                          25%][Progress:>                             2%] [Cov:=========>                         27%][Progress:>                             2%] [Cov:=========>                         28%][Progress:>                             2%] [Cov:==========>                        30%][Progress:>                             2%] [Cov:===========>                       33%][Progress:>                             2%] [Cov:===========>                       34%][Progress:>                             2%] [Cov:============>                      36%][Progress:>                             2%] [Cov:=============>                     38%][Progress:>                             2%] [Cov:==============>                    40%][Progress:>                             3%] [Cov:=>                                 3%][Progress:>                             3%] [Cov:==>                                7%][Progress:>                             3%] [Cov:=======>                           20%][Progress:>                             3%] [Cov:=========>                         27%][Progress:>                             3%] [Cov:==========>                        30%][Progress:>                             3%] [Cov:===========>                       33%][Progress:>                             3%] [Cov:============>                      35%][Progress:>                             3%] [Cov:============>                      37%][Progress:>                             3%] [Cov:==============>                    41%][Progress:>                             3%] [Cov:===============>                   43%][Progress:=>                            4%] [Cov:=>                                 3%][Progress:=>                            4%] [Cov:==>                                6%][Progress:=>                            4%] [Cov:======>                            19%][Progress:=>                            4%] [Cov:=========>                         26%][Progress:=>                            4%] [Cov:=========>                         28%][Progress:=>                            4%] [Cov:==========>                        29%][Progress:=>                            4%] [Cov:==========>                        31%][Progress:=>                            5%] [Cov:=>                                 4%][Progress:=>                            5%] [Cov:==>                                7%][Progress:=>                            5%] [Cov:======>                            19%][Progress:=>                            5%] [Cov:=========>                         26%][Progress:=>                            5%] [Cov:=========>                         27%][Progress:=>                            5%] [Cov:==========>                        30%][Progress:=>                            5%] [Cov:===========>                       33%][Progress:=>                            5%] [Cov:============>                      35%][Progress:=>                            5%] [Cov:=============>                     38%][Progress:=>                            6%] [Cov:=============>                     38%][Progress:=>                            6%] [Cov:==============>                    40%][Progress:=>                            6%] [Cov:==============>                    42%][Progress:=>                            6%] [Cov:===============>                   45%][Progress:=>                            6%] [Cov:===============>                   45%]========== GWO EVOLVE iteration=0 population=50 ==========
+[Progress:==>                           7%] [Cov:===============>                   45%][Progress:==>                           7%] [Cov:================>                  46%][Progress:==>                           7%] [Cov:================>                  47%][Progress:==>                           8%] [Cov:==========>                        31%][Progress:==>                           8%] [Cov:============>                      36%][Progress:==>                           8%] [Cov:===============>                   45%][Progress:==>                           8%] [Cov:================>                  46%][Progress:==>                           8%] [Cov:================>                  47%][Progress:==>                           9%] [Cov:==============>                    40%][Progress:===>                          10%] [Cov:=========>                         26%][Progress:===>                          10%] [Cov:=========>                         27%][Progress:===>                          10%] [Cov:==========>                        30%][Progress:===>                          10%] [Cov:==========>                        31%][Progress:===>                          10%] [Cov:==============>                    40%][Progress:===>                          10%] [Cov:===============>                   45%][Progress:===>                          10%] [Cov:================>                  47%]GWO iteration=1 bestFitness=782.9617692750357 population=50 a=1.98
+========== GWO EVOLVE iteration=1 population=50 ==========
+[Progress:===>                          11%] [Cov:================>                  47%][Progress:===>                          12%] [Cov:==============>                    40%][Progress:===>                          12%] [Cov:===============>                   45%][Progress:===>                          13%] [Cov:===============>                   45%][Progress:===>                          13%] [Cov:================>                  47%][Progress:====>                         14%] [Cov:================>                  47%][Progress:====>                         14%] [Cov:================>                  48%][Progress:====>                         14%] [Cov:=================>                 50%][Progress:====>                         14%] [Cov:=================>                 51%][Progress:====>                         14%] [Cov:==================>                52%][Progress:====>                         14%] [Cov:==================>                53%][Progress:====>                         15%] [Cov:================>                  47%][Progress:====>                         15%] [Cov:================>                  48%][Progress:====>                         15%] [Cov:=================>                 49%][Progress:====>                         15%] [Cov:=================>                 50%][Progress:====>                         16%] [Cov:================>                  47%][Progress:====>                         16%] [Cov:================>                  48%][Progress:==============================100%] [Cov:================>                  47%][Progress:==============================100%] [Cov:==================>                53%]GWO iteration=2 bestFitness=688.3311219148602 population=50 a=1.96
+[Progress:==============================100%] [Cov:============================>      82%]
+* Search finished after 1086s and 2 generations, 3062 statements, best individual has fitness: 171.49002909659455
+[MASTER] 21:11:56.588 [logback-1] WARN  TimeController - Phase SEARCH lasted too long, 966 seconds more than allowed.
+[MASTER] 21:17:53.477 [logback-1] WARN  TimeController - Current phase MINIMIZATION could run up to 60s, but only -904s are left
+* Skipping minimization because not enough time is left
+* Going to analyze the coverage criteria
+* Coverage analysis for criterion LINE
+* Coverage of criterion LINE: 97%
+* Total number of goals: 198
+* Number of covered goals: 192
+* Coverage analysis for criterion BRANCH
+* Coverage of criterion BRANCH: 84%
+* Total number of goals: 138
+* Number of covered goals: 116
+* Coverage analysis for criterion EXCEPTION
+* Coverage of criterion EXCEPTION: 100%
+* Total number of goals: 37
+* Number of covered goals: 37
+* Coverage analysis for criterion WEAKMUTATION
+* Coverage of criterion WEAKMUTATION: 92%
+* Total number of goals: 482
+* Number of covered goals: 444
+* Coverage analysis for criterion OUTPUT
+* Coverage of criterion OUTPUT: 49%
+* Total number of goals: 43
+* Number of covered goals: 21
+* Coverage analysis for criterion METHOD
+* Coverage of criterion METHOD: 97%
+* Total number of goals: 38
+* Number of covered goals: 37
+* Coverage analysis for criterion METHODNOEXCEPTION
+* Coverage of criterion METHODNOEXCEPTION: 97%
+* Total number of goals: 38
+* Number of covered goals: 37
+* Coverage analysis for criterion CBRANCH
+* Coverage of criterion CBRANCH: 76%
+* Total number of goals: 138
+* Number of covered goals: 105
+* Generated 74 tests with total length 1390
+* Resulting test suite's coverage: 82% (average coverage for all fitness functions)
+* Generating assertions
+[MASTER] 21:17:55.411 [logback-1] WARN  TimeController - Current phase ASSERTION_GENERATION could run up to 60s, but only -906s are left
+* Skipping assertion generation because not enough time is left
+* Compiling and checking tests
+[MASTER] 21:17:55.462 [logback-1] WARN  TimeController - Current phase JUNIT_CHECK could run up to 60s, but only -906s are left
+* Permissions denied during test execution: 
+  - java.lang.RuntimePermission: 
+         writeFileDescriptor: 3
+* Writing tests to file
+[MASTER] 21:17:55.464 [logback-1] WARN  TimeController - Current phase WRITING_TESTS could run up to 60s, but only -906s are left
+* Writing JUnit test case 'HelpFormatter_ESTest' to evosuite-tests
+* Done!
+
+* Computation finished

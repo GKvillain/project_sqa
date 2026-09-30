@@ -1,0 +1,610 @@
+* EvoSuite 1.2.1-SNAPSHOT
+* Going to generate test cases for class: com.google.javascript.jscomp.ScopedAliases
+* Starting Client-0
+* Connecting to master process on port 13713
+* Analyzing classpath: 
+  - /home/user/d4j-workspace/Closure-108b/build/classes
+  - /home/user/d4j-workspace/Closure-108b/lib/args4j.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/guava.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/json.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/jsr305.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/protobuf-java.jar
+  - /home/user/d4j-workspace/Closure-108b/build/lib/rhino.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/ant.jar
+  - /home/user/d4j-workspace/Closure-108b/build/classes
+  - /home/user/d4j-workspace/Closure-108b/lib/args4j.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/guava.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/json.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/jsr305.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/protobuf-java.jar
+  - /home/user/d4j-workspace/Closure-108b/build/lib/rhino.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/ant.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/ant-launcher.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/caja-r4314.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/jarjar.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/junit.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/mockito-core.jar
+  - /home/user/d4j-workspace/Closure-108b/lib/objenesis.jar
+  - /home/user/d4j-workspace/Closure-108b/build/test
+  - /home/user/d4j-workspace/Closure-108b/build/classes
+  - /home/user/d4j-workspace/Closure-108b/build/test
+  - /home/user/d4j-workspace/Closure-108b/build
+[MASTER] 17:54:46.474 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.util.Locale$IsoCountryCode
+[MASTER] 17:54:46.501 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.io.ObjectInputFilter
+[MASTER] 17:54:46.907 [logback-1] WARN  InheritanceTree - Class not in inheritance graph: java.lang.module.ModuleFinder
+* Finished analyzing classpath
+* Generating tests for class com.google.javascript.jscomp.ScopedAliases
+* Test criteria:
+  - Line Coverage
+  - Branch Coverage
+  - Exception
+  - Mutation testing (weak)
+  - Method-Output Coverage
+  - Top-Level Method Coverage
+  - No-Exception Top-Level Method Coverage
+  - Context Branch Coverage
+* Setting up search algorithm for whole suite generation
+========== CUSTOM GWO INITIALIZED ==========
+* Total number of test goals: 
+  - Line 258
+  - Branch 169
+  - Exception 0
+  - MutationFactory 329
+  - Output 0
+  - Method 14
+  - MethodNoException 14
+  - CBranchFitnessFactory 169
+[Progress:>                             0%] [Cov:>                                  0%]* Using seed 1789815283520
+* Starting evolution
+[Progress:>                             0%] [Cov:====>                              12%][Progress:>                             0%] [Cov:=======>                           22%][MASTER] 17:54:48.850 [logback-1] WARN  MSecurityManager - SUT asked for a runtime permission that EvoSuite does not recognize: getStackWalkerWithClassReference
+[Progress:>                             0%] [Cov:========>                          23%][Progress:>                             0%] [Cov:========>                          24%][Progress:>                             0%] [Cov:=========>                         28%][Progress:>                             0%] [Cov:==========>                        30%][Progress:>                             0%] [Cov:===========>                       32%][Progress:>                             0%] [Cov:===========>                       33%][MASTER] 17:54:49.070 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.ServerError: Error occurred in server thread; nested exception is: 
+	java.lang.NoClassDefFoundError: Lcom/google/common/collect/ImmutableMap;
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:388)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsListener.lambda$new$0(StatisticsListener.java:76)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.lang.NoClassDefFoundError: Lcom/google/common/collect/ImmutableMap;
+	at java.base/java.lang.Class.getDeclaredFields0(Native Method)
+	at java.base/java.lang.Class.privateGetDeclaredFields(Class.java:3061)
+	at java.base/java.lang.Class.getDeclaredField(Class.java:2409)
+	at org.evosuite.utils.generic.GenericField.readObject(GenericField.java:224)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.skipCustomData(ObjectInputStream.java:2451)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2400)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	... 1 common frames omitted
+Caused by: java.lang.ClassNotFoundException: Class not found: com/google/common/collect/ImmutableMapValues: java.lang.NullPointerException: Class not found com/google/common/collect/ImmutableMapValues
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:158)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.loadClass(InstrumentingClassLoader.java:126)
+	... 69 common frames omitted
+Caused by: java.lang.RuntimeException: Class not found: com/google/common/collect/ImmutableMapValues: java.lang.NullPointerException: Class not found com/google/common/collect/ImmutableMapValues
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:56)
+	at org.evosuite.shaded.org.objectweb.asm.SymbolTable.addMergedType(SymbolTable.java:1202)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1299)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1244)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.computeAllFrames(MethodWriter.java:1610)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.visitMaxs(MethodWriter.java:1546)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.runtime.instrumentation.LoopCounterMethodAdapter.visitMaxs(LoopCounterMethodAdapter.java:48)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:769)
+	at org.evosuite.shaded.org.objectweb.asm.commons.JSRInlinerAdapter.visitEnd(JSRInlinerAdapter.java:158)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:649)
+	at org.evosuite.shaded.org.objectweb.asm.tree.ClassNode.accept(ClassNode.java:452)
+	at org.evosuite.instrumentation.BytecodeInstrumentation.transformBytes(BytecodeInstrumentation.java:282)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.getTransformedBytes(InstrumentingClassLoader.java:135)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:149)
+	... 70 common frames omitted
+Caused by: java.lang.NullPointerException: Class not found com/google/common/collect/ImmutableMapValues
+	at org.evosuite.runtime.util.ComputeClassWriter.typeInfo(ComputeClassWriter.java:179)
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:53)
+	... 90 common frames omitted
+[Progress:>                             0%] [Cov:===========>                       34%][MASTER] 17:54:49.191 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.ServerError: Error occurred in server thread; nested exception is: 
+	java.lang.NoClassDefFoundError: com/google/javascript/jscomp/TightenTypes
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:388)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsListener.lambda$new$0(StatisticsListener.java:76)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.lang.NoClassDefFoundError: com/google/javascript/jscomp/TightenTypes
+	at java.base/java.lang.Class.getDeclaredMethods0(Native Method)
+	at java.base/java.lang.Class.privateGetDeclaredMethods(Class.java:3166)
+	at java.base/java.lang.Class.getDeclaredMethods(Class.java:2309)
+	at org.evosuite.utils.generic.GenericMethod.readObject(GenericMethod.java:406)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.skipCustomData(ObjectInputStream.java:2451)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2400)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	... 1 common frames omitted
+Caused by: java.lang.ClassNotFoundException: Class not found: com/google/javascript/rhino/jstype/ObjectType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/ObjectType
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:158)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.loadClass(InstrumentingClassLoader.java:126)
+	... 69 common frames omitted
+Caused by: java.lang.RuntimeException: Class not found: com/google/javascript/rhino/jstype/ObjectType: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/ObjectType
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:62)
+	at org.evosuite.shaded.org.objectweb.asm.SymbolTable.addMergedType(SymbolTable.java:1202)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1299)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1197)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.computeAllFrames(MethodWriter.java:1610)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.visitMaxs(MethodWriter.java:1546)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.runtime.instrumentation.LoopCounterMethodAdapter.visitMaxs(LoopCounterMethodAdapter.java:48)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:769)
+	at org.evosuite.shaded.org.objectweb.asm.commons.JSRInlinerAdapter.visitEnd(JSRInlinerAdapter.java:158)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:649)
+	at org.evosuite.shaded.org.objectweb.asm.tree.ClassNode.accept(ClassNode.java:452)
+	at org.evosuite.instrumentation.BytecodeInstrumentation.transformBytes(BytecodeInstrumentation.java:282)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.getTransformedBytes(InstrumentingClassLoader.java:135)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:149)
+	... 70 common frames omitted
+Caused by: java.lang.NullPointerException: Class not found com/google/javascript/rhino/jstype/ObjectType
+	at org.evosuite.runtime.util.ComputeClassWriter.typeInfo(ComputeClassWriter.java:179)
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:59)
+	... 90 common frames omitted
+[Progress:>                             1%] [Cov:>                                  0%][Progress:>                             1%] [Cov:>                                  1%][Progress:>                             1%] [Cov:====>                              13%][Progress:>                             1%] [Cov:========>                          23%][Progress:>                             1%] [Cov:========>                          25%][Progress:>                             1%] [Cov:=========>                         27%][Progress:>                             1%] [Cov:==========>                        29%][Progress:>                             1%] [Cov:==========>                        30%][Progress:>                             1%] [Cov:==========>                        31%][Progress:>                             1%] [Cov:===========>                       32%][MASTER] 17:54:49.904 [logback-1] WARN  TestCluster - Failed to check cache for java.util.Comparator<T> : Type points to itself
+[Progress:=>                            5%] [Cov:>                                  2%][Progress:=>                            5%] [Cov:=>                                 3%][Progress:=>                            5%] [Cov:=====>                             16%][Progress:=>                            5%] [Cov:=========>                         28%][Progress:=>                            5%] [Cov:==========>                        29%][Progress:=>                            5%] [Cov:==========>                        31%][Progress:=>                            5%] [Cov:===========>                       32%][Progress:=>                            5%] [Cov:===========>                       34%][Progress:===>                          10%] [Cov:>                                  0%][Progress:===>                          10%] [Cov:====>                              12%][Progress:===>                          10%] [Cov:=======>                           22%][Progress:===>                          10%] [Cov:========>                          23%][Progress:===>                          10%] [Cov:========>                          24%][Progress:===>                          10%] [Cov:=========>                         28%][Progress:===>                          10%] [Cov:==========>                        30%][Progress:===>                          10%] [Cov:===========>                       32%][Progress:===>                          10%] [Cov:========>                          25%]========== GWO EVOLVE iteration=0 population=50 ==========
+[Progress:===>                          10%] [Cov:=========>                         26%][Progress:===>                          10%] [Cov:===========>                       34%][Progress:===>                          10%] [Cov:=========>                         26%]GWO iteration=1 bestFitness=1176.9958506224066 population=50 a=1.98
+========== GWO EVOLVE iteration=1 population=50 ==========
+[Progress:===>                          10%] [Cov:===========>                       34%][Progress:===>                          10%] [Cov:=========>                         26%]GWO iteration=2 bestFitness=1176.9958506224066 population=50 a=1.96
+========== GWO EVOLVE iteration=2 population=50 ==========
+[Progress:===>                          10%] [Cov:==========>                        31%][Progress:===>                          10%] [Cov:=========>                         26%]GWO iteration=3 bestFitness=1176.9958506224066 population=50 a=1.94
+========== GWO EVOLVE iteration=3 population=50 ==========
+[Progress:===>                          10%] [Cov:==========>                        31%][Progress:===>                          10%] [Cov:=========>                         26%]GWO iteration=4 bestFitness=1176.9958506224066 population=50 a=1.92
+========== GWO EVOLVE iteration=4 population=50 ==========
+[Progress:===>                          10%] [Cov:=========>                         27%][Progress:===>                          10%] [Cov:==========>                        29%][Progress:===>                          10%] [Cov:==========>                        31%][Progress:===>                          10%] [Cov:===========>                       32%][Progress:===>                          10%] [Cov:===========>                       32%]GWO iteration=5 bestFitness=1034.3286821696113 population=50 a=1.9
+[Progress:===>                          10%] [Cov:===========>                       33%][Progress:===>                          11%] [Cov:=========>                         26%][Progress:===>                          11%] [Cov:===========>                       32%][Progress:===>                          11%] [Cov:===========>                       33%][Progress:===>                          11%] [Cov:===========>                       33%][Progress:===>                          11%] [Cov:===========>                       33%][Progress:===>                          11%] [Cov:===========>                       33%][Progress:===>                          11%] [Cov:===========>                       33%][Progress:===>                          12%] [Cov:===========>                       33%][Progress:===>                          12%] [Cov:===========>                       33%][Progress:===>                          12%] [Cov:===========>                       33%][Progress:===>                          12%] [Cov:===========>                       33%][Progress:===>                          13%] [Cov:===========>                       33%][Progress:===>                          13%] [Cov:===========>                       33%][Progress:===>                          13%] [Cov:===========>                       34%][Progress:===>                          13%] [Cov:===========>                       33%][Progress:===>                          13%] [Cov:===========>                       34%][Progress:===>                          13%] [Cov:===========>                       33%][Progress:===>                          13%] [Cov:===========>                       34%][Progress:===>                          13%] [Cov:===========>                       33%][Progress:====>                         14%] [Cov:===========>                       33%][Progress:====>                         14%] [Cov:===========>                       34%][Progress:====>                         14%] [Cov:===========>                       33%][Progress:====>                         14%] [Cov:===========>                       34%][Progress:====>                         14%] [Cov:===========>                       33%][Progress:====>                         14%] [Cov:===========>                       33%]GWO iteration=20 bestFitness=1003.9953488339497 population=50 a=1.6
+========== GWO EVOLVE iteration=20 population=50 ==========
+[Progress:====>                         14%] [Cov:===========>                       34%][Progress:====>                         14%] [Cov:===========>                       34%][Progress:====>                         14%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         15%] [Cov:===========>                       34%][Progress:====>                         16%] [Cov:===========>                       34%][Progress:====>                         16%] [Cov:===========>                       34%][Progress:====>                         16%] [Cov:===========>                       34%][Progress:====>                         16%] [Cov:===========>                       34%][Progress:====>                         16%] [Cov:===========>                       34%][Progress:=====>                        17%] [Cov:===========>                       34%][Progress:=====>                        17%] [Cov:===========>                       34%][Progress:=====>                        17%] [Cov:===========>                       34%][Progress:=====>                        17%] [Cov:===========>                       34%][Progress:=====>                        17%] [Cov:===========>                       34%][Progress:=====>                        17%] [Cov:===========>                       34%]GWO iteration=40 bestFitness=1002.4953270995443 population=50 a=1.2
+========== GWO EVOLVE iteration=40 population=50 ==========
+[Progress:=====>                        18%] [Cov:===========>                       34%][Progress:======>                       22%] [Cov:==========>                        29%][Progress:======>                       22%] [Cov:==========>                        31%][Progress:======>                       22%] [Cov:===========>                       34%][Progress:=======>                      26%] [Cov:=======>                           22%][Progress:=======>                      26%] [Cov:===========>                       34%][Progress:=======>                      26%] [Cov:===========>                       34%][Progress:========>                     27%] [Cov:===========>                       34%][Progress:========>                     27%] [Cov:===========>                       34%][Progress:========>                     27%] [Cov:===========>                       34%][Progress:========>                     27%] [Cov:===========>                       34%][Progress:========>                     27%] [Cov:===========>                       34%][Progress:========>                     27%] [Cov:===========>                       34%][Progress:========>                     28%] [Cov:===========>                       34%][Progress:========>                     28%] [Cov:===========>                       34%][Progress:========>                     28%] [Cov:===========>                       34%][Progress:========>                     28%] [Cov:===========>                       34%][Progress:========>                     28%] [Cov:===========>                       34%][Progress:========>                     28%] [Cov:===========>                       34%][Progress:========>                     29%] [Cov:===========>                       34%][Progress:========>                     29%] [Cov:===========>                       34%][Progress:========>                     29%] [Cov:===========>                       34%][Progress:========>                     29%] [Cov:===========>                       34%][Progress:========>                     29%] [Cov:===========>                       34%][Progress:========>                     29%] [Cov:===========>                       34%][Progress:========>                     29%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%]GWO iteration=60 bestFitness=1002.4953270995443 population=50 a=0.8
+========== GWO EVOLVE iteration=60 population=50 ==========
+[Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    30%] [Cov:===========>                       34%][Progress:=========>                    31%] [Cov:===========>                       34%][Progress:=========>                    31%] [Cov:===========>                       34%][Progress:=========>                    31%] [Cov:===========>                       34%][Progress:=========>                    31%] [Cov:===========>                       34%][Progress:=========>                    31%] [Cov:===========>                       34%][Progress:=========>                    31%] [Cov:===========>                       34%][Progress:=========>                    31%] [Cov:===========>                       34%][Progress:==========>                   35%] [Cov:===========>                       34%][Progress:==========>                   35%] [Cov:===========>                       34%][Progress:==========>                   36%] [Cov:===========>                       34%][Progress:==========>                   36%] [Cov:===========>                       34%][Progress:==========>                   36%] [Cov:===========>                       34%][Progress:==========>                   36%] [Cov:===========>                       34%]GWO iteration=80 bestFitness=1002.4953270995443 population=50 a=0.3999999999999999
+========== GWO EVOLVE iteration=80 population=50 ==========
+[Progress:==========>                   36%] [Cov:===========>                       34%][Progress:============>                 41%] [Cov:===========>                       34%][Progress:============>                 41%] [Cov:===========>                       34%][Progress:============>                 41%] [Cov:===========>                       34%][Progress:============>                 41%] [Cov:===========>                       34%][Progress:============>                 41%] [Cov:===========>                       34%][Progress:============>                 42%] [Cov:===========>                       34%][Progress:============>                 42%] [Cov:===========>                       34%][Progress:============>                 42%] [Cov:===========>                       34%][Progress:============>                 42%] [Cov:===========>                       34%][Progress:============>                 42%] [Cov:===========>                       34%][Progress:============>                 42%] [Cov:===========>                       34%][Progress:=============>                46%] [Cov:===========>                       34%][Progress:=============>                46%] [Cov:===========>                       34%][Progress:==============>               47%] [Cov:===========>                       34%][Progress:==============>               47%] [Cov:===========>                       34%][Progress:==============>               47%] [Cov:===========>                       34%][Progress:==============>               47%] [Cov:===========>                       34%][Progress:==============>               47%] [Cov:===========>                       34%][Progress:===============>              51%] [Cov:===========>                       34%][Progress:===============>              51%] [Cov:===========>                       34%][Progress:===============>              51%] [Cov:===========>                       34%][Progress:===============>              51%] [Cov:===========>                       34%][Progress:===============>              52%] [Cov:===========>                       34%][Progress:===============>              52%] [Cov:===========>                       34%][Progress:===============>              52%] [Cov:===========>                       34%]GWO iteration=100 bestFitness=1002.4953270995443 population=50 a=0.0
+========== GWO EVOLVE iteration=100 population=50 ==========
+[Progress:===============>              52%] [Cov:===========>                       34%][Progress:===============>              52%] [Cov:===========>                       34%][Progress:===============>              52%] [Cov:===========>                       34%][Progress:===============>              52%] [Cov:===========>                       34%][Progress:===============>              52%] [Cov:===========>                       34%][Progress:===============>              53%] [Cov:===========>                       34%][Progress:===============>              53%] [Cov:===========>                       34%][Progress:===============>              53%] [Cov:===========>                       34%][Progress:===============>              53%] [Cov:===========>                       34%][Progress:===============>              53%] [Cov:===========>                       34%][Progress:===============>              53%] [Cov:===========>                       34%][Progress:===============>              53%] [Cov:===========>                       34%][Progress:===============>              53%] [Cov:===========>                       34%][Progress:================>             54%] [Cov:===========>                       34%][Progress:================>             54%] [Cov:===========>                       34%][Progress:================>             54%] [Cov:===========>                       34%][Progress:================>             54%] [Cov:===========>                       34%][Progress:================>             54%] [Cov:===========>                       34%][Progress:================>             54%] [Cov:===========>                       34%][Progress:================>             54%] [Cov:===========>                       34%][Progress:================>             54%] [Cov:===========>                       34%][Progress:================>             54%] [Cov:===========>                       34%]GWO iteration=120 bestFitness=1002.4953270995443 population=50 a=0.0
+========== GWO EVOLVE iteration=120 population=50 ==========
+[Progress:================>             55%] [Cov:===========>                       34%][Progress:================>             55%] [Cov:===========>                       34%][Progress:================>             55%] [Cov:===========>                       34%][Progress:=================>            59%] [Cov:===========>                       34%][Progress:=================>            59%] [Cov:===========>                       34%][Progress:=================>            59%] [Cov:===========>                       34%][Progress:=================>            59%] [Cov:===========>                       34%][Progress:==================>           63%] [Cov:===========>                       34%][Progress:==================>           63%] [Cov:===========>                       34%][Progress:==================>           63%] [Cov:===========>                       34%][Progress:===================>          64%] [Cov:===========>                       34%][Progress:===================>          64%] [Cov:===========>                       34%][Progress:===================>          64%] [Cov:===========>                       34%][Progress:====================>         69%] [Cov:===========>                       34%][Progress:====================>         69%] [Cov:===========>                       34%][Progress:====================>         69%] [Cov:===========>                       34%][Progress:====================>         69%] [Cov:===========>                       34%][Progress:=====================>        73%] [Cov:===========>                       34%][Progress:=====================>        73%] [Cov:===========>                       34%][Progress:=====================>        73%] [Cov:===========>                       34%][Progress:=====================>        73%] [Cov:===========>                       34%][Progress:=====================>        73%] [Cov:===========>                       34%][Progress:======================>       74%] [Cov:===========>                       34%][Progress:======================>       74%] [Cov:===========>                       34%][Progress:=======================>      78%] [Cov:===========>                       34%][Progress:=======================>      78%] [Cov:===========>                       34%][Progress:=======================>      78%] [Cov:===========>                       34%][Progress:=======================>      78%] [Cov:===========>                       34%]GWO iteration=140 bestFitness=1002.4953270995443 population=50 a=0.0
+========== GWO EVOLVE iteration=140 population=50 ==========
+[Progress:========================>     82%] [Cov:===========>                       34%][Progress:========================>     82%] [Cov:===========>                       34%][Progress:========================>     82%] [Cov:===========>                       34%][Progress:========================>     82%] [Cov:===========>                       34%][Progress:========================>     83%] [Cov:===========>                       34%][Progress:========================>     83%] [Cov:===========>                       34%][Progress:========================>     83%] [Cov:===========>                       34%][Progress:========================>     83%] [Cov:===========>                       34%][Progress:========================>     83%] [Cov:===========>                       34%][Progress:========================>     83%] [Cov:===========>                       34%][Progress:========================>     83%] [Cov:===========>                       34%][Progress:========================>     83%] [Cov:===========>                       34%][Progress:=========================>    84%] [Cov:===========>                       34%][Progress:=========================>    84%] [Cov:===========>                       34%][Progress:=========================>    84%] [Cov:===========>                       34%][Progress:=========================>    84%] [Cov:===========>                       34%][Progress:=========================>    84%] [Cov:===========>                       34%][Progress:==========================>   88%] [Cov:===========>                       34%][Progress:==========================>   88%] [Cov:===========>                       34%][Progress:==========================>   88%] [Cov:===========>                       34%][Progress:==========================>   88%] [Cov:===========>                       34%][Progress:==========================>   89%] [Cov:===========>                       34%][Progress:==========================>   89%] [Cov:===========>                       34%][Progress:==========================>   89%] [Cov:===========>                       34%][Progress:==========================>   89%] [Cov:===========>                       34%]GWO iteration=160 bestFitness=1002.4953270995443 population=50 a=0.0
+========== GWO EVOLVE iteration=160 population=50 ==========
+[Progress:==========================>   89%] [Cov:===========>                       34%][Progress:===========================>  93%] [Cov:==========>                        30%][Progress:===========================>  93%] [Cov:===========>                       32%][Progress:===========================>  93%] [Cov:===========>                       34%][Progress:===========================>  93%] [Cov:===========>                       34%][Progress:===========================>  93%] [Cov:===========>                       34%][Progress:=============================>98%] [Cov:===========>                       34%][Progress:=============================>98%] [Cov:===========>                       34%][Progress:=============================>98%] [Cov:===========>                       34%][Progress:=============================>98%] [Cov:===========>                       34%][Progress:=============================>98%] [Cov:===========>                       34%][Progress:=============================>99%] [Cov:===========>                       34%][Progress:=============================>99%] [Cov:===========>                       34%][Progress:=============================>99%] [Cov:===========>                       34%][Progress:=============================>99%] [Cov:===========>                       34%][Progress:=============================>99%] [Cov:===========>                       34%][Progress:==============================100%] [Cov:===========>                       34%][Progress:==============================100%] [Cov:===========>                       34%][Progress:==============================100%] [Cov:============>                      37%]
+* Search finished after 124s and 172 generations, 54179 statements, best individual has fitness: 1003.1619937662109
+[MASTER] 17:56:51.869 [logback-1] WARN  ClientNodeImpl - Cannot send statistics to master; continuing without statistics
+java.rmi.ServerError: Error occurred in server thread; nested exception is: 
+	java.lang.NoClassDefFoundError: Lcom/google/common/collect/ImmutableMap;
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:388)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsSender.executedAndThenSendIndividualToMaster(StatisticsSender.java:91)
+	at org.evosuite.TestSuiteGenerator.generateTests(TestSuiteGenerator.java:636)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:208)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+Caused by: java.lang.NoClassDefFoundError: Lcom/google/common/collect/ImmutableMap;
+	at java.base/java.lang.Class.getDeclaredFields0(Native Method)
+	at java.base/java.lang.Class.privateGetDeclaredFields(Class.java:3061)
+	at java.base/java.lang.Class.getDeclaredField(Class.java:2409)
+	at org.evosuite.utils.generic.GenericField.readObject(GenericField.java:224)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	... 3 common frames omitted
+Caused by: java.lang.ClassNotFoundException: Class not found: com/google/common/collect/ImmutableMapValues: java.lang.NullPointerException: Class not found com/google/common/collect/ImmutableMapValues
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:158)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.loadClass(InstrumentingClassLoader.java:126)
+	... 75 common frames omitted
+Caused by: java.lang.RuntimeException: Class not found: com/google/common/collect/ImmutableMapValues: java.lang.NullPointerException: Class not found com/google/common/collect/ImmutableMapValues
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:56)
+	at org.evosuite.shaded.org.objectweb.asm.SymbolTable.addMergedType(SymbolTable.java:1202)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1299)
+	at org.evosuite.shaded.org.objectweb.asm.Frame.merge(Frame.java:1244)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.computeAllFrames(MethodWriter.java:1610)
+	at org.evosuite.shaded.org.objectweb.asm.MethodWriter.visitMaxs(MethodWriter.java:1546)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitMaxs(MethodVisitor.java:773)
+	at org.evosuite.runtime.instrumentation.LoopCounterMethodAdapter.visitMaxs(LoopCounterMethodAdapter.java:48)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:769)
+	at org.evosuite.shaded.org.objectweb.asm.commons.JSRInlinerAdapter.visitEnd(JSRInlinerAdapter.java:158)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.MethodVisitor.visitEnd(MethodVisitor.java:783)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:772)
+	at org.evosuite.shaded.org.objectweb.asm.tree.MethodNode.accept(MethodNode.java:649)
+	at org.evosuite.shaded.org.objectweb.asm.tree.ClassNode.accept(ClassNode.java:452)
+	at org.evosuite.instrumentation.BytecodeInstrumentation.transformBytes(BytecodeInstrumentation.java:282)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.getTransformedBytes(InstrumentingClassLoader.java:135)
+	at org.evosuite.instrumentation.InstrumentingClassLoader.instrumentClass(InstrumentingClassLoader.java:149)
+	... 76 common frames omitted
+Caused by: java.lang.NullPointerException: Class not found com/google/common/collect/ImmutableMapValues
+	at org.evosuite.runtime.util.ComputeClassWriter.typeInfo(ComputeClassWriter.java:179)
+	at org.evosuite.runtime.util.ComputeClassWriter.getCommonSuperClass(ComputeClassWriter.java:53)
+	... 96 common frames omitted
+* Minimizing test suite
+* Going to analyze the coverage criteria
+* Coverage analysis for criterion LINE
+* Coverage of criterion LINE: 17%
+* Total number of goals: 258
+* Number of covered goals: 45
+* Coverage analysis for criterion BRANCH
+* Coverage of criterion BRANCH: 14%
+* Total number of goals: 169
+* Number of covered goals: 23
+* Coverage analysis for criterion EXCEPTION
+* Coverage of criterion EXCEPTION: 80%
+* Total number of goals: 5
+* Number of covered goals: 4
+* Coverage analysis for criterion WEAKMUTATION
+* Coverage of criterion WEAKMUTATION: 11%
+* Total number of goals: 329
+* Number of covered goals: 36
+* Coverage analysis for criterion OUTPUT
+* Coverage of criterion OUTPUT: 100% (no goals)
+* Coverage analysis for criterion METHOD
+* Coverage of criterion METHOD: 21%
+* Total number of goals: 14
+* Number of covered goals: 3
+* Coverage analysis for criterion METHODNOEXCEPTION
+* Coverage of criterion METHODNOEXCEPTION: 21%
+* Total number of goals: 14
+* Number of covered goals: 3
+* Coverage analysis for criterion CBRANCH
+* Coverage of criterion CBRANCH: 14%
+* Total number of goals: 169
+* Number of covered goals: 23
+[MASTER] 17:56:52.964 [logback-2] ERROR ClientNodeImpl - Error when generating tests for: com.google.javascript.jscomp.ScopedAliases with seed 1789815283520. Configuration id : null
+java.lang.NullPointerException: null
+	at java.base/java.lang.System$2.getAnnotationType(System.java:2113)
+	at java.base/sun.reflect.annotation.AnnotationType.getInstance(AnnotationType.java:83)
+	at java.base/sun.reflect.annotation.AnnotationInvocationHandler.readObject(AnnotationInvocationHandler.java:585)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2346)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readArray(ObjectInputStream.java:2134)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1675)
+	at java.base/java.io.ObjectInputStream.readArray(ObjectInputStream.java:2134)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1675)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.skipCustomData(ObjectInputStream.java:2451)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2400)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:625)
+	at org.evosuite.testcase.DefaultTestCase.readObject(DefaultTestCase.java:1217)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.base/java.util.ArrayList.readObject(ArrayList.java:929)
+	at java.base/jdk.internal.reflect.GeneratedMethodAccessor7.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at java.base/java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1046)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2357)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2496)
+	at java.base/java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2390)
+	at java.base/java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2228)
+	at java.base/java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1687)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:489)
+	at java.base/java.io.ObjectInputStream.readObject(ObjectInputStream.java:447)
+	at java.rmi/sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:327)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:339)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:562)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:796)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:677)
+	at java.base/java.security.AccessController.doPrivileged(Native Method)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:676)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:303)
+	at java.rmi/sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:279)
+	at java.rmi/sun.rmi.server.UnicastRef.invoke(UnicastRef.java:164)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invokeRemoteMethod(RemoteObjectInvocationHandler.java:217)
+	at java.rmi/java.rmi.server.RemoteObjectInvocationHandler.invoke(RemoteObjectInvocationHandler.java:162)
+	at com.sun.proxy.$Proxy7.evosuite_collectStatistics(Unknown Source)
+	at org.evosuite.rmi.service.ClientNodeImpl.updateStatistics(ClientNodeImpl.java:251)
+	at org.evosuite.statistics.StatisticsSender.sendIndividualToMaster(StatisticsSender.java:62)
+	at org.evosuite.statistics.StatisticsSender.executedAndThenSendIndividualToMaster(StatisticsSender.java:91)
+	at org.evosuite.TestSuiteGenerator.postProcessTests(TestSuiteGenerator.java:445)
+	at org.evosuite.TestSuiteGenerator.generateTestSuite(TestSuiteGenerator.java:218)
+	at org.evosuite.rmi.service.ClientNodeImpl.lambda$startNewSearch$0(ClientNodeImpl.java:140)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+* Computation finished
+[MASTER] 17:56:53.074 [main] ERROR SearchStatistics - No statistics has been saved because EvoSuite failed to generate any test case
+[MASTER] 17:56:53.176 [main] ERROR TestGeneration - failed to write statistics data
