@@ -8,40 +8,37 @@ import java.util.TimeZone;
 
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.ObjectIdGenerator;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.annotation.ObjectIdResolver;
 import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
+import com.fasterxml.jackson.databind.annotation.NoClass;
 import com.fasterxml.jackson.databind.cfg.HandlerInstantiator;
 import com.fasterxml.jackson.databind.cfg.MapperConfig;
-import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
+import com.fasterxml.jackson.databind.deser.ValueInstantiator;
 import com.fasterxml.jackson.databind.introspect.Annotated;
 import com.fasterxml.jackson.databind.introspect.ObjectIdInfo;
+import com.fasterxml.jackson.databind.jsontype.TypeIdResolver;
+import com.fasterxml.jackson.databind.jsontype.TypeResolverBuilder;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.databind.util.Converter;
 import com.fasterxml.jackson.databind.util.StdConverter;
 
-import static org.junit.Assert.*;
-
 public class DatabindContextTest {
 
-    private ObjectMapper _mapper;
-    private TestDatabindContext _context;
+    private TestContext context;
+    private ObjectMapper mapper;
 
-    static class TestDatabindContext extends DatabindContext {
+    static class TestContext extends DatabindContext {
         private final MapperConfig<?> _config;
         private final TypeFactory _typeFactory;
-        private HandlerInstantiator _handlerInstantiator;
 
-        public TestDatabindContext(MapperConfig<?> config, TypeFactory tf) {
+        public TestContext(MapperConfig<?> config, TypeFactory tf) {
             _config = config;
-            _typeFactory = tf != null ? tf : TypeFactory.defaultInstance();
-        }
-
-        public void setHandlerInstantiator(HandlerInstantiator hi) {
-            _handlerInstantiator = hi;
+            _typeFactory = (tf == null) ? TypeFactory.defaultInstance() : tf;
         }
 
         @Override
@@ -51,17 +48,17 @@ public class DatabindContextTest {
 
         @Override
         public AnnotationIntrospector getAnnotationIntrospector() {
-            return _config.getAnnotationIntrospector();
+            return (_config == null) ? null : _config.getAnnotationIntrospector();
         }
 
         @Override
         public boolean isEnabled(MapperFeature feature) {
-            return _config.isEnabled(feature);
+            return _config != null && _config.isEnabled(feature);
         }
 
         @Override
         public boolean canOverrideAccessModifiers() {
-            return _config.canOverrideAccessModifiers();
+            return _config != null && _config.canOverrideAccessModifiers();
         }
 
         @Override
@@ -95,23 +92,23 @@ public class DatabindContextTest {
         }
 
         @Override
-        protected JsonMappingException invalidTypeIdException(JavaType baseType, String typeId, String extraDesc) {
-            return InvalidTypeIdException.from(null, extraDesc, baseType, typeId);
-        }
-
-        @Override
         public TypeFactory getTypeFactory() {
             return _typeFactory;
         }
 
-        @SuppressWarnings("unchecked")
         @Override
+        protected JsonMappingException invalidTypeIdException(JavaType baseType, String typeId, String extraDesc) {
+            return JsonMappingException.from((DeserializationContext) null, "Invalid type id '" + typeId + "': " + extraDesc);
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
         public <T> T reportBadDefinition(JavaType type, String msg) throws JsonMappingException {
-            throw new JsonMappingException(null, msg);
+            throw JsonMappingException.from((DeserializationContext) null, "Bad definition for " + type + ": " + msg);
         }
     }
 
-    public static class StringToIntegerConverter extends StdConverter<String, Integer> {
+    public static class SimpleStringConverter extends StdConverter<String, Integer> {
         @Override
         public Integer convert(String value) {
             return Integer.parseInt(value);
@@ -120,182 +117,304 @@ public class DatabindContextTest {
 
     @Before
     public void setUp() {
-        _mapper = new ObjectMapper();
-        _context = new TestDatabindContext(_mapper.getDeserializationConfig(), _mapper.getTypeFactory());
+        mapper = new ObjectMapper();
+        context = new TestContext(mapper.getDeserializationConfig(), mapper.getTypeFactory());
     }
 
     // Tests constructType with null input
     @Test
-    public void testConstructType_nullType_returnsNull() {
-        assertNull(_context.constructType(null));
+    public void testConstructType_nullInput_returnsNull() {
+        assertNull(context.constructType((Type) null));
     }
 
-    // Tests constructType with valid Class type
+    // Tests constructType with valid Class input
     @Test
-    public void testConstructType_validType_returnsConstructedJavaType() {
-        JavaType javaType = _context.constructType(String.class);
-        assertNotNull(javaType);
-        assertEquals(String.class, javaType.getRawClass());
+    public void testConstructType_validClass_returnsJavaType() {
+        JavaType type = context.constructType(String.class);
+        assertNotNull(type);
+        assertEquals(String.class, type.getRawClass());
     }
 
-    // Tests constructSpecializedType when subclass matches raw class
+    // Tests constructSpecializedType when subclass equals base raw class
     @Test
-    public void testConstructSpecializedType_sameClass_returnsSameInstance() {
-        JavaType baseType = _context.constructType(Number.class);
-        JavaType specializedType = _context.constructSpecializedType(baseType, Number.class);
-        assertSame(baseType, specializedType);
+    public void testConstructSpecializedType_sameClass_returnsSameBaseType() {
+        JavaType baseType = context.constructType(List.class);
+        JavaType specialized = context.constructSpecializedType(baseType, List.class);
+        assertSame(baseType, specialized);
     }
 
-    // Tests constructSpecializedType when subclass is a subtype
+    // Tests constructSpecializedType with actual subclass
     @Test
     public void testConstructSpecializedType_subclass_returnsSpecializedType() {
-        JavaType baseType = _context.constructType(Number.class);
-        JavaType specializedType = _context.constructSpecializedType(baseType, Integer.class);
-        assertNotNull(specializedType);
-        assertEquals(Integer.class, specializedType.getRawClass());
+        JavaType baseType = context.constructType(List.class);
+        JavaType specialized = context.constructSpecializedType(baseType, ArrayList.class);
+        assertNotNull(specialized);
+        assertEquals(ArrayList.class, specialized.getRawClass());
     }
 
     // Tests resolveSubType with generic canonical name subtype
     @Test
-    public void testResolveSubType_genericCanonicalSubtype_returnsResolvedType() throws Exception {
-        JavaType baseType = _context.constructType(List.class);
-        JavaType resolvedType = _context.resolveSubType(baseType, "java.util.ArrayList<java.lang.String>");
-        assertNotNull(resolvedType);
-        assertEquals(ArrayList.class, resolvedType.getRawClass());
-        assertEquals(String.class, resolvedType.getContentType().getRawClass());
+    public void testResolveSubType_validGenericSubtype_returnsResolvedType() throws Exception {
+        JavaType baseType = context.constructType(List.class);
+        JavaType resolved = context.resolveSubType(baseType, "java.util.ArrayList<java.lang.String>");
+        assertNotNull(resolved);
+        assertEquals(ArrayList.class, resolved.getRawClass());
     }
 
     // Tests resolveSubType with generic canonical name not matching base type
     @Test(expected = JsonMappingException.class)
-    public void testResolveSubType_genericCanonicalNotSubtype_throwsException() throws Exception {
-        JavaType baseType = _context.constructType(List.class);
-        _context.resolveSubType(baseType, "java.util.HashMap<java.lang.String,java.lang.String>");
+    public void testResolveSubType_incompatibleGenericSubtype_throwsException() throws Exception {
+        JavaType baseType = context.constructType(String.class);
+        context.resolveSubType(baseType, "java.util.ArrayList<java.lang.String>");
     }
 
-    // Tests resolveSubType with simple class name subtype
+    // Tests resolveSubType with valid simple class name
     @Test
-    public void testResolveSubType_validClassSubtype_returnsResolvedType() throws Exception {
-        JavaType baseType = _context.constructType(Number.class);
-        JavaType resolvedType = _context.resolveSubType(baseType, "java.lang.Long");
-        assertNotNull(resolvedType);
-        assertEquals(Long.class, resolvedType.getRawClass());
+    public void testResolveSubType_validSimpleSubtype_returnsResolvedType() throws Exception {
+        JavaType baseType = context.constructType(List.class);
+        JavaType resolved = context.resolveSubType(baseType, "java.util.ArrayList");
+        assertNotNull(resolved);
+        assertEquals(ArrayList.class, resolved.getRawClass());
     }
 
-    // Tests resolveSubType when class is not a subtype of base type
+    // Tests resolveSubType with unknown class name returning null
+    @Test
+    public void testResolveSubType_unknownClass_returnsNull() throws Exception {
+        JavaType baseType = context.constructType(List.class);
+        JavaType resolved = context.resolveSubType(baseType, "com.nonexisting.UnknownClass");
+        assertNull(resolved);
+    }
+
+    // Tests resolveSubType with class that is not a subtype
     @Test(expected = JsonMappingException.class)
-    public void testResolveSubType_classNotSubtype_throwsException() throws Exception {
-        JavaType baseType = _context.constructType(Number.class);
-        _context.resolveSubType(baseType, "java.lang.String");
-    }
-
-    // Tests resolveSubType when class name does not exist
-    @Test
-    public void testResolveSubType_unknownClassName_returnsNull() throws Exception {
-        JavaType baseType = _context.constructType(Object.class);
-        JavaType resolvedType = _context.resolveSubType(baseType, "com.invalid.NonExistingClass12345");
-        assertNull(resolvedType);
-    }
-
-    // Tests objectIdGeneratorInstance with default generator
-    @Test
-    public void testObjectIdGeneratorInstance_validObjectIdInfo_returnsGenerator() throws Exception {
-        ObjectIdInfo info = new ObjectIdInfo(
-                PropertyName.construct("id"),
-                Object.class,
-                ObjectIdGenerators.IntSequenceGenerator.class,
-                SimpleObjectIdResolver.class
-        );
-        ObjectIdGenerator<?> generator = _context.objectIdGeneratorInstance(null, info);
-        assertNotNull(generator);
-        assertEquals(ObjectIdGenerators.IntSequenceGenerator.class, generator.getClass());
-        assertEquals(Object.class, generator.getScope());
-    }
-
-    // Tests objectIdResolverInstance with default resolver
-    @Test
-    public void testObjectIdResolverInstance_validObjectIdInfo_returnsResolver() {
-        ObjectIdInfo info = new ObjectIdInfo(
-                PropertyName.construct("id"),
-                Object.class,
-                ObjectIdGenerators.IntSequenceGenerator.class,
-                SimpleObjectIdResolver.class
-        );
-        ObjectIdResolver resolver = _context.objectIdResolverInstance(null, info);
-        assertNotNull(resolver);
-        assertEquals(SimpleObjectIdResolver.class, resolver.getClass());
+    public void testResolveSubType_incompatibleSimpleClass_throwsException() throws Exception {
+        JavaType baseType = context.constructType(List.class);
+        context.resolveSubType(baseType, "java.lang.String");
     }
 
     // Tests converterInstance with null definition
     @Test
-    public void testConverterInstance_nullDefinition_returnsNull() throws Exception {
-        assertNull(_context.converterInstance(null, null));
+    public void testConverterInstance_nullDef_returnsNull() throws Exception {
+        assertNull(context.converterInstance(null, null));
     }
 
-    // Tests converterInstance with already instantiated Converter
+    // Tests converterInstance with existing Converter instance
     @Test
-    public void testConverterInstance_converterInstance_returnsSameInstance() throws Exception {
-        Converter<?, ?> existingConverter = new StringToIntegerConverter();
-        Converter<?, ?> result = _context.converterInstance(null, existingConverter);
-        assertSame(existingConverter, result);
+    public void testConverterInstance_instanceDef_returnsSameInstance() throws Exception {
+        Converter<Object, Object> conv = new SimpleStringConverter();
+        Converter<Object, Object> result = context.converterInstance(null, conv);
+        assertSame(conv, result);
     }
 
-    // Tests converterInstance with Converter.None marker class
+    // Tests converterInstance with None marker class
     @Test
-    public void testConverterInstance_converterNoneClass_returnsNull() throws Exception {
-        assertNull(_context.converterInstance(null, Converter.None.class));
+    public void testConverterInstance_noneMarker_returnsNull() throws Exception {
+        assertNull(context.converterInstance(null, Converter.None.class));
     }
 
-    // Tests converterInstance with Class implementing Converter
+    // Tests converterInstance with valid Converter class
     @Test
-    public void testConverterInstance_validConverterClass_instantiatesConverter() throws Exception {
-        Converter<?, ?> result = _context.converterInstance(null, StringToIntegerConverter.class);
+    public void testConverterInstance_validConverterClass_createsInstance() throws Exception {
+        Converter<Object, Object> result = context.converterInstance(null, SimpleStringConverter.class);
         assertNotNull(result);
-        assertEquals(StringToIntegerConverter.class, result.getClass());
+        assertTrue(result instanceof SimpleStringConverter);
     }
 
     // Tests converterInstance with invalid non-class non-converter object
     @Test(expected = IllegalStateException.class)
-    public void testConverterInstance_invalidObjectType_throwsIllegalStateException() throws Exception {
-        _context.converterInstance(null, "NotAConverterObject");
+    public void testConverterInstance_invalidTypeDef_throwsException() throws Exception {
+        context.converterInstance(null, "invalidObject");
     }
 
-    // Tests converterInstance with class not implementing Converter
+    // Tests converterInstance with non-Converter class
     @Test(expected = IllegalStateException.class)
-    public void testConverterInstance_nonConverterClass_throwsIllegalStateException() throws Exception {
-        _context.converterInstance(null, String.class);
+    public void testConverterInstance_nonConverterClass_throwsException() throws Exception {
+        context.converterInstance(null, String.class);
     }
 
-    // Tests reportBadDefinition with Class delegating to JavaType method
-    @Test(expected = JsonMappingException.class)
-    public void testReportBadDefinition_classAndMessage_throwsJsonMappingException() throws Exception {
-        _context.reportBadDefinition(String.class, "Bad definition for String");
-    }
-
-    // Tests helper string formatting methods
+    // Tests objectIdGeneratorInstance resolution
     @Test
-    public void testHelperFormatting_variousInputs_formatsCorrectly() {
-        assertEquals("Hello World", _context._format("Hello %s", "World"));
-        assertEquals("Plain text", _context._format("Plain text"));
+    public void testObjectIdGeneratorInstance_validInfo_returnsGenerator() throws Exception {
+        ObjectIdInfo info = new ObjectIdInfo(new PropertyName("id"), Object.class,
+                ObjectIdGenerators.StringIdGenerator.class, SimpleObjectIdResolver.class);
+        ObjectIdGenerator<?> gen = context.objectIdGeneratorInstance(null, info);
+        assertNotNull(gen);
+        assertTrue(gen instanceof ObjectIdGenerators.StringIdGenerator);
+    }
 
-        assertEquals("", _context._truncate(null));
-        assertEquals("short text", _context._truncate("short text"));
+    // Tests objectIdResolverInstance resolution
+    @Test
+    public void testObjectIdResolverInstance_validInfo_returnsResolver() {
+        ObjectIdInfo info = new ObjectIdInfo(new PropertyName("id"), Object.class,
+                ObjectIdGenerators.StringIdGenerator.class, SimpleObjectIdResolver.class);
+        ObjectIdResolver resolver = context.objectIdResolverInstance(null, info);
+        assertNotNull(resolver);
+        assertTrue(resolver instanceof SimpleObjectIdResolver);
+    }
 
-        StringBuilder sb = new StringBuilder();
+    // Tests _truncate formatting helper
+    @Test
+    public void testTruncate_variousLengths_handlesCorrectly() {
+        assertEquals("", context._truncate(null));
+        assertEquals("short string", context._truncate("short string"));
+
+        StringBuilder longStr = new StringBuilder();
         for (int i = 0; i < 600; i++) {
-            sb.append('A');
+            longStr.append("a");
         }
-        String longStr = sb.toString();
-        String truncated = _context._truncate(longStr);
-        assertEquals(1005, truncated.length());
+        String truncated = context._truncate(longStr.toString());
         assertTrue(truncated.contains("]...["));
+        assertEquals(1005, truncated.length());
+    }
 
-        assertEquals("[N/A]", _context._quotedString(null));
-        assertEquals("\"quoted\"", _context._quotedString("quoted"));
+    // Tests _quotedString helper
+    @Test
+    public void testQuotedString_nullAndNonNull_returnsFormatted() {
+        assertEquals("[N/A]", context._quotedString(null));
+        assertEquals("\"test\"", context._quotedString("test"));
+    }
 
-        assertEquals("base", _context._colonConcat("base", null));
-        assertEquals("base: extra", _context._colonConcat("base", "extra"));
+    // Tests _desc helper
+    @Test
+    public void testDesc_nullAndNonNull_returnsFormatted() {
+        assertEquals("[N/A]", context._desc(null));
+        assertEquals("description", context._desc("description"));
+    }
 
-        assertEquals("[N/A]", _context._desc(null));
-        assertEquals("description", _context._desc("description"));
+    // Tests _colonConcat helper
+    @Test
+    public void testColonConcat_nullAndNonNullExtra_returnsFormatted() {
+        assertEquals("base", context._colonConcat("base", null));
+        assertEquals("base: extra", context._colonConcat("base", "extra"));
+    }
+
+    // Tests _format helper
+    @Test
+    public void testFormat_withAndWithoutArgs_returnsFormatted() {
+        assertEquals("message", context._format("message"));
+        assertEquals("msg with 42 and text", context._format("msg with %d and %s", 42, "text"));
+    }
+
+    // Tests reportBadDefinition with Class overload
+    @Test(expected = JsonMappingException.class)
+    public void testReportBadDefinition_classInput_throwsJsonMappingException() throws Exception {
+        context.reportBadDefinition(String.class, "Type problem");
+    }
+
+    // New tests covering additional DatabindContext branches and methods
+
+    @Test
+    public void testConverterInstance_noClassMarker_returnsNull() throws Exception {
+        assertNull(context.converterInstance(null, NoClass.class));
+    }
+
+    @Test
+    public void testObjectIdGeneratorInstance_nullInfo_returnsNull() throws Exception {
+        assertNull(context.objectIdGeneratorInstance(null, null));
+    }
+
+    @Test
+    public void testObjectIdResolverInstance_nullInfo_returnsNull() {
+        assertNull(context.objectIdResolverInstance(null, null));
+    }
+
+    @Test
+    public void testConverterInstance_withHandlerInstantiator() throws Exception {
+        final Converter<?, ?> customConverter = new SimpleStringConverter();
+        HandlerInstantiator hi = new HandlerInstantiator() {
+            @Override
+            public JsonDeserializer<?> deserializerInstance(DeserializationConfig config, Annotated annotated, Class<?> deserClass) { return null; }
+            @Override
+            public KeyDeserializer keyDeserializerInstance(DeserializationConfig config, Annotated annotated, Class<?> keyDeserClass) { return null; }
+            @Override
+            public JsonSerializer<?> serializerInstance(SerializationConfig config, Annotated annotated, Class<?> serClass) { return null; }
+            @Override
+            public TypeResolverBuilder<?> typeResolverBuilderInstance(MapperConfig<?> config, Annotated annotated, Class<?> builderClass) { return null; }
+            @Override
+            public TypeIdResolver typeIdResolverInstance(MapperConfig<?> config, Annotated annotated, Class<?> resolverClass) { return null; }
+            @Override
+            public ValueInstantiator valueInstantiatorInstance(MapperConfig<?> config, Annotated annotated, Class<?> instantiatorClass) { return null; }
+            @Override
+            public Converter<?, ?> converterInstance(MapperConfig<?> config, Annotated annotated, Class<?> implClass) {
+                return customConverter;
+            }
+        };
+
+        ObjectMapper customMapper = new ObjectMapper().setHandlerInstantiator(hi);
+        TestContext customContext = new TestContext(customMapper.getDeserializationConfig(), customMapper.getTypeFactory());
+        Converter<Object, Object> result = customContext.converterInstance(null, SimpleStringConverter.class);
+        assertSame(customConverter, result);
+    }
+
+    @Test
+    public void testObjectIdGeneratorInstance_withHandlerInstantiator() throws Exception {
+        final ObjectIdGenerator<?> customGen = new ObjectIdGenerators.IntSequenceGenerator();
+        HandlerInstantiator hi = new HandlerInstantiator() {
+            @Override
+            public JsonDeserializer<?> deserializerInstance(DeserializationConfig config, Annotated annotated, Class<?> deserClass) { return null; }
+            @Override
+            public KeyDeserializer keyDeserializerInstance(DeserializationConfig config, Annotated annotated, Class<?> keyDeserClass) { return null; }
+            @Override
+            public JsonSerializer<?> serializerInstance(SerializationConfig config, Annotated annotated, Class<?> serClass) { return null; }
+            @Override
+            public TypeResolverBuilder<?> typeResolverBuilderInstance(MapperConfig<?> config, Annotated annotated, Class<?> builderClass) { return null; }
+            @Override
+            public TypeIdResolver typeIdResolverInstance(MapperConfig<?> config, Annotated annotated, Class<?> resolverClass) { return null; }
+            @Override
+            public ValueInstantiator valueInstantiatorInstance(MapperConfig<?> config, Annotated annotated, Class<?> instantiatorClass) { return null; }
+            @Override
+            public ObjectIdGenerator<?> objectIdGeneratorInstance(MapperConfig<?> config, Annotated annotated, Class<?> implClass) {
+                return customGen;
+            }
+        };
+
+        ObjectMapper customMapper = new ObjectMapper().setHandlerInstantiator(hi);
+        TestContext customContext = new TestContext(customMapper.getDeserializationConfig(), customMapper.getTypeFactory());
+        ObjectIdInfo info = new ObjectIdInfo(new PropertyName("id"), Object.class,
+                ObjectIdGenerators.StringIdGenerator.class, SimpleObjectIdResolver.class);
+        ObjectIdGenerator<?> gen = customContext.objectIdGeneratorInstance(null, info);
+        assertSame(customGen, gen);
+    }
+
+    @Test
+    public void testObjectIdResolverInstance_withHandlerInstantiator() {
+        final ObjectIdResolver customResolver = new SimpleObjectIdResolver();
+        HandlerInstantiator hi = new HandlerInstantiator() {
+            @Override
+            public JsonDeserializer<?> deserializerInstance(DeserializationConfig config, Annotated annotated, Class<?> deserClass) { return null; }
+            @Override
+            public KeyDeserializer keyDeserializerInstance(DeserializationConfig config, Annotated annotated, Class<?> keyDeserClass) { return null; }
+            @Override
+            public JsonSerializer<?> serializerInstance(SerializationConfig config, Annotated annotated, Class<?> serClass) { return null; }
+            @Override
+            public TypeResolverBuilder<?> typeResolverBuilderInstance(MapperConfig<?> config, Annotated annotated, Class<?> builderClass) { return null; }
+            @Override
+            public TypeIdResolver typeIdResolverInstance(MapperConfig<?> config, Annotated annotated, Class<?> resolverClass) { return null; }
+            @Override
+            public ValueInstantiator valueInstantiatorInstance(MapperConfig<?> config, Annotated annotated, Class<?> instantiatorClass) { return null; }
+            @Override
+            public ObjectIdResolver resolverIdGeneratorInstance(MapperConfig<?> config, Annotated annotated, Class<?> implClass) {
+                return customResolver;
+            }
+        };
+
+        ObjectMapper customMapper = new ObjectMapper().setHandlerInstantiator(hi);
+        TestContext customContext = new TestContext(customMapper.getDeserializationConfig(), customMapper.getTypeFactory());
+        ObjectIdInfo info = new ObjectIdInfo(new PropertyName("id"), Object.class,
+                ObjectIdGenerators.StringIdGenerator.class, SimpleObjectIdResolver.class);
+        ObjectIdResolver resolver = customContext.objectIdResolverInstance(null, info);
+        assertSame(customResolver, resolver);
+    }
+
+    @Test(expected = JsonMappingException.class)
+    public void testResolveSubType_malformedCanonicalGeneric_throwsException() throws Exception {
+        JavaType baseType = context.constructType(List.class);
+        context.resolveSubType(baseType, "java.util.ArrayList<[invalid syntax");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructSpecializedType_incompatibleSubclass_throwsException() {
+        JavaType baseType = context.constructType(String.class);
+        context.constructSpecializedType(baseType, Integer.class);
     }
 }

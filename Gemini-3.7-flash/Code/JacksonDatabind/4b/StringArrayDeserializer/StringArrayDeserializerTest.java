@@ -1,25 +1,17 @@
 package com.fasterxml.jackson.databind.deser.std;
 
-import java.io.IOException;
-import java.util.Arrays;
-
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
+import com.fasterxml.jackson.databind.util.AccessPattern;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import java.io.IOException;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.BeanProperty;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import static org.junit.Assert.*;
 
 public class StringArrayDeserializerTest {
 
@@ -30,42 +22,52 @@ public class StringArrayDeserializerTest {
         mapper = new ObjectMapper();
     }
 
-    // Custom String deserializer for testing custom element deserializer branch
     static class CustomStringDeserializer extends JsonDeserializer<String> {
         @Override
         public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-            return p.getText() + "_custom";
-        }
-
-        @Override
-        public String getNullValue() {
-            return "custom_null";
+            return "custom:" + p.getText();
         }
 
         @Override
         public String getNullValue(DeserializationContext ctxt) {
-            return "custom_null";
+            return "custom:null";
+        }
+
+        public String getNullValue() {
+            return "custom:null";
         }
     }
 
-    // Wrapper class to test contextual content deserializer annotation
-    static class AnnotatedWrapper {
+    static class CustomArrayBean {
         @JsonDeserialize(contentUsing = CustomStringDeserializer.class)
         public String[] values;
     }
 
-    // Tests normal deserialization with multiple string elements
+    static class SingleValueBean {
+        @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+        public String[] values;
+    }
+
+    static class CustomSingleValueBean {
+        @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+        @JsonDeserialize(contentUsing = CustomStringDeserializer.class)
+        public String[] values;
+    }
+
+    // Tests deserialization of normal non-empty String array
     @Test
-    public void testDeserialize_normalStringArray_returnsArray() throws Exception {
-        String json = "[\"first\", \"second\", \"third\"]";
+    public void testDeserialize_normalArray_returnsStringArray() throws Exception {
+        String json = "[\"abc\", \"def\", \"ghi\"]";
         String[] result = mapper.readValue(json, String[].class);
 
         assertNotNull(result);
         assertEquals(3, result.length);
-        assertArrayEquals(new String[]{"first", "second", "third"}, result);
+        assertEquals("abc", result[0]);
+        assertEquals("def", result[1]);
+        assertEquals("ghi", result[2]);
     }
 
-    // Tests empty array boundary
+    // Tests deserialization of empty JSON array
     @Test
     public void testDeserialize_emptyArray_returnsEmptyArray() throws Exception {
         String json = "[]";
@@ -75,18 +77,20 @@ public class StringArrayDeserializerTest {
         assertEquals(0, result.length);
     }
 
-    // Tests array containing null values
+    // Tests deserialization of array containing null elements
     @Test
-    public void testDeserialize_arrayWithNullElements_returnsArrayWithNulls() throws Exception {
-        String json = "[\"a\", null, \"b\"]";
+    public void testDeserialize_arrayWithNull_returnsArrayWithNullElement() throws Exception {
+        String json = "[\"first\", null, \"third\"]";
         String[] result = mapper.readValue(json, String[].class);
 
         assertNotNull(result);
         assertEquals(3, result.length);
-        assertArrayEquals(new String[]{"a", null, "b"}, result);
+        assertEquals("first", result[0]);
+        assertNull(result[1]);
+        assertEquals("third", result[2]);
     }
 
-    // Tests deserializing non-string tokens (numbers, booleans) converted to strings
+    // Tests deserialization of non-string scalar tokens converting to strings
     @Test
     public void testDeserialize_nonStringTokens_coercedToStrings() throws Exception {
         String json = "[123, true, 45.67]";
@@ -99,12 +103,12 @@ public class StringArrayDeserializerTest {
         assertEquals("45.67", result[2]);
     }
 
-    // Tests large array to cover ObjectBuffer chunk growth and expansion
+    // Tests deserialization when array exceeds buffer chunk size triggering buffer expansion
     @Test
-    public void testDeserialize_largeArray_expandsBufferProperly() throws Exception {
-        int count = 5000;
+    public void testDeserialize_largeArray_handlesBufferGrowth() throws Exception {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
+        int count = 5000;
         for (int i = 0; i < count; i++) {
             if (i > 0) sb.append(",");
             sb.append("\"item").append(i).append("\"");
@@ -116,50 +120,14 @@ public class StringArrayDeserializerTest {
         assertNotNull(result);
         assertEquals(count, result.length);
         assertEquals("item0", result[0]);
-        assertEquals("item4999", result[count - 1]);
+        assertEquals("item4999", result[4999]);
     }
 
-    // Tests custom element deserializer branch (_deserializeCustom)
+    // Tests ACCEPT_SINGLE_VALUE_AS_ARRAY feature with single string value
     @Test
-    public void testDeserializeCustom_withCustomDeserializer_appliesCustomLogic() throws Exception {
-        String json = "{\"values\": [\"foo\", \"bar\", null]}";
-        AnnotatedWrapper wrapper = mapper.readValue(json, AnnotatedWrapper.class);
-
-        assertNotNull(wrapper);
-        assertNotNull(wrapper.values);
-        assertEquals(3, wrapper.values.length);
-        assertEquals("foo_custom", wrapper.values[0]);
-        assertEquals("bar_custom", wrapper.values[1]);
-        assertEquals("custom_null", wrapper.values[2]);
-    }
-
-    // Tests custom deserializer with large array to cover buffer growth in _deserializeCustom
-    @Test
-    public void testDeserializeCustom_largeArray_expandsBufferProperly() throws Exception {
-        int count = 3000;
-        StringBuilder sb = new StringBuilder();
-        sb.append("{\"values\": [");
-        for (int i = 0; i < count; i++) {
-            if (i > 0) sb.append(",");
-            sb.append("\"v").append(i).append("\"");
-        }
-        sb.append("]}");
-
-        AnnotatedWrapper wrapper = mapper.readValue(sb.toString(), AnnotatedWrapper.class);
-
-        assertNotNull(wrapper);
-        assertNotNull(wrapper.values);
-        assertEquals(count, wrapper.values.length);
-        assertEquals("v0_custom", wrapper.values[0]);
-        assertEquals("v2999_custom", wrapper.values[count - 1]);
-    }
-
-    // Tests ACCEPT_SINGLE_VALUE_AS_ARRAY feature with a single string value
-    @Test
-    public void testHandleNonArray_singleValueAsArrayEnabled_returnsSingleElementArray() throws Exception {
+    public void testDeserialize_acceptSingleValueAsArray_returnsSingleElementArray() throws Exception {
         mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
         String json = "\"singleValue\"";
-
         String[] result = mapper.readValue(json, String[].class);
 
         assertNotNull(result);
@@ -167,177 +135,196 @@ public class StringArrayDeserializerTest {
         assertEquals("singleValue", result[0]);
     }
 
-    // Tests ACCEPT_SINGLE_VALUE_AS_ARRAY feature with a null value
+    // Tests ACCEPT_SINGLE_VALUE_AS_ARRAY feature with single null value
     @Test
-    public void testHandleNonArray_singleNullValueAsArrayEnabled_returnsNullArray() throws Exception {
+    public void testDeserialize_acceptSingleValueAsArrayWithNull_returnsArrayWithNull() throws Exception {
         mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
         String json = "null";
-
         String[] result = mapper.readValue(json, String[].class);
 
         assertNull(result);
     }
 
-    // Tests ACCEPT_EMPTY_STRING_AS_NULL_OBJECT feature with an empty string
+    // Tests ACCEPT_SINGLE_VALUE_AS_ARRAY feature with non-string scalar value
     @Test
-    public void testHandleNonArray_emptyStringAsNullObjectEnabled_returnsNull() throws Exception {
+    public void testDeserialize_acceptSingleValueAsArrayNonString_returnsCoercedArray() throws Exception {
+        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        String json = "12345";
+        String[] result = mapper.readValue(json, String[].class);
+
+        assertNotNull(result);
+        assertEquals(1, result.length);
+        assertEquals("12345", result[0]);
+    }
+
+    // Tests exception path when non-array input received and ACCEPT_SINGLE_VALUE_AS_ARRAY is disabled
+    @Test(expected = JsonMappingException.class)
+    public void testDeserialize_nonArrayWithoutSingleValueFeature_throwsJsonMappingException() throws Exception {
+        mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        String json = "12345";
+        mapper.readValue(json, String[].class);
+    }
+
+    // Tests ACCEPT_EMPTY_STRING_AS_NULL_OBJECT feature returning null when input is empty string
+    @Test
+    public void testDeserialize_acceptEmptyStringAsNullObject_returnsNull() throws Exception {
         mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
         mapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
         String json = "\"\"";
-
         String[] result = mapper.readValue(json, String[].class);
 
         assertNull(result);
     }
 
-    // Tests non-array input throwing JsonMappingException when ACCEPT_SINGLE_VALUE_AS_ARRAY is disabled
+    // Tests empty string input throwing exception when ACCEPT_EMPTY_STRING_AS_NULL_OBJECT is disabled
     @Test(expected = JsonMappingException.class)
-    public void testHandleNonArray_featureDisabled_throwsMappingException() throws Exception {
+    public void testDeserialize_emptyStringWithoutFeature_throwsJsonMappingException() throws Exception {
         mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
         mapper.disable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-        String json = "\"notAnArray\"";
-
+        String json = "\"\"";
         mapper.readValue(json, String[].class);
     }
 
-    // Tests non-array number token throwing JsonMappingException
-    @Test(expected = JsonMappingException.class)
-    public void testHandleNonArray_numberInputFeatureDisabled_throwsMappingException() throws Exception {
-        mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        String json = "12345";
-
-        mapper.readValue(json, String[].class);
-    }
-
-    // Tests deserializeWithType method directly using custom instance
+    // Tests custom element deserializer via annotation triggering _deserializeCustom
     @Test
-    public void testDeserializeWithType_callsTypeDeserializer() throws Exception {
+    public void testDeserialize_customElementDeserializer_usesCustomDeserializer() throws Exception {
+        String json = "{\"values\": [\"a\", \"b\"]}";
+        CustomArrayBean bean = mapper.readValue(json, CustomArrayBean.class);
+
+        assertNotNull(bean);
+        assertNotNull(bean.values);
+        assertEquals(2, bean.values.length);
+        assertEquals("custom:a", bean.values[0]);
+        assertEquals("custom:b", bean.values[1]);
+    }
+
+    // Tests custom element deserializer handling null element value
+    @Test
+    public void testDeserialize_customElementDeserializerWithNull_usesCustomNullValue() throws Exception {
+        String json = "{\"values\": [\"a\", null]}";
+        CustomArrayBean bean = mapper.readValue(json, CustomArrayBean.class);
+
+        assertNotNull(bean);
+        assertNotNull(bean.values);
+        assertEquals(2, bean.values.length);
+        assertEquals("custom:a", bean.values[0]);
+        assertEquals("custom:null", bean.values[1]);
+    }
+
+    // Tests custom element deserializer handling large array chunk expansion
+    @Test
+    public void testDeserialize_customElementDeserializerLargeArray_handlesBufferGrowth() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\"values\": [");
+        int count = 1000;
+        for (int i = 0; i < count; i++) {
+            if (i > 0) sb.append(",");
+            sb.append("\"val").append(i).append("\"");
+        }
+        sb.append("]}");
+
+        CustomArrayBean bean = mapper.readValue(sb.toString(), CustomArrayBean.class);
+
+        assertNotNull(bean);
+        assertEquals(count, bean.values.length);
+        assertEquals("custom:val0", bean.values[0]);
+        assertEquals("custom:val999", bean.values[999]);
+    }
+
+    // Tests createContextual returning instance when default deserializer is resolved
+    @Test
+    public void testCreateContextual_defaultDeserializer_returnsInstance() throws Exception {
+        DeserializationContext ctxt = mapper.getDeserializationContext();
         StringArrayDeserializer deser = StringArrayDeserializer.instance;
-        JsonParser parser = mapper.getFactory().createParser("[\"test\"]");
-        parser.nextToken(); // Move to START_ARRAY
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-
-        TypeDeserializer typeDeser = mapper.getTypeFactory().constructType(String[].class)
-                .getTypeHandler();
-
-        // Directly verify deserialize method handles array
-        String[] result = deser.deserialize(parser, mapper.getDeserializationContext());
-        assertNotNull(result);
-        assertEquals(1, result.length);
-        assertEquals("test", result[0]);
-    }
-
-    // Tests createContextual when default deserializer is registered
-    @Test
-    public void testCreateContextual_defaultDeserializer_returnsInstanceOrSame() throws Exception {
-        StringArrayDeserializer deser = new StringArrayDeserializer();
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-
         JsonDeserializer<?> contextual = deser.createContextual(ctxt, null);
+
         assertNotNull(contextual);
         assertTrue(contextual instanceof StringArrayDeserializer);
     }
 
-    // Tests handleNonArray with single value as array and custom element deserializer
+    // Tests deserializeWithType delegated call
     @Test
-    public void testHandleNonArray_customDeserializer_singleValue() throws Exception {
-        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        String json = "{\"values\": \"single\"}";
-        AnnotatedWrapper wrapper = mapper.readValue(json, AnnotatedWrapper.class);
+    public void testDeserializeWithType_polymorphicArray_deserializesCorrectly() throws Exception {
+        ObjectMapper polyMapper = new ObjectMapper();
+        polyMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.JAVA_LANG_OBJECT);
+        String json = polyMapper.writeValueAsString(new String[]{"item1", "item2"});
 
-        assertNotNull(wrapper);
-        assertNotNull(wrapper.values);
-        assertEquals(1, wrapper.values.length);
-        assertEquals("single_custom", wrapper.values[0]);
-    }
-
-    // Tests handleNonArray with single null value and custom element deserializer
-    @Test
-    public void testHandleNonArray_customDeserializer_singleNull() throws Exception {
-        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        String json = "{\"values\": null}";
-        AnnotatedWrapper wrapper = mapper.readValue(json, AnnotatedWrapper.class);
-
-        assertNotNull(wrapper);
-        assertNull(wrapper.values);
-    }
-
-    // Tests handleNonArray with single non-string token (e.g. number) coerced to single array
-    @Test
-    public void testHandleNonArray_singleValueAsArray_numberToken() throws Exception {
-        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        String json = "456";
-        String[] result = mapper.readValue(json, String[].class);
-
-        assertNotNull(result);
-        assertEquals(1, result.length);
-        assertEquals("456", result[0]);
-    }
-
-    // Tests handleNonArray with empty string when ACCEPT_EMPTY_STRING_AS_NULL_OBJECT is disabled
-    @Test
-    public void testHandleNonArray_emptyString_singleValueAsArrayEnabled() throws Exception {
-        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        mapper.disable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
-        String json = "\"\"";
-
-        String[] result = mapper.readValue(json, String[].class);
-
-        assertNotNull(result);
-        assertEquals(1, result.length);
-        assertEquals("", result[0]);
-    }
-
-    // Tests deserializeWithType direct method execution with a custom TypeDeserializer
-    @Test
-    public void testDeserializeWithType_directDelegation() throws Exception {
-        StringArrayDeserializer deser = StringArrayDeserializer.instance;
-        JsonParser parser = mapper.getFactory().createParser("[\"hello\"]");
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-
-        TypeDeserializer typeDeser = new TypeDeserializer() {
-            @Override
-            public TypeDeserializer forProperty(BeanProperty prop) { return this; }
-            @Override
-            public com.fasterxml.jackson.annotation.JsonTypeInfo.As getTypeInclusion() { return com.fasterxml.jackson.annotation.JsonTypeInfo.As.WRAPPER_ARRAY; }
-            @Override
-            public String getPropertyName() { return null; }
-            @Override
-            public com.fasterxml.jackson.databind.jsontype.TypeIdResolver getTypeIdResolver() { return null; }
-            @Override
-            public Class<?> getDefaultImpl() { return String[].class; }
-            @Override
-            public Object deserializeTypedFromArray(JsonParser p, DeserializationContext ctxt) throws IOException {
-                return new String[]{"typed_hello"};
-            }
-            @Override
-            public Object deserializeTypedFromObject(JsonParser p, DeserializationContext ctxt) throws IOException { return null; }
-            @Override
-            public Object deserializeTypedFromScalar(JsonParser p, DeserializationContext ctxt) throws IOException { return null; }
-            @Override
-            public Object deserializeTypedFromAny(JsonParser p, DeserializationContext ctxt) throws IOException { return null; }
-        };
-
-        Object result = deser.deserializeWithType(parser, ctxt, typeDeser);
+        Object result = polyMapper.readValue(json, Object.class);
         assertNotNull(result);
         assertTrue(result instanceof String[]);
-        assertArrayEquals(new String[]{"typed_hello"}, (String[]) result);
+        String[] arrayResult = (String[]) result;
+        assertEquals(2, arrayResult.length);
+        assertEquals("item1", arrayResult[0]);
+        assertEquals("item2", arrayResult[1]);
     }
 
-    // Tests direct instantiation and custom constructor
+    // Tests JsonFormat annotation for ACCEPT_SINGLE_VALUE_AS_ARRAY per property
     @Test
-    public void testCustomConstructor_andDirectDeserialize() throws Exception {
-        CustomStringDeserializer customDeser = new CustomStringDeserializer();
-        StringArrayDeserializer deser = new StringArrayDeserializer(customDeser);
+    public void testDeserialize_formatAcceptSingleValueAsArray_returnsSingleElementArray() throws Exception {
+        mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        String json = "{\"values\": \"single\"}";
+        SingleValueBean bean = mapper.readValue(json, SingleValueBean.class);
 
-        JsonParser parser = mapper.getFactory().createParser("[\"alpha\", null]");
-        parser.nextToken(); // START_ARRAY
+        assertNotNull(bean);
+        assertNotNull(bean.values);
+        assertEquals(1, bean.values.length);
+        assertEquals("single", bean.values[0]);
+    }
+
+    // Tests custom element deserializer with ACCEPT_SINGLE_VALUE_AS_ARRAY enabled
+    @Test
+    public void testDeserialize_customDeserializerSingleValue_returnsSingleElementArray() throws Exception {
+        String json = "{\"values\": \"customVal\"}";
+        CustomSingleValueBean bean = mapper.readValue(json, CustomSingleValueBean.class);
+
+        assertNotNull(bean);
+        assertNotNull(bean.values);
+        assertEquals(1, bean.values.length);
+        assertEquals("custom:customVal", bean.values[0]);
+    }
+
+    // Tests custom element deserializer with single null value when unwrapping is enabled
+    @Test
+    public void testDeserialize_customDeserializerSingleNullValue_usesCustomNullValue() throws Exception {
+        String json = "{\"values\": null}";
+        CustomSingleValueBean bean = mapper.readValue(json, CustomSingleValueBean.class);
+
+        assertNotNull(bean);
+        assertNull(bean.values);
+    }
+
+    // Tests custom element deserializer handling empty string with ACCEPT_EMPTY_STRING_AS_NULL_OBJECT
+    @Test
+    public void testDeserialize_customDeserializerEmptyStringAsNullObject_returnsNull() throws Exception {
+        mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        mapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+        String json = "{\"values\": \"\"}";
+        CustomArrayBean bean = mapper.readValue(json, CustomArrayBean.class);
+
+        assertNotNull(bean);
+        assertNull(bean.values);
+    }
+
+    // Tests custom element deserializer throwing exception when non-array received and single value disabled
+    @Test(expected = JsonMappingException.class)
+    public void testDeserialize_customDeserializerNonArrayDisabled_throwsJsonMappingException() throws Exception {
+        mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        String json = "{\"values\": 12345}";
+        mapper.readValue(json, CustomArrayBean.class);
+    }
+
+    // Tests getEmptyAccessPattern and getEmptyValue methods
+    @Test
+    public void testGetEmptyValueAndAccessPattern() throws Exception {
+        StringArrayDeserializer deser = StringArrayDeserializer.instance;
         DeserializationContext ctxt = mapper.getDeserializationContext();
 
-        String[] result = deser.deserialize(parser, ctxt);
-        assertNotNull(result);
-        assertEquals(2, result.length);
-        assertEquals("alpha_custom", result[0]);
-        assertEquals("custom_null", result[1]);
+        Object emptyVal = deser.getEmptyValue(ctxt);
+        assertNotNull(emptyVal);
+        assertTrue(emptyVal instanceof String[]);
+        assertEquals(0, ((String[]) emptyVal).length);
+
+        AccessPattern pattern = deser.getEmptyAccessPattern();
+        assertEquals(AccessPattern.CONSTANT, pattern);
     }
 }

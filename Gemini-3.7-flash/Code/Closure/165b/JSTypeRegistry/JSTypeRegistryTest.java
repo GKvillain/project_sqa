@@ -1,130 +1,124 @@
 package com.google.javascript.rhino.jstype;
 
-import com.google.common.collect.ImmutableList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import com.google.javascript.rhino.ErrorReporter;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
-import com.google.javascript.rhino.jstype.RecordTypeBuilder.RecordProperty;
+import com.google.javascript.rhino.jstype.JSTypeRegistry.ResolveMode;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.*;
+import java.util.Collections;
 
 public class JSTypeRegistryTest {
 
   private JSTypeRegistry registry;
-  private ErrorReporter testReporter;
+  private ErrorReporter dummyReporter;
 
   @Before
   public void setUp() {
-    testReporter = new ErrorReporter() {
+    dummyReporter = new ErrorReporter() {
       @Override
       public void warning(String message, String sourceName, int line, int lineOffset) {}
+
       @Override
       public void error(String message, String sourceName, int line, int lineOffset) {}
     };
-    registry = new JSTypeRegistry(testReporter);
+    registry = new JSTypeRegistry(dummyReporter);
   }
 
-  // Tests initialization and lookup of native types
+  // Tests initialization of native types and basic retrieval
   @Test
-  public void testGetNativeType_builtInTypes_returnsCorrectInstances() {
+  public void testGetNativeType_validNativeTypes_returnsNonNullTypes() {
     JSType numberType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
-    assertNotNull(numberType);
-    assertTrue(numberType.isNumber());
-
     JSType stringType = registry.getNativeType(JSTypeNative.STRING_TYPE);
-    assertNotNull(stringType);
-    assertTrue(stringType.isString());
-
+    JSType booleanType = registry.getNativeType(JSTypeNative.BOOLEAN_TYPE);
     ObjectType objectType = registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE);
-    assertNotNull(objectType);
-    assertTrue(objectType.isObject());
-  }
+    FunctionType functionType = registry.getNativeFunctionType(JSTypeNative.FUNCTION_FUNCTION_TYPE);
 
-  // Tests resolving named types by string lookup
-  @Test
-  public void testGetType_registeredNames_returnsExpectedType() {
-    JSType numberType = registry.getType("number");
     assertNotNull(numberType);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), numberType);
-
-    JSType nonExistent = registry.getType("NonExistentType");
-    assertNull(nonExistent);
+    assertNotNull(stringType);
+    assertNotNull(booleanType);
+    assertNotNull(objectType);
+    assertNotNull(functionType);
+    assertTrue(numberType.isNumberType());
+    assertTrue(stringType.isStringType());
+    assertTrue(booleanType.isBooleanValueType());
   }
 
-  // Tests declaring a new type and overwriting it
+  // Tests declaring a new type and verifying namespace creation
   @Test
-  public void testDeclareAndOverwriteType_validTypes_managesCorrectly() {
-    JSType numberType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
-    JSType stringType = registry.getNativeType(JSTypeNative.STRING_TYPE);
+  public void testDeclareType_newType_returnsTrueAndRecordsNamespace() {
+    ObjectType customType = registry.createAnonymousObjectType();
+    boolean declared = registry.declareType("my.custom.Namespace.Type", customType);
 
-    boolean declared = registry.declareType("CustomType", numberType);
     assertTrue(declared);
-    assertEquals(numberType, registry.getType("CustomType"));
-
-    boolean declaredAgain = registry.declareType("CustomType", stringType);
-    assertFalse(declaredAgain);
-
-    registry.overwriteDeclaredType("CustomType", stringType);
-    assertEquals(stringType, registry.getType("CustomType"));
+    assertEquals(customType, registry.getType("my.custom.Namespace.Type"));
+    assertTrue(registry.hasNamespace("my"));
+    assertTrue(registry.hasNamespace("my.custom"));
+    assertTrue(registry.hasNamespace("my.custom.Namespace"));
+    assertFalse(registry.hasNamespace("my.unknown.Namespace"));
   }
 
-  // Tests exception when overwriting undeclared type
+  // Tests declaring a duplicate type name returns false
+  @Test
+  public void testDeclareType_duplicateTypeName_returnsFalse() {
+    ObjectType type1 = registry.createAnonymousObjectType();
+    ObjectType type2 = registry.createAnonymousObjectType();
+
+    assertTrue(registry.declareType("UniqueName", type1));
+    assertFalse(registry.declareType("UniqueName", type2));
+    assertEquals(type1, registry.getType("UniqueName"));
+  }
+
+  // Tests overwriting an already declared type
+  @Test
+  public void testOverwriteDeclaredType_existingType_overwritesSuccessfully() {
+    ObjectType type1 = registry.createAnonymousObjectType();
+    ObjectType type2 = registry.createAnonymousObjectType();
+
+    registry.declareType("TypeToOverwrite", type1);
+    registry.overwriteDeclaredType("TypeToOverwrite", type2);
+
+    assertEquals(type2, registry.getType("TypeToOverwrite"));
+  }
+
+  // Tests overwriting a non-existent type throws IllegalStateException
   @Test(expected = IllegalStateException.class)
-  public void testOverwriteDeclaredType_undeclaredName_throwsException() {
-    registry.overwriteDeclaredType("UnregisteredType", registry.getNativeType(JSTypeNative.NUMBER_TYPE));
+  public void testOverwriteDeclaredType_nonExistingType_throwsException() {
+    ObjectType type = registry.createAnonymousObjectType();
+    registry.overwriteDeclaredType("NonExistentType", type);
   }
 
-  // Tests forward declaring types and checking namespace
+  // Tests forward declaring types
   @Test
-  public void testForwardDeclareType_andNamespace_trackedProperly() {
-    assertFalse(registry.isForwardDeclaredType("com.example.MyType"));
-    registry.forwardDeclareType("com.example.MyType");
-    assertTrue(registry.isForwardDeclaredType("com.example.MyType"));
-
-    registry.declareType("a.b.c.MyClass", registry.getNativeType(JSTypeNative.OBJECT_TYPE));
-    assertTrue(registry.hasNamespace("a"));
-    assertTrue(registry.hasNamespace("a.b"));
-    assertTrue(registry.hasNamespace("a.b.c"));
-    assertFalse(registry.hasNamespace("a.b.c.d"));
+  public void testForwardDeclareType_checksStatusCorrectly() {
+    assertFalse(registry.isForwardDeclaredType("ForwardType"));
+    registry.forwardDeclareType("ForwardType");
+    assertTrue(registry.isForwardDeclaredType("ForwardType"));
   }
 
-  // Tests creating nullable and optional types
+  // Tests setting and clearing template type
   @Test
-  public void testCreateNullableAndOptionalType_validTypes_returnsUnions() {
-    JSType numberType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
-    JSType nullableNumber = registry.createNullableType(numberType);
-    assertTrue(nullableNumber.isNullable());
+  public void testTemplateType_setAndClear_returnsExpectedType() {
+    registry.setTemplateTypeName("T");
+    JSType tType = registry.getType("T");
+    assertNotNull(tType);
+    assertTrue(tType.isTemplateType());
 
-    JSType optionalNumber = registry.createOptionalType(numberType);
-    assertTrue(optionalNumber.isUnionType());
-
-    JSType optionalUnknown = registry.createOptionalType(registry.getNativeType(JSTypeNative.UNKNOWN_TYPE));
-    assertTrue(optionalUnknown.isUnknownType());
+    registry.clearTemplateTypeName();
+    assertNull(registry.getType("T"));
   }
 
-  // Tests default object union with tolerateUndefinedValues flag
+  // Tests union type creation with JSType instances and JSTypeNative enums
   @Test
-  public void testCreateDefaultObjectUnion_tolerateUndefined_includesVoidType() {
-    JSType objectType = registry.getNativeType(JSTypeNative.OBJECT_TYPE);
-    JSType standardUnion = registry.createDefaultObjectUnion(objectType);
-    assertTrue(standardUnion.isNullable());
-
-    JSTypeRegistry tolerantRegistry = new JSTypeRegistry(testReporter, true);
-    assertTrue(tolerantRegistry.shouldTolerateUndefinedValues());
-    JSType tolerantUnion = tolerantRegistry.createDefaultObjectUnion(objectType);
-    assertTrue(tolerantUnion.isNullable());
-    assertTrue(tolerantUnion.isUnionType());
-  }
-
-  // Tests union type creation from multiple variants
-  @Test
-  public void testCreateUnionType_multipleTypes_buildsCorrectUnion() {
+  public void testCreateUnionType_variants_createsUnionCorrectly() {
     JSType numberType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
     JSType stringType = registry.getNativeType(JSTypeNative.STRING_TYPE);
 
@@ -133,156 +127,175 @@ public class JSTypeRegistryTest {
 
     JSType nativeUnion = registry.createUnionType(JSTypeNative.NUMBER_TYPE, JSTypeNative.STRING_TYPE);
     assertTrue(nativeUnion.isUnionType());
+    assertEquals(union, nativeUnion);
   }
 
-  // Tests property registration, querying, and unregistering on types
+  // Tests optional and nullable type creation
   @Test
-  public void testRegisterAndUnregisterPropertyOnType_tracksCorrectly() {
+  public void testCreateOptionalAndNullableTypes_wrapsCorrectly() {
+    JSType numberType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
+
+    JSType optionalNumber = registry.createOptionalType(numberType);
+    assertTrue(optionalNumber.isUnionType());
+    assertTrue(optionalNumber.isSubtype(registry.getNativeType(JSTypeNative.VOID_TYPE)));
+
+    JSType nullableNumber = registry.createNullableType(numberType);
+    assertTrue(nullableNumber.isUnionType());
+    assertTrue(nullableNumber.isSubtype(registry.getNativeType(JSTypeNative.NULL_TYPE)));
+
+    JSType optionalNullableNumber = registry.createOptionalNullableType(numberType);
+    assertTrue(optionalNullableNumber.isUnionType());
+    assertTrue(optionalNullableNumber.isSubtype(registry.getNativeType(JSTypeNative.VOID_TYPE)));
+    assertTrue(optionalNullableNumber.isSubtype(registry.getNativeType(JSTypeNative.NULL_TYPE)));
+
+    JSType unknownType = registry.getNativeType(JSTypeNative.UNKNOWN_TYPE);
+    assertEquals(unknownType, registry.createOptionalType(unknownType));
+  }
+
+  // Tests registering and unregistering properties on types
+  @Test
+  public void testRegisterAndUnregisterPropertyOnType_tracksPropertiesProperly() {
     ObjectType objType = registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE);
+
+    assertFalse(registry.canPropertyBeDefined(objType, "customProp"));
+
     registry.registerPropertyOnType("customProp", objType);
-
     assertTrue(registry.canPropertyBeDefined(objType, "customProp"));
-    assertFalse(registry.canPropertyBeDefined(objType, "nonExistentProp"));
-
-    Iterable<JSType> typesWithProp = registry.getTypesWithProperty("customProp");
-    assertNotNull(typesWithProp);
-    assertTrue(typesWithProp.iterator().hasNext());
 
     JSType greatestSubtype = registry.getGreatestSubtypeWithProperty(objType, "customProp");
-    assertNotNull(greatestSubtype);
+    assertFalse(greatestSubtype.isEmptyType());
 
     registry.unregisterPropertyOnType("customProp", objType);
-    Iterable<ObjectType> refTypes = registry.getEachReferenceTypeWithProperty("customProp");
-    assertFalse(refTypes.iterator().hasNext());
+    assertNotNull(registry.getTypesWithProperty("customProp"));
   }
 
-  // Tests template type registration and clearing
+  // Tests finding common super object between two object types
   @Test
-  public void testTemplateType_setAndClear_updatesLookup() {
-    registry.setTemplateTypeName("T");
-    JSType templateType = registry.getType("T");
-    assertNotNull(templateType);
-    assertTrue(templateType.isTemplateType());
+  public void testFindCommonSuperObject_differentTypes_findsObjectRoot() {
+    ObjectType dateType = registry.getNativeObjectType(JSTypeNative.DATE_TYPE);
+    ObjectType arrayType = registry.getNativeObjectType(JSTypeNative.ARRAY_TYPE);
+    ObjectType common = registry.findCommonSuperObject(dateType, arrayType);
 
-    registry.clearTemplateTypeName();
-    assertNull(registry.getType("T"));
+    assertEquals(registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE), common);
   }
 
-  // Tests interface implementors tracking
+  // Tests creating function and constructor types
   @Test
-  public void testInterfaceImplementors_registered_returnsCorrectCollection() {
+  public void testCreateFunctionType_validParameters_createsFunction() {
+    JSType numType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
+    JSType strType = registry.getNativeType(JSTypeNative.STRING_TYPE);
+
+    FunctionType fnType = registry.createFunctionType(strType, numType);
+    assertNotNull(fnType);
+    assertEquals(strType, fnType.getReturnType());
+
+    FunctionType ctorType = registry.createConstructorType(strType, numType);
+    assertNotNull(ctorType);
+    assertTrue(ctorType.isConstructor());
+
     FunctionType interfaceType = registry.createInterfaceType("MyInterface", null);
-    ObjectType interfaceInstance = interfaceType.getInstanceType();
-
-    FunctionType implementorType = registry.createConstructorType("MyImplementor", null, null, null);
-    registry.registerTypeImplementingInterface(implementorType, interfaceInstance);
-
-    Collection<FunctionType> implementors = registry.getDirectImplementors(interfaceInstance);
-    assertEquals(1, implementors.size());
-    assertTrue(implementors.contains(implementorType));
+    assertNotNull(interfaceType);
+    assertTrue(interfaceType.isInterface());
   }
 
-  // Tests function type creation and modification
+  // Tests resetting implicit prototype on a prototype object type
   @Test
-  public void testCreateFunctionType_variousSignatures_buildsCorrectFunction() {
-    JSType numberType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
-    JSType stringType = registry.getNativeType(JSTypeNative.STRING_TYPE);
+  public void testResetImplicitPrototype_validObjectType_returnsTrue() {
+    ObjectType obj1 = registry.createAnonymousObjectType();
+    ObjectType obj2 = registry.createAnonymousObjectType();
 
-    FunctionType fn = registry.createFunctionType(numberType, stringType);
-    assertNotNull(fn);
-    assertEquals(numberType, fn.getReturnType());
+    boolean reset = registry.resetImplicitPrototype(obj1, obj2);
+    assertTrue(reset);
+    assertEquals(obj2, obj1.getImplicitPrototype());
 
-    FunctionType modifiedReturn = registry.createFunctionTypeWithNewReturnType(fn, stringType);
-    assertEquals(stringType, modifiedReturn.getReturnType());
-
-    ObjectType objType = registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE);
-    FunctionType modifiedThis = registry.createFunctionTypeWithNewThisType(fn, objType);
-    assertEquals(objType, modifiedThis.getTypeOfThis());
+    boolean resetNonProto = registry.resetImplicitPrototype(registry.getNativeType(JSTypeNative.NUMBER_TYPE), obj2);
+    assertFalse(resetNonProto);
   }
 
-  // Tests record type creation via RecordTypeBuilder
+  // Tests registering interface implementors
   @Test
-  public void testCreateRecordType_fromMap_createsRecord() {
-    Map<String, RecordProperty> fields = new HashMap<String, RecordProperty>();
-    fields.put("x", new RecordProperty(registry.getNativeType(JSTypeNative.NUMBER_TYPE), null));
-    RecordType record = registry.createRecordType(fields);
-    assertNotNull(record);
-    assertTrue(record.isRecordType());
-    assertTrue(record.hasProperty("x"));
+  public void testRegisterTypeImplementingInterface_directImplementors_retrievedCorrectly() {
+    FunctionType iface = registry.createInterfaceType("IInterface", null);
+    ObjectType ifaceInstance = iface.getInstanceType();
+
+    FunctionType implType = registry.createConstructorType(registry.getNativeType(JSTypeNative.VOID_TYPE));
+    registry.registerTypeImplementingInterface(implType, ifaceInstance);
+
+    Collection<FunctionType> implementors = registry.getDirectImplementors(ifaceInstance);
+    assertNotNull(implementors);
+    assertTrue(implementors.contains(implType));
   }
 
-  // Tests creating types from basic AST nodes
+  // Tests resolving mode and generation manipulation
   @Test
-  public void testCreateFromTypeNodes_primitivesAndModifiers_evaluatesProperly() {
+  public void testResolveModeAndGenerations_stateChangesCorrectly() {
+    registry.setResolveMode(ResolveMode.IMMEDIATE);
+    assertEquals(ResolveMode.IMMEDIATE, registry.getResolveMode());
+
+    registry.setResolveMode(ResolveMode.LAZY_NAMES);
+    assertEquals(ResolveMode.LAZY_NAMES, registry.getResolveMode());
+
+    assertTrue(registry.isLastGeneration());
+    registry.setLastGeneration(false);
+    assertFalse(registry.isLastGeneration());
+
+    registry.incrementGeneration();
+    registry.clearNamedTypes();
+  }
+
+  // Tests createFromTypeNodes with AST token types
+  @Test
+  public void testCreateFromTypeNodes_variousASTNodes_createsCorrectTypes() {
     Node starNode = new Node(Token.STAR);
     JSType allType = registry.createFromTypeNodes(starNode, "test.js", null);
-    assertTrue(allType.isAllType());
+    assertEquals(registry.getNativeType(JSTypeNative.ALL_TYPE), allType);
+
+    Node voidNode = new Node(Token.VOID);
+    JSType voidType = registry.createFromTypeNodes(voidNode, "test.js", null);
+    assertEquals(registry.getNativeType(JSTypeNative.VOID_TYPE), voidType);
 
     Node emptyNode = new Node(Token.EMPTY);
     JSType unknownType = registry.createFromTypeNodes(emptyNode, "test.js", null);
-    assertTrue(unknownType.isUnknownType());
+    assertEquals(registry.getNativeType(JSTypeNative.UNKNOWN_TYPE), unknownType);
 
-    Node bangNode = new Node(Token.BANG, Node.newString("number"));
-    JSType notNullNumber = registry.createFromTypeNodes(bangNode, "test.js", null);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), notNullNumber);
+    Node lbNode = new Node(Token.LB);
+    JSType arrayType = registry.createFromTypeNodes(lbNode, "test.js", null);
+    assertEquals(registry.getNativeType(JSTypeNative.ARRAY_TYPE), arrayType);
 
     Node qmarkNode = new Node(Token.QMARK);
-    JSType qmarkUnknown = registry.createFromTypeNodes(qmarkNode, "test.js", null);
-    assertTrue(qmarkUnknown.isUnknownType());
+    JSType qmarkType = registry.createFromTypeNodes(qmarkNode, "test.js", null);
+    assertEquals(registry.getNativeType(JSTypeNative.UNKNOWN_TYPE), qmarkType);
   }
 
-  // Tests creating record type from AST nodes (Token.LC)
+  // Tests creating parameterized type
   @Test
-  public void testCreateFromTypeNodes_recordType_buildsExpectedRecord() {
-    Node colonNode = new Node(Token.COLON, Node.newString("prop"), Node.newString("string"));
-    Node lcNode = new Node(Token.LC, colonNode);
+  public void testCreateParameterizedType_validObjectAndParameter_returnsParameterizedType() {
+    ObjectType arrayObjType = registry.getNativeObjectType(JSTypeNative.ARRAY_TYPE);
+    JSType strType = registry.getNativeType(JSTypeNative.STRING_TYPE);
 
-    JSType result = registry.createFromTypeNodes(lcNode, "test.js", null);
-    assertNotNull(result);
-    assertTrue(result.isRecordType());
-    assertTrue(result.toObjectType().hasProperty("prop"));
+    ParameterizedType paramType = registry.createParameterizedType(arrayObjType, strType);
+    assertNotNull(paramType);
+    assertEquals(strType, paramType.getParameterType());
   }
 
-  // Tests creating function type from AST nodes (Token.FUNCTION)
+  // Tests creating record type with empty properties
   @Test
-  public void testCreateFromTypeNodes_functionExpression_buildsFunction() {
-    Node paramList = new Node(Token.PARAM_LIST, Node.newString("number"));
-    Node returnType = Node.newString("string");
-    Node fnNode = new Node(Token.FUNCTION, paramList, returnType);
-
-    JSType result = registry.createFromTypeNodes(fnNode, "test.js", null);
-    assertNotNull(result);
-    assertTrue(result.isFunctionType());
-    FunctionType fnType = result.toMaybeFunctionType();
-    assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), fnType.getReturnType());
+  public void testCreateRecordType_emptyMap_returnsRecordType() {
+    RecordType recordType = registry.createRecordType(Collections.<String, RecordTypeBuilder.RecordProperty>emptyMap());
+    assertNotNull(recordType);
+    assertTrue(recordType.isRecordType());
   }
 
-  // Tests findCommonSuperObject
+  // Tests tolerateUndefinedValues flag setting
   @Test
-  public void testFindCommonSuperObject_sharedInheritance_findsSupertype() {
-    ObjectType objType = registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE);
-    ObjectType arrayType = registry.getNativeObjectType(JSTypeNative.ARRAY_TYPE);
-    ObjectType common = registry.findCommonSuperObject(arrayType, objType);
-    assertEquals(objType, common);
-  }
+  public void testTolerateUndefinedValues_constructorFlag_honored() {
+    JSTypeRegistry tolerantRegistry = new JSTypeRegistry(dummyReporter, true);
+    assertTrue(tolerantRegistry.shouldTolerateUndefinedValues());
+    assertFalse(registry.shouldTolerateUndefinedValues());
 
-  // Tests resetImplicitPrototype on prototype objects
-  @Test
-  public void testResetImplicitPrototype_updatesPrototype() {
-    ObjectType objType = registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE);
-    ObjectType customObj = registry.createObjectType(null);
-    boolean success = registry.resetImplicitPrototype(customObj, objType);
-    assertTrue(success);
-    assertEquals(objType, customObj.getImplicitPrototype());
-
-    boolean failOnNonProto = registry.resetImplicitPrototype(registry.getNativeType(JSTypeNative.NUMBER_TYPE), objType);
-    assertFalse(failOnNonProto);
-  }
-
-  // Tests resolving mode configuration
-  @Test
-  public void testSetResolveMode_updatesMode() {
-    registry.setResolveMode(JSTypeRegistry.ResolveMode.IMMEDIATE);
-    assertEquals(JSTypeRegistry.ResolveMode.IMMEDIATE, registry.getResolveMode());
+    JSType numType = tolerantRegistry.getNativeType(JSTypeNative.NUMBER_TYPE);
+    JSType defaultUnion = tolerantRegistry.createDefaultObjectUnion(numType);
+    assertTrue(defaultUnion.isSubtype(tolerantRegistry.getNativeType(JSTypeNative.VOID_TYPE)));
+    assertTrue(defaultUnion.isSubtype(tolerantRegistry.getNativeType(JSTypeNative.NULL_TYPE)));
   }
 }

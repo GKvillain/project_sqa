@@ -1,9 +1,8 @@
 package org.mockito.internal.creation.instance;
 
 import org.junit.Test;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.mockito.creation.instance.InstantiationException;
+import static org.junit.Assert.*;
 
 public class ConstructorInstantiatorTest {
 
@@ -11,13 +10,17 @@ public class ConstructorInstantiatorTest {
         public SimpleClass() {}
     }
 
+    static class ClassWithoutNoArgConstructor {
+        public ClassWithoutNoArgConstructor(String arg) {}
+    }
+
     static abstract class AbstractClass {
         public AbstractClass() {}
     }
 
-    static class ThrowingClass {
-        public ThrowingClass() {
-            throw new RuntimeException("Constructor failure");
+    static class ExceptionThrowingClass {
+        public ExceptionThrowingClass() {
+            throw new RuntimeException("Constructor failed");
         }
     }
 
@@ -27,138 +30,131 @@ public class ConstructorInstantiatorTest {
         }
     }
 
-    static class SubOuterClass extends OuterClass {}
+    static class ParentOuter {}
 
-    static class NoDefaultConstructor {
-        public NoDefaultConstructor(String param) {}
+    static class ChildOuter extends ParentOuter {}
+
+    static class InnerWithParentParam {
+        public InnerWithParentParam(ParentOuter parent) {}
     }
 
-    static class PrivateConstructorClass {
-        private PrivateConstructorClass() {}
+    static class ExceptionThrowingInnerClass {
+        public ExceptionThrowingInnerClass(OuterClass outer) {
+            throw new RuntimeException("Inner constructor failed");
+        }
     }
 
-    static class MultipleConstructorsClass {
-        public MultipleConstructorsClass() {}
-        public MultipleConstructorsClass(String param) {}
+    static abstract class AbstractInnerClass {
+        public AbstractInnerClass(OuterClass outer) {}
     }
 
-    // Tests creating instance with null outer class using no-arg constructor
+    static class MultipleMatchingConstructors {
+        public MultipleMatchingConstructors(ParentOuter parent) {}
+        public MultipleMatchingConstructors(ChildOuter child) {}
+    }
+
+    // Tests creating instance of normal class with no outer class instance (outerClassInstance == null)
     @Test
-    public void testNewInstance_nullOuterClass_createsInstance() {
+    public void testNewInstance_nullOuterClass_createsInstanceSuccessfully() {
         ConstructorInstantiator instantiator = new ConstructorInstantiator(null);
-        SimpleClass instance = instantiator.newInstance(SimpleClass.class);
-        assertNotNull(instance);
+        SimpleClass result = instantiator.newInstance(SimpleClass.class);
+        assertNotNull(result);
+        assertTrue(result instanceof SimpleClass);
     }
 
-    // Tests exception thrown when instantiating abstract class with null outer class
-    @Test(expected = InstantationException.class)
-    public void testNewInstance_nullOuterClassAbstractClass_throwsInstantationException() {
+    // Tests exception thrown when target class lacks parameter-less constructor with null outer instance
+    @Test(expected = InstantiationException.class)
+    public void testNewInstance_nullOuterClassWithoutNoArgConstructor_throwsInstantiationException() {
+        ConstructorInstantiator instantiator = new ConstructorInstantiator(null);
+        instantiator.newInstance(ClassWithoutNoArgConstructor.class);
+    }
+
+    // Tests exception thrown when instantiating abstract class with null outer instance
+    @Test(expected = InstantiationException.class)
+    public void testNewInstance_nullOuterClassAbstractClass_throwsInstantiationException() {
         ConstructorInstantiator instantiator = new ConstructorInstantiator(null);
         instantiator.newInstance(AbstractClass.class);
     }
 
-    // Tests exception thrown when constructor throws exception with null outer class
-    @Test(expected = InstantationException.class)
-    public void testNewInstance_nullOuterClassThrowingConstructor_throwsInstantationException() {
+    // Tests exception thrown when target class constructor throws an exception with null outer instance
+    @Test(expected = InstantiationException.class)
+    public void testNewInstance_nullOuterClassConstructorThrowsException_throwsInstantiationException() {
         ConstructorInstantiator instantiator = new ConstructorInstantiator(null);
-        instantiator.newInstance(ThrowingClass.class);
+        instantiator.newInstance(ExceptionThrowingClass.class);
     }
 
-    // Tests creating inner class instance with matching outer class instance
+    // Tests creating inner class instance when valid outer class instance is provided
     @Test
-    public void testNewInstance_withMatchingOuterClass_createsInstance() {
+    public void testNewInstance_validOuterClassInstance_createsInnerClassInstanceSuccessfully() {
         OuterClass outer = new OuterClass();
         ConstructorInstantiator instantiator = new ConstructorInstantiator(outer);
-        OuterClass.InnerClass inner = instantiator.newInstance(OuterClass.InnerClass.class);
-        assertNotNull(inner);
+        OuterClass.InnerClass result = instantiator.newInstance(OuterClass.InnerClass.class);
+        assertNotNull(result);
+        assertTrue(result instanceof OuterClass.InnerClass);
     }
 
-    // Tests creating inner class instance with outer class subclass
-    @Test
-    public void testNewInstance_withSubOuterClass_createsInstance() {
-        SubOuterClass subOuter = new SubOuterClass();
-        ConstructorInstantiator instantiator = new ConstructorInstantiator(subOuter);
-        try {
-            OuterClass.InnerClass inner = instantiator.newInstance(OuterClass.InnerClass.class);
-            assertNotNull(inner);
-        } catch (InstantationException e) {
-            assertTrue(e.getMessage().contains("Unable to create mock instance"));
-        }
-    }
-
-    // Tests exception thrown when outer class instance is of wrong type
-    @Test(expected = InstantationException.class)
-    public void testNewInstance_withWrongOuterClassType_throwsInstantationException() {
+    // Tests exception thrown when outer class instance type does not match inner class requirement
+    @Test(expected = InstantiationException.class)
+    public void testNewInstance_mismatchedOuterClassInstance_throwsInstantiationException() {
         ConstructorInstantiator instantiator = new ConstructorInstantiator("invalid outer instance");
         instantiator.newInstance(OuterClass.InnerClass.class);
     }
 
-    // Tests exception thrown when passing outer class instance for class with no-arg constructor
-    @Test(expected = InstantationException.class)
-    public void testNewInstance_withOuterClassForTopLevelClass_throwsInstantationException() {
+    // Tests exception thrown when target class does not support outer class constructor
+    @Test(expected = InstantiationException.class)
+    public void testNewInstance_outerClassProvidedForSimpleClass_throwsInstantiationException() {
         OuterClass outer = new OuterClass();
         ConstructorInstantiator instantiator = new ConstructorInstantiator(outer);
         instantiator.newInstance(SimpleClass.class);
     }
 
-    // Tests exception message contains class name on failure with null outer class
+    // Tests instantiating class when outer instance is a subclass of expected constructor parameter type
     @Test
-    public void testNewInstance_nullOuterClassFailure_exceptionMessageContainsClassName() {
-        ConstructorInstantiator instantiator = new ConstructorInstantiator(null);
-        try {
-            instantiator.newInstance(AbstractClass.class);
-            fail("Expected InstantationException");
-        } catch (InstantationException e) {
-            assertTrue(e.getMessage().contains("AbstractClass"));
-        }
+    public void testNewInstance_outerClassIsSubtypeOfConstructorParameter_createsInstanceSuccessfully() {
+        ChildOuter childOuter = new ChildOuter();
+        ConstructorInstantiator instantiator = new ConstructorInstantiator(childOuter);
+        InnerWithParentParam result = instantiator.newInstance(InnerWithParentParam.class);
+        assertNotNull(result);
+        assertTrue(result instanceof InnerWithParentParam);
     }
 
-    // Tests exception message contains class name on failure with outer class
+    // Tests constructor with explicit boolean flag (hasOuterClassInstance = false)
     @Test
-    public void testNewInstance_withOuterClassFailure_exceptionMessageContainsClassName() {
-        ConstructorInstantiator instantiator = new ConstructorInstantiator(new Object());
-        try {
-            instantiator.newInstance(SimpleClass.class);
-            fail("Expected InstantationException");
-        } catch (InstantationException e) {
-            assertTrue(e.getMessage().contains("SimpleClass"));
-        }
+    public void testNewInstance_booleanConstructor_hasOuterFalse_createsInstanceSuccessfully() {
+        ConstructorInstantiator instantiator = new ConstructorInstantiator(false, null);
+        SimpleClass result = instantiator.newInstance(SimpleClass.class);
+        assertNotNull(result);
+        assertTrue(result instanceof SimpleClass);
     }
 
-    // Tests exception thrown when class has no 0-arg constructor
-    @Test(expected = InstantationException.class)
-    public void testNewInstance_noDefaultConstructor_throwsInstantationException() {
-        ConstructorInstantiator instantiator = new ConstructorInstantiator(null);
-        instantiator.newInstance(NoDefaultConstructor.class);
-    }
-
-    // Tests creating instance for class with private 0-arg constructor
-    @Test
-    public void testNewInstance_privateConstructor_createsInstance() {
-        ConstructorInstantiator instantiator = new ConstructorInstantiator(null);
-        PrivateConstructorClass instance = instantiator.newInstance(PrivateConstructorClass.class);
-        assertNotNull(instance);
-    }
-
-    // Tests creating instance for class with multiple constructors
-    @Test
-    public void testNewInstance_multipleConstructors_createsInstance() {
-        ConstructorInstantiator instantiator = new ConstructorInstantiator(null);
-        MultipleConstructorsClass instance = instantiator.newInstance(MultipleConstructorsClass.class);
-        assertNotNull(instance);
-    }
-
-    // Tests exception thrown when instantiating inner class without outer class instance
-    @Test(expected = InstantationException.class)
-    public void testNewInstance_innerClassWithoutOuterInstance_throwsInstantationException() {
-        ConstructorInstantiator instantiator = new ConstructorInstantiator(null);
+    // Tests constructor with explicit boolean flag (hasOuterClassInstance = true) and null outer instance throws exception
+    @Test(expected = InstantiationException.class)
+    public void testNewInstance_booleanConstructor_hasOuterTrueWithNullOuter_throwsInstantiationException() {
+        ConstructorInstantiator instantiator = new ConstructorInstantiator(true, null);
         instantiator.newInstance(OuterClass.InnerClass.class);
     }
 
-    // Tests exception thrown when constructor throws exception with outer class instance
-    @Test(expected = InstantationException.class)
-    public void testNewInstance_outerClassThrowingConstructor_throwsInstantationException() {
-        ConstructorInstantiator instantiator = new ConstructorInstantiator(new Object());
-        instantiator.newInstance(ThrowingClass.class);
+    // Tests exception thrown when inner class constructor throws an exception with valid outer instance
+    @Test(expected = InstantiationException.class)
+    public void testNewInstance_innerClassConstructorThrowsException_throwsInstantiationException() {
+        OuterClass outer = new OuterClass();
+        ConstructorInstantiator instantiator = new ConstructorInstantiator(outer);
+        instantiator.newInstance(ExceptionThrowingInnerClass.class);
+    }
+
+    // Tests exception thrown when instantiating abstract inner class with valid outer instance
+    @Test(expected = InstantiationException.class)
+    public void testNewInstance_abstractInnerClass_throwsInstantiationException() {
+        OuterClass outer = new OuterClass();
+        ConstructorInstantiator instantiator = new ConstructorInstantiator(outer);
+        instantiator.newInstance(AbstractInnerClass.class);
+    }
+
+    // Tests exception thrown when multiple 1-arg constructors match the outer class instance
+    @Test(expected = InstantiationException.class)
+    public void testNewInstance_multipleMatchingConstructors_throwsInstantiationException() {
+        ChildOuter child = new ChildOuter();
+        ConstructorInstantiator instantiator = new ConstructorInstantiator(child);
+        instantiator.newInstance(MultipleMatchingConstructors.class);
     }
 }

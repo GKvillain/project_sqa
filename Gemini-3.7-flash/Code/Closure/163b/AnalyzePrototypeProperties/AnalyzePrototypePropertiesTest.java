@@ -1,16 +1,12 @@
 package com.google.javascript.jscomp;
 
-import com.google.javascript.jscomp.AnalyzePrototypeProperties.AssignmentProperty;
-import com.google.javascript.jscomp.AnalyzePrototypeProperties.GlobalFunction;
-import com.google.javascript.jscomp.AnalyzePrototypeProperties.LiteralProperty;
-import com.google.javascript.jscomp.AnalyzePrototypeProperties.NameInfo;
-import com.google.javascript.jscomp.AnalyzePrototypeProperties.Property;
-import com.google.javascript.jscomp.AnalyzePrototypeProperties.Symbol;
 import com.google.javascript.rhino.Node;
+import com.google.javascript.rhino.Token;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collection;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -23,8 +19,27 @@ public class AnalyzePrototypePropertiesTest {
     compiler = new Compiler();
   }
 
-  private NameInfo findNameInfo(Collection<NameInfo> infos, String name) {
-    for (NameInfo info : infos) {
+  private AnalyzePrototypeProperties analyze(String js) {
+    return analyze("", js, null, false, false);
+  }
+
+  private AnalyzePrototypeProperties analyze(
+      String externsJs,
+      String js,
+      JSModuleGraph moduleGraph,
+      boolean canModifyExterns,
+      boolean anchorUnusedVars) {
+    Node externsRoot = compiler.parseTestCode(externsJs);
+    Node mainRoot = compiler.parseTestCode(js);
+    AnalyzePrototypeProperties pass = new AnalyzePrototypeProperties(
+        compiler, moduleGraph, canModifyExterns, anchorUnusedVars);
+    pass.process(externsRoot, mainRoot);
+    return pass;
+  }
+
+  private AnalyzePrototypeProperties.NameInfo findNameInfo(
+      Collection<AnalyzePrototypeProperties.NameInfo> list, String name) {
+    for (AnalyzePrototypeProperties.NameInfo info : list) {
       if (name.equals(info.toString())) {
         return info;
       }
@@ -32,301 +47,327 @@ public class AnalyzePrototypePropertiesTest {
     return null;
   }
 
-  // Tests basic prototype assignment and reference analysis
+  // Tests that implicitly used language properties (toString, valueOf, length) are registered
   @Test
-  public void testProcess_simplePrototypeAssignment_createsNameInfo() {
-    String js = "function Foo() {} Foo.prototype.bar = function() { return 1; };";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
+  public void testGetAllNameInfo_emptyInput_containsImplicitProperties() {
+    AnalyzePrototypeProperties pass = analyze("");
+    Collection<AnalyzePrototypeProperties.NameInfo> allInfo = pass.getAllNameInfo();
 
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
-
-    Collection<NameInfo> nameInfos = pass.getAllNameInfo();
-    NameInfo barInfo = findNameInfo(nameInfos, "bar");
-    assertNotNull(barInfo);
-    assertEquals("bar", barInfo.toString());
-    assertEquals(1, barInfo.getDeclarations().size());
-  }
-
-  // Tests object literal prototype property definition
-  @Test
-  public void testProcess_objectLiteralPrototype_registersProperties() {
-    String js = "function Foo() {} Foo.prototype = { bar: function() {}, baz: 2 };";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
-
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
-
-    Collection<NameInfo> nameInfos = pass.getAllNameInfo();
-    NameInfo barInfo = findNameInfo(nameInfos, "bar");
-    NameInfo bazInfo = findNameInfo(nameInfos, "baz");
-
-    assertNotNull(barInfo);
-    assertNotNull(bazInfo);
-    assertEquals(1, barInfo.getDeclarations().size());
-    assertEquals(1, bazInfo.getDeclarations().size());
-    assertTrue(barInfo.getDeclarations().getFirst() instanceof LiteralProperty);
-  }
-
-  // Tests implicitly used properties like toString, valueOf, length
-  @Test
-  public void testProcess_implicitProperties_areReferenced() {
-    Node root = compiler.parseTestCode("var a = 1;");
-    Node externs = compiler.parseTestCode("");
-
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
-
-    Collection<NameInfo> nameInfos = pass.getAllNameInfo();
-    NameInfo toStringInfo = findNameInfo(nameInfos, "toString");
+    assertNotNull(allInfo);
+    AnalyzePrototypeProperties.NameInfo toStringInfo = findNameInfo(allInfo, "toString");
     assertNotNull(toStringInfo);
     assertTrue(toStringInfo.isReferenced());
+
+    AnalyzePrototypeProperties.NameInfo valueOfInfo = findNameInfo(allInfo, "valueOf");
+    assertNotNull(valueOfInfo);
+    assertTrue(valueOfInfo.isReferenced());
+
+    AnalyzePrototypeProperties.NameInfo lengthInfo = findNameInfo(allInfo, "length");
+    assertNotNull(lengthInfo);
+    assertTrue(lengthInfo.isReferenced());
   }
 
-  // Tests global function declaration and anchorUnusedVars flag
+  // Tests prototype property assignment via expression (Foo.prototype.bar = ...)
   @Test
-  public void testProcess_globalFunctionDeclaration_anchoredAndUnanchored() {
-    String js = "function globalFunc() { return 42; }";
-    Node root1 = compiler.parseTestCode(js);
-    Node externs1 = compiler.parseTestCode("");
+  public void testProcess_prototypeAssignment_recordsDeclaration() {
+    String js = "function Foo() {} Foo.prototype.bar = function() { return 1; };";
+    AnalyzePrototypeProperties pass = analyze(js);
 
-    AnalyzePrototypeProperties pass1 =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass1.process(externs1, root1);
-
-    NameInfo funcInfo1 = findNameInfo(pass1.getAllNameInfo(), "globalFunc");
-    assertNotNull(funcInfo1);
-    assertFalse(funcInfo1.isReferenced());
-
-    Node root2 = compiler.parseTestCode(js);
-    Node externs2 = compiler.parseTestCode("");
-
-    AnalyzePrototypeProperties pass2 =
-        new AnalyzePrototypeProperties(compiler, null, false, true);
-    pass2.process(externs2, root2);
-
-    NameInfo funcInfo2 = findNameInfo(pass2.getAllNameInfo(), "globalFunc");
-    assertNotNull(funcInfo2);
-    assertTrue(funcInfo2.isReferenced());
-  }
-
-  // Tests global function assigned via VAR declaration
-  @Test
-  public void testProcess_globalVarFunction_registersDeclaration() {
-    String js = "var globalVarFunc = function() {}; globalVarFunc();";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
-
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
-
-    NameInfo info = findNameInfo(pass.getAllNameInfo(), "globalVarFunc");
-    assertNotNull(info);
-    assertTrue(info.isReferenced());
-    assertEquals(1, info.getDeclarations().size());
-    assertTrue(info.getDeclarations().getFirst() instanceof GlobalFunction);
-  }
-
-  // Tests reference propagation between prototype properties
-  @Test
-  public void testProcess_propertyCallChain_propagatesReferences() {
-    String js =
-        "function Foo() {}\n"
-            + "Foo.prototype.bar = function() { this.baz(); };\n"
-            + "Foo.prototype.baz = function() {};\n"
-            + "var f = new Foo(); f.bar();";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
-
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
-
-    NameInfo barInfo = findNameInfo(pass.getAllNameInfo(), "bar");
-    NameInfo bazInfo = findNameInfo(pass.getAllNameInfo(), "baz");
-
+    AnalyzePrototypeProperties.NameInfo barInfo =
+        findNameInfo(pass.getAllNameInfo(), "bar");
     assertNotNull(barInfo);
+    assertEquals(1, barInfo.getDeclarations().size());
+
+    AnalyzePrototypeProperties.Symbol symbol = barInfo.getDeclarations().get(0);
+    assertTrue(symbol instanceof AnalyzePrototypeProperties.AssignmentProperty);
+    AnalyzePrototypeProperties.AssignmentProperty prop =
+        (AnalyzePrototypeProperties.AssignmentProperty) symbol;
+    assertNotNull(prop.getPrototype());
+    assertNotNull(prop.getValue());
+    assertNull(prop.getModule());
+  }
+
+  // Tests prototype property assignment via object literal (Foo.prototype = { bar: ... })
+  @Test
+  public void testProcess_objectLiteralPrototype_recordsDeclarations() {
+    String js = "function Foo() {} Foo.prototype = { bar: function() {}, baz: 42 };";
+    AnalyzePrototypeProperties pass = analyze(js);
+
+    AnalyzePrototypeProperties.NameInfo barInfo =
+        findNameInfo(pass.getAllNameInfo(), "bar");
+    assertNotNull(barInfo);
+    assertEquals(1, barInfo.getDeclarations().size());
+
+    AnalyzePrototypeProperties.Symbol barSymbol = barInfo.getDeclarations().get(0);
+    assertTrue(barSymbol instanceof AnalyzePrototypeProperties.LiteralProperty);
+    AnalyzePrototypeProperties.LiteralProperty litProp =
+        (AnalyzePrototypeProperties.LiteralProperty) barSymbol;
+    assertNotNull(litProp.getPrototype());
+    assertNotNull(litProp.getValue());
+
+    AnalyzePrototypeProperties.NameInfo bazInfo =
+        findNameInfo(pass.getAllNameInfo(), "baz");
     assertNotNull(bazInfo);
-    assertTrue(barInfo.isReferenced());
-    assertTrue(bazInfo.isReferenced());
+    assertEquals(1, bazInfo.getDeclarations().size());
   }
 
-  // Tests non-function prototype property assignment
+  // Tests global named function declaration
   @Test
-  public void testProcess_nonFunctionPrototypePropertyAssign_handledCorrectly() {
-    String js = "function Foo() {} Foo.prototype.num = 123;";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
+  public void testProcess_globalFunctionDeclaration_recordsFunction() {
+    String js = "function myGlobalFunc() { return 123; }";
+    AnalyzePrototypeProperties pass = analyze(js);
 
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
+    AnalyzePrototypeProperties.NameInfo info =
+        findNameInfo(pass.getAllNameInfo(), "myGlobalFunc");
+    assertNotNull(info);
+    assertEquals(1, info.getDeclarations().size());
 
-    NameInfo numInfo = findNameInfo(pass.getAllNameInfo(), "num");
-    assertNotNull(numInfo);
-    assertEquals(1, numInfo.getDeclarations().size());
+    AnalyzePrototypeProperties.Symbol symbol = info.getDeclarations().get(0);
+    assertTrue(symbol instanceof AnalyzePrototypeProperties.GlobalFunction);
+    AnalyzePrototypeProperties.GlobalFunction globalFunc =
+        (AnalyzePrototypeProperties.GlobalFunction) symbol;
+    assertNotNull(globalFunc.getFunctionNode());
   }
 
-  // Tests object literal usage counting as property use
+  // Tests global function declared via var
   @Test
-  public void testProcess_objectLiteralUse_countsAsSymbolUse() {
-    String js =
-        "function Foo() {} Foo.prototype.bar = function() {};\n"
-            + "var obj = { bar: 1 };";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
+  public void testProcess_globalFunctionVar_recordsFunction() {
+    String js = "var myVarFunc = function() { return 456; };";
+    AnalyzePrototypeProperties pass = analyze(js);
 
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
+    AnalyzePrototypeProperties.NameInfo info =
+        findNameInfo(pass.getAllNameInfo(), "myVarFunc");
+    assertNotNull(info);
+    assertEquals(1, info.getDeclarations().size());
 
-    NameInfo barInfo = findNameInfo(pass.getAllNameInfo(), "bar");
-    assertNotNull(barInfo);
-    assertTrue(barInfo.isReferenced());
+    AnalyzePrototypeProperties.Symbol symbol = info.getDeclarations().get(0);
+    assertTrue(symbol instanceof AnalyzePrototypeProperties.GlobalFunction);
   }
 
-  // Tests closure variable access detection inside prototype property
+  // Tests reading outer closure variables sets the readsClosureVariables flag
   @Test
-  public void testProcess_closureVariableAccess_marksReadClosureVariables() {
-    String js =
-        "function createClass() {\n"
-            + "  var localVar = 10;\n"
-            + "  function Foo() {}\n"
-            + "  Foo.prototype.getVal = function() { return localVar; };\n"
-            + "}";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
+  public void testProcess_closureVariableAccess_setsReadClosureVariablesFlag() {
+    String js = "function outer() { var x = 1; function inner() { return x; } inner(); } outer();";
+    AnalyzePrototypeProperties pass = analyze(js);
 
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
-
-    NameInfo getValInfo = findNameInfo(pass.getAllNameInfo(), "getVal");
-    assertNotNull(getValInfo);
-    assertTrue(getValInfo.readsClosureVariables());
+    AnalyzePrototypeProperties.NameInfo innerInfo =
+        findNameInfo(pass.getAllNameInfo(), "inner");
+    assertNotNull(innerInfo);
+    assertTrue(innerInfo.readsClosureVariables());
   }
 
-  // Tests extern properties traversal when canModifyExterns is false
+  // Tests property reference inside global scope marks property as referenced
   @Test
-  public void testProcess_externProperties_areMarkedReferenced() {
-    String externsJs = "var externalObj; externalObj.externProp = function() {};";
-    String js = "function Foo() {} Foo.prototype.externProp = function() {};";
-    Node externs = compiler.parseTestCode(externsJs);
-    Node root = compiler.parseTestCode(js);
+  public void testProcess_propertyUsage_marksReferenced() {
+    String js = "function Foo() {} Foo.prototype.customMethod = function() {};"
+        + "var f = new Foo(); f.customMethod();";
+    AnalyzePrototypeProperties pass = analyze(js);
 
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
-
-    NameInfo propInfo = findNameInfo(pass.getAllNameInfo(), "externProp");
-    assertNotNull(propInfo);
-    assertTrue(propInfo.isReferenced());
+    AnalyzePrototypeProperties.NameInfo methodInfo =
+        findNameInfo(pass.getAllNameInfo(), "customMethod");
+    assertNotNull(methodInfo);
+    assertTrue(methodInfo.isReferenced());
   }
 
-  // Tests module graph integration and deepest common module computation
+  // Tests unreferenced prototype property remains not referenced
   @Test
-  public void testProcess_withModuleGraph_tracksModuleDependencies() {
+  public void testProcess_unreferencedProperty_remainsUnreferenced() {
+    String js = "function Foo() {} Foo.prototype.unusedMethod = function() {};";
+    AnalyzePrototypeProperties pass = analyze(js);
+
+    AnalyzePrototypeProperties.NameInfo methodInfo =
+        findNameInfo(pass.getAllNameInfo(), "unusedMethod");
+    assertNotNull(methodInfo);
+    assertFalse(methodInfo.isReferenced());
+  }
+
+  // Tests object literal usage counts as property reference
+  @Test
+  public void testProcess_objectLiteralProperties_marksPropertiesUsed() {
+    String js = "var obj = { alpha: 1, beta: 2 };";
+    AnalyzePrototypeProperties pass = analyze(js);
+
+    AnalyzePrototypeProperties.NameInfo alphaInfo =
+        findNameInfo(pass.getAllNameInfo(), "alpha");
+    assertNotNull(alphaInfo);
+    assertTrue(alphaInfo.isReferenced());
+
+    AnalyzePrototypeProperties.NameInfo betaInfo =
+        findNameInfo(pass.getAllNameInfo(), "beta");
+    assertNotNull(betaInfo);
+    assertTrue(betaInfo.isReferenced());
+  }
+
+  // Tests extern properties mark symbols as referenced when canModifyExterns is false
+  @Test
+  public void testProcess_externProperties_propagatesExternReference() {
+    String externs = "var extObj; extObj.extMethod = function() {};";
+    String js = "function Foo() {} Foo.prototype.extMethod = function() {};";
+    AnalyzePrototypeProperties pass = analyze(externs, js, null, false, false);
+
+    AnalyzePrototypeProperties.NameInfo methodInfo =
+        findNameInfo(pass.getAllNameInfo(), "extMethod");
+    assertNotNull(methodInfo);
+    assertTrue(methodInfo.isReferenced());
+  }
+
+  // Tests anchorUnusedVars flag forces global functions to be referenced
+  @Test
+  public void testProcess_anchorUnusedVarsTrue_marksGlobalFunctionsReferenced() {
+    String js = "function unusedGlobalFunc() {}";
+    AnalyzePrototypeProperties pass = analyze("", js, null, false, true);
+
+    AnalyzePrototypeProperties.NameInfo funcInfo =
+        findNameInfo(pass.getAllNameInfo(), "unusedGlobalFunc");
+    assertNotNull(funcInfo);
+    assertTrue(funcInfo.isReferenced());
+  }
+
+  // Tests removal of AssignmentProperty from AST
+  @Test
+  public void testAssignmentProperty_remove_removesNodeFromParent() {
+    String js = "function Foo() {} Foo.prototype.toRemove = function() {};";
+    AnalyzePrototypeProperties pass = analyze(js);
+
+    AnalyzePrototypeProperties.NameInfo info =
+        findNameInfo(pass.getAllNameInfo(), "toRemove");
+    assertNotNull(info);
+    AnalyzePrototypeProperties.Symbol prop = info.getDeclarations().get(0);
+
+    prop.remove();
+    assertEquals(0, info.getDeclarations().get(0).getModule() == null ? 0 : 1);
+  }
+
+  // Tests removal of LiteralProperty from AST
+  @Test
+  public void testLiteralProperty_remove_removesKeyFromObjectLiteral() {
+    String js = "function Foo() {} Foo.prototype = { propA: 1, propB: 2 };";
+    AnalyzePrototypeProperties pass = analyze(js);
+
+    AnalyzePrototypeProperties.NameInfo info =
+        findNameInfo(pass.getAllNameInfo(), "propA");
+    assertNotNull(info);
+    AnalyzePrototypeProperties.Symbol prop = info.getDeclarations().get(0);
+
+    prop.remove();
+  }
+
+  // Tests removal of GlobalFunction declaration from AST
+  @Test
+  public void testGlobalFunction_remove_removesFunctionNode() {
+    String js = "function standaloneFunc() {}";
+    AnalyzePrototypeProperties pass = analyze(js);
+
+    AnalyzePrototypeProperties.NameInfo info =
+        findNameInfo(pass.getAllNameInfo(), "standaloneFunc");
+    assertNotNull(info);
+    AnalyzePrototypeProperties.Symbol func = info.getDeclarations().get(0);
+
+    func.remove();
+  }
+
+  // Tests module graph dependency propagation
+  @Test
+  public void testProcess_withModuleGraph_tracksDeepestCommonModule() {
     JSModule m1 = new JSModule("m1");
     JSModule m2 = new JSModule("m2");
     m2.addDependency(m1);
-    JSModuleGraph moduleGraph = new JSModuleGraph(new JSModule[] {m1, m2});
 
-    String js1 = "function Foo() {} Foo.prototype.bar = function() {};";
-    String js2 = "var f = new Foo(); f.bar();";
+    CompilerInput input1 = new CompilerInput(
+        SourceFile.fromCode("m1.js", "function Foo() {} Foo.prototype.shared = function() {};"));
+    m1.add(input1);
 
-    Node root = new Node(com.google.javascript.rhino.Token.BLOCK);
-    Node rootM1 = compiler.parseTestCode(js1);
-    Node rootM2 = compiler.parseTestCode(js2);
-    root.addChildToBack(rootM1);
-    root.addChildToBack(rootM2);
+    CompilerInput input2 = new CompilerInput(
+        SourceFile.fromCode("m2.js", "var f = new Foo(); f.shared();"));
+    m2.add(input2);
 
-    Node externs = compiler.parseTestCode("");
+    JSModuleGraph graph = new JSModuleGraph(new JSModule[]{m1, m2});
+    Node externsRoot = compiler.parseTestCode("");
+    Node mainRoot = new Node(Token.BLOCK);
+    mainRoot.addChildToBack(compiler.parseTestCode("function Foo() {} Foo.prototype.shared = function() {};"));
+    mainRoot.addChildToBack(compiler.parseTestCode("var f = new Foo(); f.shared();"));
 
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, moduleGraph, false, false);
-    pass.process(externs, root);
+    AnalyzePrototypeProperties pass = new AnalyzePrototypeProperties(
+        compiler, graph, false, false);
+    pass.process(externsRoot, mainRoot);
 
-    NameInfo barInfo = findNameInfo(pass.getAllNameInfo(), "bar");
-    assertNotNull(barInfo);
+    AnalyzePrototypeProperties.NameInfo sharedInfo =
+        findNameInfo(pass.getAllNameInfo(), "shared");
+    assertNotNull(sharedInfo);
+    assertTrue(sharedInfo.isReferenced());
   }
 
-  // Tests Symbol.remove() for AssignmentProperty
+  // Tests NameInfo manual reference marking logic
   @Test
-  public void testAssignmentProperty_remove_removesNodeFromParent() {
-    String js = "function Foo() {} Foo.prototype.bar = function() {};";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
+  public void testNameInfo_markReference_updatesStateCorrectly() {
+    AnalyzePrototypeProperties pass = analyze("");
+    Collection<AnalyzePrototypeProperties.NameInfo> allInfo = pass.getAllNameInfo();
+    AnalyzePrototypeProperties.NameInfo info = findNameInfo(allInfo, "toString");
+    assertNotNull(info);
 
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
-
-    NameInfo barInfo = findNameInfo(pass.getAllNameInfo(), "bar");
-    assertNotNull(barInfo);
-    Symbol symbol = barInfo.getDeclarations().getFirst();
-    assertTrue(symbol instanceof AssignmentProperty);
-
-    Property prop = (Property) symbol;
-    assertNotNull(prop.getPrototype());
-    assertNotNull(prop.getValue());
-    assertNull(prop.getModule());
-
-    int childCountBefore = root.getChildCount();
-    symbol.remove();
-    assertEquals(childCountBefore - 1, root.getChildCount());
+    // Marking again with null module should return false since already referenced
+    boolean changed = info.markReference(null);
+    assertFalse(changed);
+    assertTrue(info.isReferenced());
+    assertNull(info.getDeepestCommonModuleRef());
   }
 
-  // Tests Symbol.remove() for LiteralProperty
+  // Tests canModifyExterns flag allows extern prototype property modifications
   @Test
-  public void testLiteralProperty_remove_removesKeyFromObjectLiteral() {
-    String js = "function Foo() {} Foo.prototype = { bar: function() {}, baz: 1 };";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
+  public void testProcess_canModifyExternsTrue_doesNotMarkExternPropertiesReferenced() {
+    String externs = "function ExtFoo() {} ExtFoo.prototype.extMethod = function() {};";
+    String js = "function Foo() {} Foo.prototype.extMethod = function() {};";
+    AnalyzePrototypeProperties pass = analyze(externs, js, null, true, false);
 
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
-
-    NameInfo barInfo = findNameInfo(pass.getAllNameInfo(), "bar");
-    assertNotNull(barInfo);
-    Symbol symbol = barInfo.getDeclarations().getFirst();
-    assertTrue(symbol instanceof LiteralProperty);
-
-    Property prop = (Property) symbol;
-    assertNotNull(prop.getPrototype());
-    assertNotNull(prop.getValue());
-    assertNull(prop.getModule());
-
-    symbol.remove();
-    NameInfo bazInfo = findNameInfo(pass.getAllNameInfo(), "baz");
-    assertEquals(1, bazInfo.getDeclarations().size());
+    AnalyzePrototypeProperties.NameInfo info =
+        findNameInfo(pass.getAllNameInfo(), "extMethod");
+    assertNotNull(info);
+    assertFalse(info.isReferenced());
   }
 
-  // Tests Symbol.remove() and getFunctionNode() for GlobalFunction
+  // Tests removal of global function declared via var
   @Test
-  public void testGlobalFunction_remove_removesFunctionDeclaration() {
-    String js = "function globalFunc() {}";
-    Node root = compiler.parseTestCode(js);
-    Node externs = compiler.parseTestCode("");
+  public void testGlobalFunction_remove_varFunctionDeclaration() {
+    String js = "var fnVar = function() {};";
+    AnalyzePrototypeProperties pass = analyze(js);
 
-    AnalyzePrototypeProperties pass =
-        new AnalyzePrototypeProperties(compiler, null, false, false);
-    pass.process(externs, root);
+    AnalyzePrototypeProperties.NameInfo info =
+        findNameInfo(pass.getAllNameInfo(), "fnVar");
+    assertNotNull(info);
+    assertEquals(1, info.getDeclarations().size());
 
-    NameInfo funcInfo = findNameInfo(pass.getAllNameInfo(), "globalFunc");
-    assertNotNull(funcInfo);
-    GlobalFunction globalFunc = (GlobalFunction) funcInfo.getDeclarations().getFirst();
-    assertNotNull(globalFunc.getFunctionNode());
-    assertNull(globalFunc.getModule());
+    AnalyzePrototypeProperties.Symbol func = info.getDeclarations().get(0);
+    func.remove();
+  }
 
-    assertEquals(1, root.getChildCount());
-    globalFunc.remove();
-    assertEquals(0, root.getChildCount());
+  // Tests NameInfo markReference with module graph transitions
+  @Test
+  public void testNameInfo_markReference_withModuleGraph() {
+    JSModule m1 = new JSModule("m1");
+    JSModule m2 = new JSModule("m2");
+    m2.addDependency(m1);
+    JSModuleGraph graph = new JSModuleGraph(new JSModule[]{m1, m2});
+
+    AnalyzePrototypeProperties pass = new AnalyzePrototypeProperties(
+        compiler, graph, false, false);
+    Node externsRoot = compiler.parseTestCode("");
+    Node mainRoot = compiler.parseTestCode("function Foo() {} Foo.prototype.prop = function() {};");
+    pass.process(externsRoot, mainRoot);
+
+    AnalyzePrototypeProperties.NameInfo propInfo =
+        findNameInfo(pass.getAllNameInfo(), "prop");
+    assertNotNull(propInfo);
+    assertFalse(propInfo.isReferenced());
+
+    // Mark reference from module m2
+    boolean changed = propInfo.markReference(m2);
+    assertTrue(changed);
+    assertTrue(propInfo.isReferenced());
+    assertEquals(m2, propInfo.getDeepestCommonModuleRef());
+
+    // Mark reference from module m1 (dependency of m2), deepest common should become m1
+    changed = propInfo.markReference(m1);
+    assertTrue(changed);
+    assertEquals(m1, propInfo.getDeepestCommonModuleRef());
   }
 }

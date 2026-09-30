@@ -1,21 +1,18 @@
 package com.fasterxml.jackson.databind.deser.impl;
 
-import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.*;
 
 import org.junit.Before;
 import org.junit.Test;
-
 import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.introspect.*;
+import com.fasterxml.jackson.databind.deser.CreatorProperty;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
 import com.fasterxml.jackson.databind.deser.ValueInstantiator;
-import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
-import com.fasterxml.jackson.databind.introspect.AnnotatedConstructor;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
-import com.fasterxml.jackson.databind.introspect.AnnotatedParameter;
-import com.fasterxml.jackson.databind.introspect.AnnotatedWithParams;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class CreatorCollectorTest {
@@ -23,300 +20,297 @@ public class CreatorCollectorTest {
     private ObjectMapper _mapper;
     private DeserializationConfig _config;
 
-    static class SimpleBean {
-        public SimpleBean() {}
-    }
-
-    static class MultiCreatorBean {
-        protected String _s;
-        protected int _i;
-        protected long _l;
-        protected double _d;
-        protected boolean _b;
-
-        public MultiCreatorBean() {}
-        public MultiCreatorBean(String s) { _s = s; }
-        public MultiCreatorBean(int i) { _i = i; }
-        public MultiCreatorBean(long l) { _l = l; }
-        public MultiCreatorBean(double d) { _d = d; }
-        public MultiCreatorBean(boolean b) { _b = b; }
-    }
-
-    static class ConflictBean {
-        public ConflictBean(String a) {}
-        public static ConflictBean create(String b) { return new ConflictBean(b); }
-    }
-
     @Before
     public void setUp() {
         _mapper = new ObjectMapper();
         _config = _mapper.getDeserializationConfig();
     }
 
-    private CreatorCollector createCollector(Class<?> cls) {
-        JavaType type = TypeFactory.defaultInstance().constructType(cls);
-        BeanDescription beanDesc = _config.introspect(type);
-        return new CreatorCollector(beanDesc, _config);
+    // Static helper classes for introspection
+    static class DummyBean {
+        public DummyBean() {}
+        public DummyBean(String s) {}
+        public DummyBean(int i) {}
+        public DummyBean(long l) {}
+        public DummyBean(double d) {}
+        public DummyBean(boolean b) {}
+        public DummyBean(List<?> list) {}
+        public DummyBean(Object o) {}
+        public DummyBean(String s1, int i2) {}
     }
 
-    private AnnotatedConstructor findConstructor(Class<?> cls, Class<?>... paramTypes) {
+    static class SubDummyBean extends DummyBean {
+        public SubDummyBean(String s) { super(s); }
+        public SubDummyBean(Object o) { super(o); }
+    }
+
+    private BeanDescription _describe(Class<?> cls) {
         JavaType type = TypeFactory.defaultInstance().constructType(cls);
-        BeanDescription beanDesc = _config.introspect(type);
-        AnnotatedClass ac = beanDesc.getClassInfo();
-        for (AnnotatedConstructor ctor : ac.getConstructors()) {
-            if (ctor.getParameterCount() == paramTypes.length) {
-                boolean match = true;
-                for (int i = 0; i < paramTypes.length; ++i) {
-                    if (!ctor.getRawParameterType(i).equals(paramTypes[i])) {
-                        match = false;
-                        break;
-                    }
-                }
-                if (match) {
-                    return ctor;
-                }
+        return _config.introspect(type);
+    }
+
+    private AnnotatedConstructor _findConstructor(Class<?> cls, Class<?>... paramTypes) {
+        try {
+            Constructor<?> ctor = cls.getDeclaredConstructor(paramTypes);
+            AnnotatedClass ac = AnnotatedClass.constructWithoutSuperTypes(cls, _config);
+            AnnotationMap annMap = new AnnotationMap();
+            AnnotationMap[] paramAnns = new AnnotationMap[paramTypes.length];
+            for (int i = 0; i < paramTypes.length; ++i) {
+                paramAnns[i] = new AnnotationMap();
             }
+            return new AnnotatedConstructor(ac, ctor, annMap, paramAnns);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
-    private AnnotatedMethod findStaticMethod(Class<?> cls, String name) {
-        JavaType type = TypeFactory.defaultInstance().constructType(cls);
-        BeanDescription beanDesc = _config.introspect(type);
-        AnnotatedClass ac = beanDesc.getClassInfo();
-        for (AnnotatedMethod m : ac.getStaticMethods()) {
-            if (m.getName().equals(name)) {
-                return m;
-            }
-        }
-        return null;
-    }
-
-    // Tests default creator configuration and hasDefaultCreator
+    // Tests default constructor detection and hasDefaultCreator
     @Test
-    public void testSetDefaultCreator_validConstructor_hasDefaultCreatorTrue() {
-        CreatorCollector collector = createCollector(SimpleBean.class);
-        assertFalse(collector.hasDefaultCreator());
+    public void testDefaultCreator_singleDefaultConstructor_hasDefaultCreatorIsTrue() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        AnnotatedConstructor ctor = findConstructor(SimpleBean.class);
-        assertNotNull(ctor);
-        collector.setDefaultCreator(ctor);
-
-        assertTrue(collector.hasDefaultCreator());
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
-        assertNotNull(inst);
-        assertTrue(inst.canCreateUsingDefault());
+        assertFalse(coll.hasDefaultCreator());
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class);
+        coll.setDefaultCreator(ctor);
+        assertTrue(coll.hasDefaultCreator());
     }
 
-    // Tests vanilla Collection instantiator when no custom creator is set
+    // Tests adding string creator with verifyNonDup
     @Test
-    public void testConstructValueInstantiator_vanillaCollection_returnsVanillaInstantiator() throws IOException {
-        CreatorCollector collector = createCollector(ArrayList.class);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
+    public void testAddStringCreator_validStringConstructor_instantiatorConfigured() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        assertNotNull(inst);
-        assertTrue(inst instanceof CreatorCollector.Vanilla);
-        assertTrue(inst.canInstantiate());
-        assertTrue(inst.canCreateUsingDefault());
-        assertEquals(ArrayList.class.getName(), inst.getValueTypeDesc());
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, String.class);
+        coll.addStringCreator(ctor, true);
 
-        Object created = inst.createUsingDefault(null);
-        assertNotNull(created);
-        assertTrue(created instanceof ArrayList);
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertNotNull(vi);
+        assertTrue(vi.canCreateFromString());
     }
 
-    // Tests vanilla Map instantiator when no custom creator is set
+    // Tests adding int creator and verifies int instantiator configuration
     @Test
-    public void testConstructValueInstantiator_vanillaMap_returnsVanillaInstantiator() throws IOException {
-        CreatorCollector collector = createCollector(LinkedHashMap.class);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
+    public void testAddIntCreator_validIntConstructor_canCreateFromInt() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        assertNotNull(inst);
-        assertTrue(inst instanceof CreatorCollector.Vanilla);
-        assertEquals(LinkedHashMap.class.getName(), inst.getValueTypeDesc());
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, int.class);
+        coll.addIntCreator(ctor, true);
 
-        Object created = inst.createUsingDefault(null);
-        assertNotNull(created);
-        assertTrue(created instanceof LinkedHashMap);
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertNotNull(vi);
+        assertTrue(vi.canCreateFromInt());
     }
 
-    // Tests vanilla HashMap instantiator when no custom creator is set
+    // Tests deprecated addIntCreator method correctly routes to int creator
     @Test
-    public void testConstructValueInstantiator_vanillaHashMap_returnsVanillaInstantiator() throws IOException {
-        CreatorCollector collector = createCollector(HashMap.class);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
+    @SuppressWarnings("deprecation")
+    public void testAddIntCreatorDeprecated_routesToIntCreator_canCreateFromInt() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        assertNotNull(inst);
-        assertTrue(inst instanceof CreatorCollector.Vanilla);
-        assertEquals(HashMap.class.getName(), inst.getValueTypeDesc());
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, int.class);
+        coll.addIntCreator(ctor);
 
-        Object created = inst.createUsingDefault(null);
-        assertNotNull(created);
-        assertTrue(created instanceof HashMap);
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertTrue(vi.canCreateFromInt());
+        assertFalse(vi.canCreateFromBoolean());
     }
 
-    // Tests adding string creator
+    // Tests deprecated addLongCreator method correctly routes to long creator
     @Test
-    public void testAddStringCreator_validConstructor_configuresInstantiator() {
-        CreatorCollector collector = createCollector(MultiCreatorBean.class);
-        AnnotatedConstructor ctor = findConstructor(MultiCreatorBean.class, String.class);
-        assertNotNull(ctor);
+    @SuppressWarnings("deprecation")
+    public void testAddLongCreatorDeprecated_routesToLongCreator_canCreateFromLong() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        collector.addStringCreator(ctor, true);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, long.class);
+        coll.addLongCreator(ctor);
 
-        assertNotNull(inst);
-        assertTrue(inst.canCreateFromString());
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertTrue(vi.canCreateFromLong());
+        assertFalse(vi.canCreateFromBoolean());
     }
 
-    // Tests adding int creator
+    // Tests deprecated addDoubleCreator method correctly routes to double creator
     @Test
-    public void testAddIntCreator_validConstructor_configuresInstantiator() {
-        CreatorCollector collector = createCollector(MultiCreatorBean.class);
-        AnnotatedConstructor ctor = findConstructor(MultiCreatorBean.class, int.class);
-        assertNotNull(ctor);
+    @SuppressWarnings("deprecation")
+    public void testAddDoubleCreatorDeprecated_routesToDoubleCreator_canCreateFromDouble() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        collector.addIntCreator(ctor, true);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, double.class);
+        coll.addDoubleCreator(ctor);
 
-        assertNotNull(inst);
-        assertTrue(inst.canCreateFromInt());
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertTrue(vi.canCreateFromDouble());
+        assertFalse(vi.canCreateFromBoolean());
     }
 
-    // Tests adding long creator
+    // Tests deprecated addBooleanCreator method routes to boolean creator
     @Test
-    public void testAddLongCreator_validConstructor_configuresInstantiator() {
-        CreatorCollector collector = createCollector(MultiCreatorBean.class);
-        AnnotatedConstructor ctor = findConstructor(MultiCreatorBean.class, long.class);
-        assertNotNull(ctor);
+    @SuppressWarnings("deprecation")
+    public void testAddBooleanCreatorDeprecated_routesToBooleanCreator_canCreateFromBoolean() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        collector.addLongCreator(ctor, true);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, boolean.class);
+        coll.addBooleanCreator(ctor);
 
-        assertNotNull(inst);
-        assertTrue(inst.canCreateFromLong());
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertTrue(vi.canCreateFromBoolean());
     }
 
-    // Tests adding double creator
+    // Tests delegating creator with non-collection type
     @Test
-    public void testAddDoubleCreator_validConstructor_configuresInstantiator() {
-        CreatorCollector collector = createCollector(MultiCreatorBean.class);
-        AnnotatedConstructor ctor = findConstructor(MultiCreatorBean.class, double.class);
-        assertNotNull(ctor);
+    public void testAddDelegatingCreator_objectType_hasDelegatingCreatorIsTrue() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        collector.addDoubleCreator(ctor, true);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, Object.class);
+        coll.addDelegatingCreator(ctor, true, null);
 
-        assertNotNull(inst);
-        assertTrue(inst.canCreateFromDouble());
+        assertTrue(coll.hasDelegatingCreator());
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertTrue(vi.canCreateUsingDelegate());
     }
 
-    // Tests adding boolean creator
+    // Tests delegating creator with collection-like type (array delegate)
     @Test
-    public void testAddBooleanCreator_validConstructor_configuresInstantiator() {
-        CreatorCollector collector = createCollector(MultiCreatorBean.class);
-        AnnotatedConstructor ctor = findConstructor(MultiCreatorBean.class, boolean.class);
-        assertNotNull(ctor);
+    public void testAddDelegatingCreator_collectionLikeType_configuresArrayDelegate() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        collector.addBooleanCreator(ctor, true);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, List.class);
+        coll.addDelegatingCreator(ctor, true, null);
 
-        assertNotNull(inst);
-        assertTrue(inst.canCreateFromBoolean());
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertTrue(vi.canCreateUsingArrayDelegate());
     }
 
-    // Tests adding delegating creator
+    // Tests property-based creator configuration
     @Test
-    public void testAddDelegatingCreator_scalarType_hasDelegatingCreatorTrue() {
-        CreatorCollector collector = createCollector(MultiCreatorBean.class);
-        AnnotatedConstructor ctor = findConstructor(MultiCreatorBean.class, String.class);
-        assertNotNull(ctor);
+    public void testAddPropertyCreator_validProperties_hasPropertyBasedCreatorIsTrue() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        assertFalse(collector.hasDelegatingCreator());
-        collector.addDelegatingCreator(ctor, true, null);
-        assertTrue(collector.hasDelegatingCreator());
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, String.class, int.class);
+        JavaType strType = TypeFactory.defaultInstance().constructType(String.class);
+        JavaType intType = TypeFactory.defaultInstance().constructType(int.class);
 
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
-        assertNotNull(inst);
-        assertTrue(inst.canCreateUsingDelegate());
+        SettableBeanProperty prop1 = new CreatorProperty(PropertyName.construct("s1"), strType, null, null, null, null, 0, null, PropertyMetadata.STD_REQUIRED);
+        SettableBeanProperty prop2 = new CreatorProperty(PropertyName.construct("i2"), intType, null, null, null, null, 1, null, PropertyMetadata.STD_REQUIRED);
+
+        coll.addPropertyCreator(ctor, true, new SettableBeanProperty[] { prop1, prop2 });
+
+        assertTrue(coll.hasPropertyBasedCreator());
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertTrue(vi.canCreateFromObjectWith());
     }
 
-    // Tests adding property-based creator
-    @Test
-    public void testAddPropertyCreator_validProperties_hasPropertyBasedCreatorTrue() {
-        CreatorCollector collector = createCollector(MultiCreatorBean.class);
-        AnnotatedConstructor ctor = findConstructor(MultiCreatorBean.class, String.class);
-        assertNotNull(ctor);
-
-        assertFalse(collector.hasPropertyBasedCreator());
-        SettableBeanProperty[] props = new SettableBeanProperty[0];
-        collector.addPropertyCreator(ctor, true, props);
-        assertTrue(collector.hasPropertyBasedCreator());
-
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
-        assertNotNull(inst);
-        assertTrue(inst.canCreateFromObjectWith());
-    }
-
-    // Tests duplicate property names in addPropertyCreator throwing exception
+    // Tests duplicate property name exception in addPropertyCreator
     @Test(expected = IllegalArgumentException.class)
-    public void testAddPropertyCreator_duplicatePropertyNames_throwsException() {
-        CreatorCollector collector = createCollector(MultiCreatorBean.class);
-        AnnotatedConstructor ctor = findConstructor(MultiCreatorBean.class, String.class);
+    public void testAddPropertyCreator_duplicatePropertyNames_throwsIllegalArgumentException() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        SettableBeanProperty prop1 = org.mockito.Mockito.mock(SettableBeanProperty.class);
-        org.mockito.Mockito.when(prop1.getName()).thenReturn("sameName");
-        SettableBeanProperty prop2 = org.mockito.Mockito.mock(SettableBeanProperty.class);
-        org.mockito.Mockito.when(prop2.getName()).thenReturn("sameName");
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, String.class, int.class);
+        JavaType strType = TypeFactory.defaultInstance().constructType(String.class);
 
-        collector.addPropertyCreator(ctor, true, new SettableBeanProperty[] { prop1, prop2 });
+        SettableBeanProperty prop1 = new CreatorProperty(PropertyName.construct("dup"), strType, null, null, null, null, 0, null, PropertyMetadata.STD_REQUIRED);
+        SettableBeanProperty prop2 = new CreatorProperty(PropertyName.construct("dup"), strType, null, null, null, null, 1, null, PropertyMetadata.STD_REQUIRED);
+
+        coll.addPropertyCreator(ctor, true, new SettableBeanProperty[] { prop1, prop2 });
     }
 
-    // Tests conflicting duplicate creators throwing exception
+    // Tests duplicate creator conflict throwing exception when both explicit
     @Test(expected = IllegalArgumentException.class)
-    public void testVerifyNonDup_conflictingExplicitCreators_throwsException() {
-        CreatorCollector collector = createCollector(ConflictBean.class);
-        AnnotatedConstructor ctor1 = findConstructor(ConflictBean.class, String.class);
-        AnnotatedConstructor ctor2 = findConstructor(ConflictBean.class, String.class);
-        assertNotNull(ctor1);
-        assertNotNull(ctor2);
+    public void testVerifyNonDup_duplicateExplicitCreatorsSameType_throwsIllegalArgumentException() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        collector.addStringCreator(ctor1, true);
-        collector.addStringCreator(ctor2, true);
+        AnnotatedConstructor ctor1 = _findConstructor(DummyBean.class, String.class);
+        AnnotatedConstructor ctor2 = _findConstructor(DummyBean.class, String.class);
+
+        coll.addStringCreator(ctor1, true);
+        coll.addStringCreator(ctor2, true);
     }
 
-    // Tests non-conflicting override when new creator is not explicit
+    // Tests ignoring non-explicit creator when explicit one is already present
     @Test
-    public void testVerifyNonDup_explicitThenImplicit_keepsExplicit() {
-        CreatorCollector collector = createCollector(ConflictBean.class);
-        AnnotatedConstructor ctor = findConstructor(ConflictBean.class, String.class);
-        assertNotNull(ctor);
+    public void testVerifyNonDup_explicitThenNonExplicit_retainsExplicit() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        collector.addStringCreator(ctor, true);
-        collector.addStringCreator(ctor, false);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
-        assertNotNull(inst);
-        assertTrue(inst.canCreateFromString());
+        AnnotatedConstructor ctor1 = _findConstructor(DummyBean.class, String.class);
+        AnnotatedConstructor ctor2 = _findConstructor(DummyBean.class, String.class);
+
+        coll.addStringCreator(ctor1, true);
+        coll.addStringCreator(ctor2, false);
+
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertNotNull(vi);
+        assertTrue(vi.canCreateFromString());
     }
 
-    // Tests incomplete parameter handling
+    // Tests Vanilla instantiator for ArrayList
     @Test
-    public void testAddIncompleteParameter_parameterProvided_configuresInstantiator() {
-        CreatorCollector collector = createCollector(MultiCreatorBean.class);
-        AnnotatedConstructor ctor = findConstructor(MultiCreatorBean.class, String.class);
-        AnnotatedParameter param = ctor.getParameter(0);
+    public void testConstructValueInstantiator_arrayListTypeNoCustomCreators_returnsVanilla() throws Exception {
+        BeanDescription beanDesc = _describe(ArrayList.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
 
-        collector.addIncompeteParameter(param);
-        ValueInstantiator inst = collector.constructValueInstantiator(_config);
-        assertNotNull(inst);
-        assertEquals(param, inst.getIncompleteParameter());
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertNotNull(vi);
+        assertTrue(vi.canInstantiate());
+        assertTrue(vi.canCreateUsingDefault());
+        Object instance = vi.createUsingDefault(null);
+        assertTrue(instance instanceof ArrayList);
+        assertEquals(ArrayList.class.getName(), vi.getValueTypeDesc());
     }
 
-    // Tests Vanilla ValueInstantiator unknown type exception
-    @Test(expected = IllegalStateException.class)
-    public void testVanillaInstantiator_unknownType_throwsException() throws IOException {
-        CreatorCollector.Vanilla vanilla = new CreatorCollector.Vanilla(999);
-        assertEquals(Object.class.getName(), vanilla.getValueTypeDesc());
-        vanilla.createUsingDefault(null);
+    // Tests Vanilla instantiator for HashMap
+    @Test
+    public void testConstructValueInstantiator_hashMapTypeNoCustomCreators_returnsVanilla() throws Exception {
+        BeanDescription beanDesc = _describe(HashMap.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
+
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertNotNull(vi);
+        assertTrue(vi.canInstantiate());
+        assertTrue(vi.canCreateUsingDefault());
+        Object instance = vi.createUsingDefault(null);
+        assertTrue(instance instanceof HashMap);
+        assertEquals(HashMap.class.getName(), vi.getValueTypeDesc());
+    }
+
+    // Tests Vanilla instantiator for LinkedHashMap / Map
+    @Test
+    public void testConstructValueInstantiator_mapTypeNoCustomCreators_returnsVanilla() throws Exception {
+        BeanDescription beanDesc = _describe(Map.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
+
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertNotNull(vi);
+        Object instance = vi.createUsingDefault(null);
+        assertTrue(instance instanceof LinkedHashMap);
+        assertEquals(LinkedHashMap.class.getName(), vi.getValueTypeDesc());
+    }
+
+    // Tests addIncompleteParameter branch
+    @Test
+    public void testAddIncompleteParameter_setsParameterOnce() {
+        BeanDescription beanDesc = _describe(DummyBean.class);
+        CreatorCollector coll = new CreatorCollector(beanDesc, _config);
+
+        AnnotatedConstructor ctor = _findConstructor(DummyBean.class, String.class);
+        AnnotatedParameter param = new AnnotatedParameter(ctor, TypeFactory.defaultInstance().constructType(String.class), new AnnotationMap(), 0);
+
+        coll.addIncompeteParameter(param);
+        coll.addIncompeteParameter(null);
+
+        ValueInstantiator vi = coll.constructValueInstantiator(_config);
+        assertNotNull(vi);
     }
 }

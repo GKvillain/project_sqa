@@ -1,141 +1,221 @@
 package org.apache.commons.jxpath.ri.compiler;
 
+import org.apache.commons.jxpath.ri.EvalContext;
 import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class CoreOperationGreaterThanTest {
 
-    // Tests that getSymbol returns the correct operator symbol
+    // Tests getSymbol method returns correct operator symbol
     @Test
-    public void testGetSymbol_returnsGreaterThanSymbol() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(2), new Constant(1));
+    public void testGetSymbol_noCondition_returnsGreaterThanSymbol() {
+        Constant arg1 = new Constant(Double.valueOf(1.0));
+        Constant arg2 = new Constant(Double.valueOf(2.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
         assertEquals(">", op.getSymbol());
     }
 
-    // Tests greater than with integer constants where left > right (true branch)
+    // Tests computeValue with left operand strictly greater than right operand
     @Test
     public void testComputeValue_leftGreaterThanRight_returnsTrue() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(5), new Constant(3));
-        Object result = op.computeValue(null);
+        Constant arg1 = new Constant(Double.valueOf(5.0));
+        Constant arg2 = new Constant(Double.valueOf(3.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests greater than with integer constants where left < right (false branch)
+    // Tests computeValue with left operand strictly less than right operand
     @Test
     public void testComputeValue_leftLessThanRight_returnsFalse() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(2), new Constant(7));
-        Object result = op.computeValue(null);
+        Constant arg1 = new Constant(Double.valueOf(2.0));
+        Constant arg2 = new Constant(Double.valueOf(4.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.FALSE, result);
     }
 
-    // Tests boundary condition where left == right (false branch)
+    // Tests computeValue with equal operand values
     @Test
-    public void testComputeValue_leftEqualsRight_returnsFalse() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(4), new Constant(4));
-        Object result = op.computeValue(null);
+    public void testComputeValue_equalOperands_returnsFalse() {
+        Constant arg1 = new Constant(Double.valueOf(3.0));
+        Constant arg2 = new Constant(Double.valueOf(3.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.FALSE, result);
     }
 
-    // Tests greater than with negative numbers where left > right
+    // Tests computeValue with zero values
     @Test
-    public void testComputeValue_negativeNumbersLeftGreater_returnsTrue() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(-1), new Constant(-5));
-        Object result = op.computeValue(null);
-        assertEquals(Boolean.TRUE, result);
-    }
+    public void testComputeValue_zeroVersusZero_returnsFalse() {
+        Constant arg1 = new Constant(Double.valueOf(0.0));
+        Constant arg2 = new Constant(Double.valueOf(0.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
 
-    // Tests greater than with negative numbers where left < right
-    @Test
-    public void testComputeValue_negativeNumbersLeftLess_returnsFalse() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(-10), new Constant(-2));
-        Object result = op.computeValue(null);
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.FALSE, result);
     }
 
-    // Tests zero against negative value
+    // Tests computeValue with zero and negative value
     @Test
     public void testComputeValue_zeroGreaterThanNegative_returnsTrue() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(0), new Constant(-1));
-        Object result = op.computeValue(null);
+        Constant arg1 = new Constant(Double.valueOf(0.0));
+        Constant arg2 = new Constant(Double.valueOf(-1.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests zero against positive value
+    // Tests computeValue with negative numbers
     @Test
-    public void testComputeValue_zeroLessThanPositive_returnsFalse() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(0), new Constant(1));
-        Object result = op.computeValue(null);
-        assertEquals(Boolean.FALSE, result);
-    }
+    public void testComputeValue_negativeNumbersGreater_returnsTrue() {
+        Constant arg1 = new Constant(Double.valueOf(-2.0));
+        Constant arg2 = new Constant(Double.valueOf(-5.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
 
-    // Tests decimal / double values where left > right
-    @Test
-    public void testComputeValue_doubleValuesLeftGreater_returnsTrue() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(5.5), new Constant(5.4));
-        Object result = op.computeValue(null);
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests decimal / double values where left < right
+    // Tests computeValue with negative numbers less than
     @Test
-    public void testComputeValue_doubleValuesLeftLess_returnsFalse() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(3.14), new Constant(3.15));
-        Object result = op.computeValue(null);
+    public void testComputeValue_negativeNumbersLess_returnsFalse() {
+        Constant arg1 = new Constant(Double.valueOf(-5.0));
+        Constant arg2 = new Constant(Double.valueOf(-2.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.FALSE, result);
     }
 
-    // Tests string representations of numbers where left > right
+    // Tests computeValue with integer number constants
     @Test
-    public void testComputeValue_stringNumbersLeftGreater_returnsTrue() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant("10"), new Constant("2"));
-        Object result = op.computeValue(null);
+    public void testComputeValue_integerConstants_returnsCorrectResult() {
+        Constant arg1 = new Constant(Integer.valueOf(10));
+        Constant arg2 = new Constant(Integer.valueOf(5));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests string representations of numbers where left < right
+    // Tests computeValue with numeric string constants
     @Test
-    public void testComputeValue_stringNumbersLeftLess_returnsFalse() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant("2"), new Constant("10"));
-        Object result = op.computeValue(null);
+    public void testComputeValue_stringOperands_parsedAsDouble() {
+        Constant arg1 = new Constant("15.5");
+        Constant arg2 = new Constant("10.2");
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
+        assertEquals(Boolean.TRUE, result);
+    }
+
+    // Tests computeValue with string comparisons where alphabetical order differs from numeric
+    @Test
+    public void testComputeValue_stringNumericDifference_returnsTrue() {
+        Constant arg1 = new Constant("10");
+        Constant arg2 = new Constant("2");
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
+        assertEquals(Boolean.TRUE, result);
+    }
+
+    // Tests computeValue with boundary double infinity values
+    @Test
+    public void testComputeValue_positiveInfinityVersusMaxDouble_returnsTrue() {
+        Constant arg1 = new Constant(Double.valueOf(Double.POSITIVE_INFINITY));
+        Constant arg2 = new Constant(Double.valueOf(Double.MAX_VALUE));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
+        assertEquals(Boolean.TRUE, result);
+    }
+
+    // Tests computeValue with negative infinity boundary
+    @Test
+    public void testComputeValue_negativeInfinityVersusMinValue_returnsFalse() {
+        Constant arg1 = new Constant(Double.valueOf(Double.NEGATIVE_INFINITY));
+        Constant arg2 = new Constant(Double.valueOf(-Double.MAX_VALUE));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.FALSE, result);
     }
 
-    // Directly tests evaluateCompare with positive integer
+    // Tests computeValue with NaN operands
     @Test
-    public void testEvaluateCompare_positive_returnsTrue() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(1), new Constant(2));
+    public void testComputeValue_nanOperand_returnsFalse() {
+        Constant arg1 = new Constant(Double.valueOf(Double.NaN));
+        Constant arg2 = new Constant(Double.valueOf(1.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
+        assertEquals(Boolean.FALSE, result);
+    }
+
+    // Tests evaluateCompare directly with positive compare values
+    @Test
+    public void testEvaluateCompare_positiveCompareValue_returnsTrue() {
+        Constant arg1 = new Constant(Double.valueOf(1.0));
+        Constant arg2 = new Constant(Double.valueOf(2.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
         assertTrue(op.evaluateCompare(1));
+        assertTrue(op.evaluateCompare(100));
     }
 
-    // Directly tests evaluateCompare with zero
+    // Tests evaluateCompare directly with zero compare value
     @Test
-    public void testEvaluateCompare_zero_returnsFalse() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(1), new Constant(2));
+    public void testEvaluateCompare_zeroCompareValue_returnsFalse() {
+        Constant arg1 = new Constant(Double.valueOf(1.0));
+        Constant arg2 = new Constant(Double.valueOf(2.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
         assertFalse(op.evaluateCompare(0));
     }
 
-    // Directly tests evaluateCompare with negative integer
+    // Tests evaluateCompare directly with negative compare values
     @Test
-    public void testEvaluateCompare_negative_returnsFalse() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(1), new Constant(2));
+    public void testEvaluateCompare_negativeCompareValue_returnsFalse() {
+        Constant arg1 = new Constant(Double.valueOf(1.0));
+        Constant arg2 = new Constant(Double.valueOf(2.0));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
         assertFalse(op.evaluateCompare(-1));
+        assertFalse(op.evaluateCompare(-100));
     }
 
-    // Tests NaN comparison
+    // Tests computeValue with right operand being NaN
     @Test
-    public void testComputeValue_withNaN_returnsFalse() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(Double.NaN), new Constant(1.0));
-        Object result = op.computeValue(null);
+    public void testComputeValue_rightNanOperand_returnsFalse() {
+        Constant arg1 = new Constant(Double.valueOf(1.0));
+        Constant arg2 = new Constant(Double.valueOf(Double.NaN));
+        CoreOperationGreaterThan op = new CoreOperationGreaterThan(arg1, arg2);
+
+        Object result = op.computeValue((EvalContext) null);
+
         assertEquals(Boolean.FALSE, result);
-    }
-
-    // Tests infinity comparison
-    @Test
-    public void testComputeValue_withInfinity_returnsTrue() {
-        CoreOperationGreaterThan op = new CoreOperationGreaterThan(new Constant(Double.POSITIVE_INFINITY), new Constant(Double.MAX_VALUE));
-        Object result = op.computeValue(null);
-        assertEquals(Boolean.TRUE, result);
     }
 }

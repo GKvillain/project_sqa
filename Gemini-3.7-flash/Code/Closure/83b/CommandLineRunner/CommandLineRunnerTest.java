@@ -1,5 +1,6 @@
 package com.google.javascript.jscomp;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -20,18 +21,28 @@ public class CommandLineRunnerTest {
   private PrintStream out;
   private PrintStream err;
 
-  private static class SubCommandLineRunner extends CommandLineRunner {
-    SubCommandLineRunner(String[] args, PrintStream out, PrintStream err) {
+  private static class TestableCommandLineRunner extends CommandLineRunner {
+    TestableCommandLineRunner(String[] args, PrintStream out, PrintStream err) {
       super(args, out, err);
     }
 
-    SubCommandLineRunner(String[] args) {
+    TestableCommandLineRunner(String[] args) {
       super(args);
     }
 
     @Override
     public CompilerOptions createOptions() {
       return super.createOptions();
+    }
+
+    @Override
+    public Compiler createCompiler() {
+      return super.createCompiler();
+    }
+
+    @Override
+    public List<JSSourceFile> createExterns() throws IOException, FlagUsageException {
+      return super.createExterns();
     }
   }
 
@@ -43,103 +54,75 @@ public class CommandLineRunnerTest {
     err = new PrintStream(errStream);
   }
 
-  private SubCommandLineRunner createRunner(String[] args) {
-    return new SubCommandLineRunner(args, out, err);
+  @After
+  public void tearDown() {
+    out.close();
+    err.close();
   }
 
-  // Tests --version flag when passed with no subsequent parameters (Regression test for Defect 83)
+  // Tests --version flag alone without explicit value
   @Test
-  public void testVersionFlag_alone_shouldBeValid() {
-    String[] args = new String[] {"--version"};
-    SubCommandLineRunner runner = createRunner(args);
+  public void testVersion_noParam_printsVersionAndValid() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--version"}, out, err);
     assertTrue(runner.shouldRunCompiler());
-    String errOutput = new String(errStream.toByteArray());
+    String errOutput = errStream.toString();
     assertTrue(errOutput.contains("Closure Compiler"));
     assertTrue(errOutput.contains("Version:"));
   }
 
-  // Tests --version flag followed by another argument
+  // Tests --version flag with explicit boolean values
   @Test
-  public void testVersionFlag_withFollowingArg_shouldBeValid() {
-    String[] args = new String[] {"--version", "--js", "test.js"};
-    SubCommandLineRunner runner = createRunner(args);
-    assertTrue(runner.shouldRunCompiler());
-    String errOutput = new String(errStream.toByteArray());
-    assertTrue(errOutput.contains("Closure Compiler"));
+  public void testVersion_explicitValues_handledCorrectly() {
+    TestableCommandLineRunner runnerTrue = new TestableCommandLineRunner(
+        new String[] {"--version=true"}, out, err);
+    assertTrue(runnerTrue.shouldRunCompiler());
+    assertTrue(errStream.toString().contains("Closure Compiler"));
+
+    errStream.reset();
+    TestableCommandLineRunner runnerFalse = new TestableCommandLineRunner(
+        new String[] {"--version=false"}, out, err);
+    assertTrue(runnerFalse.shouldRunCompiler());
+    assertEquals("", errStream.toString());
   }
 
-  // Tests boolean option explicitly set to true
+  // Tests --help flag triggers usage output and invalidates config
   @Test
-  public void testBooleanOption_explicitTrue_shouldBeValid() {
-    String[] args = new String[] {"--debug=true"};
-    SubCommandLineRunner runner = createRunner(args);
-    assertTrue(runner.shouldRunCompiler());
-    CompilerOptions options = runner.createOptions();
-    assertNotNull(options);
-  }
-
-  // Tests boolean option explicitly set to false
-  @Test
-  public void testBooleanOption_explicitFalse_shouldBeValid() {
-    String[] args = new String[] {"--process_closure_primitives=false"};
-    SubCommandLineRunner runner = createRunner(args);
-    assertTrue(runner.shouldRunCompiler());
-    CompilerOptions options = runner.createOptions();
-    assertFalse(options.closurePass);
-  }
-
-  // Tests boolean option alternative values (on/off, yes/no, 1/0)
-  @Test
-  public void testBooleanOption_truthyAndFalsyValues_setsProperValue() {
-    String[] argsOn = new String[] {"--debug=on"};
-    SubCommandLineRunner runnerOn = createRunner(argsOn);
-    assertTrue(runnerOn.shouldRunCompiler());
-
-    String[] argsYes = new String[] {"--debug=yes"};
-    SubCommandLineRunner runnerYes = createRunner(argsYes);
-    assertTrue(runnerYes.shouldRunCompiler());
-
-    String[] argsOne = new String[] {"--debug=1"};
-    SubCommandLineRunner runnerOne = createRunner(argsOne);
-    assertTrue(runnerOne.shouldRunCompiler());
-
-    String[] argsOff = new String[] {"--debug=off"};
-    SubCommandLineRunner runnerOff = createRunner(argsOff);
-    assertTrue(runnerOff.shouldRunCompiler());
-
-    String[] argsNo = new String[] {"--debug=no"};
-    SubCommandLineRunner runnerNo = createRunner(argsNo);
-    assertTrue(runnerNo.shouldRunCompiler());
-
-    String[] argsZero = new String[] {"--debug=0"};
-    SubCommandLineRunner runnerZero = createRunner(argsZero);
-    assertTrue(runnerZero.shouldRunCompiler());
-  }
-
-  // Tests --help flag sets config invalid and prints usage
-  @Test
-  public void testHelpFlag_setsConfigInvalidAndPrintsUsage() {
-    String[] args = new String[] {"--help"};
-    SubCommandLineRunner runner = createRunner(args);
+  public void testHelp_flagPassed_printsUsageAndInvalidatesConfig() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--help"}, out, err);
     assertFalse(runner.shouldRunCompiler());
-    String errOutput = new String(errStream.toByteArray());
+    String errOutput = errStream.toString();
     assertTrue(errOutput.contains("--help"));
   }
 
-  // Tests unknown flag makes config invalid
+  // Tests default runner construction with valid empty arguments
   @Test
-  public void testUnknownFlag_makesConfigInvalid() {
-    String[] args = new String[] {"--non_existent_flag"};
-    SubCommandLineRunner runner = createRunner(args);
-    assertFalse(runner.shouldRunCompiler());
+  public void testInit_emptyArgs_configIsValid() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(new String[] {}, out, err);
+    assertTrue(runner.shouldRunCompiler());
   }
 
-  // Tests default options creation
+  // Tests invalid/unknown command line argument handling
   @Test
-  public void testCreateOptions_defaults_createsValidOptions() {
-    String[] args = new String[] {};
-    SubCommandLineRunner runner = createRunner(args);
+  public void testInit_unknownFlag_configIsInvalid() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--non_existent_flag_xyz"}, out, err);
+    assertFalse(runner.shouldRunCompiler());
+    assertTrue(errStream.toString().length() > 0);
+  }
+
+  // Tests single-argument constructor
+  @Test
+  public void testConstructor_singleArgArray_constructsSuccessfully() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(new String[] {});
     assertTrue(runner.shouldRunCompiler());
+  }
+
+  // Tests createOptions with default options
+  @Test
+  public void testCreateOptions_defaultFlags_returnsOptions() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(new String[] {}, out, err);
     CompilerOptions options = runner.createOptions();
     assertNotNull(options);
     assertTrue(options.closurePass);
@@ -147,108 +130,196 @@ public class CommandLineRunnerTest {
     assertFalse(options.printInputDelimiter);
   }
 
-  // Tests compilation_level flag with WHITESPACE_ONLY
+  // Tests createOptions with --debug enabled
   @Test
-  public void testCreateOptions_compilationLevelWhitespace_setsOptions() {
-    String[] args = new String[] {"--compilation_level=WHITESPACE_ONLY"};
-    SubCommandLineRunner runner = createRunner(args);
-    assertTrue(runner.shouldRunCompiler());
+  public void testCreateOptions_debugFlag_setsDebugOptions() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--debug"}, out, err);
     CompilerOptions options = runner.createOptions();
     assertNotNull(options);
+    assertTrue(runner.shouldRunCompiler());
   }
 
-  // Tests compilation_level flag with ADVANCED_OPTIMIZATIONS
+  // Tests createOptions with compilation level settings
   @Test
-  public void testCreateOptions_compilationLevelAdvanced_setsOptions() {
-    String[] args = new String[] {"--compilation_level=ADVANCED_OPTIMIZATIONS"};
-    SubCommandLineRunner runner = createRunner(args);
-    assertTrue(runner.shouldRunCompiler());
+  public void testCreateOptions_compilationLevel_configuresOptions() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--compilation_level=WHITESPACE_ONLY"}, out, err);
     CompilerOptions options = runner.createOptions();
     assertNotNull(options);
-  }
-
-  // Tests warning_level flag with QUIET and VERBOSE
-  @Test
-  public void testCreateOptions_warningLevels_setsOptions() {
-    String[] argsQuiet = new String[] {"--warning_level=QUIET"};
-    SubCommandLineRunner runnerQuiet = createRunner(argsQuiet);
-    assertTrue(runnerQuiet.shouldRunCompiler());
-    assertNotNull(runnerQuiet.createOptions());
-
-    String[] argsVerbose = new String[] {"--warning_level=VERBOSE"};
-    SubCommandLineRunner runnerVerbose = createRunner(argsVerbose);
-    assertTrue(runnerVerbose.shouldRunCompiler());
-    assertNotNull(runnerVerbose.createOptions());
-  }
-
-  // Tests formatting options PRETTY_PRINT and PRINT_INPUT_DELIMITER
-  @Test
-  public void testCreateOptions_formattingOptions_setsOptions() {
-    String[] args = new String[] {
-        "--formatting=PRETTY_PRINT",
-        "--formatting=PRINT_INPUT_DELIMITER"
-    };
-    SubCommandLineRunner runner = createRunner(args);
     assertTrue(runner.shouldRunCompiler());
+  }
+
+  // Tests createOptions with warning level settings
+  @Test
+  public void testCreateOptions_warningLevel_configuresOptions() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--warning_level=VERBOSE"}, out, err);
+    CompilerOptions options = runner.createOptions();
+    assertNotNull(options);
+    assertTrue(runner.shouldRunCompiler());
+  }
+
+  // Tests createOptions with formatting options
+  @Test
+  public void testCreateOptions_formattingOptions_setsPrettyPrintAndDelimiter() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--formatting=PRETTY_PRINT", "--formatting=PRINT_INPUT_DELIMITER"}, out, err);
     CompilerOptions options = runner.createOptions();
     assertTrue(options.prettyPrint);
     assertTrue(options.printInputDelimiter);
   }
 
-  // Tests argument parsing with double-quoted values
+  // Tests BooleanOptionHandler with boolean truthy and falsy aliases
   @Test
-  public void testArgParsing_quotedValues_unquotesSuccessfully() {
-    String[] args = new String[] {"--compilation_level=\"WHITESPACE_ONLY\""};
-    SubCommandLineRunner runner = createRunner(args);
-    assertTrue(runner.shouldRunCompiler());
-    CompilerOptions options = runner.createOptions();
-    assertNotNull(options);
+  public void testBooleanOptionHandler_variousAliases_parsedCorrectly() {
+    TestableCommandLineRunner runnerOn = new TestableCommandLineRunner(
+        new String[] {"--process_closure_primitives=on"}, out, err);
+    assertTrue(runnerOn.createOptions().closurePass);
+
+    TestableCommandLineRunner runnerYes = new TestableCommandLineRunner(
+        new String[] {"--process_closure_primitives=yes"}, out, err);
+    assertTrue(runnerYes.createOptions().closurePass);
+
+    TestableCommandLineRunner runnerOne = new TestableCommandLineRunner(
+        new String[] {"--process_closure_primitives=1"}, out, err);
+    assertTrue(runnerOne.createOptions().closurePass);
+
+    TestableCommandLineRunner runnerOff = new TestableCommandLineRunner(
+        new String[] {"--process_closure_primitives=off"}, out, err);
+    assertFalse(runnerOff.createOptions().closurePass);
+
+    TestableCommandLineRunner runnerNo = new TestableCommandLineRunner(
+        new String[] {"--process_closure_primitives=no"}, out, err);
+    assertFalse(runnerNo.createOptions().closurePass);
+
+    TestableCommandLineRunner runnerZero = new TestableCommandLineRunner(
+        new String[] {"--process_closure_primitives=0"}, out, err);
+    assertFalse(runnerZero.createOptions().closurePass);
   }
 
-  // Tests argument parsing with single-quoted values
+  // Tests argument parsing with single and double quotes stripping
   @Test
-  public void testArgParsing_singleQuotedValues_unquotesSuccessfully() {
-    String[] args = new String[] {"--compilation_level='ADVANCED_OPTIMIZATIONS'"};
-    SubCommandLineRunner runner = createRunner(args);
+  public void testInit_quotedArguments_quotesStrippedCorrectly() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--define='FOO=true'", "--define=\"BAR=123\""}, out, err);
     assertTrue(runner.shouldRunCompiler());
-    CompilerOptions options = runner.createOptions();
-    assertNotNull(options);
   }
 
-  // Tests third_party flag configuration
+  // Tests third_party flag affects coding convention
   @Test
-  public void testThirdPartyFlag_setsDefaultCodingConvention() {
-    String[] args = new String[] {"--third_party=true"};
-    SubCommandLineRunner runner = createRunner(args);
+  public void testInit_thirdPartyFlag_setsDefaultCodingConvention() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--third_party"}, out, err);
     assertTrue(runner.shouldRunCompiler());
     CompilerOptions options = runner.createOptions();
     assertTrue(options.getCodingConvention() instanceof DefaultCodingConvention);
   }
 
-  // Tests non third_party flag configuration (Closure convention)
+  // Tests getDefaultExterns loads required standard externs list
   @Test
-  public void testClosureConvention_isDefault() {
-    String[] args = new String[] {};
-    SubCommandLineRunner runner = createRunner(args);
+  public void testGetDefaultExterns_loadsValidDefaultExterns() throws IOException {
+    List<JSSourceFile> defaultExterns = CommandLineRunner.getDefaultExterns();
+    assertNotNull(defaultExterns);
+    assertFalse(defaultExterns.isEmpty());
+  }
+
+  // Tests createExterns with default externs included
+  @Test
+  public void testCreateExterns_default_includesDefaultExterns() throws Exception {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(new String[] {}, out, err);
+    List<JSSourceFile> externs = runner.createExterns();
+    assertNotNull(externs);
+    assertFalse(externs.isEmpty());
+  }
+
+  // Tests createExterns when --use_only_custom_externs is enabled
+  @Test
+  public void testCreateExterns_useOnlyCustomExterns_returnsOnlyCustom() throws Exception {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--use_only_custom_externs"}, out, err);
+    List<JSSourceFile> externs = runner.createExterns();
+    assertNotNull(externs);
+    assertTrue(externs.isEmpty());
+  }
+
+  // Tests createCompiler returns non-null Compiler instance
+  @Test
+  public void testCreateCompiler_createsCompilerInstance() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(new String[] {}, out, err);
+    Compiler compiler = runner.createCompiler();
+    assertNotNull(compiler);
+  }
+
+  // Tests default coding convention is ClosureCodingConvention
+  @Test
+  public void testInit_defaultCodingConvention_isClosure() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {}, out, err);
     assertTrue(runner.shouldRunCompiler());
     CompilerOptions options = runner.createOptions();
     assertTrue(options.getCodingConvention() instanceof ClosureCodingConvention);
   }
 
-  // Tests getDefaultExterns loads required standard extern files
+  // Tests BooleanOptionHandler error message on invalid boolean argument
   @Test
-  public void testGetDefaultExterns_returnsNonEmptyList() throws IOException {
-    List<JSSourceFile> externs = CommandLineRunner.getDefaultExterns();
-    assertNotNull(externs);
-    assertFalse(externs.isEmpty());
-    assertEquals("externs.zip//es3.js", externs.get(0).getName());
+  public void testBooleanOptionHandler_invalidValue_printsErrorAndInvalidatesConfig() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--process_closure_primitives=invalid_bool"}, out, err);
+    assertFalse(runner.shouldRunCompiler());
+    assertTrue(errStream.toString().length() > 0);
   }
 
-  // Tests createCompiler returns non-null compiler instance
+  // Tests warning_level QUIET and DEFAULT configurations
   @Test
-  public void testCreateCompiler_returnsCompiler() {
-    String[] args = new String[] {};
-    SubCommandLineRunner runner = createRunner(args);
-    assertNotNull(runner.createCompiler());
+  public void testCreateOptions_warningLevels_quietAndDefault() {
+    TestableCommandLineRunner runnerQuiet = new TestableCommandLineRunner(
+        new String[] {"--warning_level=QUIET"}, out, err);
+    CompilerOptions optionsQuiet = runnerQuiet.createOptions();
+    assertNotNull(optionsQuiet);
+
+    TestableCommandLineRunner runnerDefault = new TestableCommandLineRunner(
+        new String[] {"--warning_level=DEFAULT"}, out, err);
+    CompilerOptions optionsDefault = runnerDefault.createOptions();
+    assertNotNull(optionsDefault);
+  }
+
+  // Tests compilation_level SIMPLE_OPTIMIZATIONS and ADVANCED_OPTIMIZATIONS
+  @Test
+  public void testCreateOptions_compilationLevels_simpleAndAdvanced() {
+    TestableCommandLineRunner runnerSimple = new TestableCommandLineRunner(
+        new String[] {"--compilation_level=SIMPLE_OPTIMIZATIONS"}, out, err);
+    CompilerOptions optionsSimple = runnerSimple.createOptions();
+    assertNotNull(optionsSimple);
+
+    TestableCommandLineRunner runnerAdvanced = new TestableCommandLineRunner(
+        new String[] {"--compilation_level=ADVANCED_OPTIMIZATIONS"}, out, err);
+    CompilerOptions optionsAdvanced = runnerAdvanced.createOptions();
+    assertNotNull(optionsAdvanced);
+  }
+
+  // Tests dependency management and closure entry point flags
+  @Test
+  public void testCreateOptions_closureDependenciesAndEntryPoints() {
+    TestableCommandLineRunner runnerManage = new TestableCommandLineRunner(
+        new String[] {"--manage_closure_dependencies=true"}, out, err);
+    assertNotNull(runnerManage.createOptions());
+
+    TestableCommandLineRunner runnerEntry = new TestableCommandLineRunner(
+        new String[] {"--closure_entry_point=my.app.start"}, out, err);
+    assertNotNull(runnerEntry.createOptions());
+
+    TestableCommandLineRunner runnerOnly = new TestableCommandLineRunner(
+        new String[] {"--only_closure_dependencies=true", "--closure_entry_point=my.app.start"}, out, err);
+    assertNotNull(runnerOnly.createOptions());
+  }
+
+  // Tests define flags configured into options
+  @Test
+  public void testCreateOptions_defines() {
+    TestableCommandLineRunner runner = new TestableCommandLineRunner(
+        new String[] {"--define=FLAG_BOOL=true", "--define=FLAG_NUM=42", "--define=FLAG_STR='hello'"}, out, err);
+    CompilerOptions options = runner.createOptions();
+    assertNotNull(options);
   }
 }

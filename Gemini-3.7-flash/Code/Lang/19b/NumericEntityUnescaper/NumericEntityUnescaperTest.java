@@ -1,8 +1,6 @@
 package org.apache.commons.lang3.text.translate;
 
-import org.junit.Before;
 import org.junit.Test;
-
 import java.io.IOException;
 import java.io.StringWriter;
 
@@ -10,130 +8,145 @@ import static org.junit.Assert.assertEquals;
 
 public class NumericEntityUnescaperTest {
 
-    private NumericEntityUnescaper unescaper;
-
-    @Before
-    public void setUp() {
-        unescaper = new NumericEntityUnescaper();
-    }
-
-    // Tests standard decimal entity translation with semicolon
+    // Tests translating standard decimal entity with semicolon
     @Test
-    public void testTranslate_decimalEntityWithSemicolon_translatesSuccessfully() throws IOException {
+    public void testTranslate_decimalEntityWithSemicolon_translatesCorrectly() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
         String input = "&#65;";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
+        int consumed = unescaper.translate(input, 0, writer);
+
         assertEquals(5, consumed);
-        assertEquals("A", out.toString());
+        assertEquals("A", writer.toString());
     }
 
-    // Tests lowercase hex entity translation with semicolon
+    // Tests translating standard hex entity with lowercase 'x' and semicolon
     @Test
-    public void testTranslate_hexEntityLowerCaseWithSemicolon_translatesSuccessfully() throws IOException {
+    public void testTranslate_hexEntityLowerCaseX_translatesCorrectly() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
         String input = "&#x41;";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
+        int consumed = unescaper.translate(input, 0, writer);
+
         assertEquals(6, consumed);
-        assertEquals("A", out.toString());
+        assertEquals("A", writer.toString());
     }
 
-    // Tests uppercase hex entity translation with semicolon
+    // Tests translating standard hex entity with uppercase 'X' and semicolon
     @Test
-    public void testTranslate_hexEntityUpperCaseWithSemicolon_translatesSuccessfully() throws IOException {
+    public void testTranslate_hexEntityUpperCaseX_translatesCorrectly() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
         String input = "&#X42;";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
+        int consumed = unescaper.translate(input, 0, writer);
+
         assertEquals(6, consumed);
-        assertEquals("B", out.toString());
+        assertEquals("B", writer.toString());
     }
 
-    // Tests supplementary character translation (code point > 0xFFFF)
+    // Tests translating supplementary character code point (> 0xFFFF)
     @Test
-    public void testTranslate_supplementaryCharacter_translatesSupplementaryCorrectly() throws IOException {
+    public void testTranslate_supplementaryCodePoint_writesSurrogatePair() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
         String input = "&#x10000;";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
+        int consumed = unescaper.translate(input, 0, writer);
+
         assertEquals(9, consumed);
-        assertEquals(new String(Character.toChars(0x10000)), out.toString());
+        assertEquals("\uD800\uDC00", writer.toString());
     }
 
-    // Tests non-entity prefix returns zero consumed characters
+    // Tests input that does not start with '&'
     @Test
     public void testTranslate_notAnEntity_returnsZero() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
         String input = "Hello";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
+        int consumed = unescaper.translate(input, 0, writer);
+
         assertEquals(0, consumed);
-        assertEquals("", out.toString());
+        assertEquals("", writer.toString());
     }
 
-    // Tests ampersand followed by non-hash character returns zero
-    @Test
-    public void testTranslate_ampersandWithoutHash_returnsZero() throws IOException {
-        String input = "&abc;";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
-        assertEquals(0, consumed);
-        assertEquals("", out.toString());
-    }
-
-    // Tests single ampersand at the end of input
+    // Tests input with only '&' at the end of the sequence
     @Test
     public void testTranslate_ampersandAtEndOfInput_returnsZero() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
         String input = "&";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
+        int consumed = unescaper.translate(input, 0, writer);
+
         assertEquals(0, consumed);
-        assertEquals("", out.toString());
+        assertEquals("", writer.toString());
     }
 
-    // Tests invalid entity causing NumberFormatException returns zero
+    // Tests incomplete entity ending with "&#" at the end of string (Defect Lang-19 boundary)
+    @Test
+    public void testTranslate_ampersandHashAtEndOfInput_doesNotThrowException() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
+        String input = "&#";
+        int consumed = unescaper.translate(input, 0, writer);
+
+        assertEquals(0, consumed);
+        assertEquals("", writer.toString());
+    }
+
+    // Tests incomplete entity ending with "&#x" at the end of string
+    @Test
+    public void testTranslate_hexPrefixAtEndOfInput_doesNotThrowException() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
+        String input = "&#x";
+        int consumed = unescaper.translate(input, 0, writer);
+
+        assertEquals(0, consumed);
+        assertEquals("", writer.toString());
+    }
+
+    // Tests entity without terminating semicolon (supports semi-colon optional behavior)
+    @Test
+    public void testTranslate_entityWithoutSemicolon_translatesCorrectly() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
+        String input = "&#65";
+        int consumed = unescaper.translate(input, 0, writer);
+
+        assertEquals(4, consumed);
+        assertEquals("A", writer.toString());
+    }
+
+    // Tests entity followed by non-digits and semicolon leading to NumberFormatException
     @Test
     public void testTranslate_invalidNumberFormat_returnsZero() throws IOException {
-        String input = "&#xyz;";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
+        String input = "&#XYZ;";
+        int consumed = unescaper.translate(input, 0, writer);
+
         assertEquals(0, consumed);
-        assertEquals("", out.toString());
+        assertEquals("", writer.toString());
     }
 
-    // Tests unfinished entity "&#" at the end of input without remaining characters
+    // Tests translating entity located at non-zero index
     @Test
-    public void testTranslate_unfinishedEntityAtEnd_doesNotThrowOutOfBounds() throws IOException {
-        String input = "&#";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
-        assertEquals(0, consumed);
-        assertEquals("", out.toString());
-    }
+    public void testTranslate_entityAtNonZeroIndex_translatesCorrectly() throws IOException {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        StringWriter writer = new StringWriter();
+        String input = "abc&#65;def";
+        int consumed = unescaper.translate(input, 3, writer);
 
-    // Tests unfinished hex entity "&#x" at the end of input without remaining characters
-    @Test
-    public void testTranslate_unfinishedHexEntityAtEnd_doesNotThrowOutOfBounds() throws IOException {
-        String input = "&#x";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
-        assertEquals(0, consumed);
-        assertEquals("", out.toString());
-    }
-
-    // Tests decimal entity without closing semicolon
-    @Test
-    public void testTranslate_decimalEntityWithoutSemicolon_translatesSuccessfully() throws IOException {
-        String input = "&#65";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
-        assertEquals(4, consumed);
-        assertEquals("A", out.toString());
-    }
-
-    // Tests hex entity without closing semicolon
-    @Test
-    public void testTranslate_hexEntityWithoutSemicolon_translatesSuccessfully() throws IOException {
-        String input = "&#x41";
-        StringWriter out = new StringWriter();
-        int consumed = unescaper.translate(input, 0, out);
         assertEquals(5, consumed);
-        assertEquals("A", out.toString());
+        assertEquals("A", writer.toString());
+    }
+
+    // Tests translate method inherited from CharSequenceTranslator with full string
+    @Test
+    public void testTranslate_fullStringTranslation_unescapesEntities() {
+        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+        String input = "Test &#65; and &#x42; end";
+        String result = unescaper.translate(input);
+
+        assertEquals("Test A and B end", result);
     }
 }

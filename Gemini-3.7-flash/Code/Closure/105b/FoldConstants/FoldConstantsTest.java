@@ -1,161 +1,281 @@
 package com.google.javascript.jscomp;
 
+import com.google.javascript.rhino.Node;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
-/**
- * Unit tests for {@link FoldConstants}.
- */
-public class FoldConstantsTest extends CompilerTestCase {
+public class FoldConstantsTest {
 
-  @Override
-  protected CompilerPass getProcessor(final Compiler compiler) {
-    return new FoldConstants(compiler);
+  private String fold(String js) {
+    Compiler compiler = new Compiler();
+    Node root = compiler.parseTestCode(js);
+    FoldConstants folder = new FoldConstants(compiler);
+    folder.process(null, root);
+    return compiler.toSource(root).trim();
   }
 
-  @Override
-  protected int getNumRepetitions() {
-    return 1;
-  }
-
-  // Tests string join with constant string elements
+  // Tests string join with string literals folded into a single string literal
   @Test
-  public void testStringJoin_constantElements_foldsToString() {
-    test("x = ['a', 'b', 'c'].join('')", "x = 'abc'");
-    test("x = ['a', 'b', 'c'].join(',')", "x = 'a,b,c'");
+  public void testTryFoldStringJoin_stringLiterals_foldedToMergedString() {
+    String js = "var x = ['a', 'b', 'c'].join('');";
+    String expected = "var x=\"abc\";";
+    assertEquals(expected, fold(js));
   }
 
-  // Tests string join with non-constant elements
+  // Tests string join with delimiter folded correctly
   @Test
-  public void testStringJoin_mixedElements_foldsPartially() {
-    test("x = [a, 'b', 'c'].join('')", "x = [a, 'bc'].join('')");
-    test("x = ['a', 'b', a].join('')", "x = ['ab', a].join('')");
+  public void testTryFoldStringJoin_withDelimiter_foldedWithDelimiter() {
+    String js = "var x = ['foo', 'bar'].join(',');";
+    String expected = "var x=\"foo,bar\";";
+    assertEquals(expected, fold(js));
   }
 
-  // Tests string join with empty array and single element
+  // Tests string join with empty array literal folded to empty string
   @Test
-  public void testStringJoin_boundaryArrays_foldsCorrectly() {
-    test("x = [].join('')", "x = ''");
-    test("x = ['a'].join('')", "x = 'a'");
-    test("x = [a].join('')", "x = '' + a");
+  public void testTryFoldStringJoin_emptyArray_foldedToEmptyString() {
+    String js = "var x = [].join(',');";
+    String expected = "var x=\"\";";
+    assertEquals(expected, fold(js));
   }
 
-  // Tests basic arithmetic operations folding
+  // Tests string join with single element array
   @Test
-  public void testArithmetic_basicOperations_folded() {
-    test("x = 1 + 2", "x = 3");
-    test("x = 5 - 2", "x = 3");
-    test("x = 2 * 3", "x = 6");
-    test("x = 6 / 2", "x = 3");
-    test("x = 'a' + 'b'", "x = 'ab'");
+  public void testTryFoldStringJoin_singleElement_foldedToSingleString() {
+    String js = "var x = ['hello'].join('');";
+    String expected = "var x=\"hello\";";
+    assertEquals(expected, fold(js));
   }
 
-  // Tests divide by zero diagnostic error
+  // Tests string join with mix of variables and string literals
   @Test
-  public void testArithmetic_divideByZero_reportsError() {
-    test("x = 1 / 0", "x = 1 / 0", null, FoldConstants.DIVIDE_BY_0_ERROR);
+  public void testTryFoldStringJoin_mixedLiteralsAndVars_partiallyFolded() {
+    String js = "var x = [a, 'b', 'c'].join('');";
+    String expected = "var x=[a,\"bc\"].join(\"\");";
+    assertEquals(expected, fold(js));
   }
 
-  // Tests bitwise AND, OR, NOT, and shift operations
+  // Tests typeof operator folding with primitive literals
   @Test
-  public void testBitwise_operations_folded() {
-    test("x = 1 & 3", "x = 1");
-    test("x = 1 | 2", "x = 3");
-    test("x = ~1", "x = -2");
-    test("x = 1 << 2", "x = 4");
-    test("x = 8 >> 1", "x = 4");
-    test("x = 8 >>> 1", "x = 4");
+  public void testTypeof_literalOperands_foldedToTypeString() {
+    assertEquals("var a=\"string\";", fold("var a = typeof 'abc';"));
+    assertEquals("var a=\"number\";", fold("var a = typeof 123;"));
+    assertEquals("var a=\"boolean\";", fold("var a = typeof true;"));
+    assertEquals("var a=\"object\";", fold("var a = typeof null;"));
+    assertEquals("var a=\"undefined\";", fold("var a = typeof undefined;"));
   }
 
-  // Tests comparison operations for various literals
+  // Tests unary NOT with boolean and numeric literals
   @Test
-  public void testComparison_variousLiterals_folded() {
-    test("x = ('a' == 'a')", "x = true");
-    test("x = ('a' == 'b')", "x = false");
-    test("x = (1 < 2)", "x = true");
-    test("x = (2 >= 3)", "x = false");
-    test("x = (null == undefined)", "x = true");
-    test("x = (null === undefined)", "x = false");
+  public void testNot_literalValues_foldedToBoolean() {
+    assertEquals("var a=false;", fold("var a = !true;"));
+    assertEquals("var a=true;", fold("var a = !false;"));
+    assertEquals("var a=true;", fold("var a = !0;"));
+    assertEquals("var a=false;", fold("var a = !1;"));
   }
 
-  // Tests logical AND / OR folding with literal operands
+  // Tests minimization of !(x == y) to x != y and !(x === y) to x !== y
   @Test
-  public void testLogical_andOrFolding_folded() {
-    test("x = true && foo()", "x = foo()");
-    test("x = false && foo()", "x = false");
-    test("x = true || foo()", "x = true");
-    test("x = false || foo()", "x = foo()");
+  public void testTryMinimizeNot_equalityComparisons_invertedOperator() {
+    assertEquals("var a=x!=y;", fold("var a = !(x == y);"));
+    assertEquals("var a=x!==y;", fold("var a = !(x === y);"));
+    assertEquals("var a=x==y;", fold("var a = !(x != y);"));
+    assertEquals("var a=x===y;", fold("var a = !(x !== y);"));
   }
 
-  // Tests IF statements and hook expressions with literal conditions
+  // Tests unary negation and bitwise NOT
   @Test
-  public void testHookIf_constantCondition_folded() {
-    test("if (true) { x = 1; }", "x = 1;");
-    test("if (false) { x = 1; }", "");
-    test("x = true ? 1 : 2", "x = 1");
-    test("x = false ? 1 : 2", "x = 2");
+  public void testUnaryNegAndBitwiseNot_numericLiterals_folded() {
+    assertEquals("var a=-5;", fold("var a = -5;"));
+    assertEquals("var a=-1;", fold("var a = ~0;"));
+    assertEquals("var a=0;", fold("var a = ~(-1);"));
   }
 
-  // Tests typeof operator folding on literals
+  // Tests basic arithmetic binary operations (+, -, *, /)
   @Test
-  public void testTypeof_literals_folded() {
-    test("x = typeof 'hello'", "x = 'string'");
-    test("x = typeof 123", "x = 'number'");
-    test("x = typeof true", "x = 'boolean'");
-    test("x = typeof {}", "x = 'object'");
-    test("x = typeof []", "x = 'object'");
-    test("x = typeof undefined", "x = 'undefined'");
+  public void testArithmetic_constantExpressions_foldedToResult() {
+    assertEquals("var a=7;", fold("var a = 3 + 4;"));
+    assertEquals("var a=5;", fold("var a = 10 - 5;"));
+    assertEquals("var a=24;", fold("var a = 6 * 4;"));
+    assertEquals("var a=2.5;", fold("var a = 5 / 2;"));
+    assertEquals("var a=\"foobar\";", fold("var a = 'foo' + 'bar';"));
+  }
+
+  // Tests bitwise AND, OR, and Shift operations
+  @Test
+  public void testBitwiseAndShift_integerLiterals_folded() {
+    assertEquals("var a=1;", fold("var a = 1 & 3;"));
+    assertEquals("var a=3;", fold("var a = 1 | 2;"));
+    assertEquals("var a=4;", fold("var a = 1 << 2;"));
+    assertEquals("var a=2;", fold("var a = 8 >> 2;"));
+    assertEquals("var a=2;", fold("var a = 8 >>> 2;"));
+  }
+
+  // Tests comparison operations (<, >, <=, >=, ==, !=)
+  @Test
+  public void testComparison_constantLiterals_foldedToBoolean() {
+    assertEquals("var a=true;", fold("var a = 1 < 2;"));
+    assertEquals("var a=false;", fold("var a = 2 > 3;"));
+    assertEquals("var a=true;", fold("var a = 'a' == 'a';"));
+    assertEquals("var a=false;", fold("var a = 'a' == 'b';"));
+    assertEquals("var a=true;", fold("var a = null == undefined;"));
+  }
+
+  // Tests folding of String.prototype.indexOf and lastIndexOf
+  @Test
+  public void testStringIndexOf_stringConstants_foldedToNumber() {
+    assertEquals("var a=2;", fold("var a = 'abcdef'.indexOf('cd');"));
+    assertEquals("var a=-1;", fold("var a = 'abcdef'.indexOf('z');"));
+    assertEquals("var a=6;", fold("var a = 'abcdefbc'.indexOf('bc', 3);"));
+    assertEquals("var a=2;", fold("var a = 'abcdef'.lastIndexOf('cd');"));
   }
 
   // Tests array element access with constant index
   @Test
-  public void testGetElem_constantArrayIndex_folded() {
-    test("x = [10, 20, 30][1]", "x = 20");
-    test("x = ['a', 'b', 'c'][0]", "x = 'a'");
+  public void testGetElem_arrayLiteralWithConstantIndex_foldedToElement() {
+    assertEquals("var a=2;", fold("var a = [1, 2, 3][1];"));
+    assertEquals("var a=\"b\";", fold("var a = ['a', 'b', 'c'][1];"));
   }
 
-  // Tests array and string length property access
+  // Tests array length and string length property access
   @Test
-  public void testGetProp_lengthProperty_folded() {
-    test("x = [1, 2, 3].length", "x = 3");
-    test("x = 'hello'.length", "x = 5");
+  public void testGetProp_lengthProperty_foldedToLengthValue() {
+    assertEquals("var a=3;", fold("var a = [1, 2, 3].length;"));
+    assertEquals("var a=5;", fold("var a = 'hello'.length;"));
   }
 
-  // Tests String.indexOf and String.lastIndexOf evaluation
+  // Tests hook (ternary) and if condition folding with constant condition
   @Test
-  public void testStringIndexOf_constantStrings_folded() {
-    test("x = 'abcdef'.indexOf('cd')", "x = 2");
-    test("x = 'abcdef'.indexOf('z')", "x = -1");
-    test("x = 'abcdefbc'.indexOf('bc', 3)", "x = 6");
-    test("x = 'abcdefbc'.lastIndexOf('bc')", "x = 6");
+  public void testHookAndIf_constantCondition_branchFolded() {
+    assertEquals("var a=1;", fold("var a = true ? 1 : 2;"));
+    assertEquals("var a=2;", fold("var a = false ? 1 : 2;"));
+    assertEquals("var a=1;", fold("if (true) { var a = 1; }"));
+    assertEquals("", fold("if (false) { var a = 1; }"));
   }
 
-  // Tests RegExp constructor folding to regex literal
+  // Tests short-circuit logical AND (&&) and OR (||)
   @Test
-  public void testRegExp_constructorFolding_folded() {
-    test("x = new RegExp('abc')", "x = /abc/");
-    test("x = new RegExp('abc', 'i')", "x = /abc/i");
+  public void testAndOr_booleanLiterals_shortCircuited() {
+    assertEquals("var a=x;", fold("var a = true && x;"));
+    assertEquals("var a=false;", fold("var a = false && x;"));
+    assertEquals("var a=true;", fold("var a = true || x;"));
+    assertEquals("var a=x;", fold("var a = false || x;"));
   }
 
-  // Tests unary NOT minimization and literal negation
+  // Tests assignment conversion x = x + y into x += y
   @Test
-  public void testUnary_notAndNeg_folded() {
-    test("x = !true", "x = false");
-    test("x = !false", "x = true");
-    test("x = -5", "x = -5");
-    test("x = -(-5)", "x = 5");
-    test("x = !(a == b)", "x = a != b");
+  public void testAssign_compoundAssignment_foldedToCompoundOp() {
+    assertEquals("x+=y;", fold("x = x + y;"));
+    assertEquals("x-=y;", fold("x = x - y;"));
+    assertEquals("x*=y;", fold("x = x * y;"));
+    assertEquals("x/=y;", fold("x = x / y;"));
   }
 
-  // Tests folding of loops with false conditions
+  // Tests folding of new RegExp constructor to regex literal
   @Test
-  public void testLoops_falseCondition_removed() {
-    test("while (false) { x = 1; }", "");
-    test("for (;false;) { x = 1; }", "");
+  public void testRegExpConstructor_stringLiteral_foldedToRegExpLiteral() {
+    assertEquals("var a=/abc/;", fold("var a = new RegExp('abc');"));
+    assertEquals("var a=/abc/i;", fold("var a = new RegExp('abc', 'i');"));
   }
 
-  // Tests left child string concatenation folding
+  // Tests reduction of 'return undefined' to 'return'
   @Test
-  public void testLeftChildAdd_stringConcatenation_folded() {
-    test("x = foo() + 'a' + 'b'", "x = foo() + 'ab'");
+  public void testReduceReturn_undefined_reducedToEmptyReturn() {
+    assertEquals("function f(){return}", fold("function f() { return undefined; }"));
+    assertEquals("function f(){return}", fold("function f() { return void 0; }"));
+  }
+
+  // Tests bitwise XOR (^) operation folding
+  @Test
+  public void testBitwiseXor_constantLiterals_foldedToResult() {
+    assertEquals("var a=3;", fold("var a = 1 ^ 2;"));
+    assertEquals("var a=0;", fold("var a = 5 ^ 5;"));
+  }
+
+  // Tests modulo (%) operation folding
+  @Test
+  public void testModulo_constantLiterals_foldedToResult() {
+    assertEquals("var a=1;", fold("var a = 7 % 3;"));
+    assertEquals("var a=0;", fold("var a = 8 % 4;"));
+  }
+
+  // Tests string built-in methods: substr, substring, charAt, charCodeAt
+  @Test
+  public void testStringMethods_constantLiterals_foldedToResult() {
+    assertEquals("var a=\"bc\";", fold("var a = 'abcdef'.substring(1, 3);"));
+    assertEquals("var a=\"bc\";", fold("var a = 'abcdef'.substr(1, 2);"));
+    assertEquals("var a=\"b\";", fold("var a = 'abcdef'.charAt(1);"));
+    assertEquals("var a=98;", fold("var a = 'abcdef'.charCodeAt(1);"));
+  }
+
+  // Tests string case conversion methods: toLowerCase, toUpperCase
+  @Test
+  public void testStringCaseMethods_constantLiterals_foldedToResult() {
+    assertEquals("var a=\"abc\";", fold("var a = 'ABC'.toLowerCase();"));
+    assertEquals("var a=\"ABC\";", fold("var a = 'abc'.toUpperCase();"));
+  }
+
+  // Tests string split method with constant string
+  @Test
+  public void testStringSplit_constantLiterals_foldedToArray() {
+    assertEquals("var a=[\"a\",\"b\",\"c\"];", fold("var a = 'a,b,c'.split(',');"));
+    assertEquals("var a=[\"hello\"];", fold("var a = 'hello'.split(',');"));
+  }
+
+  // Tests Math built-in constant methods
+  @Test
+  public void testMathMethods_constantLiterals_foldedToResult() {
+    assertEquals("var a=5;", fold("var a = Math.abs(-5);"));
+    assertEquals("var a=3;", fold("var a = Math.max(1, 3);"));
+    assertEquals("var a=1;", fold("var a = Math.min(1, 3);"));
+    assertEquals("var a=3;", fold("var a = Math.floor(3.7);"));
+    assertEquals("var a=4;", fold("var a = Math.ceil(3.2);"));
+    assertEquals("var a=4;", fold("var a = Math.round(3.6);"));
+  }
+
+  // Tests parseInt and parseFloat constant folding
+  @Test
+  public void testParseIntAndParseFloat_constantLiterals_foldedToResult() {
+    assertEquals("var a=123;", fold("var a = parseInt('123');"));
+    assertEquals("var a=10;", fold("var a = parseInt('1010', 2);"));
+    assertEquals("var a=12.5;", fold("var a = parseFloat('12.5');"));
+  }
+
+  // Tests strict equality (===) and inequality (!==) comparisons with constants
+  @Test
+  public void testStrictComparison_constantLiterals_foldedToBoolean() {
+    assertEquals("var a=true;", fold("var a = 'a' === 'a';"));
+    assertEquals("var a=false;", fold("var a = 'a' === 'b';"));
+    assertEquals("var a=false;", fold("var a = '1' === 1;"));
+    assertEquals("var a=true;", fold("var a = '1' !== 1;"));
+  }
+
+  // Tests chained constant addition associativity
+  @Test
+  public void testChainedAddition_mixedConstants_foldedCorrectly() {
+    assertEquals("var a=\"3a\";", fold("var a = 1 + 2 + 'a';"));
+    assertEquals("var a=\"a12\";", fold("var a = 'a' + 1 + 2;"));
+  }
+
+  // Tests void operator folding
+  @Test
+  public void testVoid_constantExpression_foldedToVoidZero() {
+    assertEquals("var a=void 0;", fold("var a = void 'hello';"));
+    assertEquals("var a=void 0;", fold("var a = void 123;"));
+  }
+
+  // Tests array method folding: slice, concat
+  @Test
+  public void testArrayMethods_constantArrays_foldedToResult() {
+    assertEquals("var a=[\"b\",\"c\"];", fold("var a = ['a', 'b', 'c', 'd'].slice(1, 3);"));
+    assertEquals("var a=[1,2,3,4];", fold("var a = [1, 2].concat([3, 4]);"));
+  }
+
+  // Tests NaN comparisons
+  @Test
+  public void testNaNComparison_foldedToBoolean() {
+    assertEquals("var a=false;", fold("var a = NaN == NaN;"));
+    assertEquals("var a=true;", fold("var a = NaN != NaN;"));
+    assertEquals("var a=false;", fold("var a = NaN === NaN;"));
+    assertEquals("var a=true;", fold("var a = NaN !== NaN;"));
   }
 }

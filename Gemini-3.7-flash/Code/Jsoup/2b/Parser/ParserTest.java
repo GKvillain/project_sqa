@@ -21,186 +21,153 @@ public class ParserTest {
         Parser.parse("<p>Hello</p>", null);
     }
 
-    // Tests simple valid HTML document parsing
+    // Tests parsing basic HTML document structure
     @Test
-    public void testParse_simpleHtml_returnsParsedDocument() {
-        String html = "<html><head><title>Test</title></head><body><p>Hello World</p></body></html>";
+    public void testParse_basicDocument_parsesCorrectly() {
+        String html = "<html><head><title>Test Title</title></head><body><p>Hello World</p></body></html>";
         Document doc = Parser.parse(html, "http://example.com/");
 
-        assertEquals("Test", doc.title());
+        assertEquals("Test Title", doc.title());
         assertEquals("Hello World", doc.select("p").first().text());
         assertEquals("http://example.com/", doc.baseUri());
     }
 
     // Tests parsing HTML body fragment
     @Test
-    public void testParseBodyFragment_validFragment_returnsBodyWithNodes() {
-        String html = "<p>Fragment test</p><span>Span text</span>";
+    public void testParseBodyFragment_simpleFragment_parsesIntoBody() {
+        String html = "<div><span>Fragment text</span></div>";
         Document doc = Parser.parseBodyFragment(html, "http://example.com/");
 
-        assertEquals(1, doc.select("p").size());
-        assertEquals("Fragment test", doc.select("p").first().text());
-        assertEquals(1, doc.select("span").size());
-        assertEquals("Span text", doc.select("span").first().text());
+        assertNotNull(doc.body());
+        assertEquals(1, doc.body().children().size());
+        assertEquals("Fragment text", doc.body().select("span").first().text());
     }
 
-    // Tests parsing comments in HTML
+    // Tests parsing comments with trailing dash and standard comment format
     @Test
-    public void testParse_htmlWithComment_preservesCommentNode() {
-        String html = "<div><!-- This is a comment -->Content</div>";
+    public void testParse_comments_createsCommentNodes() {
+        String html = "<div><!-- This is a comment -->Hello<!-- another comment ---></div>";
         Document doc = Parser.parse(html, "http://example.com/");
 
         Element div = doc.select("div").first();
-        assertNotNull(div);
-        assertEquals("Content", div.text());
-        assertTrue(div.childNode(0) instanceof org.jsoup.nodes.Comment);
+        assertEquals("Hello", div.text());
+        assertEquals(3, div.childNodes().size());
+    }
+
+    // Tests parsing XML declaration and doctype
+    @Test
+    public void testParse_xmlDeclAndDoctype_createsXmlDeclarationNodes() {
+        String html = "<?xml version=\"1.0\" encoding=\"utf-8\"?><!DOCTYPE html><html><body><p>Test</p></body></html>";
+        Document doc = Parser.parse(html, "http://example.com/");
+
+        assertNotNull(doc);
+        assertEquals("Test", doc.select("p").first().text());
     }
 
     // Tests parsing CDATA section
     @Test
     public void testParse_cdataSection_parsesAsTextNode() {
-        String html = "<p><![CDATA[Some <raw> data & chars]]></p>";
+        String html = "<p><![CDATA[Some <raw> data & entities]]></p>";
         Document doc = Parser.parse(html, "http://example.com/");
 
         Element p = doc.select("p").first();
         assertNotNull(p);
-        assertEquals("Some <raw> data & chars", p.text());
+        assertEquals("Some <raw> data & entities", p.text());
     }
 
-    // Tests parsing XML declaration and DOCTYPE
+    // Tests various attribute quoting styles (single, double, unquoted)
     @Test
-    public void testParse_xmlDeclarationAndDocType_createsDeclNodes() {
-        String html = "<?xml version=\"1.0\" encoding=\"utf-8\"?><!DOCTYPE html><html><body><p>Test</p></body></html>";
-        Document doc = Parser.parse(html, "http://example.com/");
-
-        assertNotNull(doc.select("p").first());
-        assertEquals("Test", doc.select("p").first().text());
-    }
-
-    // Tests various attribute formats: single quote, double quote, and unquoted
-    @Test
-    public void testParse_variousAttributeQuotes_parsesCorrectly() {
-        String html = "<a href='http://a.com' id=\"link1\" class=myClass>Link</a>";
+    public void testParse_attributesQuotesAndUnquoted_parsesAttributesCorrectly() {
+        String html = "<a href='http://example.com/one' id=\"link2\" class=link3 target=_blank>Link</a>";
         Document doc = Parser.parse(html, "http://example.com/");
 
         Element a = doc.select("a").first();
         assertNotNull(a);
-        assertEquals("http://a.com", a.attr("href"));
-        assertEquals("link1", a.id());
-        assertEquals("myClass", a.className());
+        assertEquals("http://example.com/one", a.attr("href"));
+        assertEquals("link2", a.attr("id"));
+        assertEquals("link3", a.attr("class"));
+        assertEquals("_blank", a.attr("target"));
     }
 
-    // Tests boolean / valueless attribute parsing
+    // Tests parsing data tags such as textarea, title, and script
     @Test
-    public void testParse_booleanAttribute_parsesCorrectly() {
-        String html = "<input type=\"checkbox\" checked disabled>";
-        Document doc = Parser.parse(html, "http://example.com/");
-
-        Element input = doc.select("input").first();
-        assertNotNull(input);
-        assertEquals("checkbox", input.attr("type"));
-        assertTrue(input.hasAttr("checked"));
-        assertTrue(input.hasAttr("disabled"));
-    }
-
-    // Tests parsing data tags such as script and style
-    @Test
-    public void testParse_scriptDataTag_preservesRawContent() {
-        String html = "<script type=\"text/javascript\">var x = \"<test>\"; alert(x);</script>";
-        Document doc = Parser.parse(html, "http://example.com/");
-
-        Element script = doc.select("script").first();
-        assertNotNull(script);
-        assertEquals("var x = \"<test>\"; alert(x);", script.data());
-    }
-
-    // Tests parsing textarea data tag as text
-    @Test
-    public void testParse_textareaTag_containsTextNode() {
-        String html = "<textarea><b>Not Bold</b> &amp; text</textarea>";
+    public void testParse_dataTags_preservesContent() {
+        String html = "<textarea><escaped & content></textarea><script>var x = 1 < 2; var y = \"test\";</script>";
         Document doc = Parser.parse(html, "http://example.com/");
 
         Element textarea = doc.select("textarea").first();
         assertNotNull(textarea);
-        assertEquals("<b>Not Bold</b> & text", textarea.text());
+        assertEquals("<escaped & content>", textarea.text());
+
+        Element script = doc.select("script").first();
+        assertNotNull(script);
+        assertEquals("var x = 1 < 2; var y = \"test\";", script.data());
     }
 
-    // Tests parsing self-closing tags and empty tags
+    // Tests base tag updating document base URI
     @Test
-    public void testParse_selfClosingAndEmptyTags_parsedCorrectly() {
-        String html = "<div><img src=\"image.png\" /><hr><br/></div>";
+    public void testParse_baseTag_updatesDocumentBaseUri() {
+        String html = "<html><head><base href='http://foo.com/path/'></head><body><a href='bar.html'>Link</a></body></html>";
+        Document doc = Parser.parse(html, "http://example.com/");
+
+        assertEquals("http://foo.com/path/", doc.baseUri());
+        Element a = doc.select("a").first();
+        assertEquals("http://foo.com/path/bar.html", a.absUrl("href"));
+    }
+
+    // Tests invalid start tag character treated as text
+    @Test
+    public void testParse_invalidTagStart_handledAsText() {
+        String html = "< 5 and <";
+        Document doc = Parser.parse(html, "http://example.com/");
+
+        assertTrue(doc.text().contains("< 5 and <") || doc.text().contains("&lt; 5 and &lt;"));
+    }
+
+    // Tests self closing elements and tags
+    @Test
+    public void testParse_selfClosingTags_handledCorrectly() {
+        String html = "<div><img src=\"foo.jpg\" /><br><hr/></div><p>After</p>";
         Document doc = Parser.parse(html, "http://example.com/");
 
         Element div = doc.select("div").first();
         assertNotNull(div);
-        assertEquals(3, div.children().size());
-        assertEquals("img", div.child(0).tagName());
-        assertEquals("image.png", div.child(0).attr("src"));
-        assertEquals("hr", div.child(1).tagName());
-        assertEquals("br", div.child(2).tagName());
+        assertNotNull(div.select("img").first());
+        assertNotNull(div.select("br").first());
+        assertNotNull(div.select("hr").first());
+        assertEquals("After", doc.select("p").first().text());
     }
 
-    // Tests base tag updating baseUri for subsequent relative URLs
+    // Tests implicit parent element creation for orphaned children
     @Test
-    public void testParse_baseTag_updatesBaseUri() {
-        String html = "<html><head><base href=\"http://jsoup.org/path/\"></head><body><a href=\"sub/page.html\">Link</a></body></html>";
+    public void testParse_implicitParent_wrapsInValidParent() {
+        String html = "<li>Item 1</li><li>Item 2</li>";
         Document doc = Parser.parse(html, "http://example.com/");
 
-        assertEquals("http://jsoup.org/path/", doc.baseUri());
-        Element a = doc.select("a").first();
-        assertNotNull(a);
-        assertEquals("http://jsoup.org/path/sub/page.html", a.absUrl("href"));
+        Element ulOrOl = doc.select("li").first().parent();
+        assertNotNull(ulOrOl);
+        assertEquals(2, doc.select("li").size());
     }
 
-    // Tests implicitly created parents when nesting is omitted
-    @Test
-    public void testParse_implicitParents_createsNecessaryHierarchy() {
-        String html = "<td>Orphan cell</td>";
-        Document doc = Parser.parse(html, "http://example.com/");
-
-        assertNotNull(doc.select("table tr td").first());
-        assertEquals("Orphan cell", doc.select("td").first().text());
-    }
-
-    // Tests nested structure and closing tags popping stack correctly
-    @Test
-    public void testParse_nestedElements_popsStackCorrectly() {
-        String html = "<div id=\"outer\"><div id=\"inner\"><p>Text</p></div><span>After inner</span></div>";
-        Document doc = Parser.parse(html, "http://example.com/");
-
-        Element outer = doc.select("#outer").first();
-        assertNotNull(outer);
-        assertEquals(2, outer.children().size());
-        assertEquals("inner", outer.child(0).id());
-        assertEquals("span", outer.child(1).tagName());
-    }
-
-    // Tests unclosed tags auto-closing at appropriate parent boundaries
+    // Tests unclosed tags auto-closing on stack
     @Test
     public void testParse_unclosedTags_autoClosesCorrectly() {
-        String html = "<p>First paragraph<p>Second paragraph";
+        String html = "<p>Paragraph 1<p>Paragraph 2<div>Text in div";
         Document doc = Parser.parse(html, "http://example.com/");
 
         assertEquals(2, doc.select("p").size());
-        assertEquals("First paragraph", doc.select("p").get(0).text());
-        assertEquals("Second paragraph", doc.select("p").get(1).text());
+        assertEquals("Text in div", doc.select("div").first().text());
     }
 
-    // Tests standalone text node parsing
+    // Tests empty and whitespace HTML input
     @Test
-    public void testParse_bareText_parsedIntoBody() {
-        String html = "Just plain text without tags";
-        Document doc = Parser.parse(html, "http://example.com/");
+    public void testParse_emptyOrWhitespaceHtml_createsEmptyShell() {
+        Document doc = Parser.parse("", "http://example.com/");
+        assertNotNull(doc);
+        assertNotNull(doc.body());
 
-        assertEquals("Just plain text without tags", doc.body().text());
-    }
-
-    // Tests invalid start tag character handling fallback to text
-    @Test
-    public void testParse_invalidStartTag_handlesAsText() {
-        String html = "< 5 is less than 10";
-        Document doc = Parser.parse(html, "http://example.com/");
-
-        assertTrue(doc.body().text().contains("< 5 is less than 10") || doc.body().text().contains("&lt; 5"));
+        Document docWhitespace = Parser.parse("   \n\t  ", "http://example.com/");
+        assertNotNull(docWhitespace);
+        assertNotNull(docWhitespace.body());
     }
 }

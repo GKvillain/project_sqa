@@ -1,10 +1,10 @@
 package com.google.javascript.jscomp;
 
+import com.google.common.collect.Sets;
 import com.google.javascript.rhino.Node;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -24,239 +24,275 @@ public class GlobalNamespaceTest {
     return new GlobalNamespace(compiler, root);
   }
 
-  private GlobalNamespace createGlobalNamespace(String externsJs, String js) {
-    Node externsRoot = compiler.parseTestCode(externsJs);
+  private GlobalNamespace createGlobalNamespace(String externs, String js) {
+    Node externsRoot = compiler.parseTestCode(externs);
     Node root = compiler.parseTestCode(js);
     return new GlobalNamespace(compiler, externsRoot, root);
   }
 
-  // Tests global variable declaration and global set reference counting
+  // Tests global variable declaration and Name property inspection
   @Test
-  public void testGetNameIndex_simpleVar_createsNameWithGlobalSet() {
+  public void testGetNameIndex_globalVarDeclaration_createsNameWithCorrectCounts() {
     GlobalNamespace gn = createGlobalNamespace("var a = 1;");
-    Map<String, GlobalNamespace.Name> names = gn.getNameIndex();
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
 
-    assertTrue(names.containsKey("a"));
-    GlobalNamespace.Name a = names.get("a");
-    assertEquals("a", a.fullName());
-    assertTrue(a.isSimpleName());
-    assertEquals(1, a.globalSets);
-    assertEquals(0, a.localSets);
-    assertEquals(0, a.totalGets);
-    assertEquals(GlobalNamespace.Name.Type.OTHER, a.type);
+    assertTrue(index.containsKey("a"));
+    GlobalNamespace.Name nameA = index.get("a");
+    assertEquals("a", nameA.name);
+    assertEquals("a", nameA.fullName());
+    assertTrue(nameA.isSimpleName());
+    assertEquals(1, nameA.globalSets);
+    assertEquals(0, nameA.localSets);
+    assertEquals(0, nameA.totalGets);
+    assertEquals(GlobalNamespace.Name.Type.OTHER, nameA.type);
+    assertNotNull(nameA.declaration);
+    assertTrue(nameA.declaration.isSet());
   }
 
-  // Tests function declaration type resolution
+  // Tests object literal hierarchy parsing and properties linkage
   @Test
-  public void testGetNameIndex_functionDeclaration_createsFunctionType() {
-    GlobalNamespace gn = createGlobalNamespace("function foo() {}");
-    Map<String, GlobalNamespace.Name> names = gn.getNameIndex();
+  public void testGetNameIndex_nestedObjectLiteral_createsHierarchy() {
+    GlobalNamespace gn = createGlobalNamespace("var a = {b: {c: 10}};");
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
 
-    assertTrue(names.containsKey("foo"));
-    GlobalNamespace.Name foo = names.get("foo");
+    assertTrue(index.containsKey("a"));
+    assertTrue(index.containsKey("a.b"));
+    assertTrue(index.containsKey("a.b.c"));
+
+    GlobalNamespace.Name nameA = index.get("a");
+    GlobalNamespace.Name nameB = index.get("a.b");
+    GlobalNamespace.Name nameC = index.get("a.b.c");
+
+    assertEquals(GlobalNamespace.Name.Type.OBJECTLIT, nameA.type);
+    assertEquals(GlobalNamespace.Name.Type.OBJECTLIT, nameB.type);
+    assertEquals(GlobalNamespace.Name.Type.OTHER, nameC.type);
+    assertEquals(nameA, nameB.parent);
+    assertEquals(nameB, nameC.parent);
+    assertFalse(nameB.isSimpleName());
+  }
+
+  // Tests global function declaration
+  @Test
+  public void testGetNameIndex_functionDeclaration_createsFunctionName() {
+    GlobalNamespace gn = createGlobalNamespace("function foo() {}");
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
+
+    assertTrue(index.containsKey("foo"));
+    GlobalNamespace.Name foo = index.get("foo");
     assertEquals(GlobalNamespace.Name.Type.FUNCTION, foo.type);
     assertEquals(1, foo.globalSets);
-    assertTrue(foo.canCollapseUnannotatedChildNames());
   }
 
-  // Tests object literal properties creation and hierarchy
+  // Tests assignment from local scope to global property
   @Test
-  public void testGetNameIndex_objectLiteral_createsHierarchyAndProperties() {
-    GlobalNamespace gn = createGlobalNamespace("var a = {b: 1, c: function() {}};");
-    Map<String, GlobalNamespace.Name> names = gn.getNameIndex();
+  public void testGetNameIndex_localSet_incrementsLocalSets() {
+    GlobalNamespace gn = createGlobalNamespace("var a = {}; function f() { a.b = 1; }");
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
 
-    assertTrue(names.containsKey("a"));
-    assertTrue(names.containsKey("a.b"));
-    assertTrue(names.containsKey("a.c"));
-
-    GlobalNamespace.Name a = names.get("a");
-    GlobalNamespace.Name ab = names.get("a.b");
-    GlobalNamespace.Name ac = names.get("a.c");
-
-    assertEquals(GlobalNamespace.Name.Type.OBJECTLIT, a.type);
-    assertEquals(GlobalNamespace.Name.Type.OTHER, ab.type);
-    assertEquals(GlobalNamespace.Name.Type.FUNCTION, ac.type);
-
-    assertEquals(a, ab.parent);
-    assertFalse(ab.isSimpleName());
-    assertEquals("a.b", ab.fullName());
+    assertTrue(index.containsKey("a.b"));
+    GlobalNamespace.Name nameAB = index.get("a.b");
+    assertEquals(0, nameAB.globalSets);
+    assertEquals(1, nameAB.localSets);
+    assertTrue(nameAB.needsToBeStubbed());
   }
 
-  // Tests nested assignment twin references
+  // Tests various get references: direct get, aliasing get, call get
   @Test
-  public void testGetNameIndex_nestedAssign_createsTwinRefs() {
-    GlobalNamespace gn = createGlobalNamespace("var a = b = 1;");
-    Map<String, GlobalNamespace.Name> names = gn.getNameIndex();
+  public void testGetNameIndex_variousGets_recordedCorrectly() {
+    String js = "var a = function() {}; var alias = a; a(); if (a) {}";
+    GlobalNamespace gn = createGlobalNamespace(js);
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
 
-    assertTrue(names.containsKey("b"));
-    GlobalNamespace.Name b = names.get("b");
-    assertEquals(1, b.globalSets);
-    assertEquals(1, b.aliasingGets);
-    assertNotNull(b.declaration);
-    assertNotNull(b.declaration.getTwin());
+    GlobalNamespace.Name nameA = index.get("a");
+    assertNotNull(nameA);
+    assertEquals(1, nameA.globalSets);
+    assertEquals(1, nameA.aliasingGets);
+    assertEquals(1, nameA.callGets);
+    assertEquals(3, nameA.totalGets);
   }
 
-  // Tests property assignments and hierarchy tree in name forest
+  // Tests prototype reference prefix handling
   @Test
-  public void testGetNameForest_nestedProperties_rootsOnlyInForest() {
-    GlobalNamespace gn = createGlobalNamespace("var a = {}; a.b = {}; a.b.c = 1;");
+  public void testGetNameIndex_prototypeProperty_handledAsPrototypeGet() {
+    String js = "function Foo() {} Foo.prototype.bar = function() {}; Foo.prototype.bar.baz = 1;";
+    GlobalNamespace gn = createGlobalNamespace(js);
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
+
+    assertTrue(index.containsKey("Foo"));
+    GlobalNamespace.Name foo = index.get("Foo");
+    assertTrue(foo.totalGets > 0);
+  }
+
+  // Tests canCollapse and canEliminate predicates on unaliased object literal
+  @Test
+  public void testCanCollapseAndCanEliminate_unaliasedObject_returnsTrue() {
+    GlobalNamespace gn = createGlobalNamespace("var a = {b: 1};");
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
+
+    GlobalNamespace.Name nameA = index.get("a");
+    GlobalNamespace.Name nameB = index.get("a.b");
+
+    assertTrue(nameA.canCollapseUnannotatedChildNames());
+    assertTrue(nameB.canCollapse());
+    assertTrue(nameA.canEliminate());
+  }
+
+  // Tests that aliasing prevents collapsing of child properties
+  @Test
+  public void testCanCollapse_aliasedObject_returnsFalse() {
+    GlobalNamespace gn = createGlobalNamespace("var a = {b: 1}; var alias = a;");
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
+
+    GlobalNamespace.Name nameA = index.get("a");
+    assertTrue(nameA.shouldKeepKeys());
+    assertFalse(nameA.canCollapseUnannotatedChildNames());
+  }
+
+  // Tests getNameForest method returns top-level roots
+  @Test
+  public void testGetNameForest_returnsOnlyTopLevelRoots() {
+    GlobalNamespace gn = createGlobalNamespace("var a = 1; var b = 2; a.c = 3;");
     List<GlobalNamespace.Name> forest = gn.getNameForest();
 
-    assertEquals(1, forest.size());
-    GlobalNamespace.Name a = forest.get(0);
-    assertEquals("a", a.name);
-    assertNotNull(a.props);
-    assertEquals(1, a.props.size());
-
-    GlobalNamespace.Name b = a.props.get(0);
-    assertEquals("b", b.name);
-    assertNotNull(b.props);
-    assertEquals(1, b.props.size());
-
-    GlobalNamespace.Name c = b.props.get(0);
-    assertEquals("c", c.name);
+    assertEquals(2, forest.size());
+    assertTrue(forest.get(0).isSimpleName());
+    assertTrue(forest.get(1).isSimpleName());
   }
 
-  // Tests local set and read references inside functions
+  // Tests JSDoc @constructor annotation marking class/enum
   @Test
-  public void testGetNameIndex_localSetAndGet_recordsLocalSetsAndGets() {
-    GlobalNamespace gn = createGlobalNamespace(
-        "var a = 1; function f() { a = 2; var b = a; }");
-    Map<String, GlobalNamespace.Name> names = gn.getNameIndex();
+  public void testIsClassOrEnum_withConstructorAnnotation_setsFlag() {
+    String js = "var ns = {}; /** @constructor */ ns.MyClass = function() {};";
+    GlobalNamespace gn = createGlobalNamespace(js);
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
 
-    GlobalNamespace.Name a = names.get("a");
-    assertEquals(1, a.globalSets);
-    assertEquals(1, a.localSets);
-    assertEquals(1, a.totalGets);
-    assertFalse(a.canCollapseUnannotatedChildNames());
+    GlobalNamespace.Name ns = index.get("ns");
+    GlobalNamespace.Name myClass = index.get("ns.MyClass");
+
+    assertNotNull(myClass);
+    assertTrue(myClass.canCollapse());
+    assertTrue(ns.isNamespace());
   }
 
-  // Tests extern declarations handling and filtering
+  // Tests conditional HOOK and OR expressions for get reference determination
   @Test
-  public void testGetNameIndex_withExterns_marksInExterns() {
-    GlobalNamespace gn = createGlobalNamespace("var extObj;", "extObj.prop = 1;");
-    Map<String, GlobalNamespace.Name> names = gn.getNameIndex();
+  public void testHookAndOrExpressions_selfAssignment_isDirectGet() {
+    String js = "var a = a || {}; var b = b ? b : {};";
+    GlobalNamespace gn = createGlobalNamespace(js);
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
 
-    assertTrue(names.containsKey("extObj"));
-    GlobalNamespace.Name extObj = names.get("extObj");
+    GlobalNamespace.Name nameA = index.get("a");
+    GlobalNamespace.Name nameB = index.get("b");
+
+    assertNotNull(nameA);
+    assertNotNull(nameB);
+    assertEquals(0, nameA.aliasingGets);
+    assertEquals(0, nameB.aliasingGets);
+  }
+
+  // Tests externs root handling and externs flag on Name
+  @Test
+  public void testExterns_declaredInExterns_markedInExterns() {
+    String externs = "var extObj = {};";
+    String js = "extObj.prop = 1;";
+    GlobalNamespace gn = createGlobalNamespace(externs, js);
+    Map<String, GlobalNamespace.Name> index = gn.getNameIndex();
+
+    GlobalNamespace.Name extObj = index.get("extObj");
+    assertNotNull(extObj);
     assertTrue(extObj.inExterns);
     assertFalse(extObj.canCollapse());
   }
 
-  // Tests prototype reference handling
+  // Tests Ref twin marking and twin retrieval
   @Test
-  public void testGetNameIndex_prototypeProperty_handlesPrototypePrefix() {
-    GlobalNamespace gn = createGlobalNamespace(
-        "function MyClass() {} MyClass.prototype.foo = function() {};");
-    Map<String, GlobalNamespace.Name> names = gn.getNameIndex();
-
-    assertTrue(names.containsKey("MyClass"));
-    GlobalNamespace.Name myClass = names.get("MyClass");
-    assertEquals(1, myClass.totalGets);
-  }
-
-  // Tests canEliminate logic when no gets exist
-  @Test
-  public void testName_canEliminate_noGets_returnsTrue() {
-    GlobalNamespace gn = createGlobalNamespace("var a = { b: 1 };");
-    GlobalNamespace.Name a = gn.getNameIndex().get("a");
-
-    assertTrue(a.canEliminate());
-  }
-
-  // Tests canEliminate logic when gets exist
-  @Test
-  public void testName_canEliminate_withGets_returnsFalse() {
-    GlobalNamespace gn = createGlobalNamespace("var a = { b: 1 }; var x = a;");
-    GlobalNamespace.Name a = gn.getNameIndex().get("a");
-
-    assertFalse(a.canEliminate());
-  }
-
-  // Tests needsToBeStubbed condition
-  @Test
-  public void testName_needsToBeStubbed_localSetsOnly_returnsTrue() {
-    GlobalNamespace.Name name = new GlobalNamespace.Name("foo", null, false);
-    name.localSets = 1;
-    name.globalSets = 0;
-
-    assertTrue(name.needsToBeStubbed());
-  }
-
-  // Tests removeRef updates reference counters correctly
-  @Test
-  public void testName_removeRef_updatesCounters() {
-    GlobalNamespace.Name name = new GlobalNamespace.Name("a", null, false);
-    GlobalNamespace.Ref declRef = GlobalNamespace.Ref.createRefForTesting(
+  public void testRef_markTwins_andGetTwin() {
+    GlobalNamespace.Ref setRef = GlobalNamespace.Ref.createRefForTesting(
         GlobalNamespace.Ref.Type.SET_FROM_GLOBAL);
-    GlobalNamespace.Ref getRef = GlobalNamespace.Ref.createRefForTesting(
+    GlobalNamespace.Ref aliasRef = GlobalNamespace.Ref.createRefForTesting(
+        GlobalNamespace.Ref.Type.ALIASING_GET);
+
+    GlobalNamespace.Ref.markTwins(setRef, aliasRef);
+
+    assertEquals(aliasRef, setRef.getTwin());
+    assertEquals(setRef, aliasRef.getTwin());
+  }
+
+  // Tests Ref twin marking with invalid types throws exception
+  @Test(expected = IllegalArgumentException.class)
+  public void testRef_markTwins_invalidTypes_throwsException() {
+    GlobalNamespace.Ref ref1 = GlobalNamespace.Ref.createRefForTesting(
         GlobalNamespace.Ref.Type.DIRECT_GET);
+    GlobalNamespace.Ref ref2 = GlobalNamespace.Ref.createRefForTesting(
+        GlobalNamespace.Ref.Type.CALL_GET);
 
-    name.addRef(declRef);
-    name.addRef(getRef);
-
-    assertEquals(1, name.globalSets);
-    assertEquals(1, name.totalGets);
-    assertEquals(declRef, name.declaration);
-
-    name.removeRef(declRef);
-    assertEquals(0, name.globalSets);
-    assertNull(name.declaration);
-
-    name.removeRef(getRef);
-    assertEquals(0, name.totalGets);
+    GlobalNamespace.Ref.markTwins(ref1, ref2);
   }
 
-  // Tests isNamespace and setIsClassOrEnum cascading to ancestors
+  // Tests Name addRef and removeRef updating reference counters
   @Test
-  public void testName_setIsClassOrEnum_setsAncestorsNamespace() {
-    GlobalNamespace.Name parent = new GlobalNamespace.Name("a", null, false);
-    parent.type = GlobalNamespace.Name.Type.OBJECTLIT;
-    GlobalNamespace.Name child = parent.addProperty("b", false);
-
-    assertFalse(parent.isNamespace());
-    child.setIsClassOrEnum();
-    assertTrue(parent.isNamespace());
-  }
-
-  // Tests Ref helper methods isSet and cloneAndReclassify
-  @Test
-  public void testRef_isSetAndCloneAndReclassify() {
-    GlobalNamespace.Ref globalSet = GlobalNamespace.Ref.createRefForTesting(
+  public void testName_addRefAndRemoveRef_updatesCounts() {
+    GlobalNamespace.Name name = new GlobalNamespace.Name("x", null, false);
+    GlobalNamespace.Ref decl = GlobalNamespace.Ref.createRefForTesting(
         GlobalNamespace.Ref.Type.SET_FROM_GLOBAL);
-    assertTrue(globalSet.isSet());
-
+    GlobalNamespace.Ref localSet = GlobalNamespace.Ref.createRefForTesting(
+        GlobalNamespace.Ref.Type.SET_FROM_LOCAL);
     GlobalNamespace.Ref directGet = GlobalNamespace.Ref.createRefForTesting(
         GlobalNamespace.Ref.Type.DIRECT_GET);
-    assertFalse(directGet.isSet());
 
-    GlobalNamespace.Ref cloned = directGet.cloneAndReclassify(
-        GlobalNamespace.Ref.Type.ALIASING_GET);
-    assertEquals(GlobalNamespace.Ref.Type.ALIASING_GET, cloned.type);
+    name.addRef(decl);
+    name.addRef(localSet);
+    name.addRef(directGet);
+
+    assertEquals(1, name.globalSets);
+    assertEquals(1, name.localSets);
+    assertEquals(1, name.totalGets);
+    assertEquals(decl, name.declaration);
+
+    name.removeRef(localSet);
+    assertEquals(0, name.localSets);
+
+    name.removeRef(directGet);
+    assertEquals(0, name.totalGets);
+
+    name.removeRef(decl);
+    assertEquals(0, name.globalSets);
+    assertNull(name.declaration);
   }
 
-  // Tests markTwins validation check
-  @Test(expected = IllegalArgumentException.class)
-  public void testRef_markTwins_invalidPair_throwsException() {
-    GlobalNamespace.Ref directGet1 = GlobalNamespace.Ref.createRefForTesting(
+  // Tests Ref cloneAndReclassify creates ref of specified type
+  @Test
+  public void testRef_cloneAndReclassify_changesType() {
+    GlobalNamespace.Ref original = GlobalNamespace.Ref.createRefForTesting(
         GlobalNamespace.Ref.Type.DIRECT_GET);
-    GlobalNamespace.Ref directGet2 = GlobalNamespace.Ref.createRefForTesting(
-        GlobalNamespace.Ref.Type.DIRECT_GET);
-    GlobalNamespace.Ref.markTwins(directGet1, directGet2);
+    GlobalNamespace.Ref cloned = original.cloneAndReclassify(
+        GlobalNamespace.Ref.Type.ALIASING_GET);
+
+    assertEquals(GlobalNamespace.Ref.Type.ALIASING_GET, cloned.type);
   }
 
   // Tests scanNewNodes updates references for newly added AST nodes
   @Test
-  public void testScanNewNodes_scansProvidedNodes() {
-    Node root = compiler.parseTestCode("var a = 1;");
+  public void testScanNewNodes_scansReferences() {
+    String js = "var a = 1;";
+    Node root = compiler.parseTestCode(js);
     GlobalNamespace gn = new GlobalNamespace(compiler, root);
-    gn.getNameForest();
+    gn.getNameIndex();
 
-    Node newVarNode = compiler.parseTestCode("a;").getFirstChild();
-    Scope globalScope = new SyntacticScopeCreator(compiler).createScope(root, null);
-    gn.scanNewNodes(globalScope, Collections.singleton(newVarNode.getFirstChild()));
+    Scope scope = Scope.createGlobalScope(root);
+    Node newNode = compiler.parseTestCode("a = 2;").getFirstChild();
 
-    GlobalNamespace.Name a = gn.getNameIndex().get("a");
-    assertEquals(1, a.totalGets);
+    gn.scanNewNodes(scope, Sets.newHashSet(newNode));
+    GlobalNamespace.Name nameA = gn.getNameIndex().get("a");
+    assertEquals(2, nameA.globalSets);
+  }
+
+  // Tests Name toString format
+  @Test
+  public void testName_toString_containsRelevantInfo() {
+    GlobalNamespace.Name name = new GlobalNamespace.Name("foo", null, false);
+    String str = name.toString();
+    assertTrue(str.contains("foo"));
+    assertTrue(str.contains("globalSets="));
   }
 }

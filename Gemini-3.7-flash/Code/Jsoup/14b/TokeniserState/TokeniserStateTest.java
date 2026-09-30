@@ -1,304 +1,315 @@
 package org.jsoup.parser;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.Assert.*;
 
 public class TokeniserStateTest {
 
-    // Tests Data state with plain text, tag open, and character reference
-    @Test
-    public void testData_variousInputs_transitionsAndEmitsCorrectly() {
-        CharacterReader reader = new CharacterReader("text&amp;<p>\0");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.tracking(10));
-        
-        Token token = tokeniser.read();
-        assertTrue(token.isCharacter());
-        assertEquals("text", ((Token.Character) token).getData());
-
-        Token refToken = tokeniser.read();
-        assertTrue(refToken.isCharacter());
-        assertEquals("&", ((Token.Character) refToken).getData());
-    }
-
-    // Tests Data state EOF emission
-    @Test
-    public void testData_eof_emitsEofToken() {
-        CharacterReader reader = new CharacterReader("");
+    private List<Token> tokenize(String input) {
+        CharacterReader reader = new CharacterReader(input);
         Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        
-        TokeniserState.Data.read(tokeniser, reader);
-        Token token = tokeniser.read();
-        assertTrue(token.isEOF());
-    }
-
-    // Tests TagOpen state with start tag, end tag, comment, and bogus comment
-    @Test
-    public void testTagOpen_transitions_createsExpectedTokens() {
-        CharacterReader reader = new CharacterReader("div>/div>?bogus>!doctype");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        
-        TokeniserState.TagOpen.read(tokeniser, reader);
-        assertEquals(TokeniserState.TagName, tokeniser.getState());
-        
-        reader.consumeTo('>');
-        reader.consume();
-        
-        TokeniserState.TagOpen.read(tokeniser, reader);
-        assertEquals(TokeniserState.EndTagOpen, tokeniser.getState());
-        
-        CharacterReader readerBogus = new CharacterReader("?comment>");
-        Tokeniser tokeniserBogus = new Tokeniser(readerBogus, ParseErrorList.noTracking());
-        TokeniserState.TagOpen.read(tokeniserBogus, readerBogus);
-        assertEquals(TokeniserState.BogusComment, tokeniserBogus.getState());
-
-        CharacterReader readerInvalid = new CharacterReader("123");
-        Tokeniser tokeniserInvalid = new Tokeniser(readerInvalid, ParseErrorList.tracking(5));
-        TokeniserState.TagOpen.read(tokeniserInvalid, readerInvalid);
-        assertEquals(TokeniserState.Data, tokeniserInvalid.getState());
-        assertFalse(tokeniserInvalid.getErrors().isEmpty());
-    }
-
-    // Tests EndTagOpen state branches: letter, '>', empty, and invalid
-    @Test
-    public void testEndTagOpen_variousInputs_handlesProperly() {
-        CharacterReader reader1 = new CharacterReader("div>");
-        Tokeniser tokeniser1 = new Tokeniser(reader1, ParseErrorList.noTracking());
-        TokeniserState.EndTagOpen.read(tokeniser1, reader1);
-        assertEquals(TokeniserState.TagName, tokeniser1.getState());
-
-        CharacterReader reader2 = new CharacterReader(">");
-        Tokeniser tokeniser2 = new Tokeniser(reader2, ParseErrorList.tracking(5));
-        TokeniserState.EndTagOpen.read(tokeniser2, reader2);
-        assertEquals(TokeniserState.Data, tokeniser2.getState());
-
-        CharacterReader reader3 = new CharacterReader("");
-        Tokeniser tokeniser3 = new Tokeniser(reader3, ParseErrorList.tracking(5));
-        TokeniserState.EndTagOpen.read(tokeniser3, reader3);
-        assertEquals(TokeniserState.Data, tokeniser3.getState());
-
-        CharacterReader reader4 = new CharacterReader("!bogus");
-        Tokeniser tokeniser4 = new Tokeniser(reader4, ParseErrorList.tracking(5));
-        TokeniserState.EndTagOpen.read(tokeniser4, reader4);
-        assertEquals(TokeniserState.BogusComment, tokeniser4.getState());
-    }
-
-    // Tests TagName state parsing attributes, self-closing, and completion
-    @Test
-    public void testTagName_delimiters_transitionsCorrectly() {
-        CharacterReader reader = new CharacterReader("img src='foo'/>");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        
-        Token token = tokeniser.read();
-        assertTrue(token.isStartTag());
-        Token.StartTag tag = (Token.StartTag) token;
-        assertEquals("img", tag.name());
-        assertEquals("foo", tag.attributes.get("src"));
-        assertTrue(tag.isSelfClosing());
-    }
-
-    // Tests RCDATA state transitions and end tag matching
-    @Test
-    public void testRcdata_matchingAndUnmatchingEndTag_tokenisesCorrectly() {
-        CharacterReader reader = new CharacterReader("sample <notEnd </title>");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        tokeniser.transition(TokeniserState.Rcdata);
-        tokeniser.createTagPending(true);
-        tokeniser.tagPending.appendTagName("title");
-        tokeniser.emitTagPending();
-        
-        Token textToken = tokeniser.read();
-        assertTrue(textToken.isCharacter());
-        
-        Token endTag = tokeniser.read();
-        while (endTag != null && !endTag.isEndTag()) {
-            endTag = tokeniser.read();
-        }
-        assertNotNull(endTag);
-        assertTrue(endTag.isEndTag());
-        assertEquals("title", ((Token.EndTag) endTag).name());
-    }
-
-    // Tests RCDATA state with null character and character reference
-    @Test
-    public void testRcdata_specialCharacters_emitsReplacementAndReferences() {
-        CharacterReader reader = new CharacterReader("\0&amp;");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.tracking(5));
-        tokeniser.transition(TokeniserState.Rcdata);
-
-        Token token1 = tokeniser.read();
-        assertTrue(token1.isCharacter());
-        assertEquals(String.valueOf(Tokeniser.replacementChar), ((Token.Character) token1).getData());
-    }
-
-    // Tests Rawtext state transitions
-    @Test
-    public void testRawtext_endTagHandling_processesProperly() {
-        CharacterReader reader = new CharacterReader("raw text </style>");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        tokeniser.transition(TokeniserState.Rawtext);
-        tokeniser.createTagPending(true);
-        tokeniser.tagPending.appendTagName("style");
-        tokeniser.emitTagPending();
-
-        Token token = tokeniser.read();
-        assertTrue(token.isCharacter());
-        assertEquals("raw text ", ((Token.Character) token).getData());
-
-        Token endToken = tokeniser.read();
-        assertTrue(endToken.isEndTag());
-        assertEquals("style", ((Token.EndTag) endToken).name());
-    }
-
-    // Tests ScriptData state and script escape transitions
-    @Test
-    public void testScriptData_escapedScript_parsesCorrectly() {
-        CharacterReader reader = new CharacterReader("<!-- <script> var x = 1; </script> --> </script>");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        tokeniser.transition(TokeniserState.ScriptData);
-        tokeniser.createTagPending(true);
-        tokeniser.tagPending.appendTagName("script");
-        tokeniser.emitTagPending();
-
+        List<Token> tokens = new ArrayList<>();
         Token token;
-        boolean foundEnd = false;
-        while ((token = tokeniser.read()) != null && !token.isEOF()) {
-            if (token.isEndTag() && ((Token.EndTag) token).name().equals("script")) {
-                foundEnd = true;
-                break;
-            }
-        }
-        assertTrue(foundEnd);
+        do {
+            token = tokeniser.read();
+            tokens.add(token);
+        } while (!token.isEOF());
+        return tokens;
     }
 
-    // Tests ScriptData double escaped state transitions
+    // Tests normal Data state emitting characters and EOF
     @Test
-    public void testScriptDataDoubleEscaped_transitions_switchesStateProperly() {
-        CharacterReader reader = new CharacterReader("-<script>text</script>--></script>");
+    public void testData_plainText_emitsDataAndEof() {
+        CharacterReader reader = new CharacterReader("Hello World");
         Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        tokeniser.transition(TokeniserState.ScriptDataEscaped);
-        
-        Token token;
-        boolean foundEnd = false;
-        while ((token = tokeniser.read()) != null && !token.isEOF()) {
-            if (token.isEndTag() && ((Token.EndTag) token).name().equals("script")) {
-                foundEnd = true;
-                break;
-            }
-        }
-        assertTrue(foundEnd);
-    }
-
-    // Tests Attribute states with unquoted, single-quoted, and double-quoted values
-    @Test
-    public void testAttributeValues_differentQuotes_parsesValuesCorrectly() {
-        CharacterReader reader = new CharacterReader("input a=\"val1\" b='val2' c=val3 >");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        
-        Token token = tokeniser.read();
-        assertTrue(token.isStartTag());
-        Token.StartTag tag = (Token.StartTag) token;
-        assertEquals("val1", tag.attributes.get("a"));
-        assertEquals("val2", tag.attributes.get("b"));
-        assertEquals("val3", tag.attributes.get("c"));
-    }
-
-    // Tests AttributeName edge cases like nullChar and invalid characters
-    @Test
-    public void testAttributeName_invalidChars_recordsErrors() {
-        CharacterReader reader = new CharacterReader("<tag \0=\"test\" 'bad'>", ParseErrorList.tracking(10));
-        Tokeniser tokeniser = new Tokeniser(reader, reader.getErrors());
-        
-        Token token = tokeniser.read();
-        assertTrue(token.isStartTag());
-        assertFalse(reader.getErrors().isEmpty());
-    }
-
-    // Tests Comment tokenisation including dashes, bangs, and null characters
-    @Test
-    public void testComment_variousFormats_emitsCommentToken() {
-        CharacterReader reader = new CharacterReader("<!-- a normal comment --><!---dash-dash---><!--!bang-->");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        
-        Token token1 = tokeniser.read();
-        assertTrue(token1.isComment());
-        assertEquals(" a normal comment ", ((Token.Comment) token1).getData());
-
-        Token token2 = tokeniser.read();
-        assertTrue(token2.isComment());
-        assertEquals("-dash-dash-", ((Token.Comment) token2).getData());
-
-        Token token3 = tokeniser.read();
-        assertTrue(token3.isComment());
-        assertEquals("bang", ((Token.Comment) token3).getData());
-    }
-
-    // Tests Doctype parsing including public and system identifiers
-    @Test
-    public void testDoctype_fullDeclaration_emitsDoctypeToken() {
-        CharacterReader reader = new CharacterReader("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        
-        Token token = tokeniser.read();
-        assertTrue(token.isDoctype());
-        Token.Doctype doctype = (Token.Doctype) token;
-        assertEquals("html", doctype.getName());
-        assertEquals("-//W3C//DTD HTML 4.01//EN", doctype.getPublicIdentifier());
-        assertEquals("http://www.w3.org/TR/html4/strict.dtd", doctype.getSystemIdentifier());
-        assertFalse(doctype.isForceQuirks());
-    }
-
-    // Tests Doctype with SYSTEM keyword and quirks mode trigger
-    @Test
-    public void testDoctype_systemKeywordAndQuirks_setsPropertiesCorrectly() {
-        CharacterReader reader = new CharacterReader("<!DOCTYPE html SYSTEM 'about:legacy-compat'>");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        
-        Token token = tokeniser.read();
-        assertTrue(token.isDoctype());
-        Token.Doctype doctype = (Token.Doctype) token;
-        assertEquals("html", doctype.getName());
-        assertEquals("about:legacy-compat", doctype.getSystemIdentifier());
-        assertFalse(doctype.isForceQuirks());
-
-        CharacterReader bogusReader = new CharacterReader("<!DOCTYPE>");
-        Tokeniser bogusTokeniser = new Tokeniser(bogusReader, ParseErrorList.tracking(5));
-        Token bogusToken = bogusTokeniser.read();
-        assertTrue(bogusToken.isDoctype());
-        assertTrue(((Token.Doctype) bogusToken).isForceQuirks());
-    }
-
-    // Tests CDATA section parsing
-    @Test
-    public void testCdataSection_validCdata_emitsCharacterToken() {
-        CharacterReader reader = new CharacterReader("<![CDATA[raw <data> & characters]]>");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        
         Token token = tokeniser.read();
         assertTrue(token.isCharacter());
-        assertEquals("raw <data> & characters", ((Token.Character) token).getData());
+        assertEquals("Hello World", token.asCharacter().getData());
     }
 
-    // Tests PLAINTEXT state handling
+    // Tests Data state with character references
     @Test
-    public void testPlainText_content_emitsAllAsCharacterToken() {
-        CharacterReader reader = new CharacterReader("some text <p>not a tag</p>");
+    public void testData_characterReference_decodesEntity() {
+        CharacterReader reader = new CharacterReader("&amp;&lt;&gt;&quot;");
         Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
-        tokeniser.transition(TokeniserState.PLAINTEXT);
-
         Token token = tokeniser.read();
         assertTrue(token.isCharacter());
-        assertEquals("some text <p>not a tag</p>", ((Token.Character) token).getData());
+        assertEquals("&<>\"", token.asCharacter().getData());
     }
 
-    // Tests BogusComment state handling from invalid markup declaration
+    // Tests TagOpen and TagName state with start tag
     @Test
-    public void testBogusComment_invalidMarkup_emitsCommentToken() {
-        CharacterReader reader = new CharacterReader("<!bogus comment>");
-        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.tracking(5));
-        
+    public void testTagName_startTag_emitsStartTagToken() {
+        CharacterReader reader = new CharacterReader("<div>");
+        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
+        Token token = tokeniser.read();
+        assertTrue(token.isStartTag());
+        assertEquals("div", token.asStartTag().name());
+    }
+
+    // Tests EndTagOpen and TagName state with end tag
+    @Test
+    public void testTagName_endTag_emitsEndTagToken() {
+        CharacterReader reader = new CharacterReader("</div>");
+        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
+        Token token = tokeniser.read();
+        assertTrue(token.isEndTag());
+        assertEquals("div", token.asEndTag().name());
+    }
+
+    // Tests SelfClosingStartTag state
+    @Test
+    public void testSelfClosingStartTag_validSelfClosing_setsFlag() {
+        CharacterReader reader = new CharacterReader("<img src=\"test.png\" />");
+        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
+        Token token = tokeniser.read();
+        assertTrue(token.isStartTag());
+        assertTrue(token.asStartTag().selfClosing);
+        assertEquals("img", token.asStartTag().name());
+        assertEquals("test.png", token.asStartTag().attributes.get("src"));
+    }
+
+    // Tests Attribute states: double quoted, single quoted, unquoted
+    @Test
+    public void testAttributes_variousQuotings_parsesAttributesCorrectly() {
+        CharacterReader reader = new CharacterReader("<a href=\"http://example.com\" title='Single' data=unquoted>");
+        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
+        Token token = tokeniser.read();
+        assertTrue(token.isStartTag());
+        assertEquals("http://example.com", token.asStartTag().attributes.get("href"));
+        assertEquals("Single", token.asStartTag().attributes.get("title"));
+        assertEquals("unquoted", token.asStartTag().attributes.get("data"));
+    }
+
+    // Tests RCDATA handling and unclosed tag defect detection
+    @Test
+    public void testRcdata_titleTag_parsesTitleAndSubsequentContent() {
+        Document doc = Jsoup.parse("<title>One</title><p>Two</p>");
+        assertEquals("One", doc.title());
+        assertEquals("Two", doc.select("p").first().text());
+    }
+
+    // Tests unclosed RCDATA handling
+    @Test
+    public void testRcdata_unclosedTitle_parsesRemainingAsTitle() {
+        Document doc = Jsoup.parse("<title>One <b>Two</b> Three");
+        assertEquals("One <b>Two</b> Three", doc.title());
+    }
+
+    // Tests RCDATA end tag mismatch fallback
+    @Test
+    public void testRcdata_mismatchedEndTag_emitsDataAndStaysInRcdata() {
+        Document doc = Jsoup.parse("<title>Hello </p> World</title>");
+        assertEquals("Hello </p> World", doc.title());
+    }
+
+    // Tests Rawtext state with style tag
+    @Test
+    public void testRawtext_styleTag_parsesRawContent() {
+        Document doc = Jsoup.parse("<style>body > div { color: red; }</style><p>Text</p>");
+        assertEquals("body > div { color: red; }", doc.select("style").first().data());
+        assertEquals("Text", doc.select("p").first().text());
+    }
+
+    // Tests ScriptData state and escaped transitions
+    @Test
+    public void testScriptData_escapedScript_parsesScriptCorrectly() {
+        Document doc = Jsoup.parse("<script><!-- var a = \"<script>alert(1);</script>\"; --></script><p>Text</p>");
+        assertEquals("<!-- var a = \"<script>alert(1);</script>\"; -->", doc.select("script").first().data());
+        assertEquals("Text", doc.select("p").first().text());
+    }
+
+    // Tests ScriptData double escaped transition
+    @Test
+    public void testScriptDataDoubleEscaped_nestedScriptTags_handlesDoubleEscape() {
+        Document doc = Jsoup.parse("<script><!-- <script> var x = 1; </script> --></script>");
+        assertNotNull(doc.select("script").first());
+    }
+
+    // Tests PLAINTEXT state
+    @Test
+    public void testPlaintext_plainContent_consumesAllRemaining() {
+        Document doc = Jsoup.parse("<plaintext><div>Hello <b>World</b>");
+        assertEquals("<div>Hello <b>World</b>", doc.text());
+    }
+
+    // Tests Comment states: normal comments, dashes, bang
+    @Test
+    public void testComment_validComments_emitsCommentTokens() {
+        CharacterReader reader = new CharacterReader("<!-- this is a comment -->");
+        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
         Token token = tokeniser.read();
         assertTrue(token.isComment());
-        assertEquals("bogus comment", ((Token.Comment) token).getData());
-        assertFalse(tokeniser.getErrors().isEmpty());
+        assertEquals(" this is a comment ", token.asComment().getData());
+    }
+
+    // Tests BogusComment state
+    @Test
+    public void testBogusComment_invalidTagOpen_parsesAsComment() {
+        CharacterReader reader = new CharacterReader("<?bogus comment>");
+        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
+        Token token = tokeniser.read();
+        assertTrue(token.isComment());
+        assertEquals("?bogus comment", token.asComment().getData());
+    }
+
+    // Tests MarkupDeclarationOpen and CDATA section
+    @Test
+    public void testCdataSection_cdataData_emitsCdataContent() {
+        CharacterReader reader = new CharacterReader("[CDATA[Some <raw> cdata]]>");
+        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
+        tokeniser.transition(TokeniserState.CdataSection);
+        Token token = tokeniser.read();
+        assertTrue(token.isCharacter());
+        assertEquals("Some <raw> cdata", token.asCharacter().getData());
+    }
+
+    // Tests Doctype states: standard doctype
+    @Test
+    public void testDoctype_standardHtml5_emitsDoctypeToken() {
+        CharacterReader reader = new CharacterReader("<!DOCTYPE html>");
+        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
+        Token token = tokeniser.read();
+        assertTrue(token.isDoctype());
+        assertEquals("html", token.asDoctype().getName());
+        assertFalse(token.asDoctype().isForceQuirks());
+    }
+
+    // Tests Doctype with Public and System identifiers
+    @Test
+    public void testDoctype_publicAndSystemIdentifiers_parsesCorrectly() {
+        CharacterReader reader = new CharacterReader("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\" 'http://www.w3.org/TR/html4/strict.dtd'>");
+        Tokeniser tokeniser = new Tokeniser(reader, ParseErrorList.noTracking());
+        Token token = tokeniser.read();
+        assertTrue(token.isDoctype());
+        assertEquals("html", token.asDoctype().getName());
+        assertEquals("-//W3C//DTD HTML 4.01//EN", token.asDoctype().getPublicIdentifier());
+        assertEquals("http://www.w3.org/TR/html4/strict.dtd", token.asDoctype().getSystemIdentifier());
+    }
+
+    // Tests null characters handling in Data and Attribute states
+    @Test
+    public void testNullCharacter_inData_replacesOrEmits() {
+        ParseErrorList errorList = ParseErrorList.tracking(10);
+        CharacterReader reader = new CharacterReader("a\u0000b");
+        Tokeniser tokeniser = new Tokeniser(reader, errorList);
+        Token token = tokeniser.read();
+        assertTrue(token.isCharacter());
+        assertTrue(errorList.size() > 0);
+    }
+
+    // Tests EOF handling across incomplete states
+    @Test
+    public void testEofHandling_incompleteTag_emitsEofError() {
+        ParseErrorList errorList = ParseErrorList.tracking(10);
+        CharacterReader reader = new CharacterReader("<div class=");
+        Tokeniser tokeniser = new Tokeniser(reader, errorList);
+        while (!tokeniser.read().isEOF()) {
+            // consume all
+        }
+        assertTrue(errorList.size() > 0);
+    }
+
+    // Tests CommentEndDash and CommentEnd states
+    @Test
+    public void testComment_variousDashEndings() {
+        List<Token> tokens1 = tokenize("<!-- comment --!>");
+        assertTrue(tokens1.get(0).isComment());
+        assertEquals(" comment ", tokens1.get(0).asComment().getData());
+
+        List<Token> tokens2 = tokenize("<!-- comment --->");
+        assertTrue(tokens2.get(0).isComment());
+        assertEquals(" comment -", tokens2.get(0).asComment().getData());
+
+        List<Token> tokens3 = tokenize("<!--->");
+        assertTrue(tokens3.get(0).isComment());
+
+        List<Token> tokens4 = tokenize("<!-->");
+        assertTrue(tokens4.get(0).isComment());
+    }
+
+    // Tests Doctype System identifier only and BogusDoctype
+    @Test
+    public void testDoctype_systemOnlyAndBogus() {
+        List<Token> tokens1 = tokenize("<!DOCTYPE html SYSTEM \"about:legacy-compat\">");
+        assertTrue(tokens1.get(0).isDoctype());
+        assertEquals("html", tokens1.get(0).asDoctype().getName());
+        assertEquals("about:legacy-compat", tokens1.get(0).asDoctype().getSystemIdentifier());
+        assertNull(tokens1.get(0).asDoctype().getPublicIdentifier());
+
+        List<Token> tokens2 = tokenize("<!DOCTYPE>");
+        assertTrue(tokens2.get(0).isDoctype());
+        assertTrue(tokens2.get(0).asDoctype().isForceQuirks());
+
+        List<Token> tokens3 = tokenize("<!DOCTYPE html BOGUS>");
+        assertTrue(tokens3.get(0).isDoctype());
+        assertTrue(tokens3.get(0).asDoctype().isForceQuirks());
+    }
+
+    // Tests Attribute value with character reference
+    @Test
+    public void testAttributeValue_characterReferenceDecoded() {
+        List<Token> tokens = tokenize("<a href=\"foo&amp;bar\" title='foo&lt;bar' alt=foo&quot;bar>");
+        Token.StartTag tag = tokens.get(0).asStartTag();
+        assertEquals("foo&bar", tag.attributes.get("href"));
+        assertEquals("foo<bar", tag.attributes.get("title"));
+        assertEquals("foo\"bar", tag.attributes.get("alt"));
+    }
+
+    // Tests EndTag with attributes and whitespace
+    @Test
+    public void testEndTag_withAttributesAndWhitespace() {
+        ParseErrorList errors = ParseErrorList.tracking(10);
+        CharacterReader reader = new CharacterReader("</div class='test' id=foo >");
+        Tokeniser tokeniser = new Tokeniser(reader, errors);
+        Token token = tokeniser.read();
+        assertTrue(token.isEndTag());
+        assertEquals("div", token.asEndTag().name());
+        assertTrue(errors.size() > 0);
+    }
+
+    // Tests Tag with empty or boolean attributes
+    @Test
+    public void testAttributes_emptyAndBoolean() {
+        List<Token> tokens = tokenize("<input disabled required='' checked=\"\">");
+        Token.StartTag tag = tokens.get(0).asStartTag();
+        assertTrue(tag.attributes.hasKey("disabled"));
+        assertEquals("", tag.attributes.get("required"));
+        assertEquals("", tag.attributes.get("checked"));
+    }
+
+    // Tests ScriptData escaped transitions with various dashes and less-than signs
+    @Test
+    public void testScriptData_escapedTransitions() {
+        Document doc = Jsoup.parse("<script><!-- - < -- </script> --></script>");
+        assertNotNull(doc.select("script").first());
+
+        Document doc2 = Jsoup.parse("<script><!--<script>--</script>--></script>");
+        assertNotNull(doc2.select("script").first());
+    }
+
+    // Tests Rawtext with character references not expanding
+    @Test
+    public void testRawtext_characterReferencesNotExpanded() {
+        Document doc = Jsoup.parse("<noembed>&amp;&lt;</noembed><style>&amp;&lt;</style>");
+        assertEquals("&amp;&lt;", doc.select("noembed").first().data());
+        assertEquals("&amp;&lt;", doc.select("style").first().data());
+    }
+
+    // Tests TagOpen state with solidus (self-closing without name)
+    @Test
+    public void testTagOpen_solidusOnly_bogusComment() {
+        ParseErrorList errors = ParseErrorList.tracking(10);
+        CharacterReader reader = new CharacterReader("</>");
+        Tokeniser tokeniser = new Tokeniser(reader, errors);
+        Token token = tokeniser.read();
+        assertTrue(token.isComment() || token.isEOF());
+        assertTrue(errors.size() > 0);
     }
 }

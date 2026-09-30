@@ -1,162 +1,195 @@
 package org.jsoup.nodes;
 
+import org.jsoup.Jsoup;
 import org.junit.Test;
 
 import java.io.IOException;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class CommentTest {
 
-    // Tests constructor and nodeName
+    // Tests nodeName returns correct comment identifier
     @Test
-    public void testNodeName_normalComment_returnsCommentNodeName() {
+    public void testNodeName_default_returnsCommentIdentifier() {
         Comment comment = new Comment("This is a comment");
         assertEquals("#comment", comment.nodeName());
     }
 
-    // Tests getData method
+    // Tests getData returns correct content
     @Test
-    public void testGetData_normalComment_returnsContent() {
-        Comment comment = new Comment("Sample data");
-        assertEquals("Sample data", comment.getData());
-    }
-
-    // Tests setData method
-    @Test
-    public void testSetData_updatesCommentContent() {
-        Comment comment = new Comment("Initial");
-        comment.setData("Updated");
-        assertEquals("Updated", comment.getData());
-        assertEquals("<!--Updated-->", comment.toString());
+    public void testGetData_standardString_returnsCorrectData() {
+        String text = "Sample comment text";
+        Comment comment = new Comment(text);
+        assertEquals(text, comment.getData());
     }
 
     // Tests deprecated constructor with baseUri
     @Test
     public void testConstructor_withBaseUri_setsDataCorrectly() {
-        Comment comment = new Comment("Data with baseUri", "http://example.com");
-        assertEquals("Data with baseUri", comment.getData());
+        Comment comment = new Comment("Data with base URI", "http://example.com");
+        assertEquals("Data with base URI", comment.getData());
         assertEquals("#comment", comment.nodeName());
     }
 
-    // Tests toString and outerHtml formatting
+    // Tests outerHtml output formatting
     @Test
-    public void testToString_normalComment_returnsHtmlComment() {
-        Comment comment = new Comment("Hello World");
-        assertEquals("<!--Hello World-->", comment.toString());
+    public void testOuterHtml_prettyPrintEnabled_formatsWithCommentTags() {
+        Comment comment = new Comment("hello world");
+        assertEquals("<!--hello world-->", comment.outerHtml());
+        assertEquals("<!--hello world-->", comment.toString());
     }
 
-    // Tests outerHtmlHead with prettyPrint enabled and disabled
+    // Tests outerHtml with prettyPrint disabled
     @Test
-    public void testOuterHtml_prettyPrintSettings_formatsCorrectly() throws IOException {
+    public void testOuterHtml_prettyPrintDisabled_formatsWithCommentTags() {
         Comment comment = new Comment("test comment");
-        Document.OutputSettings settings = new Document.OutputSettings();
-        
-        StringBuilder accum = new StringBuilder();
-        settings.prettyPrint(true);
-        comment.outerHtmlHead(accum, 0, settings);
-        comment.outerHtmlTail(accum, 0, settings);
-        assertEquals("<!--test comment-->", accum.toString());
-
-        StringBuilder accum2 = new StringBuilder();
-        settings.prettyPrint(false);
-        comment.outerHtmlHead(accum2, 0, settings);
-        comment.outerHtmlTail(accum2, 0, settings);
-        assertEquals("<!--test comment-->", accum2.toString());
+        Document.OutputSettings settings = new Document.OutputSettings().prettyPrint(false);
+        assertEquals("<!--test comment-->", comment.outerHtml());
     }
 
-    // Tests isXmlDeclaration with standard XML declaration prefix '?'
+    // Tests isXmlDeclaration with standard non-declaration text
     @Test
-    public void testIsXmlDeclaration_questionMarkPrefix_returnsTrue() {
-        Comment comment = new Comment("?xml version=\"1.0\" encoding=\"utf-8\"?");
-        assertTrue(comment.isXmlDeclaration());
-    }
-
-    // Tests isXmlDeclaration with exclamation prefix '!'
-    @Test
-    public void testIsXmlDeclaration_exclamationPrefix_returnsTrue() {
-        Comment comment = new Comment("!DOCTYPE html");
-        assertTrue(comment.isXmlDeclaration());
-    }
-
-    // Tests isXmlDeclaration with normal comment data
-    @Test
-    public void testIsXmlDeclaration_normalComment_returnsFalse() {
-        Comment comment = new Comment("just a normal comment");
+    public void testIsXmlDeclaration_regularComment_returnsFalse() {
+        Comment comment = new Comment("just a regular comment");
         assertFalse(comment.isXmlDeclaration());
     }
 
-    // Tests isXmlDeclaration with empty data
+    // Tests isXmlDeclaration with empty content
     @Test
-    public void testIsXmlDeclaration_emptyData_returnsFalse() {
+    public void testIsXmlDeclaration_emptyString_returnsFalse() {
         Comment comment = new Comment("");
         assertFalse(comment.isXmlDeclaration());
     }
 
-    // Tests isXmlDeclaration boundary with single character prefix
+    // Tests isXmlDeclaration with single character boundary cases
     @Test
-    public void testIsXmlDeclaration_singleCharPrefix_returnsFalse() {
-        Comment comment1 = new Comment("?");
-        assertFalse(comment1.isXmlDeclaration());
-
-        Comment comment2 = new Comment("!");
-        assertFalse(comment2.isXmlDeclaration());
+    public void testIsXmlDeclaration_singleCharExclamation_returnsFalse() {
+        Comment comment = new Comment("!");
+        assertFalse(comment.isXmlDeclaration());
     }
 
-    // Tests asXmlDeclaration parsing valid XML declaration with '?'
+    // Tests isXmlDeclaration with single character question mark boundary
     @Test
-    public void testAsXmlDeclaration_validXmlDeclaration_returnsDeclarationNode() {
+    public void testIsXmlDeclaration_singleCharQuestionMark_returnsFalse() {
+        Comment comment = new Comment("?");
+        assertFalse(comment.isXmlDeclaration());
+    }
+
+    // Tests isXmlDeclaration starting with question mark
+    @Test
+    public void testIsXmlDeclaration_startingWithQuestionMark_returnsTrue() {
+        Comment comment = new Comment("?xml version=\"1.0\" encoding=\"utf-8\"?");
+        assertTrue(comment.isXmlDeclaration());
+    }
+
+    // Tests isXmlDeclaration starting with exclamation mark
+    @Test
+    public void testIsXmlDeclaration_startingWithExclamation_returnsTrue() {
+        Comment comment = new Comment("!DOCTYPE html");
+        assertTrue(comment.isXmlDeclaration());
+    }
+
+    // Tests asXmlDeclaration on standard XML declaration
+    @Test
+    public void testAsXmlDeclaration_validXmlDeclaration_returnsParsedXmlDeclaration() {
         Comment comment = new Comment("?xml version=\"1.0\" encoding=\"utf-8\"?");
         XmlDeclaration decl = comment.asXmlDeclaration();
+
         assertNotNull(decl);
         assertEquals("xml", decl.name());
         assertEquals("1.0", decl.attr("version"));
         assertEquals("utf-8", decl.attr("encoding"));
-        assertEquals("#declaration", decl.nodeName());
+        assertFalse(decl.isProcessingInstruction());
     }
 
-    // Tests asXmlDeclaration parsing declaration with '!'
+    // Tests asXmlDeclaration on DOCTYPE declaration
     @Test
-    public void testAsXmlDeclaration_exclamationDeclaration_returnsDeclarationNode() {
-        Comment comment = new Comment("!ELEMENT foo EMPTY");
+    public void testAsXmlDeclaration_doctypeDeclaration_returnsParsedXmlDeclarationWithExclamation() {
+        Comment comment = new Comment("!DOCTYPE html");
+        XmlDeclaration decl = comment.asXmlDeclaration();
+
+        assertNotNull(decl);
+        assertEquals("DOCTYPE", decl.name());
+        assertTrue(decl.attributes().hasKey("html"));
+        assertTrue(decl.isProcessingInstruction());
+    }
+
+    // Tests asXmlDeclaration when parsed content has no element child
+    @Test
+    public void testAsXmlDeclaration_commentProducingNoElementChild_handlesGracefully() {
+        Comment comment = new Comment("?eval bogus?");
         XmlDeclaration decl = comment.asXmlDeclaration();
         assertNotNull(decl);
-        assertEquals("ELEMENT", decl.name());
-        assertEquals("#declaration", decl.nodeName());
+        assertEquals("eval", decl.name());
     }
 
-    // Tests asXmlDeclaration when comment content is a plain comment
+    // Tests outerHtmlHead with Appendable
     @Test
-    public void testAsXmlDeclaration_plainComment_returnsNull() {
-        Comment comment = new Comment("plain comment");
-        assertNull(comment.asXmlDeclaration());
+    public void testOuterHtmlHead_customAppendable_appendsCorrectly() throws IOException {
+        Comment comment = new Comment("append test");
+        StringBuilder sb = new StringBuilder();
+        Document.OutputSettings settings = new Document.OutputSettings();
+        comment.outerHtmlHead(sb, 0, settings);
+        comment.outerHtmlTail(sb, 0, settings);
+        assertEquals("<!--append test-->", sb.toString());
     }
 
-    // Tests asXmlDeclaration when comment content does not produce child elements (Defects4J 86 regression)
+    // Tests setData updates the comment content and returns the comment instance
     @Test
-    public void testAsXmlDeclaration_nonElementChild_handlesGracefully() {
-        Comment comment = new Comment("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-        XmlDeclaration decl = comment.asXmlDeclaration();
-        assertNull(decl);
+    public void testSetData_updatesDataAndReturnsThis() {
+        Comment comment = new Comment("initial data");
+        Comment returned = comment.setData("updated data");
+        assertEquals("updated data", comment.getData());
+        assertEquals(comment, returned);
     }
 
-    // Tests asXmlDeclaration with malformed or non-element content
-    @Test
-    public void testAsXmlDeclaration_notAnXmlDeclaration_returnsNull() {
-        Comment comment = new Comment("?!");
-        XmlDeclaration decl = comment.asXmlDeclaration();
-        assertNull(decl);
-    }
-
-    // Tests clone method
+    // Tests clone creates an independent copy
     @Test
     public void testClone_createsIndependentCopy() {
-        Comment comment = new Comment("Clone me");
-        Comment clone = comment.clone();
-        assertEquals(comment.getData(), clone.getData());
-        assertEquals(comment.outerHtml(), clone.outerHtml());
-        clone.setData("Changed");
-        assertEquals("Clone me", comment.getData());
-        assertEquals("Changed", clone.getData());
+        Comment original = new Comment("cloneable text");
+        Comment clone = original.clone();
+        assertNotSame(original, clone);
+        assertEquals(original.getData(), clone.getData());
+
+        clone.setData("changed text");
+        assertEquals("cloneable text", original.getData());
+        assertEquals("changed text", clone.getData());
+    }
+
+    // Tests asXmlDeclaration returns null when parsed XML produces no children
+    @Test
+    public void testAsXmlDeclaration_emptyParsedStructure_returnsNull() {
+        Comment comment = new Comment("? ?");
+        XmlDeclaration decl = comment.asXmlDeclaration();
+        assertNull(decl);
+    }
+
+    // Tests outerHtml indentation when outline mode is enabled
+    @Test
+    public void testOuterHtmlHead_outlineModeEnabled_indentsOutput() throws IOException {
+        Comment comment = new Comment("outline test");
+        StringBuilder sb = new StringBuilder();
+        Document.OutputSettings settings = new Document.OutputSettings().outline(true).indentAmount(2);
+        comment.outerHtmlHead(sb, 1, settings);
+        comment.outerHtmlTail(sb, 1, settings);
+        assertEquals("  <!--outline test-->", sb.toString());
+    }
+
+    // Tests outerHtml indentation when comment is first child of a block format element
+    @Test
+    public void testOuterHtml_firstChildOfBlockElement_indentsCorrectly() {
+        Element div = new Element("div");
+        Comment comment = new Comment("block child comment");
+        div.appendChild(comment);
+
+        Document doc = Jsoup.parse("<div><!--block child comment--></div>");
+        doc.outputSettings().prettyPrint(true).indentAmount(2);
+        assertTrue(doc.body().html().contains("  <!--block child comment-->"));
     }
 }

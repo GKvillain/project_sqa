@@ -2,16 +2,23 @@ package org.mockito.internal.creation;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
-
-import java.io.Serializable;
-import java.util.List;
-import java.util.Set;
+import org.mockito.MockSettings;
 import org.mockito.exceptions.base.MockitoException;
 import org.mockito.listeners.InvocationListener;
 import org.mockito.listeners.MethodInvocationReport;
 import org.mockito.stubbing.Answer;
 import org.mockito.invocation.InvocationOnMock;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class MockSettingsImplTest {
 
@@ -22,16 +29,16 @@ public class MockSettingsImplTest {
         mockSettings = new MockSettingsImpl();
     }
 
-    // Tests default state of isSerializable
+    // Tests default state of serializable flag
     @Test
     public void testIsSerializable_defaultState_returnsFalse() {
         assertFalse(mockSettings.isSerializable());
         assertNull(mockSettings.getExtraInterfaces());
     }
 
-    // Tests serializable method enables serialization and sets extra interface
+    // Tests enabling serialization setting
     @Test
-    public void testSerializable_whenCalled_enablesSerializable() {
+    public void testSerializable_enableSerializable_isSerializableReturnsTrue() {
         mockSettings.serializable();
 
         assertTrue(mockSettings.isSerializable());
@@ -42,7 +49,7 @@ public class MockSettingsImplTest {
 
     // Tests setting valid extra interfaces
     @Test
-    public void testExtraInterfaces_validInterfaces_storesInterfaces() {
+    public void testExtraInterfaces_validInterfaces_storesInterfacesAndNotSerializable() {
         mockSettings.extraInterfaces(List.class, Set.class);
 
         Class<?>[] interfaces = mockSettings.getExtraInterfaces();
@@ -53,63 +60,64 @@ public class MockSettingsImplTest {
         assertFalse(mockSettings.isSerializable());
     }
 
-    // Tests extraInterfaces including Serializable returns true for isSerializable
+    // Tests extra interfaces including Serializable interface
     @Test
-    public void testIsSerializable_extraInterfacesContainsSerializable_returnsTrue() {
+    public void testExtraInterfaces_includingSerializable_isSerializableReturnsTrue() {
         mockSettings.extraInterfaces(List.class, Serializable.class);
 
         assertTrue(mockSettings.isSerializable());
     }
 
-    // Tests extraInterfaces with null array throws exception
+    // Tests exception path when extraInterfaces receives null array
     @Test(expected = MockitoException.class)
     public void testExtraInterfaces_nullArray_throwsException() {
         mockSettings.extraInterfaces((Class<?>[]) null);
     }
 
-    // Tests extraInterfaces with empty array throws exception
+    // Tests exception path when extraInterfaces receives empty array
     @Test(expected = MockitoException.class)
     public void testExtraInterfaces_emptyArray_throwsException() {
         mockSettings.extraInterfaces(new Class<?>[0]);
     }
 
-    // Tests extraInterfaces containing null element throws exception
+    // Tests exception path when extraInterfaces contains a null element
     @Test(expected = MockitoException.class)
-    public void testExtraInterfaces_nullElement_throwsException() {
+    public void testExtraInterfaces_nullElementInArray_throwsException() {
         mockSettings.extraInterfaces(List.class, null);
     }
 
-    // Tests extraInterfaces with non-interface class throws exception
+    // Tests exception path when extraInterfaces contains a class that is not an interface
     @Test(expected = MockitoException.class)
     public void testExtraInterfaces_nonInterfaceClass_throwsException() {
-        mockSettings.extraInterfaces(String.class);
+        mockSettings.extraInterfaces(List.class, String.class);
     }
 
     // Tests setting and getting spied instance
     @Test
-    public void testSpiedInstance_validObject_storesInstance() {
-        Object spy = new Object();
-        mockSettings.spiedInstance(spy);
+    public void testSpiedInstance_setInstance_returnsSameInstance() {
+        Object spied = new Object();
+        mockSettings.spiedInstance(spied);
 
-        assertSame(spy, mockSettings.getSpiedInstance());
+        assertSame(spied, mockSettings.getSpiedInstance());
     }
 
-    // Tests default answer configuration
+    // Tests setting and getting default answer
     @Test
-    public void testDefaultAnswer_validAnswer_storesAnswer() {
+    public void testDefaultAnswer_setAnswer_returnsSameAnswer() {
         Answer<Object> customAnswer = new Answer<Object>() {
             public Object answer(InvocationOnMock invocation) {
-                return "custom";
+                return "test";
             }
         };
+
         mockSettings.defaultAnswer(customAnswer);
 
         assertSame(customAnswer, mockSettings.getDefaultAnswer());
     }
 
-    // Tests initiateMockName with custom name
+    // Tests mock naming with a custom name
     @Test
-    public void testInitiateMockName_withCustomName_createsMockName() {
+    public void testInitiateMockName_withCustomName_createsCustomMockName() {
         mockSettings.name("myCustomMock");
         mockSettings.initiateMockName(List.class);
 
@@ -117,7 +125,7 @@ public class MockSettingsImplTest {
         assertEquals("myCustomMock", mockSettings.getMockName().toString());
     }
 
-    // Tests initiateMockName with default/null name
+    // Tests mock naming with default name derived from class to mock
     @Test
     public void testInitiateMockName_withoutCustomName_createsDefaultMockName() {
         mockSettings.initiateMockName(List.class);
@@ -126,84 +134,69 @@ public class MockSettingsImplTest {
         assertTrue(mockSettings.getMockName().toString().contains("list"));
     }
 
-    // Tests default stubOnly state is false
-    @Test
-    public void testIsStubOnly_defaultState_returnsFalse() {
-        assertFalse(mockSettings.isStubOnly());
-    }
-
-    // Tests stubOnly enables stub-only mode
-    @Test
-    public void testStubOnly_whenCalled_enablesStubOnly() {
-        mockSettings.stubOnly();
-
-        assertTrue(mockSettings.isStubOnly());
-    }
-
-    // Tests default answer with null throws exception
+    // Tests defaultAnswer exception when null answer is passed
     @Test(expected = MockitoException.class)
     public void testDefaultAnswer_nullAnswer_throwsException() {
         mockSettings.defaultAnswer(null);
     }
 
-    // Tests verbose logging adds an invocation listener
+    // Tests stubOnly setting and getter
     @Test
-    public void testVerboseLogging_addsInvocationListener() {
-        assertFalse(mockSettings.hasInvocationListeners());
+    public void testStubOnly_defaultAndEnabled() {
+        assertFalse(mockSettings.isStubOnly());
+        MockSettings result = mockSettings.stubOnly();
+        assertSame(mockSettings, result);
+        assertTrue(mockSettings.isStubOnly());
+    }
 
-        mockSettings.verboseLogging();
-
+    // Tests verboseLogging method adds listener and returns instance
+    @Test
+    public void testVerboseLogging_enablesListener() {
+        MockSettings result = mockSettings.verboseLogging();
+        assertSame(mockSettings, result);
         assertTrue(mockSettings.hasInvocationListeners());
-        assertNotNull(mockSettings.getInvocationListeners());
         assertEquals(1, mockSettings.getInvocationListeners().size());
     }
 
-    // Tests configuring valid invocation listeners
+    // Tests invocationListeners with valid listener
     @Test
-    public void testInvocationListeners_validListeners_storesListeners() {
+    public void testInvocationListeners_validListener_addsToList() {
         InvocationListener listener = new InvocationListener() {
             public void reportInvocation(MethodInvocationReport methodInvocationReport) {
             }
         };
 
-        mockSettings.invocationListeners(listener);
-
+        MockSettings result = mockSettings.invocationListeners(listener);
+        assertSame(mockSettings, result);
         assertTrue(mockSettings.hasInvocationListeners());
         assertEquals(1, mockSettings.getInvocationListeners().size());
-        assertTrue(mockSettings.getInvocationListeners().contains(listener));
+        assertSame(listener, mockSettings.getInvocationListeners().get(0));
     }
 
-    // Tests invocationListeners with null array throws exception
+    // Tests invocationListeners exception when null array is passed
     @Test(expected = MockitoException.class)
     public void testInvocationListeners_nullArray_throwsException() {
         mockSettings.invocationListeners((InvocationListener[]) null);
     }
 
-    // Tests invocationListeners with empty array throws exception
+    // Tests invocationListeners exception when empty array is passed
     @Test(expected = MockitoException.class)
     public void testInvocationListeners_emptyArray_throwsException() {
         mockSettings.invocationListeners(new InvocationListener[0]);
     }
 
-    // Tests invocationListeners containing null element throws exception
+    // Tests invocationListeners exception when array contains null element
     @Test(expected = MockitoException.class)
     public void testInvocationListeners_nullElement_throwsException() {
-        InvocationListener listener = new InvocationListener() {
-            public void reportInvocation(MethodInvocationReport methodInvocationReport) {
-            }
-        };
-
-        mockSettings.invocationListeners(listener, null);
+        mockSettings.invocationListeners(new InvocationListener[]{null});
     }
 
-    // Tests extraInterfaces ignores duplicate interfaces
+    // Tests fluent chaining returns same MockSettings instance
     @Test
-    public void testExtraInterfaces_duplicateInterfaces_storesDistinctOnly() {
-        mockSettings.extraInterfaces(List.class, List.class);
-
-        Class<?>[] interfaces = mockSettings.getExtraInterfaces();
-        assertNotNull(interfaces);
-        assertEquals(1, interfaces.length);
-        assertEquals(List.class, interfaces[0]);
+    public void testFluentChaining() {
+        assertSame(mockSettings, mockSettings.name("mock"));
+        assertSame(mockSettings, mockSettings.serializable());
+        assertSame(mockSettings, mockSettings.spiedInstance(new Object()));
+        assertSame(mockSettings, mockSettings.extraInterfaces(List.class));
     }
 }

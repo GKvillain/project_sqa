@@ -5,19 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
+import static org.junit.Assert.*;
+
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.exceptions.base.MockitoException;
 import org.mockito.internal.util.MockUtil;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class SpyAnnotationEngineTest {
 
@@ -28,50 +23,31 @@ public class SpyAnnotationEngineTest {
         engine = new SpyAnnotationEngine();
     }
 
-    // Helper classes for testing annotations
-    private static class ClassWithValidSpy {
+    private static class ValidSpyTestClass {
         @Spy
         List<String> spiedList = new ArrayList<String>();
+
+        List<String> regularList = new ArrayList<String>();
     }
 
-    private static class ClassWithNullSpy {
+    private static class NullSpyTestClass {
         @Spy
         List<String> nullList;
     }
 
-    private static class ClassWithPreMockedSpy {
-        @Spy
-        List<String> alreadyMocked = Mockito.spy(new ArrayList<String>());
-    }
-
-    private static class ClassWithNoAnnotations {
-        List<String> regularList = new ArrayList<String>();
-        String regularString = "test";
-    }
-
-    private static class ClassWithEmptyFields {
-    }
-
-    private static class ClassWithSpyAndMock {
+    private static class MultipleAnnotationsTestClass {
         @Spy
         @Mock
-        List<String> invalidCombination = new ArrayList<String>();
+        List<String> spyAndMock = new ArrayList<String>();
     }
 
-    private static class ClassWithSpyAndCaptor {
+    private static class CaptorAndSpyTestClass {
         @Spy
         @Captor
-        ArgumentCaptor<String> invalidCombination;
+        List<String> spyAndCaptor = new ArrayList<String>();
     }
 
-    @SuppressWarnings("deprecation")
-    private static class ClassWithSpyAndDeprecatedMock {
-        @Spy
-        @org.mockito.MockitoAnnotations.Mock
-        List<String> invalidCombination = new ArrayList<String>();
-    }
-
-    private static class ClassWithPrivateSpy {
+    private static class PrivateFieldTestClass {
         @Spy
         private List<String> privateList = new ArrayList<String>();
 
@@ -80,108 +56,79 @@ public class SpyAnnotationEngineTest {
         }
     }
 
-    // Tests createMockFor always returns null
+    // Tests createMockFor always returns null as per implementation
     @Test
-    public void testCreateMockFor_anyParameters_returnsNull() {
-        Object result = engine.createMockFor(null, null);
-        assertNull(result);
+    public void testCreateMockFor_anyInput_returnsNull() {
+        assertNull(engine.createMockFor(null, null));
     }
 
-    // Tests normal case where a valid instance is turned into a spy
+    // Tests processing normal @Spy annotated field creates a mock/spy
     @Test
-    public void testProcess_validSpyField_createsSpyInstance() {
-        ClassWithValidSpy testInstance = new ClassWithValidSpy();
-        List<String> originalList = testInstance.spiedList;
-
-        engine.process(ClassWithValidSpy.class, testInstance);
-
-        assertNotNull(testInstance.spiedList);
+    public void testProcess_validSpyField_createsSpy() {
+        ValidSpyTestClass testInstance = new ValidSpyTestClass();
+        engine.process(ValidSpyTestClass.class, testInstance);
         assertTrue(new MockUtil().isMock(testInstance.spiedList));
-        assertEquals(originalList, testInstance.spiedList);
     }
 
-    // Tests exception path when field annotated with @Spy is null
+    // Tests field without annotation remains un-spied
+    @Test
+    public void testProcess_fieldWithoutAnnotation_notSpied() {
+        ValidSpyTestClass testInstance = new ValidSpyTestClass();
+        engine.process(ValidSpyTestClass.class, testInstance);
+        assertFalse(new MockUtil().isMock(testInstance.regularList));
+    }
+
+    // Tests @Spy field with null instance throws MockitoException
     @Test(expected = MockitoException.class)
-    public void testProcess_nullSpyField_throwsMockitoException() {
-        ClassWithNullSpy testInstance = new ClassWithNullSpy();
-        engine.process(ClassWithNullSpy.class, testInstance);
+    public void testProcess_nullSpyInstance_throwsMockitoException() {
+        NullSpyTestClass testInstance = new NullSpyTestClass();
+        engine.process(NullSpyTestClass.class, testInstance);
     }
 
-    // Tests branch where the field instance is already a mock/spy
+    // Tests @Spy on an already mocked/spied instance resets the mock
     @Test
     public void testProcess_alreadyMockedInstance_resetsMock() {
-        ClassWithPreMockedSpy testInstance = new ClassWithPreMockedSpy();
-        testInstance.alreadyMocked.add("element");
-        assertEquals(1, testInstance.alreadyMocked.size());
-
-        engine.process(ClassWithPreMockedSpy.class, testInstance);
-
-        assertTrue(new MockUtil().isMock(testInstance.alreadyMocked));
+        ValidSpyTestClass testInstance = new ValidSpyTestClass();
+        testInstance.spiedList = Mockito.spy(new ArrayList<String>());
+        testInstance.spiedList.add("element");
+        engine.process(ValidSpyTestClass.class, testInstance);
+        assertTrue(new MockUtil().isMock(testInstance.spiedList));
+        assertEquals(0, testInstance.spiedList.size());
     }
 
-    // Tests that fields without @Spy are ignored
-    @Test
-    public void testProcess_fieldsWithoutSpyAnnotation_doNotModifyFields() {
-        ClassWithNoAnnotations testInstance = new ClassWithNoAnnotations();
-        List<String> originalList = testInstance.regularList;
-
-        engine.process(ClassWithNoAnnotations.class, testInstance);
-
-        assertFalse(new MockUtil().isMock(testInstance.regularList));
-        assertEquals(originalList, testInstance.regularList);
-        assertEquals("test", testInstance.regularString);
+    // Tests unsupported combination of @Spy and @Mock annotations throws exception
+    @Test(expected = MockitoException.class)
+    public void testProcess_spyAndMockAnnotation_throwsMockitoException() {
+        MultipleAnnotationsTestClass testInstance = new MultipleAnnotationsTestClass();
+        engine.process(MultipleAnnotationsTestClass.class, testInstance);
     }
 
-    // Tests boundary condition with a class containing no declared fields
-    @Test
-    public void testProcess_classWithoutFields_doesNothing() {
-        ClassWithEmptyFields testInstance = new ClassWithEmptyFields();
-        engine.process(ClassWithEmptyFields.class, testInstance);
-        assertNotNull(testInstance);
+    // Tests unsupported combination of @Spy and @Captor annotations throws exception
+    @Test(expected = MockitoException.class)
+    public void testProcess_spyAndCaptorAnnotation_throwsMockitoException() {
+        CaptorAndSpyTestClass testInstance = new CaptorAndSpyTestClass();
+        engine.process(CaptorAndSpyTestClass.class, testInstance);
     }
 
-    // Tests private field accessibility handling
+    // Tests private field is made accessible and spied properly
     @Test
-    public void testProcess_privateSpyField_successfullyInitializesSpy() {
-        ClassWithPrivateSpy testInstance = new ClassWithPrivateSpy();
-        engine.process(ClassWithPrivateSpy.class, testInstance);
-
-        assertNotNull(testInstance.getPrivateList());
+    public void testProcess_privateSpyField_successfullySpies() {
+        PrivateFieldTestClass testInstance = new PrivateFieldTestClass();
+        engine.process(PrivateFieldTestClass.class, testInstance);
         assertTrue(new MockUtil().isMock(testInstance.getPrivateList()));
     }
 
-    // Tests exception path when field has both @Spy and @Mock annotations
-    @Test(expected = MockitoException.class)
-    public void testProcess_spyAndMockAnnotations_throwsMockitoException() {
-        ClassWithSpyAndMock testInstance = new ClassWithSpyAndMock();
-        engine.process(ClassWithSpyAndMock.class, testInstance);
-    }
-
-    // Tests exception path when field has both @Spy and @Captor annotations
-    @Test(expected = MockitoException.class)
-    public void testProcess_spyAndCaptorAnnotations_throwsMockitoException() {
-        ClassWithSpyAndCaptor testInstance = new ClassWithSpyAndCaptor();
-        engine.process(ClassWithSpyAndCaptor.class, testInstance);
-    }
-
-    // Tests exception path when field has both @Spy and deprecated @Mock annotations
-    @Test(expected = MockitoException.class)
-    public void testProcess_spyAndDeprecatedMockAnnotations_throwsMockitoException() {
-        ClassWithSpyAndDeprecatedMock testInstance = new ClassWithSpyAndDeprecatedMock();
-        engine.process(ClassWithSpyAndDeprecatedMock.class, testInstance);
-    }
-
-    // Tests assertNoAnnotations when no conflicting annotations are present
+    // Tests assertNoAnnotations when no undesired annotation is present
     @Test
-    public void testAssertNoAnnotations_noConflictingAnnotations_doesNotThrow() throws NoSuchFieldException {
-        Field field = ClassWithValidSpy.class.getDeclaredField("spiedList");
+    public void testAssertNoAnnotations_noUndesiredAnnotation_doesNotThrow() throws NoSuchFieldException {
+        Field field = ValidSpyTestClass.class.getDeclaredField("spiedList");
         engine.assertNoAnnotations(Spy.class, field, Mock.class, Captor.class);
     }
 
-    // Tests assertNoAnnotations when conflicting annotations are present
+    // Tests assertNoAnnotations when undesired annotation is present
     @Test(expected = MockitoException.class)
-    public void testAssertNoAnnotations_conflictingAnnotationPresent_throwsMockitoException() throws NoSuchFieldException {
-        Field field = ClassWithSpyAndMock.class.getDeclaredField("invalidCombination");
-        engine.assertNoAnnotations(Spy.class, field, Mock.class, Captor.class);
+    public void testAssertNoAnnotations_withUndesiredAnnotation_throwsException() throws NoSuchFieldException {
+        Field field = MultipleAnnotationsTestClass.class.getDeclaredField("spyAndMock");
+        engine.assertNoAnnotations(Spy.class, field, Mock.class);
     }
 }

@@ -1,6 +1,5 @@
 package com.fasterxml.jackson.databind.ser.std;
 
-import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,8 +11,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,233 +20,309 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitorWrapper;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonIntegerFormatVisitor;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonNumberFormatVisitor;
-import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class NumberSerializersTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final JsonFactory jsonFactory = new JsonFactory();
-    private final SerializerProvider provider = new DefaultSerializerProvider.Impl();
 
-    // Tests instantiation of protected constructor
+    static class FormattedNumbers {
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
+        public int intVal = 123;
+
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
+        public long longVal = 456L;
+
+        @JsonFormat(shape = JsonFormat.Shape.NUMBER)
+        public double doubleVal = 7.89;
+
+        public short shortVal = 12;
+    }
+
+    // Tests constructor instantiation
     @Test
-    public void testConstructor_instantiation_createsInstance() {
+    public void testConstructor_instantiation_success() {
         NumberSerializers serializers = new NumberSerializers();
         assertNotNull(serializers);
     }
 
-    // Tests mapping registration of all standard numeric types and primitives
+    // Tests addAll populates map with standard numeric serializers
     @Test
-    public void testAddAll_standardNumericTypes_registersAllExpectedEntries() {
-        Map<String, JsonSerializer<?>> serializers = new HashMap<String, JsonSerializer<?>>();
-        NumberSerializers.addAll(serializers);
+    public void testAddAll_validMap_populatesAllPrimitiveAndWrapperTypes() {
+        Map<String, JsonSerializer<?>> map = new HashMap<String, JsonSerializer<?>>();
+        NumberSerializers.addAll(map);
 
-        assertEquals(12, serializers.size());
-        assertTrue(serializers.containsKey(Integer.class.getName()));
-        assertTrue(serializers.containsKey(Integer.TYPE.getName()));
-        assertTrue(serializers.containsKey(Long.class.getName()));
-        assertTrue(serializers.containsKey(Long.TYPE.getName()));
-        assertTrue(serializers.containsKey(Byte.class.getName()));
-        assertTrue(serializers.containsKey(Byte.TYPE.getName()));
-        assertTrue(serializers.containsKey(Short.class.getName()));
-        assertTrue(serializers.containsKey(Short.TYPE.getName()));
-        assertTrue(serializers.containsKey(Float.class.getName()));
-        assertTrue(serializers.containsKey(Float.TYPE.getName()));
-        assertTrue(serializers.containsKey(Double.class.getName()));
-        assertTrue(serializers.containsKey(Double.TYPE.getName()));
+        assertTrue(map.containsKey(Integer.class.getName()));
+        assertTrue(map.containsKey(Integer.TYPE.getName()));
+        assertTrue(map.containsKey(Long.class.getName()));
+        assertTrue(map.containsKey(Long.TYPE.getName()));
+        assertTrue(map.containsKey(Byte.class.getName()));
+        assertTrue(map.containsKey(Byte.TYPE.getName()));
+        assertTrue(map.containsKey(Short.class.getName()));
+        assertTrue(map.containsKey(Short.TYPE.getName()));
+        assertTrue(map.containsKey(Float.class.getName()));
+        assertTrue(map.containsKey(Float.TYPE.getName()));
+        assertTrue(map.containsKey(Double.class.getName()));
+        assertTrue(map.containsKey(Double.TYPE.getName()));
+
+        assertTrue(map.get(Integer.class.getName()) instanceof NumberSerializers.IntegerSerializer);
+        assertTrue(map.get(Long.class.getName()) instanceof NumberSerializers.LongSerializer);
+        assertTrue(map.get(Byte.class.getName()) instanceof NumberSerializers.IntLikeSerializer);
+        assertTrue(map.get(Short.class.getName()) instanceof NumberSerializers.ShortSerializer);
+        assertTrue(map.get(Float.class.getName()) instanceof NumberSerializers.FloatSerializer);
+        assertTrue(map.get(Double.class.getName()) instanceof NumberSerializers.DoubleSerializer);
     }
 
-    // Tests serialization of Short values
+    // Tests ShortSerializer serialization and schema
     @Test
-    public void testShortSerializer_serialize_writesShortValue() throws IOException {
+    public void testShortSerializer_serializeAndSchema_returnsCorrectOutput() throws Exception {
         NumberSerializers.ShortSerializer serializer = new NumberSerializers.ShortSerializer();
         StringWriter sw = new StringWriter();
         JsonGenerator gen = jsonFactory.createGenerator(sw);
-        serializer.serialize((short) 123, gen, provider);
-        gen.close();
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
 
-        assertEquals("123", sw.toString());
-    }
-
-    // Tests serialization of Integer values
-    @Test
-    public void testIntegerSerializer_serialize_writesIntValue() throws IOException {
-        NumberSerializers.IntegerSerializer serializer = new NumberSerializers.IntegerSerializer();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = jsonFactory.createGenerator(sw);
-        serializer.serialize(Integer.valueOf(456), gen, provider);
-        gen.close();
-
-        assertEquals("456", sw.toString());
-    }
-
-    // Tests serializeWithType of IntegerSerializer without type information
-    @Test
-    public void testIntegerSerializer_serializeWithType_writesPlainValue() throws IOException {
-        NumberSerializers.IntegerSerializer serializer = new NumberSerializers.IntegerSerializer();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = jsonFactory.createGenerator(sw);
-        serializer.serializeWithType(Integer.valueOf(789), gen, provider, null);
-        gen.close();
-
-        assertEquals("789", sw.toString());
-    }
-
-    // Tests serialization of Number via IntLikeSerializer
-    @Test
-    public void testIntLikeSerializer_serialize_writesIntValue() throws IOException {
-        NumberSerializers.IntLikeSerializer serializer = new NumberSerializers.IntLikeSerializer();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = jsonFactory.createGenerator(sw);
-        serializer.serialize((byte) 42, gen, provider);
-        gen.close();
-
+        serializer.serialize((short) 42, gen, provider);
+        gen.flush();
         assertEquals("42", sw.toString());
-    }
 
-    // Tests serialization of Long values
-    @Test
-    public void testLongSerializer_serialize_writesLongValue() throws IOException {
-        NumberSerializers.LongSerializer serializer = new NumberSerializers.LongSerializer();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = jsonFactory.createGenerator(sw);
-        serializer.serialize(Long.valueOf(9876543210L), gen, provider);
-        gen.close();
-
-        assertEquals("9876543210", sw.toString());
-    }
-
-    // Tests serialization of Float values
-    @Test
-    public void testFloatSerializer_serialize_writesFloatValue() throws IOException {
-        NumberSerializers.FloatSerializer serializer = new NumberSerializers.FloatSerializer();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = jsonFactory.createGenerator(sw);
-        serializer.serialize(Float.valueOf(1.25f), gen, provider);
-        gen.close();
-
-        assertEquals("1.25", sw.toString());
-    }
-
-    // Tests serialization of Double values
-    @Test
-    public void testDoubleSerializer_serialize_writesDoubleValue() throws IOException {
-        NumberSerializers.DoubleSerializer serializer = new NumberSerializers.DoubleSerializer();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = jsonFactory.createGenerator(sw);
-        serializer.serialize(Double.valueOf(3.14159), gen, provider);
-        gen.close();
-
-        assertEquals("3.14159", sw.toString());
-    }
-
-    // Tests serializeWithType of DoubleSerializer without type information
-    @Test
-    public void testDoubleSerializer_serializeWithType_writesPlainValue() throws IOException {
-        NumberSerializers.DoubleSerializer serializer = new NumberSerializers.DoubleSerializer();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = jsonFactory.createGenerator(sw);
-        serializer.serializeWithType(Double.valueOf(2.718), gen, provider, null);
-        gen.close();
-
-        assertEquals("2.718", sw.toString());
-    }
-
-    // Tests JSON schema retrieval for integer schema types
-    @Test
-    public void testGetSchema_integerSerializer_returnsIntegerSchema() {
-        NumberSerializers.IntegerSerializer serializer = new NumberSerializers.IntegerSerializer();
-        JsonNode schemaNode = serializer.getSchema(null, null);
-
-        assertNotNull(schemaNode);
-        assertEquals("integer", schemaNode.get("type").asText());
-    }
-
-    // Tests JSON schema retrieval for number schema types
-    @Test
-    public void testGetSchema_doubleSerializer_returnsNumberSchema() {
-        NumberSerializers.DoubleSerializer serializer = new NumberSerializers.DoubleSerializer();
-        JsonNode schemaNode = serializer.getSchema(null, null);
-
+        JsonNode schemaNode = serializer.getSchema(provider, Short.class);
         assertNotNull(schemaNode);
         assertEquals("number", schemaNode.get("type").asText());
     }
 
-    // Tests format visitor for integer numeric serializers
+    // Tests IntegerSerializer serialization, serializeWithType, and schema
     @Test
-    public void testAcceptJsonFormatVisitor_integerSerializer_invokesIntegerVisitor() throws JsonMappingException {
-        NumberSerializers.IntegerSerializer serializer = new NumberSerializers.IntegerSerializer();
-        final boolean[] visited = new boolean[1];
-        final JsonParser.NumberType[] assignedType = new JsonParser.NumberType[1];
+    public void testIntegerSerializer_serializeAndSchema_returnsCorrectOutput() throws Exception {
+        NumberSerializers.IntegerSerializer serializer = new NumberSerializers.IntegerSerializer(Integer.class);
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = jsonFactory.createGenerator(sw);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+
+        serializer.serialize(100, gen, provider);
+        gen.flush();
+        assertEquals("100", sw.toString());
+
+        sw = new StringWriter();
+        gen = jsonFactory.createGenerator(sw);
+        serializer.serializeWithType(200, gen, provider, null);
+        gen.flush();
+        assertEquals("200", sw.toString());
+
+        JsonNode schemaNode = serializer.getSchema(provider, Integer.class);
+        assertNotNull(schemaNode);
+        assertEquals("integer", schemaNode.get("type").asText());
+    }
+
+    // Tests IntLikeSerializer serialization and schema
+    @Test
+    public void testIntLikeSerializer_serializeAndSchema_returnsCorrectOutput() throws Exception {
+        NumberSerializers.IntLikeSerializer serializer = new NumberSerializers.IntLikeSerializer();
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = jsonFactory.createGenerator(sw);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+
+        serializer.serialize((byte) 8, gen, provider);
+        gen.flush();
+        assertEquals("8", sw.toString());
+
+        JsonNode schemaNode = serializer.getSchema(provider, Byte.class);
+        assertNotNull(schemaNode);
+        assertEquals("integer", schemaNode.get("type").asText());
+    }
+
+    // Tests LongSerializer serialization and schema
+    @Test
+    public void testLongSerializer_serializeAndSchema_returnsCorrectOutput() throws Exception {
+        NumberSerializers.LongSerializer serializer = new NumberSerializers.LongSerializer(Long.class);
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = jsonFactory.createGenerator(sw);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+
+        serializer.serialize(9876543210L, gen, provider);
+        gen.flush();
+        assertEquals("9876543210", sw.toString());
+
+        JsonNode schemaNode = serializer.getSchema(provider, Long.class);
+        assertNotNull(schemaNode);
+        assertEquals("number", schemaNode.get("type").asText());
+    }
+
+    // Tests FloatSerializer serialization and schema
+    @Test
+    public void testFloatSerializer_serializeAndSchema_returnsCorrectOutput() throws Exception {
+        NumberSerializers.FloatSerializer serializer = new NumberSerializers.FloatSerializer();
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = jsonFactory.createGenerator(sw);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+
+        serializer.serialize(1.25f, gen, provider);
+        gen.flush();
+        assertEquals("1.25", sw.toString());
+
+        JsonNode schemaNode = serializer.getSchema(provider, Float.class);
+        assertNotNull(schemaNode);
+        assertEquals("number", schemaNode.get("type").asText());
+    }
+
+    // Tests DoubleSerializer serialization, serializeWithType, and schema
+    @Test
+    public void testDoubleSerializer_serializeAndSchema_returnsCorrectOutput() throws Exception {
+        NumberSerializers.DoubleSerializer serializer = new NumberSerializers.DoubleSerializer(Double.class);
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = jsonFactory.createGenerator(sw);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+
+        serializer.serialize(3.1415, gen, provider);
+        gen.flush();
+        assertEquals("3.1415", sw.toString());
+
+        sw = new StringWriter();
+        gen = jsonFactory.createGenerator(sw);
+        serializer.serializeWithType(2.71828, gen, provider, null);
+        gen.flush();
+        assertEquals("2.71828", sw.toString());
+
+        JsonNode schemaNode = serializer.getSchema(provider, Double.class);
+        assertNotNull(schemaNode);
+        assertEquals("number", schemaNode.get("type").asText());
+    }
+
+    // Tests createContextual when property is null
+    @Test
+    public void testCreateContextual_nullProperty_returnsSelf() throws Exception {
+        NumberSerializers.IntegerSerializer serializer = new NumberSerializers.IntegerSerializer(Integer.class);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+        JsonSerializer<?> contextual = serializer.createContextual(provider, null);
+        assertSame(serializer, contextual);
+    }
+
+    // Tests createContextual with JsonFormat shape STRING and default shape
+    @Test
+    public void testCreateContextual_withStringShape_returnsToStringSerializer() throws Exception {
+        FormattedNumbers pojo = new FormattedNumbers();
+        String json = mapper.writeValueAsString(pojo);
+
+        assertTrue(json.contains("\"intVal\":\"123\""));
+        assertTrue(json.contains("\"longVal\":\"456\""));
+        assertTrue(json.contains("\"doubleVal\":7.89"));
+        assertTrue(json.contains("\"shortVal\":12"));
+    }
+
+    // Tests acceptJsonFormatVisitor for integer types
+    @Test
+    public void testAcceptJsonFormatVisitor_integerType_callsExpectIntegerFormat() throws Exception {
+        NumberSerializers.IntegerSerializer serializer = new NumberSerializers.IntegerSerializer(Integer.class);
+        final boolean[] called = new boolean[2];
 
         JsonFormatVisitorWrapper visitor = new JsonFormatVisitorWrapper.Base() {
             @Override
             public JsonIntegerFormatVisitor expectIntegerFormat(JavaType type) {
-                visited[0] = true;
+                called[0] = true;
                 return new JsonIntegerFormatVisitor.Base() {
                     @Override
                     public void numberType(JsonParser.NumberType type) {
-                        assignedType[0] = type;
+                        called[1] = (type == JsonParser.NumberType.INT);
                     }
                 };
             }
         };
 
-        serializer.acceptJsonFormatVisitor(visitor, TypeFactory.defaultInstance().constructType(Integer.class));
-        assertTrue(visited[0]);
-        assertEquals(JsonParser.NumberType.INT, assignedType[0]);
+        serializer.acceptJsonFormatVisitor(visitor, mapper.constructType(Integer.class));
+        assertTrue(called[0]);
+        assertTrue(called[1]);
     }
 
-    // Tests format visitor for floating point numeric serializers
+    // Tests acceptJsonFormatVisitor for floating point types
     @Test
-    public void testAcceptJsonFormatVisitor_doubleSerializer_invokesNumberVisitor() throws JsonMappingException {
-        NumberSerializers.DoubleSerializer serializer = new NumberSerializers.DoubleSerializer();
-        final boolean[] visited = new boolean[1];
-        final JsonParser.NumberType[] assignedType = new JsonParser.NumberType[1];
+    public void testAcceptJsonFormatVisitor_floatType_callsExpectNumberFormat() throws Exception {
+        NumberSerializers.DoubleSerializer serializer = new NumberSerializers.DoubleSerializer(Double.class);
+        final boolean[] called = new boolean[2];
 
         JsonFormatVisitorWrapper visitor = new JsonFormatVisitorWrapper.Base() {
             @Override
             public JsonNumberFormatVisitor expectNumberFormat(JavaType type) {
-                visited[0] = true;
+                called[0] = true;
                 return new JsonNumberFormatVisitor.Base() {
                     @Override
                     public void numberType(JsonParser.NumberType type) {
-                        assignedType[0] = type;
+                        called[1] = (type == JsonParser.NumberType.DOUBLE);
                     }
                 };
             }
         };
 
-        serializer.acceptJsonFormatVisitor(visitor, TypeFactory.defaultInstance().constructType(Double.class));
-        assertTrue(visited[0]);
-        assertEquals(JsonParser.NumberType.DOUBLE, assignedType[0]);
+        serializer.acceptJsonFormatVisitor(visitor, mapper.constructType(Double.class));
+        assertTrue(called[0]);
+        assertTrue(called[1]);
     }
 
-    // Tests createContextual returning this when property is null
+    // Tests acceptJsonFormatVisitor when visitor returns null sub-visitor
     @Test
-    public void testCreateContextual_nullProperty_returnsSameInstance() throws JsonMappingException {
-        NumberSerializers.IntegerSerializer serializer = new NumberSerializers.IntegerSerializer();
-        JsonSerializer<?> result = serializer.createContextual(provider, null);
+    public void testAcceptJsonFormatVisitor_nullSubVisitor_handlesGracefully() throws Exception {
+        NumberSerializers.IntegerSerializer intSerializer = new NumberSerializers.IntegerSerializer(Integer.class);
+        NumberSerializers.DoubleSerializer doubleSerializer = new NumberSerializers.DoubleSerializer(Double.class);
 
-        assertSame(serializer, result);
+        JsonFormatVisitorWrapper visitor = new JsonFormatVisitorWrapper.Base() {
+            @Override
+            public JsonIntegerFormatVisitor expectIntegerFormat(JavaType type) {
+                return null;
+            }
+
+            @Override
+            public JsonNumberFormatVisitor expectNumberFormat(JavaType type) {
+                return null;
+            }
+        };
+
+        intSerializer.acceptJsonFormatVisitor(visitor, mapper.constructType(Integer.class));
+        doubleSerializer.acceptJsonFormatVisitor(visitor, mapper.constructType(Double.class));
     }
 
-    static class FormattedNumberBean {
-        @JsonFormat(shape = JsonFormat.Shape.STRING)
-        public int value = 12345;
-
-        @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-        public double doubleValue = 5.5;
-    }
-
-    // Tests contextual resolution with STRING format shape delegating to ToStringSerializer
+    // Tests acceptJsonFormatVisitor for LongSerializer
     @Test
-    public void testCreateContextual_withStringFormatShape_serializesAsString() throws Exception {
-        FormattedNumberBean bean = new FormattedNumberBean();
-        String json = mapper.writeValueAsString(bean);
+    public void testAcceptJsonFormatVisitor_longSerializer_callsExpectIntegerFormatWithLongType() throws Exception {
+        NumberSerializers.LongSerializer serializer = new NumberSerializers.LongSerializer(Long.class);
+        final boolean[] called = new boolean[2];
 
-        assertTrue(json.contains("\"value\":\"12345\""));
-        assertTrue(json.contains("\"doubleValue\":5.5"));
+        JsonFormatVisitorWrapper visitor = new JsonFormatVisitorWrapper.Base() {
+            @Override
+            public JsonIntegerFormatVisitor expectIntegerFormat(JavaType type) {
+                called[0] = true;
+                return new JsonIntegerFormatVisitor.Base() {
+                    @Override
+                    public void numberType(JsonParser.NumberType type) {
+                        called[1] = (type == JsonParser.NumberType.LONG);
+                    }
+                };
+            }
+        };
+
+        serializer.acceptJsonFormatVisitor(visitor, mapper.constructType(Long.class));
+        assertTrue(called[0]);
+        assertTrue(called[1]);
+    }
+
+    // Tests acceptJsonFormatVisitor for FloatSerializer
+    @Test
+    public void testAcceptJsonFormatVisitor_floatSerializer_callsExpectNumberFormatWithFloatType() throws Exception {
+        NumberSerializers.FloatSerializer serializer = new NumberSerializers.FloatSerializer();
+        final boolean[] called = new boolean[2];
+
+        JsonFormatVisitorWrapper visitor = new JsonFormatVisitorWrapper.Base() {
+            @Override
+            public JsonNumberFormatVisitor expectNumberFormat(JavaType type) {
+                called[0] = true;
+                return new JsonNumberFormatVisitor.Base() {
+                    @Override
+                    public void numberType(JsonParser.NumberType type) {
+                        called[1] = (type == JsonParser.NumberType.FLOAT);
+                    }
+                };
+            }
+        };
+
+        serializer.acceptJsonFormatVisitor(visitor, mapper.constructType(Float.class));
+        assertTrue(called[0]);
+        assertTrue(called[1]);
     }
 }

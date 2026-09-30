@@ -2,102 +2,96 @@ package org.jsoup.select;
 
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class QueryParserTest {
 
-    // Tests parsing simple tag selector
+    // Tests simple tag, id, and class selectors
     @Test
-    public void testParse_simpleTag_returnsTagEvaluator() {
-        Evaluator eval = QueryParser.parse("div");
-        assertTrue(eval instanceof Evaluator.Tag);
-        assertEquals("div", eval.toString());
-    }
-
-    // Tests parsing id and class selectors
-    @Test
-    public void testParse_idAndClass_returnsCombinedEvaluator() {
-        Evaluator eval = QueryParser.parse("#main.content");
+    public void testParse_basicTagIdAndClass_returnsCombinedEvaluator() {
+        Evaluator eval = QueryParser.parse("div#main.content");
+        assertNotNull(eval);
         assertTrue(eval instanceof CombiningEvaluator.And);
     }
 
-    // Tests parsing universal selector
+    // Tests namespaced tag selector handling
+    @Test
+    public void testParse_namespaceTag_returnsCorrectEvaluator() {
+        Evaluator wildcardNs = QueryParser.parse("*|div");
+        assertTrue(wildcardNs instanceof CombiningEvaluator.Or);
+
+        Evaluator namedNs = QueryParser.parse("fb|like");
+        assertTrue(namedNs instanceof Evaluator.Tag);
+        assertEquals("fb:like", namedNs.toString());
+    }
+
+    // Tests attribute selector variations
+    @Test
+    public void testParse_attributeSelectors_returnsAttributeEvaluators() {
+        assertTrue(QueryParser.parse("[href]") instanceof Evaluator.Attribute);
+        assertTrue(QueryParser.parse("[^data-]") instanceof Evaluator.AttributeStarting);
+        assertTrue(QueryParser.parse("[title=foo]") instanceof Evaluator.AttributeWithValue);
+        assertTrue(QueryParser.parse("[title!=foo]") instanceof Evaluator.AttributeWithValueNot);
+        assertTrue(QueryParser.parse("[title^=foo]") instanceof Evaluator.AttributeWithValueStarting);
+        assertTrue(QueryParser.parse("[title$=foo]") instanceof Evaluator.AttributeWithValueEnding);
+        assertTrue(QueryParser.parse("[title*=foo]") instanceof Evaluator.AttributeWithValueContaining);
+        assertTrue(QueryParser.parse("[title~=foo]") instanceof Evaluator.AttributeWithValueMatching);
+    }
+
+    // Tests combinators: child, descendant, adjacent sibling, and general sibling
+    @Test
+    public void testParse_combinators_returnsStructuralEvaluators() {
+        Evaluator child = QueryParser.parse("div > p");
+        assertTrue(child instanceof CombiningEvaluator.And);
+
+        Evaluator descendant = QueryParser.parse("div p");
+        assertTrue(descendant instanceof CombiningEvaluator.And);
+
+        Evaluator adjacent = QueryParser.parse("div + p");
+        assertTrue(adjacent instanceof CombiningEvaluator.And);
+
+        Evaluator sibling = QueryParser.parse("div ~ p");
+        assertTrue(sibling instanceof CombiningEvaluator.And);
+    }
+
+    // Tests query starting with a combinator (leading combinator uses root)
+    @Test
+    public void testParse_leadingCombinator_addsRootEvaluator() {
+        Evaluator eval = QueryParser.parse("> span");
+        assertNotNull(eval);
+        assertTrue(eval instanceof CombiningEvaluator.And);
+    }
+
+    // Tests group selector (comma / OR combinator) and precedence
+    @Test
+    public void testParse_orCombinator_returnsOrEvaluator() {
+        Evaluator eval = QueryParser.parse("div, p, span");
+        assertTrue(eval instanceof CombiningEvaluator.Or);
+
+        Evaluator mixed = QueryParser.parse("div, p > span");
+        assertTrue(mixed instanceof CombiningEvaluator.Or);
+    }
+
+    // Tests wildcard all elements selector
     @Test
     public void testParse_allElements_returnsAllElementsEvaluator() {
         Evaluator eval = QueryParser.parse("*");
         assertTrue(eval instanceof Evaluator.AllElements);
     }
 
-    // Tests parsing namespace selector
-    @Test
-    public void testParse_namespaceTags_returnsEvaluator() {
-        Evaluator wildcardNs = QueryParser.parse("*|div");
-        assertTrue(wildcardNs instanceof CombiningEvaluator.Or);
-
-        Evaluator namedNs = QueryParser.parse("fb|like");
-        assertTrue(namedNs instanceof Evaluator.Tag);
-    }
-
-    // Tests parsing various attribute selectors
-    @Test
-    public void testParse_attributeOperators_returnsAttributeEvaluators() {
-        assertTrue(QueryParser.parse("[href]") instanceof Evaluator.Attribute);
-        assertTrue(QueryParser.parse("[^data-]") instanceof Evaluator.AttributeStarting);
-        assertTrue(QueryParser.parse("[title=test]") instanceof Evaluator.AttributeWithValue);
-        assertTrue(QueryParser.parse("[title!=test]") instanceof Evaluator.AttributeWithValueNot);
-        assertTrue(QueryParser.parse("[title^=test]") instanceof Evaluator.AttributeWithValueStarting);
-        assertTrue(QueryParser.parse("[title$=test]") instanceof Evaluator.AttributeWithValueEnding);
-        assertTrue(QueryParser.parse("[title*=test]") instanceof Evaluator.AttributeWithValueContaining);
-        assertTrue(QueryParser.parse("[title~=test.*]") instanceof Evaluator.AttributeWithValueMatching);
-    }
-
-    // Tests parsing structural combinators
-    @Test
-    public void testParse_combinators_returnsCombinedEvaluators() {
-        assertTrue(QueryParser.parse("div > p") instanceof CombiningEvaluator.And);
-        assertTrue(QueryParser.parse("div p") instanceof CombiningEvaluator.And);
-        assertTrue(QueryParser.parse("div + p") instanceof CombiningEvaluator.And);
-        assertTrue(QueryParser.parse("div ~ p") instanceof CombiningEvaluator.And);
-        assertTrue(QueryParser.parse("div, p") instanceof CombiningEvaluator.Or);
-    }
-
-    // Tests leading combinator with root
-    @Test
-    public void testParse_leadingCombinator_returnsRootEvaluator() {
-        Evaluator eval = QueryParser.parse("> p");
-        assertTrue(eval instanceof CombiningEvaluator.And);
-    }
-
-    // Tests combinator precedence with comma (OR)
-    @Test
-    public void testParse_orPrecedenceWithCombinators_constructsValidTree() {
-        Evaluator eval = QueryParser.parse("div, p > span");
-        assertTrue(eval instanceof CombiningEvaluator.Or);
-    }
-
-    // Tests pseudo index selectors
+    // Tests index-based pseudo-selectors: :lt, :gt, :eq
     @Test
     public void testParse_indexPseudoSelectors_returnsIndexEvaluators() {
-        assertTrue(QueryParser.parse(":lt(2)") instanceof Evaluator.IndexLessThan);
-        assertTrue(QueryParser.parse(":gt(2)") instanceof Evaluator.IndexGreaterThan);
+        assertTrue(QueryParser.parse(":lt(3)") instanceof Evaluator.IndexLessThan);
+        assertTrue(QueryParser.parse(":gt(1)") instanceof Evaluator.IndexGreaterThan);
         assertTrue(QueryParser.parse(":eq(2)") instanceof Evaluator.IndexEquals);
     }
 
-    // Tests nth-child variants and expressions
+    // Tests structural pseudo-selectors
     @Test
-    public void testParse_nthChildSelectors_returnsNthEvaluators() {
-        assertTrue(QueryParser.parse(":nth-child(2n+1)") instanceof Evaluator.IsNthChild);
-        assertTrue(QueryParser.parse(":nth-child(odd)") instanceof Evaluator.IsNthChild);
-        assertTrue(QueryParser.parse(":nth-child(even)") instanceof Evaluator.IsNthChild);
-        assertTrue(QueryParser.parse(":nth-child(3)") instanceof Evaluator.IsNthChild);
-        assertTrue(QueryParser.parse(":nth-last-child(1)") instanceof Evaluator.IsNthLastChild);
-        assertTrue(QueryParser.parse(":nth-of-type(2n)") instanceof Evaluator.IsNthOfType);
-        assertTrue(QueryParser.parse(":nth-last-of-type(2)") instanceof Evaluator.IsNthLastOfType);
-    }
-
-    // Tests structural pseudo-class selectors
-    @Test
-    public void testParse_structuralPseudoClasses_returnsCorrespondingEvaluators() {
+    public void testParse_structuralPseudoSelectors_returnsCorrectEvaluators() {
         assertTrue(QueryParser.parse(":first-child") instanceof Evaluator.IsFirstChild);
         assertTrue(QueryParser.parse(":last-child") instanceof Evaluator.IsLastChild);
         assertTrue(QueryParser.parse(":first-of-type") instanceof Evaluator.IsFirstOfType);
@@ -108,44 +102,56 @@ public class QueryParserTest {
         assertTrue(QueryParser.parse(":root") instanceof Evaluator.IsRoot);
     }
 
-    // Tests text matching pseudo selectors
+    // Tests :nth-child and variants with odd, even, formula, and digit
     @Test
-    public void testParse_textAndRegexSelectors_returnsEvaluators() {
+    public void testParse_nthChildVariants_returnsNthEvaluators() {
+        assertTrue(QueryParser.parse(":nth-child(odd)") instanceof Evaluator.IsNthChild);
+        assertTrue(QueryParser.parse(":nth-child(even)") instanceof Evaluator.IsNthChild);
+        assertTrue(QueryParser.parse(":nth-child(2n+1)") instanceof Evaluator.IsNthChild);
+        assertTrue(QueryParser.parse(":nth-child(3)") instanceof Evaluator.IsNthChild);
+        assertTrue(QueryParser.parse(":nth-last-child(2)") instanceof Evaluator.IsNthLastChild);
+        assertTrue(QueryParser.parse(":nth-of-type(2n)") instanceof Evaluator.IsNthOfType);
+        assertTrue(QueryParser.parse(":nth-last-of-type(1)") instanceof Evaluator.IsNthLastOfType);
+    }
+
+    // Tests relational and content pseudo-selectors (:has, :contains, :containsOwn, :containsData)
+    @Test
+    public void testParse_relationalAndContentPseudos_returnsCorrectEvaluators() {
+        assertTrue(QueryParser.parse(":has(p)") instanceof StructuralEvaluator.Has);
         assertTrue(QueryParser.parse(":contains(text)") instanceof Evaluator.ContainsText);
         assertTrue(QueryParser.parse(":containsOwn(text)") instanceof Evaluator.ContainsOwnText);
         assertTrue(QueryParser.parse(":containsData(data)") instanceof Evaluator.ContainsData);
-        assertTrue(QueryParser.parse(":matches(\\d+)") instanceof Evaluator.Matches);
-        assertTrue(QueryParser.parse(":matchesOwn(\\d+)") instanceof Evaluator.MatchesOwn);
     }
 
-    // Tests :has and :not sub-queries
+    // Tests pattern matching and negation pseudo-selectors (:matches, :matchesOwn, :not)
     @Test
-    public void testParse_hasAndNotSubQueries_returnsStructuralEvaluators() {
-        assertTrue(QueryParser.parse(":has(p.highlight)") instanceof StructuralEvaluator.Has);
-        assertTrue(QueryParser.parse(":not(div.ignore)") instanceof StructuralEvaluator.Not);
+    public void testParse_regexAndNotPseudos_returnsCorrectEvaluators() {
+        assertTrue(QueryParser.parse(":matches([a-z]+)") instanceof Evaluator.Matches);
+        assertTrue(QueryParser.parse(":matchesOwn([a-z]+)") instanceof Evaluator.MatchesOwn);
+        assertTrue(QueryParser.parse(":not(div.hide)") instanceof StructuralEvaluator.Not);
     }
 
-    // Tests invalid query token throws SelectorParseException
+    // Tests exception on unexpected unhandled pseudo token
     @Test(expected = Selector.SelectorParseException.class)
-    public void testParse_invalidToken_throwsSelectorParseException() {
-        QueryParser.parse(":unknownPseudo");
+    public void testParse_unknownPseudo_throwsException() {
+        QueryParser.parse(":unknown()");
     }
 
-    // Tests empty subselect in :has throws SelectorParseException
+    // Tests exception on invalid nth-child expression
     @Test(expected = Selector.SelectorParseException.class)
-    public void testParse_emptyHasSubQuery_throwsSelectorParseException() {
-        QueryParser.parse(":has()");
+    public void testParse_invalidNthChild_throwsException() {
+        QueryParser.parse(":nth-child(abc)");
     }
 
-    // Tests non-numeric index throws SelectorParseException
+    // Tests exception on non-numeric index pseudo parameter
     @Test(expected = Selector.SelectorParseException.class)
-    public void testParse_nonNumericIndex_throwsSelectorParseException() {
+    public void testParse_nonNumericIndex_throwsException() {
         QueryParser.parse(":eq(abc)");
     }
 
-    // Tests malformed nth-child expression throws SelectorParseException
+    // Tests exception on empty subselect within :has
     @Test(expected = Selector.SelectorParseException.class)
-    public void testParse_invalidNthChildFormat_throwsSelectorParseException() {
-        QueryParser.parse(":nth-child(foo)");
+    public void testParse_emptyHasPseudo_throwsException() {
+        QueryParser.parse(":has()");
     }
 }

@@ -1,6 +1,8 @@
 package org.jsoup.parser;
 
+import org.jsoup.UncheckedIOException;
 import org.junit.Test;
+
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -10,350 +12,340 @@ import static org.junit.Assert.*;
 
 public class CharacterReaderTest {
 
-    // Tests null Reader in constructor throws exception
+    // Tests constructor with null Reader throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testCharacterReader_nullReader_throwsException() {
-        new CharacterReader((java.io.Reader) null, 16);
+    public void testConstructor_nullReader_throwsException() {
+        new CharacterReader((Reader) null, 16);
     }
 
-    // Tests reading, cursor position, and EOF behavior
-    @Test
-    public void testConsume_basicSequence_tracksPositionAndReturnsEof() {
-        CharacterReader r = new CharacterReader("abc");
-        assertEquals(0, r.pos());
-        assertFalse(r.isEmpty());
-        assertEquals('a', r.current());
-        assertEquals('a', r.consume());
-        assertEquals(1, r.pos());
-        assertEquals('b', r.consume());
-        assertEquals('c', r.consume());
-        assertEquals(3, r.pos());
-        assertTrue(r.isEmpty());
-        assertEquals(CharacterReader.EOF, r.current());
-        assertEquals(CharacterReader.EOF, r.consume());
-    }
-
-    // Tests unconsuming a char and advancing position
-    @Test
-    public void testUnconsumeAndAdvance_validInput_adjustsPosition() {
-        CharacterReader r = new CharacterReader("abc");
-        r.consume(); // at 'b', pos 1
-        r.unconsume(); // back to 'a', pos 0
-        assertEquals('a', r.current());
-        r.advance(); // at 'b', pos 1
-        assertEquals('b', r.current());
-    }
-
-    // Tests mark and rewind functionality
-    @Test
-    public void testMarkAndRewindToMark_validMark_restoresPosition() {
-        CharacterReader r = new CharacterReader("abcdef");
-        r.consume(); // pos 1
-        r.mark();
-        r.consume();
-        r.consume(); // pos 3 ('d')
-        assertEquals('d', r.current());
-        r.rewindToMark();
-        assertEquals(1, r.pos());
-        assertEquals('b', r.current());
-    }
-
-    // Tests nextIndexOf for single character and character sequence
-    @Test
-    public void testNextIndexOf_charAndCharSequence_returnsCorrectOffsets() {
-        CharacterReader r = new CharacterReader("one two three two one");
-        assertEquals(4, r.nextIndexOf('t'));
-        assertEquals(-1, r.nextIndexOf('z'));
-        assertEquals(4, r.nextIndexOf("two"));
-        assertEquals(14, r.nextIndexOf("two one"));
-        assertEquals(-1, r.nextIndexOf("four"));
-    }
-
-    // Tests consumeTo with char and String delimiters
-    @Test
-    public void testConsumeTo_charAndString_consumesExpectedSubstring() {
-        CharacterReader r1 = new CharacterReader("hello world");
-        assertEquals("hello", r1.consumeTo(' '));
-        assertEquals(" world", r1.consumeToEnd());
-
-        CharacterReader r2 = new CharacterReader("foo <!-- comment --> bar");
-        assertEquals("foo ", r2.consumeTo("<!--"));
-        assertEquals("<!-- comment --> bar", r2.consumeToEnd());
-
-        CharacterReader r3 = new CharacterReader("no delimiter here");
-        assertEquals("no delimiter here", r3.consumeTo('z'));
-        assertTrue(r3.isEmpty());
-    }
-
-    // Tests consumeToAny with array of char delimiters
-    @Test
-    public void testConsumeToAny_multipleDelimiters_consumesUntilFirstMatch() {
-        CharacterReader r = new CharacterReader("foo & bar < baz");
-        assertEquals("foo ", r.consumeToAny('&', '<'));
-        assertEquals('&', r.consume());
-        assertEquals(" bar ", r.consumeToAny('&', '<'));
-        assertEquals('<', r.consume());
-        assertEquals(" baz", r.consumeToEnd());
-
-        CharacterReader empty = new CharacterReader("");
-        assertEquals("", empty.consumeToAny('a', 'b'));
-    }
-
-    // Tests consumeToAnySorted with sorted delimiter array
-    @Test
-    public void testConsumeToAnySorted_sortedDelimiters_consumesCorrectly() {
-        char[] sortedDelims = new char[]{'&', '<', '>'};
-        Arrays.sort(sortedDelims);
-        CharacterReader r = new CharacterReader("text<tag>more&done");
-        assertEquals("text", r.consumeToAnySorted(sortedDelims));
-        assertEquals('<', r.consume());
-        assertEquals("tag", r.consumeToAnySorted(sortedDelims));
-        assertEquals('>', r.consume());
-        assertEquals("more", r.consumeToAnySorted(sortedDelims));
-    }
-
-    // Tests consumeData stops at &, <, and nullChar
-    @Test
-    public void testConsumeData_specialTokens_stopsAtExpectedDelimiters() {
-        CharacterReader r = new CharacterReader("data&more<tag\0end");
-        assertEquals("data", r.consumeData());
-        assertEquals('&', r.consume());
-        assertEquals("more", r.consumeData());
-        assertEquals('<', r.consume());
-        assertEquals("tag", r.consumeData());
-        assertEquals(TokeniserState.nullChar, r.consume());
-        assertEquals("end", r.consumeData());
-    }
-
-    // Tests consumeTagName stops at HTML tag delimiters
-    @Test
-    public void testConsumeTagName_variousDelimiters_stopsCorrectly() {
-        CharacterReader r1 = new CharacterReader("div class='foo'");
-        assertEquals("div", r1.consumeTagName());
-
-        CharacterReader r2 = new CharacterReader("input/ >");
-        assertEquals("input", r2.consumeTagName());
-
-        CharacterReader r3 = new CharacterReader("p\t\r\n\f>");
-        assertEquals("p", r3.consumeTagName());
-
-        CharacterReader r4 = new CharacterReader("tag\0rest");
-        assertEquals("tag", r4.consumeTagName());
-    }
-
-    // Tests consumeLetterSequence, consumeLetterThenDigitSequence, and consumeDigitSequence
-    @Test
-    public void testConsumeLetterAndDigitSequences_mixedInputs_consumesMatchingPrefix() {
-        CharacterReader r = new CharacterReader("Alpha123_Beta456 7890");
-        assertEquals("Alpha", r.consumeLetterSequence());
-        assertEquals("123", r.consumeDigitSequence());
-        r.consume(); // skip '_'
-        assertEquals("Beta456", r.consumeLetterThenDigitSequence());
-        r.consume(); // skip ' '
-        assertEquals("7890", r.consumeDigitSequence());
-    }
-
-    // Tests consumeHexSequence
-    @Test
-    public void testConsumeHexSequence_hexAndNonHex_consumesHexPrefixOnly() {
-        CharacterReader r = new CharacterReader("12afAFg34");
-        assertEquals("12afAF", r.consumeHexSequence());
-        assertEquals('g', r.current());
-    }
-
-    // Tests matches and matchConsume with exact and case-insensitive matching
-    @Test
-    public void testMatchesAndMatchConsume_exactAndIgnoreCase_matchesAndAdvances() {
-        CharacterReader r = new CharacterReader("One TWO three");
-        assertTrue(r.matches('O'));
-        assertFalse(r.matches('o'));
-        assertTrue(r.matches("One"));
-        assertFalse(r.matches("one"));
-        assertTrue(r.matchesIgnoreCase("one"));
-
-        assertTrue(r.matchConsume("One"));
-        assertEquals(" TWO three", r.toString());
-
-        assertTrue(r.matchConsumeIgnoreCase(" two"));
-        assertEquals(" three", r.toString());
-
-        assertFalse(r.matchConsume("four"));
-        assertFalse(r.matchConsumeIgnoreCase("four"));
-    }
-
-    // Tests matchesAny, matchesAnySorted, matchesLetter, and matchesDigit
-    @Test
-    public void testMatchesLetterAndDigit_variousCharacters_returnsExpectedBooleans() {
-        CharacterReader r = new CharacterReader("a1#");
-        assertTrue(r.matchesLetter());
-        assertFalse(r.matchesDigit());
-        assertTrue(r.matchesAny('x', 'a', 'z'));
-        assertTrue(r.matchesAnySorted(new char[]{'a', 'b', 'c'}));
-
-        r.consume(); // at '1'
-        assertFalse(r.matchesLetter());
-        assertTrue(r.matchesDigit());
-
-        r.consume(); // at '#'
-        assertFalse(r.matchesLetter());
-        assertFalse(r.matchesDigit());
-        assertFalse(r.matchesAny('a', 'b'));
-
-        r.consume(); // EOF
-        assertFalse(r.matchesLetter());
-        assertFalse(r.matchesDigit());
-        assertFalse(r.matchesAny('a'));
-        assertFalse(r.matchesAnySorted(new char[]{'a'}));
-    }
-
-    // Tests containsIgnoreCase for present and absent substrings
-    @Test
-    public void testContainsIgnoreCase_presentAndAbsent_returnsExpectedBoolean() {
-        CharacterReader r = new CharacterReader("<html><BODY>Hello</body</html>");
-        assertTrue(r.containsIgnoreCase("body"));
-        assertTrue(r.containsIgnoreCase("BODY"));
-        assertTrue(r.containsIgnoreCase("html"));
-        assertFalse(r.containsIgnoreCase("script"));
-    }
-
-    // Tests bufferUp reading over small buffer chunk boundaries
-    @Test
-    public void testBufferUp_smallBufferCapacity_buffersAcrossBoundaries() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 100; i++) {
-            sb.append("abcdefghij");
-        }
-        String full = sb.toString();
-        CharacterReader r = new CharacterReader(new StringReader(full), 16);
-
-        assertEquals("abcdefghij", r.consumeTo('j') + r.consume());
-        assertEquals(10, r.pos());
-        String rest = r.consumeToEnd();
-        assertEquals(full.substring(10), rest);
-        assertTrue(r.isEmpty());
-    }
-
-    // Tests rangeEquals and toString representation
-    @Test
-    public void testRangeEqualsAndToString_variousRanges_returnsCorrectResults() {
-        CharacterReader r = new CharacterReader("abcdef");
-        assertTrue(r.rangeEquals(0, 3, "abc"));
-        assertFalse(r.rangeEquals(0, 3, "abd"));
-        assertFalse(r.rangeEquals(0, 4, "abc"));
-        assertEquals("abcdef", r.toString());
-        r.consume();
-        r.consume();
-        assertEquals("cdef", r.toString());
-    }
-
-    // Tests constructor with default buffer size using Reader
-    @Test
-    public void testCharacterReader_defaultReaderConstructor_readsSuccessfully() {
-        CharacterReader r = new CharacterReader(new StringReader("sample reader"));
-        assertEquals("sample reader", r.consumeToEnd());
-        assertTrue(r.isEmpty());
-    }
-
-    // Tests unmark, unconsume at start, and close method
-    @Test
-    public void testUnmarkAndClose_validState_behavesAsExpected() {
-        CharacterReader r = new CharacterReader("abcdef");
-        r.mark();
-        r.consume();
-        r.unmark();
-        r.close();
-
-        // unconsume at position 0 should not throw and should remain at position 0
-        CharacterReader r2 = new CharacterReader("a");
-        r2.unconsume();
-        assertEquals(0, r2.pos());
-        assertEquals('a', r2.current());
-    }
-
-    // Tests close when Reader throws IOException wrapped in UncheckedIOException
-    @Test
-    public void testClose_readerThrowsIOException_handledProperly() {
-        Reader failingReader = new Reader() {
+    // Tests constructor with unsupported mark Reader throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructor_unsupportedMarkReader_throwsException() {
+        Reader unmarkableReader = new Reader() {
             @Override
             public int read(char[] cbuf, int off, int len) {
                 return -1;
             }
 
             @Override
-            public void close() throws IOException {
-                throw new IOException("close error");
+            public void close() {}
+
+            @Override
+            public boolean markSupported() {
+                return false;
             }
         };
-        CharacterReader r = new CharacterReader(failingReader, 16);
-        r.close();
+        new CharacterReader(unmarkableReader);
     }
 
-    // Tests line number, column number, cursorPos, and trackNewlines
+    // Tests basic consumption and position tracking
     @Test
-    public void testLineAndColumnNumber_trackingNewlines_calculatesAccurately() {
-        CharacterReader r = new CharacterReader("line1\r\nline2\nline3\rline4");
-        r.trackNewlines(true);
-
-        assertEquals(1, r.lineNumber());
-        assertEquals(1, r.columnNumber());
-        assertEquals("1:1", r.cursorPos());
-
-        r.consumeTo('\n');
-        r.consume(); // consume '\n', now at line 2
-        assertEquals(2, r.lineNumber());
-        assertEquals(1, r.columnNumber());
-
-        r.consumeTo('\n');
-        r.consume(); // consume '\n', now at line 3
-        assertEquals(3, r.lineNumber());
-        assertEquals(1, r.columnNumber());
-
-        r.consumeTo('\r');
-        r.consume(); // consume '\r', now at line 4
-        assertEquals(4, r.lineNumber());
-        assertEquals(1, r.columnNumber());
-
-        r.trackNewlines(false);
-        assertEquals(1, r.lineNumber());
-        assertEquals(r.pos() + 1, r.columnNumber());
+    public void testConsumeAndPos_normalSequence_returnsCharsAndCorrectPos() {
+        CharacterReader r = new CharacterReader("abc");
+        assertEquals(0, r.pos());
+        assertEquals('a', r.current());
+        assertEquals('a', r.consume());
+        assertEquals(1, r.pos());
+        assertEquals('b', r.consume());
+        r.unconsume();
+        assertEquals(1, r.pos());
+        assertEquals('b', r.consume());
+        r.advance();
+        assertEquals(3, r.pos());
+        assertTrue(r.isEmpty());
+        assertEquals(CharacterReader.EOF, r.current());
+        assertEquals(CharacterReader.EOF, r.consume());
     }
 
-    // Tests empty sequence consumption methods for code coverage branches
+    // Tests mark and rewind functionality
     @Test
-    public void testConsumeSequences_whenNoMatchOrEmpty_returnsEmptyString() {
-        CharacterReader r = new CharacterReader("#$%");
+    public void testMarkAndRewind_markedPosition_rewindsCorrectly() {
+        CharacterReader r = new CharacterReader("abcdef");
+        r.consume(); // a
+        r.mark();
+        r.consume(); // b
+        r.consume(); // c
+        assertEquals(3, r.pos());
+        r.rewindToMark();
+        assertEquals(1, r.pos());
+        assertEquals('b', r.consume());
+    }
+
+    // Tests nextIndexOf for char and CharSequence
+    @Test
+    public void testNextIndexOf_matchingAndNonMatching_returnsCorrectOffsets() {
+        CharacterReader r = new CharacterReader("one two three two");
+        assertEquals(3, r.nextIndexOf(' '));
+        assertEquals(-1, r.nextIndexOf('z'));
+        assertEquals(4, r.nextIndexOf("two"));
+        assertEquals(-1, r.nextIndexOf("four"));
+        r.consumeTo('t');
+        assertEquals(0, r.nextIndexOf("two"));
+    }
+
+    // Tests consumeTo with char delimiter
+    @Test
+    public void testConsumeToChar_presentAndAbsent_returnsExpectedStrings() {
+        CharacterReader r = new CharacterReader("foo&bar");
+        assertEquals("foo", r.consumeTo('&'));
+        assertEquals('&', r.consume());
+        assertEquals("bar", r.consumeTo(';'));
+        assertTrue(r.isEmpty());
+    }
+
+    // Tests consumeTo with String delimiter
+    @Test
+    public void testConsumeToString_presentAndAbsent_returnsExpectedStrings() {
+        CharacterReader r = new CharacterReader("hello <script>world</script>");
+        assertEquals("hello ", r.consumeTo("<script>"));
+        assertEquals("<script>world", r.consumeTo("</script>"));
+        assertEquals("</script>", r.consumeToEnd());
+        assertEquals("", r.consumeTo("notfound"));
+    }
+
+    // Tests consumeToAny and consumeToAnySorted
+    @Test
+    public void testConsumeToAny_variousDelimiters_stopsAtFirstMatch() {
+        CharacterReader r = new CharacterReader("one=two&three");
+        assertEquals("one", r.consumeToAny('=', '&'));
+        assertEquals('=', r.consume());
+
+        char[] sortedDelims = new char[]{'&', '='};
+        Arrays.sort(sortedDelims);
+        assertEquals("two", r.consumeToAnySorted(sortedDelims));
+        assertEquals('&', r.consume());
+        assertEquals("three", r.consumeToAnySorted(sortedDelims));
+    }
+
+    // Tests consumeData method
+    @Test
+    public void testConsumeData_dataWithSpecialChars_consumesUntilSpecialChar() {
+        CharacterReader r = new CharacterReader("text&data<tag\0after");
+        assertEquals("text", r.consumeData());
+        assertEquals('&', r.consume());
+        assertEquals("data", r.consumeData());
+        assertEquals('<', r.consume());
+        assertEquals("tag", r.consumeData());
+        assertEquals(TokeniserState.nullChar, r.consume());
+        assertEquals("after", r.consumeData());
+    }
+
+    // Tests consumeTagName method
+    @Test
+    public void testConsumeTagName_variousEndings_stopsAtTagNameEnd() {
+        CharacterReader r = new CharacterReader("div class='test'");
+        assertEquals("div", r.consumeTagName());
+
+        CharacterReader r2 = new CharacterReader("span/ >");
+        assertEquals("span", r2.consumeTagName());
+
+        CharacterReader r3 = new CharacterReader("p\t\n\r\f");
+        assertEquals("p", r3.consumeTagName());
+    }
+
+    // Tests letter and digit sequence consumers
+    @Test
+    public void testConsumeSequences_variousInputs_matchesAndConsumesCorrectly() {
+        CharacterReader r = new CharacterReader("abc123DEF 123 1A2F");
+        assertEquals("abc", r.consumeLetterSequence());
+        assertEquals("123DEF", r.consumeLetterThenDigitSequence());
+        r.consume(); // space
+        assertEquals("123", r.consumeDigitSequence());
+        r.consume(); // space
+        assertEquals("1A2F", r.consumeHexSequence());
+    }
+
+    // Tests matching methods (exact, ignoreCase, any, sorted)
+    @Test
+    public void testMatchesMethods_variousPatterns_returnsExpectedBooleans() {
+        CharacterReader r = new CharacterReader("HelloWorld123");
+        assertTrue(r.matches('H'));
+        assertFalse(r.matches('h'));
+        assertTrue(r.matches("Hello"));
+        assertFalse(r.matches("World"));
+        assertTrue(r.matchesIgnoreCase("hello"));
+        assertFalse(r.matchesIgnoreCase("worlds"));
+        assertTrue(r.matchesAny('a', 'e', 'H'));
+        assertFalse(r.matchesAny('x', 'y', 'z'));
+
+        char[] sorted = new char[]{'A', 'H', 'Z'};
+        assertTrue(r.matchesAnySorted(sorted));
+
+        assertTrue(r.matchesLetter());
+        assertFalse(r.matchesDigit());
+
+        r.consumeTo("123");
+        assertTrue(r.matchesDigit());
+        assertFalse(r.matchesLetter());
+
+        CharacterReader empty = new CharacterReader("");
+        assertFalse(empty.matches('a'));
+        assertFalse(empty.matches("a"));
+        assertFalse(empty.matchesIgnoreCase("a"));
+        assertFalse(empty.matchesAny('a'));
+        assertFalse(empty.matchesLetter());
+        assertFalse(empty.matchesDigit());
+    }
+
+    // Tests matchConsume and matchConsumeIgnoreCase
+    @Test
+    public void testMatchConsume_caseSensitiveAndInsensitive_advancesWhenMatched() {
+        CharacterReader r = new CharacterReader("HelloWorld");
+        assertFalse(r.matchConsume("hello"));
+        assertEquals('H', r.current());
+        assertTrue(r.matchConsumeIgnoreCase("hello"));
+        assertEquals("World", r.toString());
+        assertTrue(r.matchConsume("World"));
+        assertTrue(r.isEmpty());
+    }
+
+    // Tests containsIgnoreCase
+    @Test
+    public void testContainsIgnoreCase_varyingCases_findsSequence() {
+        CharacterReader r = new CharacterReader("some text </TITLE> and more");
+        assertTrue(r.containsIgnoreCase("</title>"));
+        assertTrue(r.containsIgnoreCase("</TITLE>"));
+        assertFalse(r.containsIgnoreCase("</style>"));
+    }
+
+    // Tests string cache mechanism and rangeEquals
+    @Test
+    public void testCacheString_repeatedStrings_usesCacheCorrectly() {
+        CharacterReader r = new CharacterReader("tag tag tag longerthanmaxstringcachelength");
+        String s1 = r.consumeTo(' ');
+        r.advance();
+        String s2 = r.consumeTo(' ');
+        r.advance();
+        String s3 = r.consumeTo(' ');
+        r.advance();
+        String sLong = r.consumeToEnd();
+
+        assertEquals("tag", s1);
+        assertSame(s1, s2);
+        assertSame(s2, s3);
+        assertEquals("longerthanmaxstringcachelength", sLong);
+        assertTrue(r.rangeEquals(0, 3, "tag"));
+        assertFalse(r.rangeEquals(0, 4, "tags"));
+    }
+
+    // Tests bufferUp IOException wrapping in UncheckedIOException
+    @Test(expected = UncheckedIOException.class)
+    public void testBufferUp_readerThrowsIOException_throwsUncheckedIOException() {
+        Reader failingReader = new Reader() {
+            @Override
+            public int read(char[] cbuf, int off, int len) throws IOException {
+                throw new IOException("Simulated read failure");
+            }
+
+            @Override
+            public void close() {}
+
+            @Override
+            public boolean markSupported() {
+                return true;
+            }
+        };
+        new CharacterReader(failingReader);
+    }
+
+    // Tests close method on CharacterReader and underlying Reader
+    @Test
+    public void testClose_closesUnderlyingReaderSuccessfully() {
+        final boolean[] closed = {false};
+        Reader reader = new StringReader("sample data") {
+            @Override
+            public void close() {
+                super.close();
+                closed[0] = true;
+            }
+        };
+        CharacterReader cr = new CharacterReader(reader);
+        cr.close();
+        assertTrue(closed[0]);
+    }
+
+    // Tests buffer refill across small buffer capacity
+    @Test
+    public void testBufferRefill_smallBufferSize_readsAcrossBufferBoundaries() {
+        String longText = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        CharacterReader r = new CharacterReader(new StringReader(longText), 16);
+
+        assertEquals("abcdefghijklmnopqrstuvwxyz", r.consumeLetterSequence());
+        assertEquals("0123456789", r.consumeDigitSequence());
+        assertTrue(r.matches("ABC"));
+        assertEquals("ABCDEFGHIJKLMNOPQRSTUVWXYZ", r.consumeToEnd());
+        assertTrue(r.isEmpty());
+    }
+
+    // Tests unmark functionality
+    @Test
+    public void testUnmark_clearsMarkedPosition() {
+        CharacterReader r = new CharacterReader("abcdef");
+        r.consume(); // a
+        r.mark();
+        r.consume(); // b
+        r.unmark();
+        r.consume(); // c
+        r.rewindToMark(); // should rewind to 0 (or unconsume-safe start) as mark was cleared
+        assertEquals(0, r.pos());
+        assertEquals('a', r.consume());
+    }
+
+    // Tests nextIndexOf across small buffer boundaries
+    @Test
+    public void testNextIndexOf_acrossBufferBoundaries_findsCorrectIndex() {
+        String data = "12345678901234567890TARGET567890";
+        CharacterReader r = new CharacterReader(new StringReader(data), 16);
+
+        assertEquals(20, r.nextIndexOf("TARGET"));
+        assertEquals(20, r.nextIndexOf('T'));
+        assertEquals(-1, r.nextIndexOf("NOT_EXIST"));
+        assertEquals(-1, r.nextIndexOf('Z'));
+    }
+
+    // Tests containsIgnoreCase across buffer boundaries
+    @Test
+    public void testContainsIgnoreCase_acrossBufferBoundaries_findsMatch() {
+        String data = "0123456789abcdef0123456789abcdef<sCrIpt>alert(1)</script>";
+        CharacterReader r = new CharacterReader(new StringReader(data), 16);
+
+        assertTrue(r.containsIgnoreCase("<SCRIPT>"));
+        assertTrue(r.containsIgnoreCase("</SCRIPT>"));
+        assertFalse(r.containsIgnoreCase("<STYLE>"));
+    }
+
+    // Tests rangeEquals edge cases including bounds and mismatches
+    @Test
+    public void testRangeEquals_boundaryAndMismatchConditions_returnsFalse() {
+        CharacterReader r = new CharacterReader("abcdef");
+        assertFalse(r.rangeEquals(-1, 3, "abc"));
+        assertFalse(r.rangeEquals(0, 10, "abcdefghij"));
+        assertFalse(r.rangeEquals(0, 3, "abd"));
+        assertTrue(r.rangeEquals(0, 3, "abc"));
+        assertTrue(r.rangeEquals(3, 3, "def"));
+    }
+
+    // Tests empty reader behaviour on sequence consume methods
+    @Test
+    public void testEmptyReader_sequenceMethods_returnEmptyStrings() {
+        CharacterReader r = new CharacterReader("");
         assertEquals("", r.consumeLetterSequence());
         assertEquals("", r.consumeLetterThenDigitSequence());
         assertEquals("", r.consumeDigitSequence());
         assertEquals("", r.consumeHexSequence());
         assertEquals("", r.consumeTagName());
-
-        CharacterReader empty = new CharacterReader("");
-        assertEquals("", empty.consumeToEnd());
-        assertEquals("", empty.consumeTo("missing"));
-        assertEquals("", empty.consumeLetterSequence());
-        assertEquals("", empty.consumeDigitSequence());
-        assertEquals("", empty.consumeHexSequence());
-        assertEquals("", empty.consumeTagName());
-        assertEquals("", empty.consumeData());
-        assertFalse(empty.matchesLetter());
-        assertFalse(empty.matchesDigit());
-        assertFalse(empty.matches('a'));
-        assertFalse(empty.matches("a"));
-        assertFalse(empty.matchesIgnoreCase("a"));
-        assertFalse(empty.matchesAny());
+        assertEquals("", r.consumeData());
+        assertEquals("", r.consumeToEnd());
+        assertEquals("", r.toString());
     }
 
-    // Tests StringCache caching in consumeTo / consumeTagName / consumeLetterSequence
+    // Tests single character Reader constructor (Reader without explicit buffer size)
     @Test
-    public void testStringCache_repeatedStrings_returnsCachedInstances() {
-        CharacterReader r = new CharacterReader("tag-tag-tag-tag");
-        String s1 = r.consumeTo('-');
-        r.consume();
-        String s2 = r.consumeTo('-');
-        r.consume();
-        String s3 = r.consumeTo('-');
-        assertSame(s1, s2);
-        assertSame(s2, s3);
+    public void testConstructor_readerOnly_initializesCorrectly() {
+        CharacterReader r = new CharacterReader(new StringReader("hello world"));
+        assertEquals("hello", r.consumeTo(' '));
+        r.advance();
+        assertEquals("world", r.consumeToEnd());
+        assertTrue(r.isEmpty());
     }
 }

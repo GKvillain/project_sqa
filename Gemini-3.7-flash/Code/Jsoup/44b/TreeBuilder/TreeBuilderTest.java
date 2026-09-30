@@ -3,6 +3,8 @@ package org.jsoup.parser;
 import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
+import org.jsoup.nodes.Tag;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,161 +15,186 @@ import static org.junit.Assert.*;
 
 public class TreeBuilderTest {
 
+    private ConcreteTreeBuilder treeBuilder;
+
     private static class ConcreteTreeBuilder extends TreeBuilder {
-        private final List<Token.TokenType> receivedTokenTypes = new ArrayList<Token.TokenType>();
-        private Token lastProcessedToken;
-        private String lastStartTagName;
-        private Attributes lastStartTagAttributes;
-        private String lastEndTagName;
+        final List<Token.TokenType> seenTokenTypes = new ArrayList<Token.TokenType>();
+        Token lastProcessedToken;
+        boolean processReturnValue = true;
 
         @Override
         protected boolean process(Token token) {
-            receivedTokenTypes.add(token.type);
             lastProcessedToken = token;
-            if (token.isStartTag()) {
-                Token.StartTag startTag = (Token.StartTag) token;
-                lastStartTagName = startTag.name();
-                lastStartTagAttributes = startTag.attributes != null ? startTag.attributes.clone() : null;
-            } else if (token.isEndTag()) {
-                Token.EndTag endTag = (Token.EndTag) token;
-                lastEndTagName = endTag.name();
-            }
-            return true;
+            seenTokenTypes.add(token.type);
+            return processReturnValue;
+        }
+
+        @Override
+        List<Node> parseFragment(String inputFragment, Element context, String baseUri, ParseErrorList errors) {
+            return new ArrayList<Node>();
         }
     }
-
-    private ConcreteTreeBuilder treeBuilder;
 
     @Before
     public void setUp() {
         treeBuilder = new ConcreteTreeBuilder();
     }
 
-    // Tests null input string throws IllegalArgumentException
+    // Tests null input validation in initialiseParse
     @Test(expected = IllegalArgumentException.class)
     public void testInitialiseParse_nullInput_throwsException() {
         treeBuilder.initialiseParse(null, "http://example.com", ParseErrorList.noTracking());
     }
 
-    // Tests null baseUri throws IllegalArgumentException
+    // Tests null baseUri validation in initialiseParse
     @Test(expected = IllegalArgumentException.class)
     public void testInitialiseParse_nullBaseUri_throwsException() {
-        treeBuilder.initialiseParse("<p>Test</p>", null, ParseErrorList.noTracking());
+        treeBuilder.initialiseParse("<div>test</div>", null, ParseErrorList.noTracking());
     }
 
-    // Tests initialisation of parser state and fields
+    // Tests normal initialization of parse state
     @Test
-    public void testInitialiseParse_validInputs_initializesFieldsProperly() {
+    public void testInitialiseParse_validInputs_initialisesStateProperly() {
+        ParseErrorList errors = ParseErrorList.tracking(5);
+        treeBuilder.initialiseParse("<p>Hello</p>", "http://example.com", errors);
+
+        assertNotNull("doc should be initialized", treeBuilder.doc);
+        assertEquals("http://example.com", treeBuilder.doc.baseUri());
+        assertNotNull("reader should be initialized", treeBuilder.reader);
+        assertNotNull("tokeniser should be initialized", treeBuilder.tokeniser);
+        assertNotNull("stack should be initialized", treeBuilder.stack);
+        assertTrue("stack should initially be empty", treeBuilder.stack.isEmpty());
+        assertEquals("http://example.com", treeBuilder.baseUri);
+        assertEquals(errors, treeBuilder.errors);
+    }
+
+    // Tests parse with input and baseUri only
+    @Test
+    public void testParse_inputAndBaseUri_returnsDocument() {
+        Document doc = treeBuilder.parse("<div>Content</div>", "http://example.com");
+
+        assertNotNull("Returned document should not be null", doc);
+        assertEquals("http://example.com", doc.baseUri());
+        assertFalse("Tokens should have been processed", treeBuilder.seenTokenTypes.isEmpty());
+        assertEquals(Token.TokenType.EOF, treeBuilder.seenTokenTypes.get(treeBuilder.seenTokenTypes.size() - 1));
+    }
+
+    // Tests parse with input, baseUri, and custom ParseErrorList
+    @Test
+    public void testParse_withParseErrorList_tracksErrorsAndReturnsDocument() {
         ParseErrorList errors = ParseErrorList.tracking(10);
-        treeBuilder.initialiseParse("<div>Content</div>", "http://example.com/base", errors);
+        Document doc = treeBuilder.parse("<span>Test</span>", "http://example.com", errors);
 
-        assertNotNull(treeBuilder.doc);
-        assertEquals("http://example.com/base", treeBuilder.doc.baseUri());
-        assertEquals("http://example.com/base", treeBuilder.baseUri);
-        assertNotNull(treeBuilder.reader);
-        assertNotNull(treeBuilder.tokeniser);
-        assertNotNull(treeBuilder.stack);
-        assertTrue(treeBuilder.stack.isEmpty());
-        assertSame(errors, treeBuilder.errors);
+        assertNotNull("Returned document should not be null", doc);
+        assertEquals(errors, treeBuilder.errors);
+        assertTrue("EOF token should be reached", treeBuilder.seenTokenTypes.contains(Token.TokenType.EOF));
     }
 
-    // Tests currentElement when the element stack is empty
+    // Tests runParser loop termination upon EOF token
     @Test
-    public void testCurrentElement_emptyStack_returnsNull() {
-        treeBuilder.initialiseParse("<p>Test</p>", "http://example.com", ParseErrorList.noTracking());
-        assertNull(treeBuilder.currentElement());
-    }
-
-    // Tests currentElement returns the top of the element stack
-    @Test
-    public void testCurrentElement_nonEmptyStack_returnsTopElement() {
-        treeBuilder.initialiseParse("<p>Test</p>", "http://example.com", ParseErrorList.noTracking());
-
-        Element first = new Element(Tag.valueOf("html"), "http://example.com");
-        Element second = new Element(Tag.valueOf("body"), "http://example.com");
-
-        treeBuilder.stack.add(first);
-        assertSame(first, treeBuilder.currentElement());
-
-        treeBuilder.stack.add(second);
-        assertSame(second, treeBuilder.currentElement());
-
-        treeBuilder.stack.remove(treeBuilder.stack.size() - 1);
-        assertSame(first, treeBuilder.currentElement());
-    }
-
-    // Tests processStartTag with tag name only
-    @Test
-    public void testProcessStartTag_nameOnly_processesStartTagCorrectly() {
+    public void testRunParser_emptyInput_stopsAtEof() {
         treeBuilder.initialiseParse("", "http://example.com", ParseErrorList.noTracking());
+        treeBuilder.runParser();
+
+        assertEquals(1, treeBuilder.seenTokenTypes.size());
+        assertEquals(Token.TokenType.EOF, treeBuilder.seenTokenTypes.get(0));
+    }
+
+    // Tests processStartTag with name only
+    @Test
+    public void testProcessStartTag_nameOnly_processesStartTagToken() {
+        treeBuilder.initialiseParse("<div>", "http://example.com", ParseErrorList.noTracking());
         boolean result = treeBuilder.processStartTag("div");
 
-        assertTrue(result);
-        assertEquals("div", treeBuilder.lastStartTagName);
-        assertNotNull(treeBuilder.lastProcessedToken);
-        assertTrue(treeBuilder.lastProcessedToken.isStartTag());
+        assertTrue("processStartTag should return true", result);
+        assertNotNull("lastProcessedToken should not be null", treeBuilder.lastProcessedToken);
+        assertTrue("Token should be StartTag", treeBuilder.lastProcessedToken.isStartTag());
+        assertEquals("div", treeBuilder.lastProcessedToken.asStartTag().name());
     }
 
-    // Tests processStartTag with tag name and attributes
+    // Tests processStartTag with name and attributes
     @Test
     public void testProcessStartTag_nameAndAttributes_processesStartTagWithAttributes() {
-        treeBuilder.initialiseParse("", "http://example.com", ParseErrorList.noTracking());
+        treeBuilder.initialiseParse("<div id='test'>", "http://example.com", ParseErrorList.noTracking());
         Attributes attrs = new Attributes();
         attrs.put("id", "main");
-        attrs.put("class", "container");
+        attrs.put("class", "content");
 
-        boolean result = treeBuilder.processStartTag("section", attrs);
+        boolean result = treeBuilder.processStartTag("div", attrs);
 
-        assertTrue(result);
-        assertEquals("section", treeBuilder.lastStartTagName);
-        assertNotNull(treeBuilder.lastStartTagAttributes);
-        assertEquals("main", treeBuilder.lastStartTagAttributes.get("id"));
-        assertEquals("container", treeBuilder.lastStartTagAttributes.get("class"));
+        assertTrue("processStartTag should return true", result);
+        assertNotNull("lastProcessedToken should not be null", treeBuilder.lastProcessedToken);
+        assertTrue("Token should be StartTag", treeBuilder.lastProcessedToken.isStartTag());
+        Token.StartTag startTag = treeBuilder.lastProcessedToken.asStartTag();
+        assertEquals("div", startTag.name());
+        assertEquals("main", startTag.attributes.get("id"));
+        assertEquals("content", startTag.attributes.get("class"));
     }
 
-    // Tests processEndTag with tag name
+    // Tests processEndTag with name only
     @Test
-    public void testProcessEndTag_name_processesEndTagCorrectly() {
-        treeBuilder.initialiseParse("", "http://example.com", ParseErrorList.noTracking());
+    public void testProcessEndTag_nameOnly_processesEndTagToken() {
+        treeBuilder.initialiseParse("</div>", "http://example.com", ParseErrorList.noTracking());
         boolean result = treeBuilder.processEndTag("div");
 
-        assertTrue(result);
-        assertEquals("div", treeBuilder.lastEndTagName);
-        assertNotNull(treeBuilder.lastProcessedToken);
-        assertTrue(treeBuilder.lastProcessedToken.isEndTag());
+        assertTrue("processEndTag should return true", result);
+        assertNotNull("lastProcessedToken should not be null", treeBuilder.lastProcessedToken);
+        assertTrue("Token should be EndTag", treeBuilder.lastProcessedToken.isEndTag());
+        assertEquals("div", treeBuilder.lastProcessedToken.asEndTag().name());
     }
 
-    // Tests parse method without error tracking
+    // Tests currentElement on empty stack returns null
     @Test
-    public void testParse_withoutErrorTracking_returnsDocumentAndProcessesTokens() {
-        Document doc = treeBuilder.parse("<div>Hello</div>", "http://example.com");
-
-        assertNotNull(doc);
-        assertEquals("http://example.com", doc.baseUri());
-        assertTrue(treeBuilder.receivedTokenTypes.contains(Token.TokenType.StartTag));
-        assertTrue(treeBuilder.receivedTokenTypes.contains(Token.TokenType.Character));
-        assertTrue(treeBuilder.receivedTokenTypes.contains(Token.TokenType.EndTag));
-        assertTrue(treeBuilder.receivedTokenTypes.contains(Token.TokenType.EOF));
+    public void testCurrentElement_emptyStack_returnsNull() {
+        treeBuilder.initialiseParse("<p></p>", "http://example.com", ParseErrorList.noTracking());
+        assertNull("currentElement should return null when stack is empty", treeBuilder.currentElement());
     }
 
-    // Tests parse method with error tracking
+    // Tests currentElement on single item stack returns that element
     @Test
-    public void testParse_withErrorTracking_tracksErrorsAndReturnsDocument() {
-        ParseErrorList errors = ParseErrorList.tracking(10);
-        Document doc = treeBuilder.parse("<p>Test</p", "http://example.com", errors);
+    public void testCurrentElement_singleElementOnStack_returnsElement() {
+        treeBuilder.initialiseParse("<p></p>", "http://example.com", ParseErrorList.noTracking());
+        Element el = new Element(Tag.valueOf("p"), "http://example.com");
+        treeBuilder.stack.add(el);
 
-        assertNotNull(doc);
-        assertSame(errors, treeBuilder.errors);
-        assertTrue(treeBuilder.receivedTokenTypes.contains(Token.TokenType.EOF));
+        assertSame("currentElement should return the single element on stack", el, treeBuilder.currentElement());
     }
 
-    // Tests runParser with empty input processes EOF token
+    // Tests currentElement on multi-item stack returns top/last element
     @Test
-    public void testRunParser_emptyInput_terminatesAtEof() {
-        Document doc = treeBuilder.parse("", "http://example.com");
+    public void testCurrentElement_multipleElementsOnStack_returnsTopElement() {
+        treeBuilder.initialiseParse("<div><p></p></div>", "http://example.com", ParseErrorList.noTracking());
+        Element div = new Element(Tag.valueOf("div"), "http://example.com");
+        Element p = new Element(Tag.valueOf("p"), "http://example.com");
+        Element span = new Element(Tag.valueOf("span"), "http://example.com");
 
-        assertNotNull(doc);
-        assertEquals(1, treeBuilder.receivedTokenTypes.size());
-        assertEquals(Token.TokenType.EOF, treeBuilder.receivedTokenTypes.get(0));
+        treeBuilder.stack.add(div);
+        treeBuilder.stack.add(p);
+        assertSame("currentElement should return last pushed element", p, treeBuilder.currentElement());
+
+        treeBuilder.stack.add(span);
+        assertSame("currentElement should return top of stack after push", span, treeBuilder.currentElement());
+
+        treeBuilder.stack.remove(treeBuilder.stack.size() - 1);
+        assertSame("currentElement should return previous element after pop", p, treeBuilder.currentElement());
+    }
+
+    // Tests parseFragment implementation
+    @Test
+    public void testParseFragment() {
+        List<Node> nodes = treeBuilder.parseFragment("<p>test</p>", null, "http://example.com", ParseErrorList.noTracking());
+        assertNotNull("parseFragment should return a non-null list", nodes);
+        assertTrue("parseFragment should return empty list for concrete implementation", nodes.isEmpty());
+    }
+
+    // Tests process returning false propagates correctly through processStartTag and processEndTag
+    @Test
+    public void testProcess_returnsFalse_propagatedCorrectly() {
+        treeBuilder.initialiseParse("<div></div>", "http://example.com", ParseErrorList.noTracking());
+        treeBuilder.processReturnValue = false;
+
+        assertFalse("processStartTag should return false when process returns false", treeBuilder.processStartTag("div"));
+        assertFalse("processStartTag with attrs should return false when process returns false", treeBuilder.processStartTag("div", new Attributes()));
+        assertFalse("processEndTag should return false when process returns false", treeBuilder.processEndTag("div"));
     }
 }

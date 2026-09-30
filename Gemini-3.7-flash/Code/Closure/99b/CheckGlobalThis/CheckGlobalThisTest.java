@@ -1,159 +1,166 @@
 package com.google.javascript.jscomp;
 
-import com.google.javascript.rhino.Node;
-import org.junit.Before;
-import org.junit.Test;
+public class CheckGlobalThisTest extends CompilerTestCase {
 
-import static org.junit.Assert.assertEquals;
+  private CheckLevel checkLevel = CheckLevel.WARNING;
 
-public class CheckGlobalThisTest {
-
-  private Compiler compiler;
-
-  @Before
-  public void setUp() {
-    compiler = new Compiler();
+  public CheckGlobalThisTest() {
+    super();
   }
 
-  private void test(String js, int expectedWarnings) {
-    Node root = compiler.parseTestCode(js);
-    CheckGlobalThis callback = new CheckGlobalThis(compiler, CheckLevel.WARNING);
-    NodeTraversal.traverse(compiler, root, callback);
-    assertEquals(expectedWarnings, compiler.getWarningCount());
+  @Override
+  protected CompilerPass getProcessor(Compiler compiler) {
+    return new CombinedCompilerPass(
+        compiler, new CheckGlobalThis(compiler, checkLevel));
   }
 
-  // Tests top-level assignment to property on this
-  @Test
-  public void testGlobalThis_topLevelAssignment_reportsWarning() {
-    test("this.a = 1;", 1);
+  @Override
+  protected int getNumRepetitions() {
+    return 1;
   }
 
-  // Tests top-level property access on this
-  @Test
-  public void testGlobalThis_topLevelPropertyAccess_reportsWarning() {
-    test("this.a;", 1);
+  // Tests global this in script level assignment
+  public void testVisit_globalThisAssignment_reportsWarning() {
+    test("this.foo = 5;", CheckGlobalThis.GLOBAL_THIS);
   }
 
-  // Tests top-level bracket property access on this
-  @Test
-  public void testGlobalThis_topLevelBracketAccess_reportsWarning() {
-    test("this['a'];", 1);
+  // Tests global this property access in plain function
+  public void testVisit_functionGlobalThis_reportsWarning() {
+    test("function f() { this.foo = 5; }", CheckGlobalThis.GLOBAL_THIS);
   }
 
-  // Tests assigning this to a variable without property access
-  @Test
-  public void testGlobalThis_assignToVariable_noWarning() {
-    test("var a = this;", 0);
+  // Tests global this in var assigned function
+  public void testVisit_varFunctionGlobalThis_reportsWarning() {
+    test("var f = function() { this.foo = 5; };", CheckGlobalThis.GLOBAL_THIS);
   }
 
-  // Tests global function using this
-  @Test
-  public void testFunction_globalFunctionWithThis_reportsWarning() {
-    test("function f() { this.a = 1; }", 1);
+  // Tests global this in property assigned function
+  public void testVisit_propertyFunctionGlobalThis_reportsWarning() {
+    test("a.b = function() { this.foo = 5; };", CheckGlobalThis.GLOBAL_THIS);
   }
 
-  // Tests function expression in var assignment using this
-  @Test
-  public void testFunction_varFunctionWithThis_reportsWarning() {
-    test("var f = function() { this.a = 1; };", 1);
+  // Tests parentheses around this on assignment LHS
+  public void testVisit_parenthesizedThis_reportsWarning() {
+    test("function f() { (this).foo = 5; }", CheckGlobalThis.GLOBAL_THIS);
   }
 
-  // Tests function expression in property assignment using this
-  @Test
-  public void testFunction_assignFunctionWithThis_reportsWarning() {
-    test("x.f = function() { this.a = 1; };", 1);
+  // Tests nested assignment containing this on LHS
+  public void testVisit_nestedAssignLhsThis_reportsWarning() {
+    test("function f() { (a = this).foo = 5; }", CheckGlobalThis.GLOBAL_THIS);
   }
 
-  // Tests function annotated with @constructor
-  @Test
-  public void testFunction_constructorAnnotation_noWarning() {
-    test("/** @constructor */ function F() { this.a = 1; }", 0);
+  // Tests function with @constructor annotation
+  public void testShouldTraverse_constructorFunction_noWarning() {
+    testSame("/** @constructor */ function F() { this.foo = 5; }");
   }
 
-  // Tests var function annotated with @constructor on var declaration
-  @Test
-  public void testFunction_varConstructorAnnotation_noWarning() {
-    test("/** @constructor */ var F = function() { this.a = 1; };", 0);
+  // Tests var function with @constructor annotation on var
+  public void testShouldTraverse_constructorVar_noWarning() {
+    testSame("/** @constructor */ var F = function() { this.foo = 5; };");
   }
 
-  // Tests function annotated with @this
-  @Test
-  public void testFunction_thisAnnotation_noWarning() {
-    test("/** @this {Object} */ function f() { this.a = 1; }", 0);
+  // Tests assignment with @constructor annotation
+  public void testShouldTraverse_constructorAssign_noWarning() {
+    testSame("/** @constructor */ f = function() { this.foo = 5; };");
   }
 
-  // Tests function annotated with @override
-  @Test
-  public void testFunction_overrideAnnotation_noWarning() {
-    test("/** @override */ function f() { this.a = 1; }", 0);
+  // Tests function with @this annotation
+  public void testShouldTraverse_thisAnnotation_noWarning() {
+    testSame("/** @this {F} */ function f() { this.foo = 5; }");
   }
 
-  // Tests method assigned to a prototype property
-  @Test
-  public void testFunction_prototypeMethod_noWarning() {
-    test("F.prototype.bar = function() { this.a = 1; };", 0);
+  // Tests var function with @this annotation
+  public void testShouldTraverse_thisAnnotationVar_noWarning() {
+    testSame("/** @this {F} */ var f = function() { this.foo = 5; };");
   }
 
-  // Tests subproperty of prototype assignment
-  @Test
-  public void testFunction_subPrototypeMethod_noWarning() {
-    test("a.b.prototype.c = function() { this.a = 1; };", 0);
+  // Tests function with @override annotation
+  public void testShouldTraverse_overrideAnnotation_noWarning() {
+    testSame("/** @override */ function f() { this.foo = 5; }");
   }
 
-  // Tests prototype object assignment
-  @Test
-  public void testFunction_prototypeAssignment_noWarning() {
-    test("F.prototype = { bar: function() { this.a = 1; } };", 0);
+  // Tests assignment to prototype property
+  public void testShouldTraverse_prototypeMethod_noWarning() {
+    testSame("Foo.prototype.bar = function() { this.foo = 5; };");
   }
 
-  // Tests method defined in an object literal
-  @Test
-  public void testFunction_objectLiteralMethod_noWarning() {
-    test("var obj = { f: function() { this.a = 1; } };", 0);
+  // Tests assignment to prototype subproperty
+  public void testShouldTraverse_prototypeSubproperty_noWarning() {
+    testSame("Foo.prototype.bar.baz = function() { this.foo = 5; };");
   }
 
-  // Tests CheckLevel.ERROR configuration reporting errors instead of warnings
-  @Test
-  public void testVisit_errorLevel_reportsError() {
-    Node root = compiler.parseTestCode("this.a = 1;");
-    CheckGlobalThis callback = new CheckGlobalThis(compiler, CheckLevel.ERROR);
-    NodeTraversal.traverse(compiler, root, callback);
-    assertEquals(1, compiler.getErrorCount());
+  // Tests assignment directly to prototype
+  public void testShouldTraverse_prototypeAssignment_noWarning() {
+    testSame("Foo.prototype = function() { this.foo = 5; };");
   }
 
-  // Tests function annotated with @interface
-  @Test
-  public void testFunction_interfaceAnnotation_noWarning() {
-    test("/** @interface */ function I() { this.a = 1; }", 0);
+  // Tests function in object literal
+  public void testShouldTraverse_functionInObjectLiteral_noWarning() {
+    testSame("var a = { b: function() { this.foo = 5; } };");
   }
 
-  // Tests var declaration annotated with @interface
-  @Test
-  public void testFunction_varInterfaceAnnotation_noWarning() {
-    test("/** @interface */ var I = function() { this.a = 1; };", 0);
+  // Tests function in array literal
+  public void testShouldTraverse_functionInArrayLiteral_noWarning() {
+    test("var a = [function() { this.foo = 5; }];", CheckGlobalThis.GLOBAL_THIS);
   }
 
-  // Tests anonymous function expression directly annotated with @constructor
-  @Test
-  public void testFunction_functionExpressionConstructorAnnotation_noWarning() {
-    test("var F = /** @constructor */ function() { this.a = 1; };", 0);
+  // Tests inner function inside outer function
+  public void testVisit_innerFunction_reportsWarning() {
+    test("function f() { function g() { this.foo = 5; } }", CheckGlobalThis.GLOBAL_THIS);
   }
 
-  // Tests function expression passed as an argument using this
-  @Test
-  public void testFunction_callArgumentFunctionWithThis_reportsWarning() {
-    test("call(function() { this.a = 1; });", 1);
+  // Tests function with @interface annotation
+  public void testShouldTraverse_interfaceFunction_noWarning() {
+    testSame("/** @interface */ function F() { this.foo = 5; }");
   }
 
-  // Tests inner function inside constructor using this
-  @Test
-  public void testFunction_innerFunctionInsideConstructor_reportsWarning() {
-    test("/** @constructor */ function F() { function inner() { this.a = 1; } }", 1);
+  // Tests function with @record annotation
+  public void testShouldTraverse_recordFunction_noWarning() {
+    testSame("/** @record */ function F() { this.foo = 5; }");
   }
 
-  // Tests getter/setter in object literal
-  @Test
-  public void testFunction_getterSetterInObjectLiteral_noWarning() {
-    test("var obj = { get a() { return this.x; }, set a(val) { this.x = val; } };", 0);
+  // Tests function with @struct annotation
+  public void testShouldTraverse_structFunction_noWarning() {
+    testSame("/** @struct */ function F() { this.foo = 5; }");
+  }
+
+  // Tests read-only access to global this property
+  public void testVisit_readGlobalThis_noWarning() {
+    testSame("var x = this.foo;");
+  }
+
+  // Tests global this element access assignment
+  public void testVisit_elementAssignment_reportsWarning() {
+    test("this['foo'] = 5;", CheckGlobalThis.GLOBAL_THIS);
+  }
+
+  // Tests global this element access assignment in function
+  public void testVisit_functionElementAssignment_reportsWarning() {
+    test("function f() { this['foo'] = 5; }", CheckGlobalThis.GLOBAL_THIS);
+  }
+
+  // Tests object literal prototype assignment
+  public void testShouldTraverse_prototypeObjectLiteral_noWarning() {
+    testSame("Foo.prototype = { bar: function() { this.foo = 5; } };");
+  }
+
+  // Tests object literal with string and number keys
+  public void testShouldTraverse_objectLiteralKeyTypes_noWarning() {
+    testSame("var a = { 'b': function() { this.foo = 5; }, 1: function() { this.foo = 5; } };");
+  }
+
+  // Tests IIFE containing global this assignment
+  public void testVisit_iife_reportsWarning() {
+    test("(function() { this.foo = 5; })();", CheckGlobalThis.GLOBAL_THIS);
+  }
+
+  // Tests assignment with @this annotation
+  public void testShouldTraverse_thisAnnotationAssign_noWarning() {
+    testSame("/** @this {F} */ f = function() { this.foo = 5; };");
+  }
+
+  // Tests var assignment with @override annotation
+  public void testShouldTraverse_overrideAnnotationVar_noWarning() {
+    testSame("/** @override */ var f = function() { this.foo = 5; };");
   }
 }

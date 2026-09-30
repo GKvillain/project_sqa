@@ -1,9 +1,28 @@
 package org.jsoup.parser;
 
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 public class TagTest {
+
+    // Tests null input throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testValueOf_nullTagName_throwsException() {
+        Tag.valueOf(null);
+    }
+
+    // Tests empty string input throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testValueOf_emptyTagName_throwsException() {
+        Tag.valueOf("");
+    }
+
+    // Tests whitespace-only string input throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testValueOf_whitespaceOnlyTagName_throwsException() {
+        Tag.valueOf("   ");
+    }
 
     // Tests known block tag properties
     @Test
@@ -11,146 +30,124 @@ public class TagTest {
         Tag p = Tag.valueOf("p");
         assertEquals("p", p.getName());
         assertTrue(p.isBlock());
-        assertTrue(p.canContainBlock());
         assertFalse(p.isInline());
+        assertFalse(p.formatAsBlock());
+        assertTrue(p.canContainBlock());
         assertFalse(p.isEmpty());
         assertFalse(p.isSelfClosing());
         assertTrue(p.isKnownTag());
-        assertFalse(p.formatAsBlock());
     }
 
     // Tests known inline tag properties
     @Test
     public void testValueOf_knownInlineTag_returnsCorrectProperties() {
-        Tag span = Tag.valueOf("span");
-        assertEquals("span", span.getName());
-        assertFalse(span.isBlock());
-        assertFalse(span.canContainBlock());
-        assertTrue(span.isInline());
-        assertFalse(span.isEmpty());
-        assertFalse(span.isSelfClosing());
-        assertTrue(span.isKnownTag());
-        assertFalse(span.formatAsBlock());
+        Tag a = Tag.valueOf("a");
+        assertEquals("a", a.getName());
+        assertFalse(a.isBlock());
+        assertTrue(a.isInline());
+        assertFalse(a.formatAsBlock());
+        assertFalse(a.canContainBlock());
+        assertFalse(a.isEmpty());
+        assertFalse(a.isSelfClosing());
+        assertTrue(a.isKnownTag());
     }
 
-    // Tests empty self-closing known tag properties
+    // Tests known empty self-closing tag properties
     @Test
     public void testValueOf_knownEmptyTag_returnsCorrectProperties() {
         Tag img = Tag.valueOf("img");
         assertEquals("img", img.getName());
+        assertFalse(img.isBlock());
+        assertTrue(img.isInline());
+        assertFalse(img.canContainBlock());
         assertTrue(img.isEmpty());
         assertTrue(img.isSelfClosing());
-        assertFalse(img.canContainBlock());
         assertFalse(img.isData());
+        assertTrue(img.isKnownTag());
     }
 
-    // Tests tags that preserve whitespace (including textarea)
+    // Tests unknown tag default properties
     @Test
-    public void testPreserveWhitespace_preserveWhitespaceTags_returnsTrue() {
+    public void testValueOf_unknownTag_returnsDefaultProperties() {
+        Tag custom = Tag.valueOf("custom-element");
+        assertEquals("custom-element", custom.getName());
+        assertFalse(custom.isBlock());
+        assertTrue(custom.isInline());
+        assertTrue(custom.canContainBlock());
+        assertFalse(custom.isEmpty());
+        assertFalse(custom.isSelfClosing());
+        assertFalse(custom.isKnownTag());
+    }
+
+    // Tests case insensitivity and whitespace trimming
+    @Test
+    public void testValueOf_mixedCaseAndWhitespace_returnsCanonicalTag() {
+        Tag tag1 = Tag.valueOf("  DIV  ");
+        Tag tag2 = Tag.valueOf("div");
+        Tag tag3 = Tag.valueOf("DiV");
+
+        assertSame(tag1, tag2);
+        assertSame(tag2, tag3);
+        assertEquals("div", tag1.getName());
+    }
+
+    // Tests static isKnownTag method
+    @Test
+    public void testIsKnownTag_knownAndUnknownTags_returnsCorrectBoolean() {
+        assertTrue(Tag.isKnownTag("div"));
+        assertTrue(Tag.isKnownTag("p"));
+        assertTrue(Tag.isKnownTag("span"));
+        assertFalse(Tag.isKnownTag("nonexistenttag"));
+    }
+
+    // Tests preserveWhitespace property for formatting tags
+    @Test
+    public void testPreserveWhitespace_preAndTextareaTags_returnsTrue() {
         assertTrue(Tag.valueOf("pre").preserveWhitespace());
         assertTrue(Tag.valueOf("plaintext").preserveWhitespace());
         assertTrue(Tag.valueOf("title").preserveWhitespace());
         assertTrue(Tag.valueOf("textarea").preserveWhitespace());
-    }
-
-    // Tests tag that does not preserve whitespace
-    @Test
-    public void testPreserveWhitespace_normalTag_returnsFalse() {
-        assertFalse(Tag.valueOf("p").preserveWhitespace());
         assertFalse(Tag.valueOf("div").preserveWhitespace());
-        assertFalse(Tag.valueOf("span").preserveWhitespace());
-    }
-
-    // Tests unknown tag creation and default properties
-    @Test
-    public void testValueOf_unknownTag_createsDefaultTag() {
-        Tag custom = Tag.valueOf("custom-tag");
-        assertEquals("custom-tag", custom.getName());
-        assertFalse(custom.isBlock());
-        assertTrue(custom.canContainBlock());
-        assertTrue(custom.isInline());
-        assertFalse(custom.isEmpty());
-        assertFalse(custom.isSelfClosing());
-        assertFalse(custom.isKnownTag());
-        assertFalse(Tag.isKnownTag("custom-tag"));
-    }
-
-    // Tests case insensitivity and trimming of tag names
-    @Test
-    public void testValueOf_caseInsensitiveAndWhitespace_normalizesTagName() {
-        Tag tag1 = Tag.valueOf("  DIV  ");
-        Tag tag2 = Tag.valueOf("div");
-        assertSame(tag1, tag2);
-        assertEquals("div", tag1.getName());
-    }
-
-    // Tests null input throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testValueOf_nullInput_throwsException() {
-        Tag.valueOf(null);
-    }
-
-    // Tests empty string input throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testValueOf_emptyString_throwsException() {
-        Tag.valueOf("");
-    }
-
-    // Tests whitespace-only input throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testValueOf_whitespaceOnlyString_throwsException() {
-        Tag.valueOf("   ");
-    }
-
-    // Tests isKnownTag static method
-    @Test
-    public void testIsKnownTag_knownAndUnknownTags_returnsCorrectBoolean() {
-        assertTrue(Tag.isKnownTag("div"));
-        assertTrue(Tag.isKnownTag("a"));
-        assertTrue(Tag.isKnownTag("img"));
-        assertFalse(Tag.isKnownTag("unknownTagXYZ"));
+        assertFalse(Tag.valueOf("p").preserveWhitespace());
     }
 
     // Tests setSelfClosing on unknown tag
     @Test
-    public void testSetSelfClosing_unknownTag_setsSelfClosing() {
-        Tag tag = Tag.valueOf("my-tag");
-        assertFalse(tag.isSelfClosing());
-        tag.setSelfClosing();
-        assertTrue(tag.isSelfClosing());
+    public void testSetSelfClosing_unknownTag_setsSelfClosingTrue() {
+        Tag custom = Tag.valueOf("foo");
+        assertFalse(custom.isSelfClosing());
+        Tag returned = custom.setSelfClosing();
+        assertSame(custom, returned);
+        assertTrue(custom.isSelfClosing());
     }
 
-    // Tests equals and hashCode consistency
+    // Tests equals contract
     @Test
-    public void testEqualsAndHashCode_sameAndDifferentTags_worksCorrectly() {
+    public void testEquals_sameAndDifferentTags_returnsExpectedResult() {
         Tag div1 = Tag.valueOf("div");
-        Tag div2 = Tag.valueOf("DIV");
-        Tag p = Tag.valueOf("p");
-        Tag custom1 = Tag.valueOf("custom");
-        Tag custom2 = Tag.valueOf("custom");
+        Tag div2 = Tag.valueOf("div");
+        Tag span = Tag.valueOf("span");
 
         assertTrue(div1.equals(div1));
         assertTrue(div1.equals(div2));
-        assertEquals(div1.hashCode(), div2.hashCode());
-
-        assertFalse(div1.equals(p));
+        assertFalse(div1.equals(span));
         assertFalse(div1.equals(null));
         assertFalse(div1.equals("div"));
+    }
 
-        assertTrue(custom1.equals(custom2));
-        assertEquals(custom1.hashCode(), custom2.hashCode());
+    // Tests hashCode contract
+    @Test
+    public void testHashCode_equalTags_haveEqualHashCode() {
+        Tag tag1 = Tag.valueOf("div");
+        Tag tag2 = Tag.valueOf("div");
 
-        Tag customSelfClosing = Tag.valueOf("custom").setSelfClosing();
-        assertFalse(custom1.equals(customSelfClosing));
+        assertEquals(tag1.hashCode(), tag2.hashCode());
     }
 
     // Tests toString returns tag name
     @Test
     public void testToString_validTag_returnsTagName() {
-        Tag div = Tag.valueOf("div");
-        assertEquals("div", div.toString());
-
-        Tag custom = Tag.valueOf("foo");
-        assertEquals("foo", custom.toString());
+        Tag tag = Tag.valueOf("blockquote");
+        assertEquals("blockquote", tag.toString());
     }
 }

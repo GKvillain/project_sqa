@@ -22,202 +22,167 @@ import org.junit.Test;
 public class FastDatePrinterTest {
 
     private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
+    private static final TimeZone GMT_PLUS_2 = TimeZone.getTimeZone("GMT+02:00");
     private static final TimeZone NEW_YORK = TimeZone.getTimeZone("America/New_York");
     private static final Locale US = Locale.US;
 
-    private Calendar cal;
-    private Date date;
+    private Calendar baseCalendar;
+    private Date baseDate;
 
     @Before
     public void setUp() {
-        cal = new GregorianCalendar(UTC, US);
-        cal.clear();
-        cal.set(2023, Calendar.JULY, 4, 16, 30, 45);
-        cal.set(Calendar.MILLISECOND, 123);
-        date = cal.getTime();
+        baseCalendar = new GregorianCalendar(UTC, US);
+        baseCalendar.clear();
+        baseCalendar.set(2023, Calendar.OCTOBER, 27, 14, 30, 45);
+        baseCalendar.set(Calendar.MILLISECOND, 123);
+        baseDate = baseCalendar.getTime();
     }
 
-    // Tests standard date and time pattern formatting with Date and Calendar
+    // Tests standard formatting with date, month, and year tokens
     @Test
-    public void testFormat_standardDateTime_formatsCorrectly() {
-        FastDatePrinter printer = new FastDatePrinter("yyyy-MM-dd HH:mm:ss.SSS", UTC, US);
-        String expected = "2023-07-04 16:30:45.123";
-
-        assertEquals(expected, printer.format(date));
-        assertEquals(expected, printer.format(cal));
-        assertEquals(expected, printer.format(date.getTime()));
-
-        StringBuffer buf = new StringBuffer("Result: ");
-        printer.format(date, buf);
-        assertEquals("Result: " + expected, buf.toString());
-    }
-
-    // Tests format using Object dispatch with Date, Calendar, Long, and invalid type
-    @Test
-    public void testFormat_objectDispatch_handlesSupportedTypes() {
+    public void testFormat_dateTokens_returnsFormattedString() {
         FastDatePrinter printer = new FastDatePrinter("yyyy-MM-dd", UTC, US);
-        FieldPosition pos = new FieldPosition(0);
-
-        StringBuffer buf1 = new StringBuffer();
-        printer.format((Object) date, buf1, pos);
-        assertEquals("2023-07-04", buf1.toString());
-
-        StringBuffer buf2 = new StringBuffer();
-        printer.format((Object) cal, buf2, pos);
-        assertEquals("2023-07-04", buf2.toString());
-
-        StringBuffer buf3 = new StringBuffer();
-        printer.format((Object) Long.valueOf(date.getTime()), buf3, pos);
-        assertEquals("2023-07-04", buf3.toString());
+        assertEquals("2023-10-27", printer.format(baseDate));
+        assertEquals("2023-10-27", printer.format(baseCalendar));
+        assertEquals("2023-10-27", printer.format(baseDate.getTime()));
     }
 
-    // Tests format with unsupported Object type throws IllegalArgumentException
+    // Tests two-digit year, single-digit month and day
+    @Test
+    public void testFormat_twoDigitYearAndUnpaddedFields_returnsFormattedString() {
+        FastDatePrinter printer = new FastDatePrinter("yy/M/d", UTC, US);
+        assertEquals("23/10/27", printer.format(baseDate));
+    }
+
+    // Tests month text variations (short and full names)
+    @Test
+    public void testFormat_monthTextVariations_returnsFormattedString() {
+        FastDatePrinter shortMonthPrinter = new FastDatePrinter("MMM", UTC, US);
+        assertEquals("Oct", shortMonthPrinter.format(baseDate));
+
+        FastDatePrinter longMonthPrinter = new FastDatePrinter("MMMM", UTC, US);
+        assertEquals("October", longMonthPrinter.format(baseDate));
+    }
+
+    // Tests time tokens: 12-hour, 24-hour, minutes, seconds, milliseconds, and AM/PM
+    @Test
+    public void testFormat_timeTokens_returnsFormattedString() {
+        FastDatePrinter printer = new FastDatePrinter("hh:mm:ss.SSS a (H, k, K)", UTC, US);
+        assertEquals("02:30:45.123 PM (14, 14, 2)", printer.format(baseDate));
+    }
+
+    // Tests boundary conditions for hour fields (midnight and noon)
+    @Test
+    public void testFormat_midnightAndNoonHours_formatsCorrectly() {
+        Calendar cal = new GregorianCalendar(UTC, US);
+        cal.clear();
+        cal.set(2023, Calendar.JANUARY, 1, 0, 0, 0); // Midnight
+
+        FastDatePrinter printer = new FastDatePrinter("HH:hh:kk:KK", UTC, US);
+        assertEquals("00:12:24:00", printer.format(cal));
+
+        cal.set(Calendar.HOUR_OF_DAY, 12); // Noon
+        assertEquals("12:12:12:00", printer.format(cal));
+    }
+
+    // Tests day-of-week, day-of-year, week-of-year, and era tokens
+    @Test
+    public void testFormat_miscellaneousTokens_returnsFormattedString() {
+        FastDatePrinter printer = new FastDatePrinter("G E EEEE D F w W", UTC, US);
+        String formatted = printer.format(baseCalendar);
+        assertTrue(formatted.startsWith("AD Fri Friday"));
+    }
+
+    // Tests timezone name formatting (short and long)
+    @Test
+    public void testFormat_timeZoneNameTokens_returnsFormattedString() {
+        FastDatePrinter shortTzPrinter = new FastDatePrinter("z", UTC, US);
+        assertEquals("UTC", shortTzPrinter.format(baseCalendar));
+
+        FastDatePrinter longTzPrinter = new FastDatePrinter("zzzz", UTC, US);
+        assertEquals("Coordinated Universal Time", longTzPrinter.format(baseCalendar));
+    }
+
+    // Tests RFC822 and ISO8601 timezone offset formatting
+    @Test
+    public void testFormat_timeZoneOffsetTokens_returnsFormattedString() {
+        FastDatePrinter rfc822Printer = new FastDatePrinter("Z", GMT_PLUS_2, US);
+        assertEquals("+0200", rfc822Printer.format(baseDate));
+
+        FastDatePrinter iso8601Printer = new FastDatePrinter("ZZ", GMT_PLUS_2, US);
+        assertEquals("+02:00", iso8601Printer.format(baseDate));
+    }
+
+    // Tests negative timezone offsets formatting
+    @Test
+    public void testFormat_negativeTimeZoneOffset_returnsNegativeOffset() {
+        FastDatePrinter rfc822Printer = new FastDatePrinter("Z", NEW_YORK, US);
+        Calendar cal = new GregorianCalendar(NEW_YORK, US);
+        cal.clear();
+        cal.set(2023, Calendar.JANUARY, 1, 12, 0, 0); // Standard time EST (-0500)
+        assertEquals("-0500", rfc822Printer.format(cal));
+
+        FastDatePrinter iso8601Printer = new FastDatePrinter("ZZ", NEW_YORK, US);
+        assertEquals("-05:00", iso8601Printer.format(cal));
+    }
+
+    // Tests literal strings and single quote escaping
+    @Test
+    public void testFormat_quotedLiterals_preservesLiteralsAndQuotes() {
+        FastDatePrinter printer = new FastDatePrinter("'Date: 'yyyy-MM-dd' ''T'''", UTC, US);
+        assertEquals("Date: 2023-10-27 'T'", printer.format(baseDate));
+    }
+
+    // Tests number padding rule with large padding
+    @Test
+    public void testFormat_paddedNumberField_padsWithLeadingZeros() {
+        FastDatePrinter printer = new FastDatePrinter("yyyyy-ddddd", UTC, US);
+        assertEquals("02023-00027", printer.format(baseDate));
+    }
+
+    // Tests format(Object, StringBuffer, FieldPosition) with Date, Calendar, and Long
+    @Test
+    public void testFormat_formatObjectTypes_appendsToBuffer() {
+        FastDatePrinter printer = new FastDatePrinter("yyyy-MM-dd", UTC, US);
+        StringBuffer buf = new StringBuffer();
+        
+        printer.format((Object) baseDate, buf, new FieldPosition(0));
+        assertEquals("2023-10-27", buf.toString());
+
+        buf.setLength(0);
+        printer.format((Object) baseCalendar, buf, new FieldPosition(0));
+        assertEquals("2023-10-27", buf.toString());
+
+        buf.setLength(0);
+        printer.format((Object) Long.valueOf(baseDate.getTime()), buf, new FieldPosition(0));
+        assertEquals("2023-10-27", buf.toString());
+    }
+
+    // Tests format(Object) with unsupported type throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testFormat_invalidObjectType_throwsIllegalArgumentException() {
-        FastDatePrinter printer = new FastDatePrinter("yyyy", UTC, US);
-        printer.format("2023", new StringBuffer(), new FieldPosition(0));
+    public void testFormat_unsupportedObjectType_throwsIllegalArgumentException() {
+        FastDatePrinter printer = new FastDatePrinter("yyyy-MM-dd", UTC, US);
+        printer.format("2023-10-27", new StringBuffer(), new FieldPosition(0));
     }
 
-    // Tests format with null Object throws IllegalArgumentException
+    // Tests format(Object) with null throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testFormat_nullObject_throwsIllegalArgumentException() {
-        FastDatePrinter printer = new FastDatePrinter("yyyy", UTC, US);
+        FastDatePrinter printer = new FastDatePrinter("yyyy-MM-dd", UTC, US);
         printer.format((Object) null, new StringBuffer(), new FieldPosition(0));
     }
 
-    // Tests 2-digit and 4-digit year formatting
-    @Test
-    public void testFormat_yearPatterns_formatsCorrectly() {
-        FastDatePrinter printer2Digit = new FastDatePrinter("yy", UTC, US);
-        assertEquals("23", printer2Digit.format(date));
-
-        FastDatePrinter printer1Digit = new FastDatePrinter("y", UTC, US);
-        assertEquals("2023", printer1Digit.format(date));
-
-        FastDatePrinter printer4Digit = new FastDatePrinter("yyyy", UTC, US);
-        assertEquals("2023", printer4Digit.format(date));
-
-        FastDatePrinter printer5Digit = new FastDatePrinter("yyyyy", UTC, US);
-        assertEquals("02023", printer5Digit.format(date));
-    }
-
-    // Tests month pattern variants (M, MM, MMM, MMMM)
-    @Test
-    public void testFormat_monthPatterns_formatsCorrectly() {
-        FastDatePrinter p1 = new FastDatePrinter("M", UTC, US);
-        FastDatePrinter p2 = new FastDatePrinter("MM", UTC, US);
-        FastDatePrinter p3 = new FastDatePrinter("MMM", UTC, US);
-        FastDatePrinter p4 = new FastDatePrinter("MMMM", UTC, US);
-
-        assertEquals("7", p1.format(date));
-        assertEquals("07", p2.format(date));
-        assertEquals("Jul", p3.format(date));
-        assertEquals("July", p4.format(date));
-
-        Calendar jan = new GregorianCalendar(UTC, US);
-        jan.clear();
-        jan.set(2023, Calendar.JANUARY, 1);
-        assertEquals("1", p1.format(jan));
-        assertEquals("01", p2.format(jan));
-    }
-
-    // Tests 12-hour and 24-hour hour fields including boundary values 0, 12, 24
-    @Test
-    public void testFormat_hourPatterns_formatsCorrectly() {
-        FastDatePrinter h = new FastDatePrinter("h:K:H:k a", UTC, US);
-        // 16:30 -> h=4, K=4, H=16, k=16 PM
-        assertEquals("4:4:16:16 PM", h.format(date));
-
-        Calendar midnight = new GregorianCalendar(UTC, US);
-        midnight.clear();
-        midnight.set(2023, Calendar.JANUARY, 1, 0, 0, 0);
-        // Midnight -> h=12, K=0, H=0, k=24 AM
-        assertEquals("12:0:0:24 AM", h.format(midnight));
-
-        Calendar noon = new GregorianCalendar(UTC, US);
-        noon.clear();
-        noon.set(2023, Calendar.JANUARY, 1, 12, 0, 0);
-        // Noon -> h=12, K=0, H=12, k=12 PM
-        assertEquals("12:0:12:12 PM", h.format(noon));
-    }
-
-    // Tests day, week, era, and day-of-week patterns
-    @Test
-    public void testFormat_calendarFields_formatsCorrectly() {
-        FastDatePrinter printer = new FastDatePrinter("G E EEEE d D F w W", UTC, US);
-        // 2023-07-04 is Tuesday, Day 4 of month, Day 185 of year, 1st Tuesday, Week 27 of year, Week 2 of month
-        String formatted = printer.format(date);
-        assertTrue(formatted.startsWith("AD Tue Tuesday 4 185 1 27"));
-    }
-
-    // Tests timezone numeric patterns (Z and ZZ) with positive and negative offsets
-    @Test
-    public void testFormat_timeZoneNumberPatterns_formatsCorrectly() {
-        FastDatePrinter zNoColon = new FastDatePrinter("Z", UTC, US);
-        FastDatePrinter zColon = new FastDatePrinter("ZZ", UTC, US);
-
-        assertEquals("+0000", zNoColon.format(date));
-        assertEquals("+00:00", zColon.format(date));
-
-        FastDatePrinter nyNoColon = new FastDatePrinter("Z", NEW_YORK, US);
-        FastDatePrinter nyColon = new FastDatePrinter("ZZ", NEW_YORK, US);
-
-        // July in New York is EDT (UTC-4)
-        assertEquals("-0400", nyNoColon.format(date));
-        assertEquals("-04:00", nyColon.format(date));
-    }
-
-    // Tests timezone name patterns (z and zzzz) and display name caching
-    @Test
-    public void testFormat_timeZoneNamePatterns_formatsCorrectly() {
-        FastDatePrinter shortTz = new FastDatePrinter("z", UTC, US);
-        FastDatePrinter longTz = new FastDatePrinter("zzzz", UTC, US);
-
-        assertEquals("UTC", shortTz.format(date));
-        assertEquals("Coordinated Universal Time", longTz.format(date));
-
-        FastDatePrinter nyShortTz = new FastDatePrinter("z", NEW_YORK, US);
-        assertEquals("EDT", nyShortTz.format(date));
-
-        String cachedName = FastDatePrinter.getTimeZoneDisplay(NEW_YORK, true, TimeZone.SHORT, US);
-        assertEquals("EDT", cachedName);
-    }
-
-    // Tests formatting Calendar with its own timezone when printer has different timezone
-    @Test
-    public void testFormat_calendarWithSpecificTimeZone_appliesTimeZoneCorrectly() {
-        Calendar nyCal = new GregorianCalendar(NEW_YORK, US);
-        nyCal.clear();
-        nyCal.set(2023, Calendar.JULY, 4, 12, 0, 0); // 12:00 EDT = 16:00 UTC
-
-        FastDatePrinter printer = new FastDatePrinter("HH:mm Z", NEW_YORK, US);
-        String formatted = printer.format(nyCal);
-        assertEquals("12:00 -0400", formatted);
-    }
-
-    // Tests quoted literals and escaped single quotes in patterns
-    @Test
-    public void testFormat_quotedLiterals_outputsLiteralText() {
-        FastDatePrinter printer = new FastDatePrinter("yyyy 'o''clock' ''", UTC, US);
-        assertEquals("2023 o'clock '", printer.format(date));
-
-        FastDatePrinter charLiteralPrinter = new FastDatePrinter("'T'HH:mm", UTC, US);
-        assertEquals("T16:30", charLiteralPrinter.format(date));
-    }
-
-    // Tests invalid pattern character throws IllegalArgumentException
+    // Tests invalid pattern token throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testParsePattern_illegalComponent_throwsIllegalArgumentException() {
+    public void testParsePattern_illegalPatternCharacter_throwsIllegalArgumentException() {
         new FastDatePrinter("yyyy-MM-dd X", UTC, US);
     }
 
-    // Tests getters for pattern, time zone, locale, and estimate length
+    // Tests getters: getPattern, getTimeZone, getLocale, and getMaxLengthEstimate
     @Test
-    public void testAccessors_returnCorrectValues() {
-        String pattern = "yyyy-MM-dd HH:mm:ss";
-        FastDatePrinter printer = new FastDatePrinter(pattern, UTC, US);
-
-        assertEquals(pattern, printer.getPattern());
+    public void testAccessors_returnConfiguredValues() {
+        FastDatePrinter printer = new FastDatePrinter("yyyy-MM-dd", UTC, US);
+        assertEquals("yyyy-MM-dd", printer.getPattern());
         assertEquals(UTC, printer.getTimeZone());
         assertEquals(US, printer.getLocale());
         assertTrue(printer.getMaxLengthEstimate() > 0);
@@ -237,25 +202,25 @@ public class FastDatePrinterTest {
         assertEquals(printer1.hashCode(), printer2.hashCode());
 
         assertFalse(printer1.equals(null));
-        assertFalse(printer1.equals("yyyy-MM-dd"));
+        assertFalse(printer1.equals("different type"));
         assertFalse(printer1.equals(printerDiffPattern));
         assertFalse(printer1.equals(printerDiffTz));
         assertFalse(printer1.equals(printerDiffLocale));
 
-        String str = printer1.toString();
-        assertTrue(str.contains("yyyy-MM-dd"));
-        assertTrue(str.contains(US.toString()));
-        assertTrue(str.contains(UTC.getID()));
+        String toString = printer1.toString();
+        assertNotNull(toString);
+        assertTrue(toString.contains("yyyy-MM-dd"));
+        assertTrue(toString.contains("UTC"));
     }
 
-    // Tests serialization and deserialization of FastDatePrinter
+    // Tests serialization and deserialization retains formatting behavior
     @Test
-    public void testSerialization_roundTrip_preservesBehavior() throws Exception {
-        FastDatePrinter original = new FastDatePrinter("yyyy-MM-dd HH:mm:ss", UTC, US);
+    public void testSerialization_roundTrip_producesIdenticalFormatting() throws Exception {
+        FastDatePrinter printer = new FastDatePrinter("yyyy-MM-dd HH:mm:ss Z", UTC, US);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(original);
+        oos.writeObject(printer);
         oos.close();
 
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
@@ -263,8 +228,7 @@ public class FastDatePrinterTest {
         FastDatePrinter deserialized = (FastDatePrinter) ois.readObject();
         ois.close();
 
-        assertNotNull(deserialized);
-        assertEquals(original, deserialized);
-        assertEquals(original.format(date), deserialized.format(date));
+        assertEquals(printer, deserialized);
+        assertEquals(printer.format(baseDate), deserialized.format(baseDate));
     }
 }

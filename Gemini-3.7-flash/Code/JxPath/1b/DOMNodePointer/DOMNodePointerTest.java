@@ -1,8 +1,9 @@
 package org.apache.commons.jxpath.ri.model.dom;
 
 import java.util.Locale;
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
+import org.apache.commons.jxpath.JXPathContext;
 import org.apache.commons.jxpath.JXPathException;
 import org.apache.commons.jxpath.Pointer;
 import org.apache.commons.jxpath.ri.Compiler;
@@ -10,10 +11,11 @@ import org.apache.commons.jxpath.ri.QName;
 import org.apache.commons.jxpath.ri.compiler.NodeNameTest;
 import org.apache.commons.jxpath.ri.compiler.NodeTypeTest;
 import org.apache.commons.jxpath.ri.compiler.ProcessingInstructionTest;
+import org.apache.commons.jxpath.ri.model.NodeIterator;
 import org.apache.commons.jxpath.ri.model.NodePointer;
-import org.apache.commons.jxpath.ri.model.beans.NullPointer;
 import org.junit.Before;
 import org.junit.Test;
+import org.w3c.dom.Attr;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Comment;
 import org.w3c.dom.Document;
@@ -21,11 +23,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.ProcessingInstruction;
 import org.w3c.dom.Text;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class DOMNodePointerTest {
 
@@ -35,329 +33,402 @@ public class DOMNodePointerTest {
     public void setUp() throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
-        document = factory.newDocumentBuilder().newDocument();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        document = builder.newDocument();
     }
 
-    // Tests getName for element node with prefix and local name
+    // Tests testNode with null test returning true
     @Test
-    public void testGetName_elementNode_returnsPrefixAndLocalName() {
-        Element element = document.createElementNS("http://example.com/ns", "p:child");
-        DOMNodePointer pointer = new DOMNodePointer(element, Locale.ENGLISH);
-
-        QName name = pointer.getName();
-        assertEquals("p", name.getPrefix());
-        assertEquals("child", name.getName());
-    }
-
-    // Tests getName for processing instruction node
-    @Test
-    public void testGetName_processingInstruction_returnsTargetAsName() {
-        ProcessingInstruction pi = document.createProcessingInstruction("targetPI", "data");
-        DOMNodePointer pointer = new DOMNodePointer(pi, Locale.ENGLISH);
-
-        QName name = pointer.getName();
-        assertNull(name.getPrefix());
-        assertEquals("targetPI", name.getName());
-    }
-
-    // Tests testNode with null NodeTest returning true
-    @Test
-    public void testTestNode_nullNodeTest_returnsTrue() {
-        Element element = document.createElement("test");
-        DOMNodePointer pointer = new DOMNodePointer(element, Locale.ENGLISH);
-
+    public void testTestNode_nullTest_returnsTrue() {
+        Element root = document.createElement("root");
+        DOMNodePointer pointer = new DOMNodePointer(root, Locale.getDefault());
         assertTrue(pointer.testNode(null));
+        assertTrue(DOMNodePointer.testNode(root, null));
     }
 
-    // Tests testNode with NodeNameTest for wildcard and matching name
+    // Tests testNode with NodeNameTest against element and non-element nodes
     @Test
-    public void testTestNode_nodeNameTest_matchesWildcardAndExactName() {
-        Element element = document.createElementNS("http://example.com/test", "ns:item");
-        DOMNodePointer pointer = new DOMNodePointer(element, Locale.ENGLISH);
-
-        NodeNameTest wildcardTest = new NodeNameTest(new QName(null, "*"));
-        assertTrue(pointer.testNode(wildcardTest));
-
-        NodeNameTest exactMatchTest = new NodeNameTest(new QName("ns", "item"), "http://example.com/test");
-        assertTrue(pointer.testNode(exactMatchTest));
-
-        NodeNameTest nonMatchTest = new NodeNameTest(new QName("ns", "other"), "http://example.com/test");
-        assertFalse(pointer.testNode(nonMatchTest));
-
+    public void testTestNode_nodeNameTest_matchesElement() {
+        Element elem = document.createElementNS("http://example.com/ns", "p:test");
         Text text = document.createTextNode("content");
-        DOMNodePointer textPointer = new DOMNodePointer(text, Locale.ENGLISH);
-        assertFalse(textPointer.testNode(exactMatchTest));
+
+        NodeNameTest testMatch = new NodeNameTest(new QName("p", "test"), "http://example.com/ns");
+        NodeNameTest testMismatch = new NodeNameTest(new QName("p", "other"), "http://example.com/ns");
+        NodeNameTest wildcardTest = new NodeNameTest(new QName(null, "*"));
+
+        assertTrue(DOMNodePointer.testNode(elem, testMatch));
+        assertFalse(DOMNodePointer.testNode(elem, testMismatch));
+        assertTrue(DOMNodePointer.testNode(elem, wildcardTest));
+        assertFalse(DOMNodePointer.testNode(text, testMatch));
     }
 
-    // Tests testNode with NodeTypeTest for element, text, cdata, comment, and processing instruction
+    // Tests testNode with NodeTypeTest for different DOM node types
     @Test
-    public void testTestNode_nodeTypeTest_matchesCorrespondingTypes() {
-        Element element = document.createElement("el");
-        Text text = document.createTextNode("txt");
+    public void testTestNode_nodeTypeTest_matchesCorrectType() {
+        Element elem = document.createElement("elem");
+        Text text = document.createTextNode("text");
         CDATASection cdata = document.createCDATASection("cdata");
         Comment comment = document.createComment("comment");
         ProcessingInstruction pi = document.createProcessingInstruction("target", "data");
-
-        DOMNodePointer elPtr = new DOMNodePointer(element, Locale.ENGLISH);
-        DOMNodePointer textPtr = new DOMNodePointer(text, Locale.ENGLISH);
-        DOMNodePointer cdataPtr = new DOMNodePointer(cdata, Locale.ENGLISH);
-        DOMNodePointer commentPtr = new DOMNodePointer(comment, Locale.ENGLISH);
-        DOMNodePointer piPtr = new DOMNodePointer(pi, Locale.ENGLISH);
 
         NodeTypeTest nodeTest = new NodeTypeTest(Compiler.NODE_TYPE_NODE);
         NodeTypeTest textTest = new NodeTypeTest(Compiler.NODE_TYPE_TEXT);
         NodeTypeTest commentTest = new NodeTypeTest(Compiler.NODE_TYPE_COMMENT);
         NodeTypeTest piTest = new NodeTypeTest(Compiler.NODE_TYPE_PI);
 
-        assertTrue(elPtr.testNode(nodeTest));
-        assertFalse(textPtr.testNode(nodeTest));
+        assertTrue(DOMNodePointer.testNode(elem, nodeTest));
+        assertFalse(DOMNodePointer.testNode(text, nodeTest));
 
-        assertTrue(textPtr.testNode(textTest));
-        assertTrue(cdataPtr.testNode(textTest));
-        assertFalse(elPtr.testNode(textTest));
+        assertTrue(DOMNodePointer.testNode(text, textTest));
+        assertTrue(DOMNodePointer.testNode(cdata, textTest));
+        assertFalse(DOMNodePointer.testNode(elem, textTest));
 
-        assertTrue(commentPtr.testNode(commentTest));
-        assertFalse(elPtr.testNode(commentTest));
+        assertTrue(DOMNodePointer.testNode(comment, commentTest));
+        assertFalse(DOMNodePointer.testNode(elem, commentTest));
 
-        assertTrue(piPtr.testNode(piTest));
-        assertFalse(elPtr.testNode(piTest));
+        assertTrue(DOMNodePointer.testNode(pi, piTest));
+        assertFalse(DOMNodePointer.testNode(elem, piTest));
     }
 
     // Tests testNode with ProcessingInstructionTest
     @Test
     public void testTestNode_processingInstructionTest_matchesTarget() {
-        ProcessingInstruction pi = document.createProcessingInstruction("targetA", "data");
-        DOMNodePointer pointer = new DOMNodePointer(pi, Locale.ENGLISH);
+        ProcessingInstruction pi = document.createProcessingInstruction("targetPI", "some data");
+        Element elem = document.createElement("elem");
 
-        ProcessingInstructionTest matchingTest = new ProcessingInstructionTest("targetA");
-        ProcessingInstructionTest mismatchTest = new ProcessingInstructionTest("targetB");
+        ProcessingInstructionTest matchingTest = new ProcessingInstructionTest("targetPI");
+        ProcessingInstructionTest mismatchTest = new ProcessingInstructionTest("otherPI");
 
-        assertTrue(pointer.testNode(matchingTest));
-        assertFalse(pointer.testNode(mismatchTest));
+        assertTrue(DOMNodePointer.testNode(pi, matchingTest));
+        assertFalse(DOMNodePointer.testNode(pi, mismatchTest));
+        assertFalse(DOMNodePointer.testNode(elem, matchingTest));
     }
 
-    // Tests getNamespaceURI with standard prefixes "xml" and "xmlns"
+    // Tests getName for Element and ProcessingInstruction nodes
     @Test
-    public void testGetNamespaceURI_standardPrefixes_returnsFixedURIs() {
-        Element element = document.createElement("root");
-        DOMNodePointer pointer = new DOMNodePointer(element, Locale.ENGLISH);
+    public void testGetName_elementAndPI_returnsExpectedQNames() {
+        Element elem = document.createElementNS("http://example.com", "ns:item");
+        DOMNodePointer elemPointer = new DOMNodePointer(elem, Locale.getDefault());
+        QName elemQName = elemPointer.getName();
+        assertEquals("ns", elemQName.getPrefix());
+        assertEquals("item", elemQName.getName());
+
+        ProcessingInstruction pi = document.createProcessingInstruction("myTarget", "myData");
+        DOMNodePointer piPointer = new DOMNodePointer(pi, Locale.getDefault());
+        QName piQName = piPointer.getName();
+        assertNull(piQName.getPrefix());
+        assertEquals("myTarget", piQName.getName());
+    }
+
+    // Tests getNamespaceURI with prefix resolution
+    @Test
+    public void testGetNamespaceURI_predefinedAndDeclaredPrefixes() {
+        Element root = document.createElement("root");
+        root.setAttribute("xmlns:custom", "http://custom.com/ns");
+        root.setAttribute("xmlns", "http://default.com/ns");
+        DOMNodePointer pointer = new DOMNodePointer(root, Locale.getDefault());
 
         assertEquals(DOMNodePointer.XML_NAMESPACE_URI, pointer.getNamespaceURI("xml"));
         assertEquals(DOMNodePointer.XMLNS_NAMESPACE_URI, pointer.getNamespaceURI("xmlns"));
+        assertEquals("http://custom.com/ns", pointer.getNamespaceURI("custom"));
+        assertEquals("http://default.com/ns", pointer.getNamespaceURI(""));
+        assertEquals("http://default.com/ns", pointer.getDefaultNamespaceURI());
+        assertNull(pointer.getNamespaceURI("unknownPrefix"));
     }
 
-    // Tests getNamespaceURI and getDefaultNamespaceURI with declared namespaces
+    // Tests isLanguage and getLanguage
     @Test
-    public void testGetNamespaceURI_declaredNamespaces_returnsResolvedURIs() {
+    public void testIsLanguage_xmlLangAttribute_returnsMatching() {
         Element root = document.createElement("root");
-        root.setAttribute("xmlns", "http://example.com/default");
-        root.setAttribute("xmlns:custom", "http://example.com/custom");
-        document.appendChild(root);
-
+        root.setAttribute("xml:lang", "en-US");
         Element child = document.createElement("child");
         root.appendChild(child);
 
-        DOMNodePointer pointer = new DOMNodePointer(child, Locale.ENGLISH);
+        DOMNodePointer rootPointer = new DOMNodePointer(root, Locale.getDefault());
+        DOMNodePointer childPointer = new DOMNodePointer(rootPointer, child);
 
-        assertEquals("http://example.com/default", pointer.getDefaultNamespaceURI());
-        assertEquals("http://example.com/default", pointer.getNamespaceURI((String) null));
-        assertEquals("http://example.com/default", pointer.getNamespaceURI(""));
-        assertEquals("http://example.com/custom", pointer.getNamespaceURI("custom"));
-        assertNull(pointer.getNamespaceURI("unknown"));
+        assertTrue(rootPointer.isLanguage("en"));
+        assertTrue(rootPointer.isLanguage("en-US"));
+        assertFalse(rootPointer.isLanguage("fr"));
+
+        assertTrue(childPointer.isLanguage("en"));
+        assertEquals("en-US", childPointer.getLanguage());
     }
 
-    // Tests isLanguage when xml:lang attribute is present and absent
+    // Tests setValue for text node and element node
     @Test
-    public void testIsLanguage_xmlLangAttribute_checksMatchingCaseInsensitive() {
-        Element element = document.createElement("doc");
-        element.setAttribute("xml:lang", "en-US");
-        DOMNodePointer pointer = new DOMNodePointer(element, Locale.ENGLISH);
-
-        assertTrue(pointer.isLanguage("en"));
-        assertTrue(pointer.isLanguage("en-US"));
-        assertTrue(pointer.isLanguage("EN"));
-        assertFalse(pointer.isLanguage("fr"));
-
-        Element noLangElem = document.createElement("other");
-        DOMNodePointer noLangPtr = new DOMNodePointer(noLangElem, Locale.ENGLISH);
-        assertFalse(noLangPtr.isLanguage("en"));
-    }
-
-    // Tests getValue on comment, text, and composite element node
-    @Test
-    public void testGetValue_differentNodeTypes_returnsCorrectText() {
-        Comment comment = document.createComment("  sample comment  ");
-        DOMNodePointer commentPtr = new DOMNodePointer(comment, Locale.ENGLISH);
-        assertEquals("sample comment", commentPtr.getValue());
-
-        Element root = document.createElement("root");
-        Text t1 = document.createTextNode("Hello ");
-        Element sub = document.createElement("sub");
-        Text t2 = document.createTextNode("World");
-        sub.appendChild(t2);
-        root.appendChild(t1);
-        root.appendChild(sub);
-
-        DOMNodePointer rootPtr = new DOMNodePointer(root, Locale.ENGLISH);
-        assertEquals("Hello World", rootPtr.getValue());
-    }
-
-    // Tests setValue on Text node and Element node
-    @Test
-    public void testSetValue_textAndElementNode_updatesContents() {
+    public void testSetValue_textAndElementNodes() {
         Element root = document.createElement("root");
         Text text = document.createTextNode("initial");
         root.appendChild(text);
 
-        DOMNodePointer textPtr = new DOMNodePointer(text, Locale.ENGLISH);
-        textPtr.setValue("updated");
-        assertEquals("updated", text.getNodeValue());
+        DOMNodePointer rootPointer = new DOMNodePointer(root, Locale.getDefault());
+        DOMNodePointer textPointer = new DOMNodePointer(rootPointer, text);
+        textPointer.setValue("updatedText");
+        assertEquals("updatedText", text.getNodeValue());
 
-        DOMNodePointer rootPtr = new DOMNodePointer(root, Locale.ENGLISH);
-        rootPtr.setValue("new root text");
-        assertEquals("new root text", rootPtr.getValue());
+        // Empty value removes text node
+        textPointer.setValue("");
+        assertEquals(0, root.getChildNodes().getLength());
+
+        // Setting string on element replaces children
+        DOMNodePointer elemPointer = new DOMNodePointer(root, Locale.getDefault());
+        elemPointer.setValue("newChildText");
+        assertEquals("newChildText", root.getTextContent());
+
+        // Setting Element node as value
+        Element newElem = document.createElement("sub");
+        newElem.appendChild(document.createTextNode("subText"));
+        elemPointer.setValue(newElem);
+        assertEquals(1, root.getChildNodes().getLength());
+        assertEquals("sub", root.getFirstChild().getNodeName());
     }
 
-    // Tests asPath with id specified
+    // Tests asPath for root, children, text, and PI nodes
     @Test
-    public void testAsPath_withId_escapesAndFormatsIdPath() {
-        Element element = document.createElement("element");
-        DOMNodePointer pointer = new DOMNodePointer(element, Locale.ENGLISH, "item's \"key\"");
-
-        assertEquals("id('item&apos;s &quot;key&quot;')", pointer.asPath());
-    }
-
-    // Tests asPath for hierarchical DOM elements
-    @Test
-    public void testAsPath_elementHierarchy_generatesExpectedXPath() {
+    public void testAsPath_variousNodeTypes_constructsValidXPath() {
         Element root = document.createElement("root");
         document.appendChild(root);
+        DOMNodePointer rootPointer = new DOMNodePointer(null, root);
 
-        Element child1 = document.createElement("item");
-        Element child2 = document.createElement("item");
+        Element child1 = document.createElement("child");
         root.appendChild(child1);
+        DOMNodePointer child1Pointer = new DOMNodePointer(rootPointer, child1);
+
+        Element child2 = document.createElement("child");
         root.appendChild(child2);
+        DOMNodePointer child2Pointer = new DOMNodePointer(rootPointer, child2);
 
-        DOMNodePointer rootPtr = new DOMNodePointer(root, Locale.ENGLISH);
-        DOMNodePointer child1Ptr = new DOMNodePointer(rootPtr, child1);
-        DOMNodePointer child2Ptr = new DOMNodePointer(rootPtr, child2);
+        Text text = document.createTextNode("hello");
+        child1.appendChild(text);
+        DOMNodePointer textPointer = new DOMNodePointer(child1Pointer, text);
 
-        assertEquals("", rootPtr.asPath());
-        assertEquals("/item[1]", child1Ptr.asPath());
-        assertEquals("/item[2]", child2Ptr.asPath());
+        ProcessingInstruction pi = document.createProcessingInstruction("target", "data");
+        child1.appendChild(pi);
+        DOMNodePointer piPointer = new DOMNodePointer(child1Pointer, pi);
+
+        assertEquals("/child[1]", child1Pointer.asPath());
+        assertEquals("/child[2]", child2Pointer.asPath());
+        assertEquals("/child[1]/text()[1]", textPointer.asPath());
+        assertEquals("/child[1]/processing-instruction('target')[1]", piPointer.asPath());
     }
 
-    // Tests asPath for text node and processing instruction node
+    // Tests asPath with id attribute
     @Test
-    public void testAsPath_textAndProcessingInstructionNodes() {
-        Element root = document.createElement("root");
-        Text textNode = document.createTextNode("sample");
-        ProcessingInstruction piNode = document.createProcessingInstruction("app", "config");
-        root.appendChild(textNode);
-        root.appendChild(piNode);
-
-        DOMNodePointer rootPtr = new DOMNodePointer(root, Locale.ENGLISH);
-        DOMNodePointer textPtr = new DOMNodePointer(rootPtr, textNode);
-        DOMNodePointer piPtr = new DOMNodePointer(rootPtr, piNode);
-
-        assertEquals("/text()[1]", textPtr.asPath());
-        assertEquals("/processing-instruction('app')[1]", piPtr.asPath());
+    public void testAsPath_withIdentifier_returnsIdExpression() {
+        Element elem = document.createElement("item");
+        DOMNodePointer pointer = new DOMNodePointer(elem, Locale.getDefault(), "elem'1\"");
+        assertEquals("id('elem&apos;1&quot;')", pointer.asPath());
     }
 
-    // Tests remove method on root node throwing exception
-    @Test(expected = JXPathException.class)
-    public void testRemove_rootNodeWithoutParent_throwsException() {
-        Element element = document.createElement("orphan");
-        DOMNodePointer pointer = new DOMNodePointer(element, Locale.ENGLISH);
-        pointer.remove();
-    }
-
-    // Tests remove method on child node successfully removing it
+    // Tests remove on child node and exception on root node
     @Test
     public void testRemove_childNode_removesFromParent() {
         Element root = document.createElement("root");
         Element child = document.createElement("child");
         root.appendChild(child);
 
-        DOMNodePointer pointer = new DOMNodePointer(child, Locale.ENGLISH);
-        pointer.remove();
-
+        DOMNodePointer childPointer = new DOMNodePointer(child, Locale.getDefault());
+        childPointer.remove();
         assertNull(child.getParentNode());
-        assertFalse(root.hasChildNodes());
     }
 
-    // Tests compareChildNodePointers between children
-    @Test
-    public void testCompareChildNodePointers_orderOfSiblings() {
+    // Tests remove on root node throws JXPathException
+    @Test(expected = JXPathException.class)
+    public void testRemove_rootNodeWithoutParent_throwsException() {
         Element root = document.createElement("root");
-        Element child1 = document.createElement("child1");
-        Element child2 = document.createElement("child2");
-        root.appendChild(child1);
-        root.appendChild(child2);
-
-        DOMNodePointer parentPtr = new DOMNodePointer(root, Locale.ENGLISH);
-        DOMNodePointer ptr1 = new DOMNodePointer(parentPtr, child1);
-        DOMNodePointer ptr2 = new DOMNodePointer(parentPtr, child2);
-
-        assertEquals(0, parentPtr.compareChildNodePointers(ptr1, ptr1));
-        assertEquals(-1, parentPtr.compareChildNodePointers(ptr1, ptr2));
-        assertEquals(1, parentPtr.compareChildNodePointers(ptr2, ptr1));
+        DOMNodePointer pointer = new DOMNodePointer(root, Locale.getDefault());
+        pointer.remove();
     }
 
-    // Tests getPointerByID when ID exists and does not exist
+    // Tests createAttribute without prefix
     @Test
-    public void testGetPointerByID_existingAndNonExistingIds() {
-        DOMNodePointer docPointer = new DOMNodePointer(document, Locale.ENGLISH);
+    public void testCreateAttribute_noPrefix_createsAttributeNode() {
+        Element elem = document.createElement("root");
+        DOMNodePointer pointer = new DOMNodePointer(elem, Locale.getDefault());
+        JXPathContext context = JXPathContext.newContext(elem);
 
-        Pointer nonExisting = docPointer.getPointerByID(null, "noSuchId");
-        assertTrue(nonExisting instanceof NullPointer);
+        NodePointer attrPointer = pointer.createAttribute(context, new QName("attr"));
+        assertNotNull(attrPointer);
+        assertTrue(elem.hasAttribute("attr"));
     }
 
-    // Tests equals and hashCode consistency
-    @Test
-    public void testEqualsAndHashCode_sameAndDifferentNodes() {
-        Element elem1 = document.createElement("a");
-        Element elem2 = document.createElement("b");
+    // Tests createAttribute with unknown namespace prefix throws JXPathException
+    @Test(expected = JXPathException.class)
+    public void testCreateAttribute_unknownPrefix_throwsException() {
+        Element elem = document.createElement("root");
+        DOMNodePointer pointer = new DOMNodePointer(elem, Locale.getDefault());
+        JXPathContext context = JXPathContext.newContext(elem);
 
-        DOMNodePointer ptr1 = new DOMNodePointer(elem1, Locale.ENGLISH);
-        DOMNodePointer ptr1Duplicate = new DOMNodePointer(elem1, Locale.ENGLISH);
-        DOMNodePointer ptr2 = new DOMNodePointer(elem2, Locale.ENGLISH);
+        pointer.createAttribute(context, new QName("unknown", "attr"));
+    }
+
+    // Tests getValue for Comment, Text, CDATA, PI, and Element nodes
+    @Test
+    public void testGetValue_differentNodeTypes_returnsCorrectString() {
+        Comment comment = document.createComment(" a comment ");
+        DOMNodePointer commentPointer = new DOMNodePointer(comment, Locale.getDefault());
+        assertEquals("a comment", commentPointer.getValue());
+
+        Text text = document.createTextNode(" text value ");
+        DOMNodePointer textPointer = new DOMNodePointer(text, Locale.getDefault());
+        assertEquals("text value", textPointer.getValue());
+
+        ProcessingInstruction pi = document.createProcessingInstruction("pi", " instruction data ");
+        DOMNodePointer piPointer = new DOMNodePointer(pi, Locale.getDefault());
+        assertEquals("instruction data", piPointer.getValue());
+
+        Element parent = document.createElement("parent");
+        Text childText = document.createTextNode("Hello ");
+        Element childElem = document.createElement("child");
+        childElem.appendChild(document.createTextNode("World"));
+        parent.appendChild(childText);
+        parent.appendChild(childElem);
+
+        DOMNodePointer parentPointer = new DOMNodePointer(parent, Locale.getDefault());
+        assertEquals("Hello World", parentPointer.getValue());
+    }
+
+    // Tests compareChildNodePointers between attributes and child elements
+    @Test
+    public void testCompareChildNodePointers_orderVerification() {
+        Element elem = document.createElement("parent");
+        elem.setAttribute("a", "1");
+        elem.setAttribute("b", "2");
+
+        Element child1 = document.createElement("c1");
+        Element child2 = document.createElement("c2");
+        elem.appendChild(child1);
+        elem.appendChild(child2);
+
+        DOMNodePointer parentPointer = new DOMNodePointer(elem, Locale.getDefault());
+
+        NodeIterator attrIt = parentPointer.attributeIterator(new QName("a"));
+        attrIt.setPosition(1);
+        NodePointer attrPtr1 = attrIt.getNodePointer();
+
+        DOMNodePointer childPtr1 = new DOMNodePointer(parentPointer, child1);
+        DOMNodePointer childPtr2 = new DOMNodePointer(parentPointer, child2);
+
+        // Attribute vs Element
+        assertEquals(-1, parentPointer.compareChildNodePointers(attrPtr1, childPtr1));
+        assertEquals(1, parentPointer.compareChildNodePointers(childPtr1, attrPtr1));
+
+        // Same pointers
+        assertEquals(0, parentPointer.compareChildNodePointers(childPtr1, childPtr1));
+
+        // Element order
+        assertEquals(-1, parentPointer.compareChildNodePointers(childPtr1, childPtr2));
+        assertEquals(1, parentPointer.compareChildNodePointers(childPtr2, childPtr1));
+    }
+
+    // Tests equals, hashCode, and basic pointer properties
+    @Test
+    public void testEqualsAndHashCodeAndProperties() {
+        Element elem1 = document.createElement("item");
+        Element elem2 = document.createElement("item");
+
+        DOMNodePointer ptr1 = new DOMNodePointer(elem1, Locale.getDefault());
+        DOMNodePointer ptr1Same = new DOMNodePointer(elem1, Locale.getDefault());
+        DOMNodePointer ptr2 = new DOMNodePointer(elem2, Locale.getDefault());
 
         assertTrue(ptr1.equals(ptr1));
-        assertTrue(ptr1.equals(ptr1Duplicate));
+        assertTrue(ptr1.equals(ptr1Same));
         assertFalse(ptr1.equals(ptr2));
-        assertFalse(ptr1.equals(null));
         assertFalse(ptr1.equals("string"));
+        assertEquals(ptr1.hashCode(), ptr1Same.hashCode());
 
-        assertEquals(ptr1.hashCode(), ptr1Duplicate.hashCode());
+        assertSame(elem1, ptr1.getBaseValue());
+        assertSame(elem1, ptr1.getImmediateNode());
+        assertTrue(ptr1.isActual());
+        assertFalse(ptr1.isCollection());
+        assertEquals(1, ptr1.getLength());
+        assertTrue(ptr1.isLeaf());
+
+        elem1.appendChild(document.createElement("sub"));
+        assertFalse(ptr1.isLeaf());
     }
 
-    // Tests isLeaf, isCollection, getLength, and isActual methods
+    // Tests getPointerByID returns DOMNodePointer when found, NullPointer when not found
     @Test
-    public void testBasicProperties_isLeafIsActualIsCollection() {
-        Element emptyElement = document.createElement("empty");
-        DOMNodePointer pointer = new DOMNodePointer(emptyElement, Locale.ENGLISH);
+    public void testGetPointerByID_findsOrReturnsNullPointer() {
+        Element elem = document.createElement("elem");
+        elem.setAttribute("id", "targetId");
+        elem.setIdAttribute("id", true);
+        document.appendChild(elem);
 
-        assertTrue(pointer.isActual());
-        assertFalse(pointer.isCollection());
-        assertEquals(1, pointer.getLength());
-        assertTrue(pointer.isLeaf());
+        DOMNodePointer docPointer = new DOMNodePointer(document, Locale.getDefault());
+        JXPathContext context = JXPathContext.newContext(document);
 
-        emptyElement.appendChild(document.createElement("child"));
-        assertFalse(pointer.isLeaf());
-        assertEquals(emptyElement, pointer.getBaseValue());
-        assertEquals(emptyElement, pointer.getImmediateNode());
+        Pointer found = docPointer.getPointerByID(context, "targetId");
+        assertNotNull(found);
+        assertTrue(found instanceof DOMNodePointer);
+        assertSame(elem, found.getNode());
+
+        Pointer notFound = docPointer.getPointerByID(context, "missingId");
+        assertNotNull(notFound);
+        assertNull(notFound.getNode());
     }
 
-    // Tests helper static methods getPrefix and getLocalName
+    // Tests static helpers getPrefix and getLocalName
     @Test
     public void testStaticGetPrefixAndGetLocalName() {
-        Element elementWithPrefix = document.createElementNS("http://ns", "pre:testName");
-        assertEquals("pre", DOMNodePointer.getPrefix(elementWithPrefix));
-        assertEquals("testName", DOMNodePointer.getLocalName(elementWithPrefix));
+        Element elemNoPrefix = document.createElement("simple");
+        assertNull(DOMNodePointer.getPrefix(elemNoPrefix));
+        assertEquals("simple", DOMNodePointer.getLocalName(elemNoPrefix));
 
-        Element elementWithoutPrefix = document.createElement("simple");
-        assertNull(DOMNodePointer.getPrefix(elementWithoutPrefix));
-        assertEquals("simple", DOMNodePointer.getLocalName(elementWithoutPrefix));
+        Element elemWithPrefix = document.createElement("ns:complex");
+        assertEquals("ns", DOMNodePointer.getPrefix(elemWithPrefix));
+        assertEquals("complex", DOMNodePointer.getLocalName(elemWithPrefix));
+    }
+
+    // Tests createChild with and without value
+    @Test
+    public void testCreateChild_appendsElement() {
+        Element root = document.createElement("root");
+        DOMNodePointer pointer = new DOMNodePointer(root, Locale.getDefault());
+        JXPathContext context = JXPathContext.newContext(root);
+
+        NodePointer childPtr = pointer.createChild(context, new QName("child"), 0);
+        assertNotNull(childPtr);
+        assertEquals(1, root.getElementsByTagName("child").getLength());
+
+        NodePointer childWithValuePtr = pointer.createChild(context, new QName("childWithVal"), 0, "val");
+        assertNotNull(childWithValuePtr);
+        assertEquals("val", childWithValuePtr.getValue());
+    }
+
+    // Tests childIterator and namespaceIterator
+    @Test
+    public void testIterators_childAndNamespace() {
+        Element root = document.createElementNS("http://custom.com/ns", "p:root");
+        root.setAttribute("xmlns:p", "http://custom.com/ns");
+        Element c1 = document.createElement("c1");
+        Element c2 = document.createElement("c2");
+        root.appendChild(c1);
+        root.appendChild(c2);
+
+        DOMNodePointer pointer = new DOMNodePointer(root, Locale.getDefault());
+
+        NodeIterator childIt = pointer.childIterator(new NodeNameTest(new QName("c1")), false, null);
+        assertNotNull(childIt);
+        assertTrue(childIt.setPosition(1));
+        assertEquals("c1", childIt.getNodePointer().getName().getName());
+
+        NodeIterator nsIt = pointer.namespaceIterator();
+        assertNotNull(nsIt);
+        assertTrue(nsIt.setPosition(1));
+        assertNotNull(nsIt.getNodePointer());
+
+        NodePointer nsPtr = pointer.namespacePointer("p");
+        assertNotNull(nsPtr);
+        assertEquals("http://custom.com/ns", nsPtr.getValue());
+    }
+
+    // Tests asPath on document node
+    @Test
+    public void testAsPath_documentNode() {
+        DOMNodePointer docPointer = new DOMNodePointer(document, Locale.getDefault());
+        assertEquals("", docPointer.asPath());
     }
 }

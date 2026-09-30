@@ -2,7 +2,6 @@ package org.jsoup.nodes;
 
 import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashSet;
@@ -11,166 +10,170 @@ import java.util.Set;
 import static org.junit.Assert.*;
 
 public class ElementTest {
-    private Element div;
 
-    @Before
-    public void setUp() {
-        div = new Element(Tag.valueOf("div"), "http://example.com/");
-    }
-
-    // Tests constructor with null tag throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_nullTag_throwsException() {
-        new Element(null, "http://example.com/");
-    }
-
-    // Tests basic node and tag name properties
+    // Tests element construction and basic tag/name/block properties
     @Test
-    public void testNodeNameAndTagName_standardTag_returnsCorrectName() {
-        assertEquals("div", div.nodeName());
-        assertEquals("div", div.tagName());
-        assertEquals(Tag.valueOf("div"), div.tag());
-        assertTrue(div.isBlock());
+    public void testConstruct_validTag_returnsCorrectProperties() {
+        Tag divTag = Tag.valueOf("div");
+        Element el = new Element(divTag, "http://example.com");
+
+        assertEquals("div", el.nodeName());
+        assertEquals("div", el.tagName());
+        assertEquals(divTag, el.tag());
+        assertTrue(el.isBlock());
+        assertEquals("", el.id());
     }
 
-    // Tests id attribute retrieval when present and absent
+    // Tests element id retrieval and attribute setting
     @Test
-    public void testId_presentAndAbsent_returnsCorrectId() {
-        assertEquals("", div.id());
-        div.attr("id", "main-content");
-        assertEquals("main-content", div.id());
+    public void testAttrAndId_setIdAttribute_returnsId() {
+        Element el = new Element(Tag.valueOf("span"), "");
+        el.attr("id", "main-header");
+        el.attr("title", "Header Title");
+
+        assertEquals("main-header", el.id());
+        assertEquals("Header Title", el.attr("title"));
+        assertFalse(el.isBlock());
     }
 
-    // Tests parent and parents hierarchy accumulation
+    // Tests child element and node manipulation (append, prepend child/element/text)
     @Test
-    public void testParents_nestedElements_returnsCorrectAncestors() {
-        Element child = div.appendElement("p");
-        Element span = child.appendElement("span");
+    public void testAppendAndPrependChild_mixedNodes_ordersCorrectly() {
+        Element parent = new Element(Tag.valueOf("div"), "");
+        Element child1 = parent.appendElement("p").text("Paragraph 1");
+        Element child0 = parent.prependElement("span").text("Span 0");
+        parent.appendText(" End Text");
+        parent.prependText("Start Text ");
 
-        assertEquals(div, child.parent());
-        assertEquals(child, span.parent());
+        assertEquals(2, parent.children().size());
+        assertEquals(child0, parent.child(0));
+        assertEquals(child1, parent.child(1));
+        assertEquals("Start Text Span 0 Paragraph 1 End Text", parent.text());
+    }
 
-        Elements parents = span.parents();
+    // Tests parent and ancestors retrieval
+    @Test
+    public void testParents_nestedElements_returnsAncestorStack() {
+        Element root = new Element(Tag.valueOf("div"), "");
+        Element mid = root.appendElement("section");
+        Element leaf = mid.appendElement("p");
+
+        Elements parents = leaf.parents();
         assertEquals(2, parents.size());
-        assertEquals(child, parents.get(0));
-        assertEquals(div, parents.get(1));
+        assertEquals(mid, parents.get(0));
+        assertEquals(root, parents.get(1));
+        assertEquals(mid, leaf.parent());
     }
 
-    // Tests children and child index methods
+    // Tests append and prepend HTML fragments into element
     @Test
-    public void testChildrenAndChild_multipleElements_returnsChildrenCorrectly() {
-        Element p1 = div.appendElement("p");
-        Element p2 = div.appendElement("p");
-        div.appendText("some text");
-
-        Elements children = div.children();
-        assertEquals(2, children.size());
-        assertEquals(p1, div.child(0));
-        assertEquals(p2, div.child(1));
-    }
-
-    // Tests append, prepend, and empty operations on child nodes
-    @Test
-    public void testAppendPrependAndEmpty_htmlContent_updatesChildrenCorrectly() {
-        div.append("<p>One</p><p>Two</p>");
+    public void testAppendAndPrepend_htmlStrings_parsesAndAppendsCorrectly() {
+        Element div = new Element(Tag.valueOf("div"), "");
+        div.append("<p>Two</p><p>Three</p>");
         assertEquals(2, div.children().size());
-        assertEquals("One", div.child(0).text());
-        assertEquals("Two", div.child(1).text());
+        assertEquals("Two Three", div.text());
 
-        div.prepend("<h1>Title</h1>");
+        div.prepend("<p>One</p>");
         assertEquals(3, div.children().size());
-        assertEquals("h1", div.child(0).tagName());
-        assertEquals("Title", div.child(0).text());
-
-        div.empty();
-        assertEquals(0, div.children().size());
-        assertEquals(0, div.childNodes().size());
+        assertEquals("One Two Three", div.text());
     }
 
-    // Tests append with null argument throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testAppend_nullHtml_throwsException() {
-        div.append(null);
-    }
-
-    // Tests prepend with null argument throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testPrepend_nullHtml_throwsException() {
-        div.prepend(null);
-    }
-
-    // Tests wrap HTML around an element
+    // Tests wrap method on element inside parent
     @Test
     public void testWrap_validHtml_wrapsElementCorrectly() {
-        Element parent = new Element(Tag.valueOf("div"), "http://example.com/");
-        Element span = parent.appendElement("span");
-        span.text("hello");
+        Element div = new Element(Tag.valueOf("div"), "");
+        Element p = div.appendElement("p").text("Hello");
 
-        span.wrap("<div class='wrapper'><i></i></div>");
+        p.wrap("<div class=\"wrapper\"><div class=\"inner\"></div></div>");
 
-        assertEquals("<div class=\"wrapper\"><i><span>hello</span></i></div>", parent.html());
+        assertEquals("div", p.parent().tagName());
+        assertEquals("inner", p.parent().className());
+        assertEquals("wrapper", p.parent().parent().className());
+        assertEquals(div, p.parent().parent().parent());
     }
 
-    // Tests sibling navigation methods
+    // Tests sibling element navigation methods
     @Test
-    public void testSiblingNavigation_multipleSiblings_navigatesCorrectly() {
-        Element p1 = div.appendElement("p");
-        Element p2 = div.appendElement("span");
-        Element p3 = div.appendElement("div");
+    public void testSiblingElements_multipleSiblings_returnsExpectedRelatives() {
+        Element parent = new Element(Tag.valueOf("div"), "");
+        Element p1 = parent.appendElement("p").text("1");
+        Element p2 = parent.appendElement("p").text("2");
+        Element p3 = parent.appendElement("p").text("3");
 
         assertEquals(3, p2.siblingElements().size());
-        assertEquals(p1, p2.previousElementSibling());
-        assertNull(p1.previousElementSibling());
-
         assertEquals(p3, p2.nextElementSibling());
-        assertNull(p3.nextElementSibling());
-
+        assertEquals(p1, p2.previousElementSibling());
         assertEquals(p1, p2.firstElementSibling());
         assertEquals(p3, p2.lastElementSibling());
-
         assertEquals(Integer.valueOf(1), p2.elementSiblingIndex());
-        assertEquals(Integer.valueOf(0), div.elementSiblingIndex());
+        assertNull(p3.nextElementSibling());
+        assertNull(p1.previousElementSibling());
     }
 
-    // Tests DOM query methods by tag, ID, class, and attributes
+    // Tests element sibling index when element has no parent
     @Test
-    public void testGetElements_byVariousSelectors_returnsMatchingElements() {
-        div.append("<p id='first' class='lead active' title='para1'>Text 1</p>");
-        div.append("<p class='lead' title='para2'>Text 2</p>");
-        div.append("<span class='active'>Span Text</span>");
-
-        assertEquals(2, div.getElementsByTag("p").size());
-        assertNotNull(div.getElementById("first"));
-        assertEquals("Text 1", div.getElementById("first").text());
-        assertNull(div.getElementById("non-existent"));
-
-        assertEquals(2, div.getElementsByClass("lead").size());
-        assertEquals(2, div.getElementsByClass("active").size());
-        assertEquals(2, div.getElementsByAttribute("title").size());
-        assertEquals(1, div.getElementsByAttributeValue("title", "para1").size());
-        assertEquals(1, div.getElementsByAttributeValueStarting("title", "para").size());
-        assertEquals(1, div.getElementsByAttributeValueEnding("title", "2").size());
-        assertEquals(2, div.getElementsByAttributeValueContaining("title", "para").size());
-        assertTrue(div.getElementsByAttributeValueNot("title", "para1").size() >= 1);
-
-        assertEquals(1, div.getElementsByIndexLessThan(1).size());
-        assertEquals(2, div.getElementsByIndexGreaterThan(0).size());
-        assertEquals(1, div.getElementsByIndexEquals(1).size());
-        assertEquals(4, div.getAllElements().size());
+    public void testElementSiblingIndex_noParent_returnsZero() {
+        Element standalone = new Element(Tag.valueOf("p"), "");
+        assertEquals(Integer.valueOf(0), standalone.elementSiblingIndex());
     }
 
-    // Tests select method using CSS query
+    // Tests DOM selection by tag, id, and class
     @Test
-    public void testSelect_validQuery_returnsMatchedElements() {
-        div.append("<a href='http://example.com/one'>One</a><a href='http://other.com/two'>Two</a>");
-        Elements links = div.select("a[href^=http://example.com]");
-        assertEquals(1, links.size());
-        assertEquals("One", links.get(0).text());
+    public void testGetElementsByTagIdClass_nestedTree_findsMatches() {
+        Element doc = new Element(Tag.valueOf("div"), "");
+        Element section = doc.appendElement("section").attr("id", "sec1").attr("class", "container highlight");
+        Element p = section.appendElement("p").attr("class", "highlight").text("Text");
+
+        assertEquals(1, doc.getElementsByTag("section").size());
+        assertEquals(section, doc.getElementById("sec1"));
+        assertEquals(2, doc.getElementsByClass("highlight").size());
+        assertEquals(p, doc.getElementsByClass("highlight").get(1));
     }
 
-    // Tests text extraction, text setting, and hasText behavior
+    // Tests DOM selection by attributes with different value matchers
     @Test
-    public void testTextAndHasText_textAndNestedElements_handlesCorrectly() {
+    public void testGetElementsByAttribute_variousMatchers_returnsMatchingElements() {
+        Element div = new Element(Tag.valueOf("div"), "");
+        Element a1 = div.appendElement("a").attr("href", "http://example.com/one").attr("target", "_blank");
+        Element a2 = div.appendElement("a").attr("href", "http://example.com/two");
+
+        assertEquals(2, div.getElementsByAttribute("href").size());
+        assertEquals(1, div.getElementsByAttributeValue("target", "_blank").size());
+        assertEquals(a1, div.getElementsByAttributeValue("target", "_blank").get(0));
+        assertEquals(2, div.getElementsByAttributeValueStarting("href", "http://example.com").size());
+        assertEquals(1, div.getElementsByAttributeValueEnding("href", "/two").size());
+        assertEquals(a2, div.getElementsByAttributeValueEnding("href", "/two").get(0));
+        assertEquals(2, div.getElementsByAttributeValueContaining("href", "example").size());
+        assertEquals(1, div.getElementsByAttributeValueNot("target", "_blank").size());
+    }
+
+    // Tests DOM selection by sibling index matchers
+    @Test
+    public void testGetElementsByIndex_indexComparisons_returnsMatchingElements() {
+        Element list = new Element(Tag.valueOf("ul"), "");
+        Element li0 = list.appendElement("li").text("A");
+        Element li1 = list.appendElement("li").text("B");
+        Element li2 = list.appendElement("li").text("C");
+
+        Elements lessThan1 = list.getElementsByIndexLessThan(1);
+        assertEquals(1, lessThan1.size());
+        assertEquals(li0, lessThan1.get(0));
+
+        Elements eq1 = list.getElementsByIndexEquals(1);
+        assertEquals(1, eq1.size());
+        assertEquals(li1, eq1.get(0));
+
+        Elements gt1 = list.getElementsByIndexGreaterThan(1);
+        assertEquals(1, gt1.size());
+        assertEquals(li2, gt1.get(0));
+
+        assertEquals(4, list.getAllElements().size());
+    }
+
+    // Tests text methods, empty, and hasText checks
+    @Test
+    public void testTextAndHasText_manipulations_returnsExpectedTextState() {
+        Element div = new Element(Tag.valueOf("div"), "");
         assertFalse(div.hasText());
         assertEquals("", div.text());
 
@@ -179,101 +182,117 @@ public class ElementTest {
         assertEquals("Hello World", div.text());
 
         div.empty();
-        div.append("<p>First</p><p>Second</p>");
-        assertTrue(div.hasText());
-        assertEquals("First Second", div.text());
+        assertFalse(div.hasText());
+        assertEquals("", div.text());
+        assertEquals(0, div.childNodes().size());
     }
 
-    // Tests whitespace preservation in preformatted tags
+    // Tests class name manipulation methods (addClass, removeClass, toggleClass)
     @Test
-    public void testPreserveWhitespace_preTag_preservesWhitespace() {
-        Element pre = new Element(Tag.valueOf("pre"), "http://example.com/");
-        pre.appendText("   line1\n   line2   ");
-        assertTrue(pre.preserveWhitespace());
-        assertEquals("line1\n   line2", pre.text());
+    public void testClassNames_manipulations_updatesClassAttribute() {
+        Element div = new Element(Tag.valueOf("div"), "");
+        div.attr("class", "one two");
+
+        Set<String> classSet = div.classNames();
+        assertTrue(classSet.contains("one"));
+        assertTrue(classSet.contains("two"));
+        assertTrue(div.hasClass("one"));
+
+        div.addClass("three");
+        assertTrue(div.hasClass("three"));
+        assertEquals("one two three", div.className());
+
+        div.removeClass("two");
+        assertFalse(div.hasClass("two"));
+        assertEquals("one three", div.className());
+
+        div.toggleClass("three");
+        assertFalse(div.hasClass("three"));
+        div.toggleClass("three");
+        assertTrue(div.hasClass("three"));
+
+        Set<String> customClasses = new HashSet<String>();
+        customClasses.add("custom");
+        div.classNames(customClasses);
+        assertEquals("custom", div.className());
     }
 
-    // Tests data method for DataNode extraction
+    // Tests form element val method on input and textarea
     @Test
-    public void testData_scriptTag_extractsData() {
-        Element script = div.appendElement("script");
-        script.appendChild(new DataNode("var x = 1;", "http://example.com/"));
+    public void testVal_inputAndTextarea_getsAndSetsValue() {
+        Element input = new Element(Tag.valueOf("input"), "");
+        input.val("test-value");
+        assertEquals("test-value", input.val());
+        assertEquals("test-value", input.attr("value"));
+
+        Element textarea = new Element(Tag.valueOf("textarea"), "");
+        textarea.val("content text");
+        assertEquals("content text", textarea.val());
+        assertEquals("content text", textarea.text());
+    }
+
+    // Tests html getting and setting methods
+    @Test
+    public void testHtml_getAndSet_modifiesInnerHtml() {
+        Element div = new Element(Tag.valueOf("div"), "");
+        div.html("<span>Inner Content</span>");
+        assertEquals("<span>Inner Content</span>", div.html());
+        assertEquals(1, div.children().size());
+        assertEquals("span", div.child(0).tagName());
+    }
+
+    // Tests outerHtml generation for empty self-closing tag vs normal container tag
+    @Test
+    public void testOuterHtml_differentTags_rendersExpectedMarkup() {
+        Element img = new Element(Tag.valueOf("img"), "");
+        img.attr("src", "image.png");
+        assertEquals("<img src=\"image.png\" />", img.outerHtml().trim());
+
+        Element div = new Element(Tag.valueOf("div"), "");
+        div.appendElement("p").text("Hello");
+        assertEquals("<div>\n <p>Hello</p>\n</div>", div.outerHtml().trim());
+        assertEquals(div.outerHtml(), div.toString());
+    }
+
+    // Tests script element data extraction
+    @Test
+    public void testData_scriptElement_extractsDataNodeContent() {
+        Element script = new Element(Tag.valueOf("script"), "");
+        DataNode data = new DataNode("var x = 1;", "");
+        script.appendChild(data);
+
         assertEquals("var x = 1;", script.data());
     }
 
-    // Tests class manipulation methods: classNames, addClass, removeClass, toggleClass, hasClass
+    // Tests selector query evaluation on element
     @Test
-    public void testClassManipulations_classOperations_updatesClassesCorrectly() {
-        assertEquals("", div.className());
-        assertTrue(div.classNames().isEmpty());
-        assertFalse(div.hasClass("test"));
+    public void testSelect_cssSelector_findsMatchingElements() {
+        Element div = new Element(Tag.valueOf("div"), "");
+        div.append("<p class=\"intro\">One</p><p>Two</p>");
 
-        div.addClass("primary");
-        assertTrue(div.hasClass("primary"));
-        assertEquals("primary", div.className());
-
-        div.addClass("active");
-        assertTrue(div.hasClass("active"));
-        assertEquals("primary active", div.className());
-
-        div.removeClass("primary");
-        assertFalse(div.hasClass("primary"));
-        assertTrue(div.hasClass("active"));
-
-        div.toggleClass("active");
-        assertFalse(div.hasClass("active"));
-
-        div.toggleClass("active");
-        assertTrue(div.hasClass("active"));
-
-        Set<String> newClasses = new HashSet<String>();
-        newClasses.add("one");
-        newClasses.add("two");
-        div.classNames(newClasses);
-        assertTrue(div.hasClass("one"));
-        assertTrue(div.hasClass("two"));
-        assertFalse(div.hasClass("active"));
+        Elements matches = div.select("p.intro");
+        assertEquals(1, matches.size());
+        assertEquals("One", matches.get(0).text());
     }
 
-    // Tests val method on input and textarea elements
+    // Tests equality and hash code contracts
     @Test
-    public void testVal_inputAndTextarea_getsAndSetsValueCorrectly() {
-        Element input = new Element(Tag.valueOf("input"), "http://example.com/");
-        input.val("test-value");
-        assertEquals("test-value", input.val());
+    public void testEqualsAndHashCode_sameAndDifferent_verifiesContract() {
+        Element el1 = new Element(Tag.valueOf("div"), "http://example.com");
+        Element el2 = new Element(Tag.valueOf("div"), "http://example.com");
+        Element el3 = new Element(Tag.valueOf("span"), "http://example.com");
 
-        Element textarea = new Element(Tag.valueOf("textarea"), "http://example.com/");
-        textarea.val("text content");
-        assertEquals("text content", textarea.val());
+        assertEquals(el1, el1);
+        assertEquals(el1, el2);
+        assertEquals(el1.hashCode(), el2.hashCode());
+        assertFalse(el1.equals(el3));
+        assertFalse(el1.equals("other type"));
+        assertFalse(el1.equals(null));
     }
 
-    // Tests outerHtml, html, and toString output
-    @Test
-    public void testHtmlAndOuterHtml_elementTree_formatsHtmlCorrectly() {
-        div.attr("id", "main");
-        div.appendElement("p").text("Hello");
-
-        assertEquals("<p>Hello</p>", div.html());
-        assertEquals("<div id=\"main\">\n <p>Hello</p>\n</div>", div.outerHtml());
-        assertEquals(div.outerHtml(), div.toString());
-
-        Element img = new Element(Tag.valueOf("img"), "http://example.com/");
-        assertEquals("<img />", img.outerHtml());
-    }
-
-    // Tests equals and hashCode consistency
-    @Test
-    public void testEqualsAndHashCode_sameAndDifferentObjects_worksCorrectly() {
-        Element div1 = new Element(Tag.valueOf("div"), "http://example.com/");
-        Element div2 = new Element(Tag.valueOf("div"), "http://example.com/");
-        Element span = new Element(Tag.valueOf("span"), "http://example.com/");
-
-        assertEquals(div1, div1);
-        assertEquals(div1, div2);
-        assertEquals(div1.hashCode(), div2.hashCode());
-
-        assertFalse(div1.equals(span));
-        assertFalse(div1.equals(null));
-        assertFalse(div1.equals("string"));
+    // Tests null tag argument in constructor throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructor_nullTag_throwsException() {
+        new Element(null, "");
     }
 }

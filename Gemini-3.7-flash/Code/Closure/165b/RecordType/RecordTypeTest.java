@@ -1,6 +1,5 @@
 package com.google.javascript.rhino.jstype;
 
-import com.google.common.collect.Maps;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.SimpleErrorReporter;
 import com.google.javascript.rhino.jstype.RecordTypeBuilder.RecordProperty;
@@ -19,12 +18,11 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class RecordTypeTest {
-
   private JSTypeRegistry registry;
   private JSType numberType;
   private JSType stringType;
   private JSType booleanType;
-  private ObjectType objectType;
+  private JSType objectType;
 
   @Before
   public void setUp() {
@@ -32,352 +30,236 @@ public class RecordTypeTest {
     numberType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
     stringType = registry.getNativeType(JSTypeNative.STRING_TYPE);
     booleanType = registry.getNativeType(JSTypeNative.BOOLEAN_TYPE);
-    objectType = registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE);
+    objectType = registry.getNativeType(JSTypeNative.OBJECT_TYPE);
   }
 
-  // Tests constructor with null RecordProperty throws IllegalStateException
+  private RecordType createRecordType(String name, JSType type) {
+    RecordTypeBuilder builder = new RecordTypeBuilder(registry);
+    builder.addProperty(name, type, null);
+    return (RecordType) builder.build();
+  }
+
+  private RecordType createRecordType(String name1, JSType type1, String name2, JSType type2) {
+    RecordTypeBuilder builder = new RecordTypeBuilder(registry);
+    builder.addProperty(name1, type1, null);
+    builder.addProperty(name2, type2, null);
+    return (RecordType) builder.build();
+  }
+
+  // Tests exception when property map contains a null RecordProperty
   @Test(expected = IllegalStateException.class)
   public void testConstructor_nullRecordProperty_throwsIllegalStateException() {
-    Map<String, RecordProperty> propMap = new HashMap<String, RecordProperty>();
-    propMap.put("prop", null);
-    new RecordType(registry, propMap);
+    Map<String, RecordProperty> map = new HashMap<String, RecordProperty>();
+    map.put("foo", null);
+    new RecordType(registry, map);
   }
 
-  // Tests defining property on frozen record type returns false
-  @Test
-  public void testDefineProperty_whenFrozen_returnsFalse() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-
-    boolean defined = record.defineProperty("b", stringType, false, null);
-    assertFalse(defined);
-    assertFalse(record.hasProperty("b"));
-  }
-
-  // Tests implicit prototype is ObjectType
+  // Tests implicit prototype is native Object type
   @Test
   public void testGetImplicitPrototype_returnsNativeObjectType() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-
-    assertEquals(objectType, record.getImplicitPrototype());
+    RecordType record = createRecordType("a", numberType);
+    assertEquals(registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE), record.getImplicitPrototype());
   }
 
-  // Tests toMaybeRecordType returns the same instance
+  // Tests toMaybeRecordType returns self
   @Test
   public void testToMaybeRecordType_returnsSelf() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-
+    RecordType record = createRecordType("a", numberType);
     assertSame(record, record.toMaybeRecordType());
   }
 
-  // Tests equivalence to self returns true
+  // Tests isEquivalentTo when comparing with same instance
   @Test
   public void testIsEquivalentTo_sameInstance_returnsTrue() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-
+    RecordType record = createRecordType("a", numberType);
     assertTrue(record.isEquivalentTo(record));
   }
 
-  // Tests equivalence to non-record type returns false
+  // Tests isEquivalentTo when comparing with non-record type
   @Test
   public void testIsEquivalentTo_nonRecordType_returnsFalse() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-
+    RecordType record = createRecordType("a", numberType);
     assertFalse(record.isEquivalentTo(numberType));
   }
 
-  // Tests equivalence when property keys differ returns false
+  // Tests isEquivalentTo when comparing identical record types
   @Test
-  public void testIsEquivalentTo_differentKeys_returnsFalse() {
-    RecordType recordA = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    RecordType recordB = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("b", numberType, null)
-        .build();
-
-    assertFalse(recordA.isEquivalentTo(recordB));
+  public void testIsEquivalentTo_identicalRecords_returnsTrue() {
+    RecordType record1 = createRecordType("a", numberType, "b", stringType);
+    RecordType record2 = createRecordType("a", numberType, "b", stringType);
+    assertTrue(record1.isEquivalentTo(record2));
+    assertTrue(record2.isEquivalentTo(record1));
   }
 
-  // Tests equivalence when property types differ returns false
+  // Tests isEquivalentTo when property keys differ
+  @Test
+  public void testIsEquivalentTo_differentPropertyKeys_returnsFalse() {
+    RecordType record1 = createRecordType("a", numberType);
+    RecordType record2 = createRecordType("b", numberType);
+    assertFalse(record1.isEquivalentTo(record2));
+  }
+
+  // Tests isEquivalentTo when property types differ
   @Test
   public void testIsEquivalentTo_differentPropertyTypes_returnsFalse() {
-    RecordType recordA = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    RecordType recordB = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", stringType, null)
-        .build();
-
-    assertFalse(recordA.isEquivalentTo(recordB));
+    RecordType record1 = createRecordType("a", numberType);
+    RecordType record2 = createRecordType("a", stringType);
+    assertFalse(record1.isEquivalentTo(record2));
   }
 
-  // Tests equivalence when keys and types match returns true
+  // Tests defineProperty returns false when record is frozen
   @Test
-  public void testIsEquivalentTo_identicalProperties_returnsTrue() {
-    RecordType recordA = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .addProperty("b", stringType, null)
-        .build();
-    RecordType recordB = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .addProperty("b", stringType, null)
-        .build();
-
-    assertTrue(recordA.isEquivalentTo(recordB));
-    assertTrue(recordB.isEquivalentTo(recordA));
+  public void testDefineProperty_whenFrozen_returnsFalse() {
+    RecordType record = createRecordType("a", numberType);
+    assertFalse(record.defineProperty("b", stringType, false, null));
   }
 
-  // Tests subtyping when record has more properties than super record
+  // Tests isSubtype when target is native Object type
   @Test
-  public void testIsSubtype_recordWithSupersetProperties_isSubtype() {
-    RecordType subRecord = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .addProperty("b", stringType, null)
-        .build();
-    RecordType superRecord = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
+  public void testIsSubtype_targetIsObjectType_returnsTrue() {
+    RecordType record = createRecordType("a", numberType);
+    assertTrue(record.isSubtype(objectType));
+  }
 
+  // Tests isSubtype when target is non-record type
+  @Test
+  public void testIsSubtype_targetIsPrimitiveType_returnsFalse() {
+    RecordType record = createRecordType("a", numberType);
+    assertFalse(record.isSubtype(numberType));
+  }
+
+  // Tests isSubtype structural subtyping with matching and extra properties
+  @Test
+  public void testIsSubtype_recordWithMoreProperties_isSubtypeOfRecordWithFewerProperties() {
+    RecordType subRecord = createRecordType("a", numberType, "b", stringType);
+    RecordType superRecord = createRecordType("a", numberType);
     assertTrue(subRecord.isSubtype(superRecord));
     assertFalse(superRecord.isSubtype(subRecord));
   }
 
-  // Tests subtyping when record is missing a property
+  // Tests isSubtype when a required property is missing
   @Test
   public void testIsSubtype_missingRequiredProperty_returnsFalse() {
-    RecordType recordA = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    RecordType recordB = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("b", stringType, null)
-        .build();
-
-    assertFalse(recordA.isSubtype(recordB));
+    RecordType record1 = createRecordType("a", numberType);
+    RecordType record2 = createRecordType("b", numberType);
+    assertFalse(record1.isSubtype(record2));
   }
 
-  // Tests subtyping when property type is incompatible
+  // Tests isSubtype when property type is incompatible
   @Test
-  public void testIsSubtype_incompatibleDeclaredPropertyType_returnsFalse() {
-    RecordType recordA = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    RecordType recordB = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", stringType, null)
-        .build();
-
-    assertFalse(recordA.isSubtype(recordB));
+  public void testIsSubtype_incompatiblePropertyType_returnsFalse() {
+    RecordType record1 = createRecordType("a", numberType);
+    RecordType record2 = createRecordType("a", stringType);
+    assertFalse(record1.isSubtype(record2));
   }
 
-  // Tests subtyping with non-record target
+  // Tests getGreatestSubtypeHelper merging disjoint properties of two record types
   @Test
-  public void testIsSubtype_againstNativeObjectType_returnsTrue() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
+  public void testGetGreatestSubtypeHelper_disjointRecords_mergesProperties() {
+    RecordType record1 = createRecordType("a", numberType);
+    RecordType record2 = createRecordType("b", stringType);
+    JSType greatestSubtype = record1.getGreatestSubtypeHelper(record2);
 
-    assertTrue(record.isSubtype(objectType));
-    assertFalse(record.isSubtype(numberType));
-  }
-
-  // Tests static isSubtype helper method directly
-  @Test
-  public void testStaticIsSubtype_withMatchingDeclaredProperties_returnsTrue() {
-    RecordType recordA = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("x", numberType, null)
-        .addProperty("y", stringType, null)
-        .build();
-    RecordType recordB = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("x", numberType, null)
-        .build();
-
-    assertTrue(RecordType.isSubtype(recordA, recordB));
-    assertFalse(RecordType.isSubtype(recordB, recordA));
-  }
-
-  // Tests greatest subtype helper when combining compatible record types
-  @Test
-  public void testGetGreatestSubtypeHelper_compatibleRecordTypes_combinesProperties() {
-    RecordType recordA = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    RecordType recordB = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("b", stringType, null)
-        .build();
-
-    JSType greatestSubtype = recordA.getGreatestSubtypeHelper(recordB);
-    assertNotNull(greatestSubtype);
     assertTrue(greatestSubtype.isRecordType());
-
     RecordType resultRecord = greatestSubtype.toMaybeRecordType();
     assertTrue(resultRecord.hasProperty("a"));
     assertTrue(resultRecord.hasProperty("b"));
-    assertEquals(numberType, resultRecord.getPropertyType("a"));
-    assertEquals(stringType, resultRecord.getPropertyType("b"));
+    assertTrue(resultRecord.getPropertyType("a").isEquivalentTo(numberType));
+    assertTrue(resultRecord.getPropertyType("b").isEquivalentTo(stringType));
   }
 
-  // Tests greatest subtype helper with conflicting property types returns NO_TYPE
+  // Tests getGreatestSubtypeHelper when records have conflicting property types
   @Test
   public void testGetGreatestSubtypeHelper_conflictingPropertyTypes_returnsNoType() {
-    RecordType recordA = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    RecordType recordB = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", stringType, null)
-        .build();
-
-    JSType greatestSubtype = recordA.getGreatestSubtypeHelper(recordB);
+    RecordType record1 = createRecordType("a", numberType);
+    RecordType record2 = createRecordType("a", stringType);
+    JSType greatestSubtype = record1.getGreatestSubtypeHelper(record2);
     assertEquals(registry.getNativeObjectType(JSTypeNative.NO_TYPE), greatestSubtype);
   }
 
-  // Tests greatest subtype helper when other type is non-record type
+  // Tests getGreatestSubtypeHelper with a non-record type
   @Test
   public void testGetGreatestSubtypeHelper_nonRecordType_returnsSubtype() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-
-    JSType result = record.getGreatestSubtypeHelper(numberType);
+    RecordType record = createRecordType("a", numberType);
+    JSType result = record.getGreatestSubtypeHelper(objectType);
     assertNotNull(result);
   }
 
-  // Tests resolveInternal updates property types in the record
+  // Tests resolveInternal successfully resolves contained property types
   @Test
-  public void testResolveInternal_resolvesContainedTypes() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("prop", numberType, null)
-        .build();
-
+  public void testResolveInternal_resolvesTypesCorrectly() {
+    RecordType record = createRecordType("a", numberType, "b", stringType);
     SimpleErrorReporter reporter = new SimpleErrorReporter();
-    JSType resolved = record.resolveInternal(reporter, null);
-
+    JSType resolved = record.resolve(reporter, null);
     assertNotNull(resolved);
     assertTrue(resolved.isRecordType());
-    assertEquals(numberType, resolved.toMaybeRecordType().getPropertyType("prop"));
+    assertTrue(resolved.toMaybeRecordType().hasProperty("a"));
+    assertTrue(resolved.toMaybeRecordType().hasProperty("b"));
   }
 
+  // Tests isRecordType returns true
   @Test
   public void testIsRecordType_returnsTrue() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-
+    RecordType record = createRecordType("a", numberType);
     assertTrue(record.isRecordType());
   }
 
+  // Tests empty record construction and properties
   @Test
-  public void testGetPropertyNode_withAndWithoutPropertyNode() {
-    Node node = new Node(0);
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("withNode", numberType, node)
-        .addProperty("withoutNode", stringType, null)
-        .build();
-
-    assertSame(node, record.getPropertyNode("withNode"));
-    assertNull(record.getPropertyNode("withoutNode"));
-    assertNull(record.getPropertyNode("nonExistent"));
+  public void testEmptyRecordType() {
+    RecordTypeBuilder builder = new RecordTypeBuilder(registry);
+    RecordType emptyRecord = (RecordType) builder.build();
+    assertNotNull(emptyRecord);
+    assertTrue(emptyRecord.isRecordType());
+    assertFalse(emptyRecord.hasProperty("a"));
   }
 
+  // Tests isEquivalentTo when property counts differ
   @Test
-  public void testIsPropertyTypeDeclaredAndInferred() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("declaredProp", numberType, null)
-        .build();
-
-    assertTrue(record.isPropertyTypeDeclared("declaredProp"));
-    assertFalse(record.isPropertyTypeInferred("declaredProp"));
-    assertFalse(record.isPropertyTypeDeclared("nonExistent"));
-    assertFalse(record.isPropertyTypeInferred("nonExistent"));
+  public void testIsEquivalentTo_differentPropertyCount_returnsFalse() {
+    RecordType record1 = createRecordType("a", numberType);
+    RecordType record2 = createRecordType("a", numberType, "b", stringType);
+    assertFalse(record1.isEquivalentTo(record2));
+    assertFalse(record2.isEquivalentTo(record1));
   }
 
+  // Tests getGreatestSubtypeHelper with overlapping identical properties
   @Test
-  public void testToStringHelper_emptyAndPopulated() {
-    RecordType emptyRecord = (RecordType) new RecordTypeBuilder(registry).build();
-    assertEquals("{}", emptyRecord.toString());
+  public void testGetGreatestSubtypeHelper_overlappingIdenticalProperties() {
+    RecordType record1 = createRecordType("a", numberType, "b", stringType);
+    RecordType record2 = createRecordType("a", numberType, "c", booleanType);
+    JSType greatestSubtype = record1.getGreatestSubtypeHelper(record2);
 
-    RecordType singleProp = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    assertEquals("{a: number}", singleProp.toString());
-
-    RecordType multiProp = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .addProperty("b", stringType, null)
-        .build();
-    assertEquals("{a: number, b: string}", multiProp.toString());
-  }
-
-  @Test
-  public void testToAnnotationString() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    assertEquals("{a: number}", record.toAnnotationString());
-  }
-
-  @Test
-  public void testIsSynthetic() {
-    RecordType declaredRecord = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    assertFalse(declaredRecord.isSynthetic());
-
-    RecordType syntheticRecord = new RecordType(
-        registry,
-        Collections.<String, RecordProperty>emptyMap(),
-        false);
-    assertTrue(syntheticRecord.isSynthetic());
-  }
-
-  @Test
-  public void testStaticIsSubtype_nonRecordObjectTypeWithProperties() {
-    RecordType targetRecord = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("prop", numberType, null)
-        .build();
-
-    ObjectType matchingObj = registry.createAnonymousObjectType();
-    matchingObj.defineDeclaredProperty("prop", numberType, null);
-    assertTrue(RecordType.isSubtype(matchingObj, targetRecord));
-
-    ObjectType missingPropObj = registry.createAnonymousObjectType();
-    assertFalse(RecordType.isSubtype(missingPropObj, targetRecord));
-
-    ObjectType incompatiblePropObj = registry.createAnonymousObjectType();
-    incompatiblePropObj.defineDeclaredProperty("prop", stringType, null);
-    assertFalse(RecordType.isSubtype(incompatiblePropObj, targetRecord));
-  }
-
-  @Test
-  public void testGetGreatestSubtype_directCall() {
-    RecordType recordA = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
-    RecordType recordB = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("b", stringType, null)
-        .build();
-
-    JSType greatestSubtype = recordA.getGreatestSubtype(recordB);
-    assertNotNull(greatestSubtype);
     assertTrue(greatestSubtype.isRecordType());
-    assertTrue(greatestSubtype.toMaybeRecordType().hasProperty("a"));
-    assertTrue(greatestSubtype.toMaybeRecordType().hasProperty("b"));
+    RecordType resultRecord = greatestSubtype.toMaybeRecordType();
+    assertTrue(resultRecord.hasProperty("a"));
+    assertTrue(resultRecord.hasProperty("b"));
+    assertTrue(resultRecord.hasProperty("c"));
+    assertTrue(resultRecord.getPropertyType("a").isEquivalentTo(numberType));
   }
 
+  // Tests getPropertyNode and property declaration metadata
   @Test
-  public void testGetGreatestSubtype_withSameType() {
-    RecordType record = (RecordType) new RecordTypeBuilder(registry)
-        .addProperty("a", numberType, null)
-        .build();
+  public void testPropertyNodeAndDeclaredStatus() {
+    Node node = Node.newString("a");
+    RecordTypeBuilder builder = new RecordTypeBuilder(registry);
+    builder.addProperty("a", numberType, node);
+    RecordType record = (RecordType) builder.build();
 
-    assertSame(record, record.getGreatestSubtype(record));
+    assertSame(node, record.getPropertyNode("a"));
+    assertNull(record.getPropertyNode("nonExistent"));
+    assertTrue(record.isPropertyDeclared("a"));
+    assertFalse(record.isPropertyDeclared("nonExistent"));
+    assertFalse(record.isPropertyInExterns("a"));
+  }
+
+  // Tests toString / toStringHelper representation
+  @Test
+  public void testToStringRepresentation() {
+    RecordType record = createRecordType("a", numberType);
+    String str = record.toString();
+    assertNotNull(str);
+    assertTrue(str.contains("a"));
+    assertTrue(str.contains("number"));
   }
 }

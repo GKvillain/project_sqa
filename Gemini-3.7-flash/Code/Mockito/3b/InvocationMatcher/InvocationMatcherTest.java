@@ -1,12 +1,13 @@
 package org.mockito.internal.invocation;
 
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.internal.matchers.CapturesArguments;
 import org.mockito.internal.matchers.Equals;
 import org.mockito.invocation.Invocation;
-import org.mockito.invocation.Location;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -15,239 +16,228 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 public class InvocationMatcherTest {
 
     private Invocation invocation;
-    private Method simpleMethod;
-    private Method varargMethod;
-    private Method overloadedMethod;
-    private Object mockObject;
-
-    public interface TestInterface {
-        void simpleMethod(String arg);
-        void varargMethod(String prefix, Object... args);
-        void simpleMethod(Integer arg);
-    }
-
-    private static class CapturingMatcher implements Matcher, CapturesArguments {
-        private final List<Object> captured = new ArrayList<Object>();
-
-        public boolean matches(Object item) {
-            return true;
-        }
-
-        public void _dont_implement_Matcher___instead_extend_BaseMatcher_() {}
-
-        public void describeTo(org.hamcrest.Description description) {}
-
-        public void captureFrom(Object argument) {
-            captured.add(argument);
-        }
-
-        public List<Object> getCaptured() {
-            return captured;
-        }
-    }
+    private InvocationMatcher invocationMatcher;
 
     @Before
-    public void setUp() throws Exception {
-        simpleMethod = TestInterface.class.getMethod("simpleMethod", String.class);
-        varargMethod = TestInterface.class.getMethod("varargMethod", String.class, Object[].class);
-        overloadedMethod = TestInterface.class.getMethod("simpleMethod", Integer.class);
-        mockObject = new Object();
-
-        invocation = mock(Invocation.class);
-        when(invocation.getMethod()).thenReturn(simpleMethod);
-        when(invocation.getMock()).thenReturn(mockObject);
-        when(invocation.getArguments()).thenReturn(new Object[]{"test"});
-        when(invocation.getRawArguments()).thenReturn(new Object[]{"test"});
+    public void setUp() {
+        invocation = new InvocationBuilder().args("arg1", "arg2").toInvocation();
+        invocationMatcher = new InvocationMatcher(invocation);
     }
 
-    // Tests constructor with empty matchers converts arguments to matchers
+    // Tests constructor with empty matchers creating default matchers from arguments
     @Test
-    public void testConstructor_emptyMatchers_convertsArgumentsToMatchers() {
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertNotNull(matcher.getMatchers());
+    public void testConstructor_withEmptyMatchers_createsDefaultMatchers() {
+        Invocation inv = new InvocationBuilder().args("foo").toInvocation();
+        InvocationMatcher matcher = new InvocationMatcher(inv, Collections.<Matcher>emptyList());
+
         assertEquals(1, matcher.getMatchers().size());
-        assertEquals(invocation, matcher.getInvocation());
-        assertEquals(simpleMethod, matcher.getMethod());
+        assertTrue(matcher.getMatchers().get(0) instanceof Equals);
     }
 
     // Tests constructor with explicit matchers
     @Test
-    public void testConstructor_explicitMatchers_preservesMatchers() {
-        Matcher explicitMatcher = new Equals("test");
-        InvocationMatcher matcher = new InvocationMatcher(invocation, Arrays.asList(explicitMatcher));
+    public void testConstructor_withExplicitMatchers_usesProvidedMatchers() {
+        Matcher customMatcher = new CustomMatcher();
+        List<Matcher> matchers = Arrays.asList(customMatcher);
+        InvocationMatcher matcher = new InvocationMatcher(invocation, matchers);
+
         assertEquals(1, matcher.getMatchers().size());
-        assertSame(explicitMatcher, matcher.getMatchers().get(0));
+        assertSame(customMatcher, matcher.getMatchers().get(0));
     }
 
-    // Tests getLocation delegates to invocation
+    // Tests getMethod returns underlying invocation method
     @Test
-    public void testGetLocation_delegatesToInvocation() {
-        Location location = mock(Location.class);
-        when(invocation.getLocation()).thenReturn(location);
-
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertSame(location, matcher.getLocation());
+    public void testGetMethod_returnsInvocationMethod() {
+        Method expectedMethod = invocation.getMethod();
+        assertEquals(expectedMethod, invocationMatcher.getMethod());
     }
 
-    // Tests toString returns formatted representation
+    // Tests getInvocation returns the invocation passed to constructor
     @Test
-    public void testToString_returnsNonEmptyString() {
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        String result = matcher.toString();
+    public void testGetInvocation_returnsInvocation() {
+        assertSame(invocation, invocationMatcher.getInvocation());
+    }
+
+    // Tests getMatchers returns matchers list
+    @Test
+    public void testGetMatchers_returnsMatchers() {
+        assertNotNull(invocationMatcher.getMatchers());
+        assertEquals(2, invocationMatcher.getMatchers().size());
+    }
+
+    // Tests toString prints method call with matchers
+    @Test
+    public void testToString_returnsStringRepresentation() {
+        String result = invocationMatcher.toString();
         assertNotNull(result);
         assertTrue(result.contains("simpleMethod"));
     }
 
-    // Tests matches when mock, method, and arguments match
+    // Tests matches when invocation matches target invocation
     @Test
-    public void testMatches_sameMockAndMethodAndArgs_returnsTrue() {
-        Invocation actual = mock(Invocation.class);
-        when(actual.getMock()).thenReturn(mockObject);
-        when(actual.getMethod()).thenReturn(simpleMethod);
-        when(actual.getArguments()).thenReturn(new Object[]{"test"});
-
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertTrue(matcher.matches(actual));
+    public void testMatches_sameInvocation_returnsTrue() {
+        assertTrue(invocationMatcher.matches(invocation));
     }
 
-    // Tests matches when mock is different
+    // Tests matches when method differs
+    @Test
+    public void testMatches_differentMethod_returnsFalse() {
+        Invocation differentMethodInvocation = new InvocationBuilder().differentMethod().toInvocation();
+        assertFalse(invocationMatcher.matches(differentMethodInvocation));
+    }
+
+    // Tests matches when arguments differ
+    @Test
+    public void testMatches_differentArguments_returnsFalse() {
+        Invocation differentArgsInvocation = new InvocationBuilder().args("other1", "other2").toInvocation();
+        assertFalse(invocationMatcher.matches(differentArgsInvocation));
+    }
+
+    // Tests matches when mock differs
     @Test
     public void testMatches_differentMock_returnsFalse() {
-        Invocation actual = mock(Invocation.class);
-        when(actual.getMock()).thenReturn(new Object());
-        when(actual.getMethod()).thenReturn(simpleMethod);
-        when(actual.getArguments()).thenReturn(new Object[]{"test"});
-
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertFalse(matcher.matches(actual));
+        Invocation differentMockInvocation = new InvocationBuilder().mock(new Object()).args("arg1", "arg2").toInvocation();
+        assertFalse(invocationMatcher.matches(differentMockInvocation));
     }
 
-    // Tests hasSameMethod with identical method signature
+    // Tests hasSameMethod with identical method
     @Test
     public void testHasSameMethod_sameMethod_returnsTrue() {
-        Invocation candidate = mock(Invocation.class);
-        when(candidate.getMethod()).thenReturn(simpleMethod);
-
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertTrue(matcher.hasSameMethod(candidate));
-    }
-
-    // Tests hasSameMethod with different parameter types
-    @Test
-    public void testHasSameMethod_differentParamTypes_returnsFalse() {
-        Invocation candidate = mock(Invocation.class);
-        when(candidate.getMethod()).thenReturn(overloadedMethod);
-
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertFalse(matcher.hasSameMethod(candidate));
+        Invocation sameMethodInvocation = new InvocationBuilder().args("other1", "other2").toInvocation();
+        assertTrue(invocationMatcher.hasSameMethod(sameMethodInvocation));
     }
 
     // Tests hasSameMethod with different method name
     @Test
     public void testHasSameMethod_differentMethodName_returnsFalse() {
-        Invocation candidate = mock(Invocation.class);
-        when(candidate.getMethod()).thenReturn(varargMethod);
-
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertFalse(matcher.hasSameMethod(candidate));
+        Invocation differentMethodInvocation = new InvocationBuilder().differentMethod().toInvocation();
+        assertFalse(invocationMatcher.hasSameMethod(differentMethodInvocation));
     }
 
-    // Tests hasSimilarMethod for unverified invocation on same mock
+    // Tests hasSameMethod with different parameter count
     @Test
-    public void testHasSimilarMethod_sameMethodUnverified_returnsTrue() {
-        Invocation candidate = mock(Invocation.class);
-        when(candidate.getMock()).thenReturn(mockObject);
-        when(candidate.getMethod()).thenReturn(simpleMethod);
-        when(candidate.isVerified()).thenReturn(false);
-
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertTrue(matcher.hasSimilarMethod(candidate));
+    public void testHasSameMethod_differentParamCount_returnsFalse() {
+        Invocation oneArgInvocation = new InvocationBuilder().args("onlyOne").toInvocation();
+        assertFalse(invocationMatcher.hasSameMethod(oneArgInvocation));
     }
 
-    // Tests hasSimilarMethod returns false when candidate is already verified
+    // Tests hasSimilarMethod for unverified same mock and method
     @Test
-    public void testHasSimilarMethod_verifiedInvocation_returnsFalse() {
-        Invocation candidate = mock(Invocation.class);
-        when(candidate.getMock()).thenReturn(mockObject);
-        when(candidate.getMethod()).thenReturn(simpleMethod);
-        when(candidate.isVerified()).thenReturn(true);
-
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertFalse(matcher.hasSimilarMethod(candidate));
+    public void testHasSimilarMethod_similarInvocation_returnsTrue() {
+        Invocation candidate = new InvocationBuilder().mock(invocation.getMock()).args("other1", "other2").toInvocation();
+        assertTrue(invocationMatcher.hasSimilarMethod(candidate));
     }
 
-    // Tests hasSimilarMethod returns false when mock instance is different
+    // Tests hasSimilarMethod for overloaded method
+    @Test
+    public void testHasSimilarMethod_overloadedMethod_returnsTrue() {
+        Invocation candidate = new InvocationBuilder().mock(invocation.getMock()).method("simpleMethod").arg("singleArg").toInvocation();
+        assertTrue(invocationMatcher.hasSimilarMethod(candidate));
+    }
+
+    // Tests hasSimilarMethod when method name is different
+    @Test
+    public void testHasSimilarMethod_differentMethodName_returnsFalse() {
+        Invocation candidate = new InvocationBuilder().mock(invocation.getMock()).differentMethod().toInvocation();
+        assertFalse(invocationMatcher.hasSimilarMethod(candidate));
+    }
+
+    // Tests hasSimilarMethod when mock is different
     @Test
     public void testHasSimilarMethod_differentMock_returnsFalse() {
-        Invocation candidate = mock(Invocation.class);
-        when(candidate.getMock()).thenReturn(new Object());
-        when(candidate.getMethod()).thenReturn(simpleMethod);
-        when(candidate.isVerified()).thenReturn(false);
-
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        assertFalse(matcher.hasSimilarMethod(candidate));
+        Invocation candidate = new InvocationBuilder().args("arg1", "arg2").toInvocation();
+        assertFalse(invocationMatcher.hasSimilarMethod(candidate));
     }
 
-    // Tests captureArgumentsFrom for non-vararg method
+    // Tests hasSimilarMethod when candidate is already verified
     @Test
-    public void testCaptureArgumentsFrom_nonVararg_capturesArguments() {
-        CapturingMatcher capturingMatcher = new CapturingMatcher();
-        InvocationMatcher matcher = new InvocationMatcher(invocation, Arrays.<Matcher>asList(capturingMatcher));
-
-        Invocation targetInvocation = mock(Invocation.class);
-        when(targetInvocation.getMethod()).thenReturn(simpleMethod);
-        when(targetInvocation.getArgumentAt(0, Object.class)).thenReturn("capturedValue");
-
-        matcher.captureArgumentsFrom(targetInvocation);
-        assertEquals(1, capturingMatcher.getCaptured().size());
-        assertEquals("capturedValue", capturingMatcher.getCaptured().get(0));
+    public void testHasSimilarMethod_verifiedCandidate_returnsFalse() {
+        Invocation candidate = new InvocationBuilder().mock(invocation.getMock()).args("arg1", "arg2").toInvocation();
+        candidate.markVerified();
+        assertFalse(invocationMatcher.hasSimilarMethod(candidate));
     }
 
-    // Tests captureArgumentsFrom with varargs and multiple matchers
+    // Tests getLocation returns location of invocation
     @Test
-    public void testCaptureArgumentsFrom_varargsWithMultipleArguments_capturesCorrectly() {
-        CapturingMatcher matcher1 = new CapturingMatcher();
-        CapturingMatcher matcher2 = new CapturingMatcher();
-        CapturingMatcher matcher3 = new CapturingMatcher();
-
-        Invocation varargInvocation = mock(Invocation.class);
-        when(varargInvocation.getMethod()).thenReturn(varargMethod);
-        when(varargInvocation.getRawArguments()).thenReturn(new Object[]{"prefix", new Object[]{"val1", "val2"}});
-        when(varargInvocation.getArgumentAt(0, Object.class)).thenReturn("prefix");
-
-        InvocationMatcher invocationMatcher = new InvocationMatcher(
-                varargInvocation,
-                Arrays.<Matcher>asList(matcher1, matcher2, matcher3)
-        );
-
-        Invocation target = mock(Invocation.class);
-        when(target.getMethod()).thenReturn(varargMethod);
-        when(target.getRawArguments()).thenReturn(new Object[]{"prefix", new Object[]{"val1", "val2"}});
-        when(target.getArgumentAt(0, Object.class)).thenReturn("prefix");
-
-        invocationMatcher.captureArgumentsFrom(target);
-
-        assertEquals(1, matcher1.getCaptured().size());
-        assertEquals("prefix", matcher1.getCaptured().get(0));
+    public void testGetLocation_returnsInvocationLocation() {
+        assertEquals(invocation.getLocation(), invocationMatcher.getLocation());
     }
 
-    // Tests createFrom creates a list of InvocationMatchers from invocations
+    // Tests captureArgumentsFrom with non-varargs method
     @Test
-    public void testCreateFrom_listOfInvocations_returnsListOfInvocationMatchers() {
-        Invocation inv1 = mock(Invocation.class);
-        when(inv1.getMethod()).thenReturn(simpleMethod);
-        when(inv1.getArguments()).thenReturn(new Object[]{"a"});
+    public void testCaptureArgumentsFrom_nonVarArgs_capturesArguments() {
+        CapturingMatcher capturingMatcher1 = new CapturingMatcher();
+        CapturingMatcher capturingMatcher2 = new CapturingMatcher();
+        List<Matcher> matchers = Arrays.<Matcher>asList(capturingMatcher1, capturingMatcher2);
 
-        Invocation inv2 = mock(Invocation.class);
-        when(inv2.getMethod()).thenReturn(simpleMethod);
-        when(inv2.getArguments()).thenReturn(new Object[]{"b"});
+        InvocationMatcher matcher = new InvocationMatcher(invocation, matchers);
+        matcher.captureArgumentsFrom(invocation);
 
-        List<InvocationMatcher> result = InvocationMatcher.createFrom(Arrays.asList(inv1, inv2));
+        assertEquals(1, capturingMatcher1.captured.size());
+        assertEquals("arg1", capturingMatcher1.captured.get(0));
+        assertEquals(1, capturingMatcher2.captured.size());
+        assertEquals("arg2", capturingMatcher2.captured.get(0));
+    }
+
+    // Tests captureArgumentsFrom with varargs method
+    @Test
+    public void testCaptureArgumentsFrom_varArgs_capturesArguments() {
+        Invocation varArgsInvocation = new InvocationBuilder().method("varargs").args("a", "b", "c").toInvocation();
+        CapturingMatcher capturingMatcher1 = new CapturingMatcher();
+        CapturingMatcher capturingMatcher2 = new CapturingMatcher();
+        CapturingMatcher capturingMatcher3 = new CapturingMatcher();
+        List<Matcher> matchers = Arrays.<Matcher>asList(capturingMatcher1, capturingMatcher2, capturingMatcher3);
+
+        InvocationMatcher matcher = new InvocationMatcher(varArgsInvocation, matchers);
+        matcher.captureArgumentsFrom(varArgsInvocation);
+
+        assertEquals(1, capturingMatcher1.captured.size());
+        assertEquals(1, capturingMatcher2.captured.size());
+        assertEquals(1, capturingMatcher3.captured.size());
+    }
+
+    // Tests captureArgumentsFrom when matchers list exceeds number of raw arguments
+    @Test
+    public void testCaptureArgumentsFrom_whenMatchersCountExceedsArguments_doesNotThrow() {
+        CapturingMatcher capturingMatcher1 = new CapturingMatcher();
+        CapturingMatcher capturingMatcher2 = new CapturingMatcher();
+        CapturingMatcher capturingMatcher3 = new CapturingMatcher();
+        List<Matcher> matchers = Arrays.<Matcher>asList(capturingMatcher1, capturingMatcher2, capturingMatcher3);
+
+        Invocation oneArgInvocation = new InvocationBuilder().args("onlyOne").toInvocation();
+        InvocationMatcher matcher = new InvocationMatcher(oneArgInvocation, matchers);
+        matcher.captureArgumentsFrom(oneArgInvocation);
+
+        assertEquals(1, capturingMatcher1.captured.size());
+        assertEquals("onlyOne", capturingMatcher1.captured.get(0));
+        assertEquals(0, capturingMatcher2.captured.size());
+        assertEquals(0, capturingMatcher3.captured.size());
+    }
+
+    // Tests captureArgumentsFrom with matcher not implementing CapturesArguments
+    @Test
+    public void testCaptureArgumentsFrom_nonCapturingMatcher_doesNotThrow() {
+        Matcher regularMatcher = new CustomMatcher();
+        List<Matcher> matchers = Arrays.asList(regularMatcher, regularMatcher);
+
+        InvocationMatcher matcher = new InvocationMatcher(invocation, matchers);
+        matcher.captureArgumentsFrom(invocation);
+        assertNotNull(matcher);
+    }
+
+    // Tests createFrom converts list of Invocations to list of InvocationMatchers
+    @Test
+    public void testCreateFrom_invocationsList_returnsInvocationMatchers() {
+        Invocation inv1 = new InvocationBuilder().args("a").toInvocation();
+        Invocation inv2 = new InvocationBuilder().args("b").toInvocation();
+        List<Invocation> invocations = Arrays.asList(inv1, inv2);
+
+        List<InvocationMatcher> result = InvocationMatcher.createFrom(invocations);
+
         assertEquals(2, result.size());
         assertSame(inv1, result.get(0).getInvocation());
         assertSame(inv2, result.get(1).getInvocation());
@@ -258,5 +248,31 @@ public class InvocationMatcherTest {
     public void testCreateFrom_emptyList_returnsEmptyList() {
         List<InvocationMatcher> result = InvocationMatcher.createFrom(Collections.<Invocation>emptyList());
         assertTrue(result.isEmpty());
+    }
+
+    private static class CustomMatcher extends BaseMatcher<Object> {
+        public boolean matches(Object item) {
+            return true;
+        }
+
+        public void describeTo(Description description) {
+            description.appendText("custom");
+        }
+    }
+
+    private static class CapturingMatcher extends BaseMatcher<Object> implements CapturesArguments {
+        final List<Object> captured = new ArrayList<Object>();
+
+        public boolean matches(Object item) {
+            return true;
+        }
+
+        public void describeTo(Description description) {
+            description.appendText("capturing");
+        }
+
+        public void captureFrom(Object argument) {
+            captured.add(argument);
+        }
     }
 }

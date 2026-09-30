@@ -3,9 +3,7 @@ package org.mockito.internal.stubbing.defaultanswers;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.GenericMetadataSupport;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,234 +26,238 @@ public class ReturnsDeepStubsTest {
         returnsDeepStubs = new ReturnsDeepStubs();
     }
 
-    // Tests non-mockable primitive return type returns default value (0)
+    // Tests non-mockable primitive return type returns default primitive value
     @Test
-    public void testAnswer_primitiveIntReturnType_returnsZero() {
-        Person person = mock(Person.class, returnsDeepStubs);
-        assertEquals(0, person.getAge());
+    public void testAnswer_primitiveReturnType_returnsDefaultValue() {
+        SampleService mock = mock(SampleService.class, returnsDeepStubs);
+        int result = mock.getIntValue();
+        assertEquals(0, result);
     }
 
-    // Tests non-mockable primitive boolean return type returns false
+    // Tests non-mockable String/final type returns empty string
     @Test
-    public void testAnswer_primitiveBooleanReturnType_returnsFalse() {
-        Person person = mock(Person.class, returnsDeepStubs);
-        assertFalse(person.isActive());
+    public void testAnswer_finalReturnType_returnsEmptyValue() {
+        SampleService mock = mock(SampleService.class, returnsDeepStubs);
+        String result = mock.getStringValue();
+        assertEquals("", result);
     }
 
-    // Tests non-mockable final String return type returns empty/null default value
+    // Tests basic 1-level deep stub returns a mock object
     @Test
-    public void testAnswer_finalStringReturnType_returnsNull() {
-        Person person = mock(Person.class, returnsDeepStubs);
-        assertNull(person.getName());
+    public void testAnswer_singleLevelDeepStub_returnsMock() {
+        SampleService mock = mock(SampleService.class, returnsDeepStubs);
+        FirstLevel firstLevel = mock.getFirstLevel();
+        assertNotNull(firstLevel);
     }
 
-    // Tests mockable interface return type returns non-null deep stub mock
+    // Tests consecutive invocations return the same deep stubbed mock instance
     @Test
-    public void testAnswer_mockableInterfaceReturnType_returnsDeepMock() {
-        Person person = mock(Person.class, returnsDeepStubs);
-        Address address = person.getAddress();
-        assertNotNull(address);
+    public void testAnswer_consecutiveCalls_returnsSameMockInstance() {
+        SampleService mock = mock(SampleService.class, returnsDeepStubs);
+        FirstLevel first = mock.getFirstLevel();
+        FirstLevel second = mock.getFirstLevel();
+        assertSame(first, second);
     }
 
-    // Tests repeated invocation on same method returns the exact same mock instance
+    // Tests multi-level deep stubbing chain
     @Test
-    public void testAnswer_repeatedInvocation_returnsSameMockInstance() {
-        Person person = mock(Person.class, returnsDeepStubs);
-        Address address1 = person.getAddress();
-        Address address2 = person.getAddress();
-        assertSame(address1, address2);
+    public void testAnswer_multiLevelDeepStub_returnsNestedMock() {
+        SampleService mock = mock(SampleService.class, returnsDeepStubs);
+        SecondLevel secondLevel = mock.getFirstLevel().getSecondLevel();
+        assertNotNull(secondLevel);
     }
 
-    // Tests nested chained invocations create deep stubs across levels
+    // Tests overriding deep stub with explicit when-thenReturn stubbing
     @Test
-    public void testAnswer_nestedChainedInvocations_returnsDeepStubsAcrossLevels() {
-        Person person = mock(Person.class, returnsDeepStubs);
-        City city = person.getAddress().getCity();
-        assertNotNull(city);
-        assertNull(city.getName());
+    public void testAnswer_explicitStubbing_returnsConfiguredValue() {
+        SampleService mock = mock(SampleService.class, returnsDeepStubs);
+        when(mock.getFirstLevel().getSecondLevel().getName()).thenReturn("custom-name");
+
+        assertEquals("custom-name", mock.getFirstLevel().getSecondLevel().getName());
     }
 
-    // Tests manual stubbing overrides default deep stub answer
+    // Tests generic return type resolution for parameterized interfaces
     @Test
-    public void testAnswer_manuallyStubbedInvocation_returnsStubbedValue() {
-        Person person = mock(Person.class, returnsDeepStubs);
-        City customCity = mock(City.class);
-        when(customCity.getName()).thenReturn("Bangkok");
-        when(person.getAddress().getCity()).thenReturn(customCity);
-
-        assertEquals("Bangkok", person.getAddress().getCity().getName());
+    public void testAnswer_genericReturnType_resolvesTypeCorrectly() {
+        GenericContainer<FirstLevel> mock = mock(GenericContainer.class, returnsDeepStubs);
+        FirstLevel item = mock.getItem();
+        assertNotNull(item);
+        SecondLevel second = item.getSecondLevel();
+        assertNotNull(second);
     }
 
-    // Tests deep stubbing with generic interface return type resolves metadata
+    // Tests deep stubbing on generic nested interface with multiple type bounds
     @Test
-    public void testAnswer_genericInterfaceReturnType_resolvesTypeCorrectly() {
-        Container<Person> container = mock(Container.class, returnsDeepStubs);
-        Person person = container.getItem();
-        assertNotNull(person);
-        assertEquals(0, person.getAge());
+    public void testAnswer_multipleGenericBounds_createsMockWithExtraInterfaces() {
+        GenericsNest<?> mock = mock(GenericsNest.class, returnsDeepStubs);
+        assertNotNull(mock.entrySet());
+        assertNotNull(mock.entrySet().iterator());
+        assertNotNull(mock.entrySet().iterator().next());
+        assertNotNull(mock.entrySet().iterator().next().getValue());
     }
 
-    // Tests complex nested generic type returns mockable deep stub
+    // Tests serialization behavior of mock created with ReturnsDeepStubs
     @Test
-    public void testAnswer_complexGenericsNest_returnsDeepMock() {
-        GenericsNest<?> nest = mock(GenericsNest.class, returnsDeepStubs);
-        assertNotNull(nest.entrySet());
-        assertNotNull(nest.entrySet().iterator());
-    }
-
-    // Tests collection return type returns empty collection from delegate
-    @Test
-    public void testAnswer_collectionReturnType_returnsEmptyList() {
-        Person person = mock(Person.class, returnsDeepStubs);
-        List<String> tags = person.getTags();
-        assertNotNull(tags);
-        assertTrue(tags.isEmpty());
-    }
-
-    // Tests actualParameterizedType extracts metadata from mock
-    @Test
-    public void testActualParameterizedType_validMock_returnsGenericMetadataSupport() {
-        Person person = mock(Person.class, returnsDeepStubs);
-        GenericMetadataSupport metadata = returnsDeepStubs.actualParameterizedType(person);
-        assertNotNull(metadata);
-        assertEquals(Person.class, metadata.rawType());
-    }
-
-    // Tests serialization round-trip of serializable mock with deep stubs
-    @Test
-    public void testSerialization_serializableMockWithDeepStubs_deserializesCorrectly() throws Exception {
-        SerializablePerson person = mock(SerializablePerson.class, withSettings().serializable().defaultAnswer(returnsDeepStubs));
-        when(person.getAge()).thenReturn(25);
+    public void testAnswer_serializationOfDeepStubMock_deserializesSuccessfully() throws Exception {
+        SerializableService mock = mock(SerializableService.class, withSettings().serializable().defaultAnswer(returnsDeepStubs));
+        FirstLevel firstLevel = mock.getFirstLevel();
+        assertNotNull(firstLevel);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(person);
+        oos.writeObject(mock);
         oos.close();
 
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        SerializablePerson deserialized = (SerializablePerson) ois.readObject();
-        ois.close();
-
-        assertEquals(25, deserialized.getAge());
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
+        SerializableService deserialized = (SerializableService) ois.readObject();
+        assertNotNull(deserialized);
     }
 
-    // Tests deep stubbing on class without serializable interface when parent is not serializable
+    // Tests deep stubbing when returned class has no default no-arg constructor (Defects4J Bug 10 regression)
     @Test
-    public void testAnswer_nonSerializableClassReturn_returnsDeepStub() {
-        ServiceWithNonSerializableClass service = mock(ServiceWithNonSerializableClass.class, returnsDeepStubs);
-        NonSerializableItem item = service.getItem();
-        assertNotNull(item);
+    public void testAnswer_classWithoutNoArgConstructor_createsDeepStubSuccessfully() {
+        ContainerOfNonSerializable mock = mock(ContainerOfNonSerializable.class, returnsDeepStubs);
+        ClassWithoutNoArgConstructor deepStub = mock.getCustomClass();
+        assertNotNull(deepStub);
     }
 
-    // Tests deep stubbing propagation of serializable setting to child mocks
+    // Tests direct answer invocation on custom mock
     @Test
-    public void testSerialization_chainedDeepStubsSerializationRoundTrip() throws Exception {
-        SerializablePerson person = mock(SerializablePerson.class, withSettings().serializable().defaultAnswer(returnsDeepStubs));
-        Address address = person.getAddress();
-        assertNotNull(address);
+    public void testAnswer_directInvocationOnMock_returnsExpectedAnswer() throws Throwable {
+        SampleService mock = mock(SampleService.class, returnsDeepStubs);
+        InvocationOnMock invocation = createInvocation(mock, "getFirstLevel");
+        Object result = returnsDeepStubs.answer(invocation);
+        assertNotNull(result);
+        assertTrue(result instanceof FirstLevel);
+    }
 
+    // Tests serialization of ReturnsDeepStubs answer itself
+    @Test
+    public void testAnswer_serializationOfReturnsDeepStubsInstance() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(person);
+        oos.writeObject(returnsDeepStubs);
         oos.close();
 
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        SerializablePerson deserializedPerson = (SerializablePerson) ois.readObject();
-        ois.close();
-
-        assertNotNull(deserializedPerson.getAddress());
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
+        Object deserialized = ois.readObject();
+        assertNotNull(deserialized);
+        assertTrue(deserialized instanceof ReturnsDeepStubs);
     }
 
-    // Tests deep stubbing when serializable mock returns non-serializable class
+    // Tests different arguments yield different deep-stubbed instances
     @Test
-    public void testSerialization_serializableMockReturningNonSerializableType() {
-        SerializableServiceWithNonSerializableReturn service = mock(
-                SerializableServiceWithNonSerializableReturn.class,
-                withSettings().serializable().defaultAnswer(returnsDeepStubs)
-        );
-        NonSerializableItem item = service.getItem();
-        assertNotNull(item);
+    public void testAnswer_differentArguments_yieldDifferentInstances() {
+        SampleServiceWithArgs mock = mock(SampleServiceWithArgs.class, returnsDeepStubs);
+        FirstLevel first = mock.getFirstLevelWithArg("arg1");
+        FirstLevel second = mock.getFirstLevelWithArg("arg2");
+        assertNotNull(first);
+        assertNotNull(second);
+        assertNotSame(first, second);
+
+        FirstLevel firstAgain = mock.getFirstLevelWithArg("arg1");
+        assertSame(first, firstAgain);
     }
 
-    // Tests deep stubbing with generic method type parameter
+    // Tests Mockito.RETURNS_DEEP_STUBS constant usage
     @Test
-    public void testAnswer_genericMethodTypeParameter_returnsDeepMock() {
-        GenericMethodContainer container = mock(GenericMethodContainer.class, returnsDeepStubs);
-        Address address = container.find(Address.class);
-        assertNotNull(address);
-        assertNotNull(address.getCity());
+    public void testAnswer_usingMockitoConstant() {
+        SampleService mock = mock(SampleService.class, Mockito.RETURNS_DEEP_STUBS);
+        assertNotNull(mock.getFirstLevel().getSecondLevel());
     }
 
-    // Tests deep stubbing with custom delegate answer
+    // Tests deep stubbing on generic method returning generic list
     @Test
-    public void testAnswer_withCustomDelegateAnswer_delegatesProperlyForNonMockable() {
-        Answer<Object> customDelegate = new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) {
-                if (invocation.getMethod().getReturnType().equals(String.class)) {
-                    return "custom-default";
-                }
-                return new ReturnsEmptyValues().answer(invocation);
+    public void testAnswer_genericListReturnType_returnsEmptyListByDefault() {
+        GenericContainer<FirstLevel> mock = mock(GenericContainer.class, returnsDeepStubs);
+        List<FirstLevel> list = mock.getList();
+        assertNotNull(list);
+        assertTrue(list.isEmpty());
+    }
+
+    // Tests deep stubbing with an abstract class return type
+    @Test
+    public void testAnswer_abstractClassReturnType_returnsMock() {
+        AbstractClassContainer mock = mock(AbstractClassContainer.class, returnsDeepStubs);
+        AbstractService result = mock.getAbstractService();
+        assertNotNull(result);
+        assertNotNull(result.getFirstLevel());
+    }
+
+    private InvocationOnMock createInvocation(final Object mock, String methodName) throws NoSuchMethodException {
+        final java.lang.reflect.Method method = mock.getClass().getMethod(methodName);
+        return new InvocationOnMock() {
+            public Object getMock() {
+                return mock;
+            }
+
+            public java.lang.reflect.Method getMethod() {
+                return method;
+            }
+
+            public Object[] getArguments() {
+                return new Object[0];
+            }
+
+            public Object callRealMethod() throws Throwable {
+                return null;
             }
         };
-
-        ReturnsDeepStubs customDeepStubs = new ReturnsDeepStubs(customDelegate);
-        Person person = mock(Person.class, customDeepStubs);
-
-        assertEquals("custom-default", person.getName());
-        assertNotNull(person.getAddress());
     }
 
-    // Helper Interfaces and Classes
-    interface Person {
-        Address getAddress();
-        int getAge();
-        String getName();
-        boolean isActive();
-        List<String> getTags();
+    // Domain test interfaces and classes
+    interface SampleService {
+        FirstLevel getFirstLevel();
+        String getStringValue();
+        int getIntValue();
     }
 
-    interface SerializablePerson extends Serializable {
-        Address getAddress();
-        int getAge();
+    interface SampleServiceWithArgs {
+        FirstLevel getFirstLevelWithArg(String arg);
     }
 
-    interface Address {
-        City getCity();
-        String getStreet();
-    }
-
-    interface City {
+    interface FirstLevel {
+        SecondLevel getSecondLevel();
         String getName();
     }
 
-    interface Container<T> {
+    interface SecondLevel {
+        String getName();
+    }
+
+    interface SerializableService extends Serializable {
+        FirstLevel getFirstLevel();
+    }
+
+    interface GenericContainer<T> {
         T getItem();
+        List<T> getList();
     }
 
-    interface GenericMethodContainer {
-        <T> T find(Class<T> type);
+    interface GenericsNest<K extends Comparable<K> & Cloneable> extends Map<K, Set<Number>> {
     }
 
-    interface SerializableServiceWithNonSerializableReturn extends Serializable {
-        NonSerializableItem getItem();
-    }
-
-    interface GenericsNest<K extends Comparable<K> & Cloneable> extends Map<K, Set<Number>> {}
-
-    static class NonSerializableItem {
+    static class ClassWithoutNoArgConstructor {
         private final String value;
-        public NonSerializableItem(String value) {
+
+        public ClassWithoutNoArgConstructor(String value) {
             this.value = value;
         }
+
         public String getValue() {
             return value;
         }
     }
 
-    interface ServiceWithNonSerializableClass {
-        NonSerializableItem getItem();
+    interface ContainerOfNonSerializable {
+        ClassWithoutNoArgConstructor getCustomClass();
+    }
+
+    static abstract class AbstractService {
+        public abstract FirstLevel getFirstLevel();
+    }
+
+    interface AbstractClassContainer {
+        AbstractService getAbstractService();
     }
 }

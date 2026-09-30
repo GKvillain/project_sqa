@@ -1,274 +1,356 @@
 package com.google.javascript.jscomp;
 
 import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
-import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class MakeDeclaredNamesUniqueTest {
 
-  private Compiler compiler;
-
-  @Before
-  public void setUp() {
-    compiler = new Compiler();
-  }
-
-  // Tests ContextualRenamer in global scope reserving names
+  // Tests ContextualRenamer global declaration does not rename first occurrence
   @Test
-  public void testContextualRenamer_globalScope_reservesName() {
-    MakeDeclaredNamesUnique.ContextualRenamer renamer =
-        new MakeDeclaredNamesUnique.ContextualRenamer();
-    renamer.addDeclaredName("foo");
-    assertNull(renamer.getReplacementName("foo"));
+  public void testContextualRenamer_globalDeclaration_returnsNullReplacement() {
+    MakeDeclaredNamesUnique.Renamer renamer = new MakeDeclaredNamesUnique.ContextualRenamer();
+    renamer.addDeclaredName("x");
+    assertNull(renamer.getReplacementName("x"));
     assertFalse(renamer.stripConstIfReplaced());
   }
 
-  // Tests ContextualRenamer in child scopes generating unique names upon conflict
+  // Tests ContextualRenamer child scope renaming collision
   @Test
-  public void testContextualRenamer_childScope_generatesUniqueNames() {
-    MakeDeclaredNamesUnique.ContextualRenamer rootRenamer =
-        new MakeDeclaredNamesUnique.ContextualRenamer();
-    rootRenamer.addDeclaredName("x");
+  public void testContextualRenamer_childScopeDuplicateName_generatesUniqueName() {
+    MakeDeclaredNamesUnique.Renamer global = new MakeDeclaredNamesUnique.ContextualRenamer();
+    global.addDeclaredName("a");
 
-    MakeDeclaredNamesUnique.Renamer childRenamer1 = rootRenamer.forChildScope();
-    childRenamer1.addDeclaredName("x");
-    assertEquals("x$$1", childRenamer1.getReplacementName("x"));
+    MakeDeclaredNamesUnique.Renamer child1 = global.forChildScope();
+    child1.addDeclaredName("a");
+    assertEquals("a$$1", child1.getReplacementName("a"));
 
-    MakeDeclaredNamesUnique.Renamer childRenamer2 = rootRenamer.forChildScope();
-    childRenamer2.addDeclaredName("x");
-    assertEquals("x$$2", childRenamer2.getReplacementName("x"));
-
-    // Name that does not conflict in first occurrence in child scope
-    childRenamer1.addDeclaredName("y");
-    assertNull(childRenamer1.getReplacementName("y"));
+    MakeDeclaredNamesUnique.Renamer child2 = global.forChildScope();
+    child2.addDeclaredName("a");
+    assertEquals("a$$2", child2.getReplacementName("a"));
   }
 
-  // Tests InlineRenamer with valid prefix and unique supplier
+  // Tests ContextualRenamer child scope with unseen variable name does not rename
   @Test
-  public void testInlineRenamer_validInput_replacesName() {
-    Supplier<String> idSupplier = Suppliers.ofInstance("123");
+  public void testContextualRenamer_childScopeFirstEncounter_returnsNullReplacement() {
+    MakeDeclaredNamesUnique.Renamer global = new MakeDeclaredNamesUnique.ContextualRenamer();
+    MakeDeclaredNamesUnique.Renamer child = global.forChildScope();
+    child.addDeclaredName("uniqueVar");
+    assertNull(child.getReplacementName("uniqueVar"));
+  }
+
+  // Tests ContextualRenamer multiple additions in same scope only record once
+  @Test
+  public void testContextualRenamer_sameScopeDuplicateAddition_retainsSameName() {
+    MakeDeclaredNamesUnique.Renamer global = new MakeDeclaredNamesUnique.ContextualRenamer();
+    global.addDeclaredName("foo");
+
+    MakeDeclaredNamesUnique.Renamer child = global.forChildScope();
+    child.addDeclaredName("foo");
+    child.addDeclaredName("foo");
+    assertEquals("foo$$1", child.getReplacementName("foo"));
+  }
+
+  // Tests InlineRenamer basic renaming
+  @Test
+  public void testInlineRenamer_basicName_appendsPrefixAndSupplierId() {
+    Supplier<String> idSupplier = new Supplier<String>() {
+      private int count = 0;
+      @Override
+      public String get() {
+        return String.valueOf(count++);
+      }
+    };
+
     MakeDeclaredNamesUnique.InlineRenamer renamer =
         new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "inline_", true);
 
+    renamer.addDeclaredName("varName");
+    assertEquals("varName$$inline_0", renamer.getReplacementName("varName"));
     assertTrue(renamer.stripConstIfReplaced());
-    renamer.addDeclaredName("foo");
-    assertEquals("foo$$inline_123", renamer.getReplacementName("foo"));
   }
 
-  // Tests InlineRenamer with empty name
+  // Tests InlineRenamer with empty name string
   @Test
-  public void testInlineRenamer_emptyName_returnsEmpty() {
-    Supplier<String> idSupplier = Suppliers.ofInstance("1");
+  public void testInlineRenamer_emptyName_returnsEmptyString() {
+    Supplier<String> idSupplier = new Supplier<String>() {
+      @Override
+      public String get() {
+        return "1";
+      }
+    };
+
     MakeDeclaredNamesUnique.InlineRenamer renamer =
-        new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "prefix_", false);
+        new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "pre_", false);
 
     renamer.addDeclaredName("");
     assertEquals("", renamer.getReplacementName(""));
-    assertNull(renamer.getReplacementName("unknown"));
+    assertFalse(renamer.stripConstIfReplaced());
   }
 
-  // Tests InlineRenamer with name already containing separator
+  // Tests InlineRenamer stripping existing unique separator before appending
   @Test
-  public void testInlineRenamer_nameWithSeparator_stripsPreviousSuffix() {
-    Supplier<String> idSupplier = Suppliers.ofInstance("99");
-    MakeDeclaredNamesUnique.InlineRenamer renamer =
-        new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "js_", false);
+  public void testInlineRenamer_nameWithExistingSeparator_stripsOldSeparator() {
+    Supplier<String> idSupplier = new Supplier<String>() {
+      @Override
+      public String get() {
+        return "99";
+      }
+    };
 
-    renamer.addDeclaredName("bar$$oldSuffix");
-    assertEquals("bar$$js_99", renamer.getReplacementName("bar$$oldSuffix"));
+    MakeDeclaredNamesUnique.InlineRenamer renamer =
+        new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "injected_", false);
+
+    renamer.addDeclaredName("origVar$$oldSuffix");
+    assertEquals("origVar$$injected_99", renamer.getReplacementName("origVar$$oldSuffix"));
   }
 
-  // Tests InlineRenamer constructor throws exception with empty prefix
+  // Tests InlineRenamer child scope creation
+  @Test
+  public void testInlineRenamer_forChildScope_sharesSupplier() {
+    Supplier<String> idSupplier = new Supplier<String>() {
+      private int count = 0;
+      @Override
+      public String get() {
+        return String.valueOf(count++);
+      }
+    };
+
+    MakeDeclaredNamesUnique.InlineRenamer parent =
+        new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "p_", true);
+    MakeDeclaredNamesUnique.Renamer child = parent.forChildScope();
+
+    parent.addDeclaredName("x");
+    child.addDeclaredName("y");
+
+    assertEquals("x$$p_0", parent.getReplacementName("x"));
+    assertEquals("y$$p_1", child.getReplacementName("y"));
+  }
+
+  // Tests InlineRenamer constructor with empty prefix throws exception
   @Test(expected = IllegalArgumentException.class)
   public void testInlineRenamer_emptyPrefix_throwsException() {
-    Supplier<String> idSupplier = Suppliers.ofInstance("1");
+    Supplier<String> idSupplier = new Supplier<String>() {
+      @Override
+      public String get() {
+        return "0";
+      }
+    };
     new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "", false);
   }
 
-  // Tests InlineRenamer forChildScope creates child with same properties
+  // Tests ContextualRenameInverter getOrginalName with separator
   @Test
-  public void testInlineRenamer_forChildScope_createsIndependentChild() {
-    Supplier<String> idSupplier = Suppliers.ofInstance("42");
-    MakeDeclaredNamesUnique.InlineRenamer parent =
-        new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "in_", true);
-    MakeDeclaredNamesUnique.Renamer child = parent.forChildScope();
-
-    assertTrue(child.stripConstIfReplaced());
-    child.addDeclaredName("a");
-    assertEquals("a$$in_42", child.getReplacementName("a"));
-    assertNull(parent.getReplacementName("a"));
+  public void testContextualRenameInverter_getOrginalName_withSeparator_returnsPrefix() {
+    String original = MakeDeclaredNamesUnique.ContextualRenameInverter.getOrginalName("myVar$$12");
+    assertEquals("myVar", original);
   }
 
-  // Tests ContextualRenameInverter getOrginalName with and without separator
+  // Tests ContextualRenameInverter getOrginalName without separator
   @Test
-  public void testContextualRenameInverter_getOriginalName() {
-    assertEquals("foo", MakeDeclaredNamesUnique.ContextualRenameInverter.getOrginalName("foo"));
-    assertEquals("foo", MakeDeclaredNamesUnique.ContextualRenameInverter.getOriginalName("foo$$1"));
-    assertEquals("foo$$1", MakeDeclaredNamesUnique.ContextualRenameInverter.getOrginalName("foo$$1$$2"));
+  public void testContextualRenameInverter_getOrginalName_withoutSeparator_returnsSameName() {
+    String original = MakeDeclaredNamesUnique.ContextualRenameInverter.getOrginalName("myVar");
+    assertEquals("myVar", original);
   }
 
-  // Tests full traversal renaming nested function parameters and local vars
+  // Tests MakeDeclaredNamesUnique instantiation with custom renamer
   @Test
-  public void testTraverse_nestedFunctionsAndVars_renamesDuplicates() {
-    String js = "var a = 1; function f(a) { var a = 2; function g(a) { var a = 3; } }";
-    Node root = compiler.parseTestCode(js);
-    NodeTraversal.traverse(compiler, root, new MakeDeclaredNamesUnique());
-
-    String result = compiler.toSource(root);
-    assertNotNull(result);
-    assertTrue(result.contains("a$$1") || result.contains("a$$2"));
-  }
-
-  // Tests full traversal renaming catch block exception variable
-  @Test
-  public void testTraverse_catchBlock_renamesCatchVar() {
-    String js = "var e = 1; try {} catch (e) { var e = 2; }";
-    Node root = compiler.parseTestCode(js);
-    NodeTraversal.traverse(compiler, root, new MakeDeclaredNamesUnique());
-
-    String result = compiler.toSource(root);
-    assertNotNull(result);
-    assertTrue(result.contains("e$$1") || result.contains("e$$2"));
-  }
-
-  // Tests ContextualRenameInverter inverting renamed vars
-  @Test
-  public void testContextualRenameInverter_process_revertsUniqueNames() {
-    String js = "function f() { var x = 1; { var x$$1 = 2; } }";
-    Node root = compiler.parseTestCode(js);
-    CompilerPass inverter = MakeDeclaredNamesUnique.getContextualRenameInverter(compiler);
-    inverter.process(null, root);
-
-    String result = compiler.toSource(root);
-    assertNotNull(result);
-  }
-
-  // Tests MakeDeclaredNamesUnique with custom InlineRenamer
-  @Test
-  public void testTraverse_withInlineRenamer_renamesAllDeclarations() {
-    Supplier<String> idSupplier = Suppliers.ofInstance("unique");
-    MakeDeclaredNamesUnique.InlineRenamer renamer =
-        new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "inline_", true);
+  public void testMakeDeclaredNamesUnique_customRenamerConstructor() {
+    MakeDeclaredNamesUnique.Renamer renamer = new MakeDeclaredNamesUnique.ContextualRenamer();
     MakeDeclaredNamesUnique pass = new MakeDeclaredNamesUnique(renamer);
-
-    String js = "var a = 1; function f(b) { var c = 2; }";
-    Node root = compiler.parseTestCode(js);
-    NodeTraversal.traverse(compiler, root, pass);
-
-    String result = compiler.toSource(root);
-    assertTrue(result.contains("a$$inline_unique"));
-    assertTrue(result.contains("b$$inline_unique"));
-    assertTrue(result.contains("c$$inline_unique"));
+    assertNotNull(pass);
   }
 
-  // Tests named function expression recursive name handling
+  // Tests MakeDeclaredNamesUnique traversing a simple script node
   @Test
-  public void testTraverse_namedFunctionExpression_handlesRecursiveName() {
-    String js = "var x = function foo() { foo(); };";
-    Node root = compiler.parseTestCode(js);
-    NodeTraversal.traverse(compiler, root, new MakeDeclaredNamesUnique());
+  public void testMakeDeclaredNamesUnique_traverseScript_renamesLocalVars() {
+    Compiler compiler = new Compiler();
+    Node script = new Node(Token.SCRIPT);
 
-    String result = compiler.toSource(root);
-    assertNotNull(result);
+    Node var1 = Node.newString(Token.VAR, "");
+    Node name1 = Node.newString(Token.NAME, "x");
+    var1.addChildToBack(name1);
+
+    Node fn = new Node(Token.FUNCTION);
+    Node fnName = Node.newString(Token.NAME, "foo");
+    Node fnParams = new Node(Token.LP);
+    Node fnParam = Node.newString(Token.NAME, "x");
+    fnParams.addChildToBack(fnParam);
+    Node fnBody = new Node(Token.BLOCK);
+
+    fn.addChildToBack(fnName);
+    fn.addChildToBack(fnParams);
+    fn.addChildToBack(fnBody);
+
+    script.addChildToBack(var1);
+    script.addChildToBack(fn);
+
+    MakeDeclaredNamesUnique callback = new MakeDeclaredNamesUnique();
+    NodeTraversal.traverse(compiler, script, callback);
+
+    assertEquals("x", name1.getString());
+    assertEquals("x$$1", fnParam.getString());
   }
 
-  // Tests ContextualRenamer with repeated declarations in the same child scope
+  // Tests ContextualRenameInverter compiler pass getter
   @Test
-  public void testContextualRenamer_multipleDeclarationsInSameChildScope() {
-    MakeDeclaredNamesUnique.ContextualRenamer root =
-        new MakeDeclaredNamesUnique.ContextualRenamer();
-    root.addDeclaredName("v");
-
-    MakeDeclaredNamesUnique.Renamer child = root.forChildScope();
-    child.addDeclaredName("v");
-    String firstReplacement = child.getReplacementName("v");
-    assertEquals("v$$1", firstReplacement);
-
-    // Adding same variable declaration again in the same child scope shouldn't change replacement
-    child.addDeclaredName("v");
-    assertEquals(firstReplacement, child.getReplacementName("v"));
+  public void testGetContextualRenameInverter_returnsCompilerPass() {
+    Compiler compiler = new Compiler();
+    CompilerPass pass = MakeDeclaredNamesUnique.getContextualRenameInverter(compiler);
+    assertNotNull(pass);
   }
 
-  // Tests ContextualRenamer deep hierarchy (grandchild scopes)
+  // Tests catch block variable renaming
   @Test
-  public void testContextualRenamer_grandchildScope_generatesIncrementedNames() {
-    MakeDeclaredNamesUnique.ContextualRenamer root =
-        new MakeDeclaredNamesUnique.ContextualRenamer();
-    root.addDeclaredName("k");
+  public void testMakeDeclaredNamesUnique_catchBlock_renamesCatchVar() {
+    Compiler compiler = new Compiler();
+    Node script = new Node(Token.SCRIPT);
 
-    MakeDeclaredNamesUnique.Renamer child = root.forChildScope();
-    child.addDeclaredName("k");
-    assertEquals("k$$1", child.getReplacementName("k"));
+    Node var1 = Node.newString(Token.VAR, "");
+    Node outerE = Node.newString(Token.NAME, "e");
+    var1.addChildToBack(outerE);
 
-    MakeDeclaredNamesUnique.Renamer grandchild = child.forChildScope();
-    grandchild.addDeclaredName("k");
-    assertEquals("k$$2", grandchild.getReplacementName("k"));
+    Node tryNode = new Node(Token.TRY);
+    Node tryBlock = new Node(Token.BLOCK);
+    Node catchNode = new Node(Token.CATCH);
+    Node catchVar = Node.newString(Token.NAME, "e");
+    Node catchBlock = new Node(Token.BLOCK);
+    Node refE = Node.newString(Token.NAME, "e");
+    Node exprResult = new Node(Token.EXPR_RESULT, refE);
+    catchBlock.addChildToBack(exprResult);
+
+    catchNode.addChildToBack(catchVar);
+    catchNode.addChildToBack(catchBlock);
+    tryNode.addChildToBack(tryBlock);
+    tryNode.addChildToBack(catchNode);
+
+    script.addChildToBack(var1);
+    script.addChildToBack(tryNode);
+
+    MakeDeclaredNamesUnique callback = new MakeDeclaredNamesUnique();
+    NodeTraversal.traverse(compiler, script, callback);
+
+    assertEquals("e", outerE.getString());
+    assertEquals("e$$1", catchVar.getString());
+    assertEquals("e$$1", refE.getString());
   }
 
-  // Tests ContextualRenameInverter when reverting is blocked by a name collision in scope
+  // Tests InlineRenamer with NodeTraversal and constant property stripping
   @Test
-  public void testContextualRenameInverter_collisionPreventsReverting() {
-    String js = "function f() { var x = 1; function g() { var x$$1 = 2; alert(x); } }";
-    Node root = compiler.parseTestCode(js);
+  public void testMakeDeclaredNamesUnique_inlineRenamer_stripsConstantProp() {
+    Compiler compiler = new Compiler();
+    Node script = new Node(Token.SCRIPT);
+
+    Node varNode = Node.newString(Token.VAR, "");
+    Node constVar = Node.newString(Token.NAME, "CONST_VAL");
+    constVar.putBooleanProp(Node.IS_CONSTANT_NAME, true);
+    varNode.addChildToBack(constVar);
+    script.addChildToBack(varNode);
+
+    Supplier<String> idSupplier = new Supplier<String>() {
+      @Override
+      public String get() {
+        return "0";
+      }
+    };
+    MakeDeclaredNamesUnique.InlineRenamer renamer =
+        new MakeDeclaredNamesUnique.InlineRenamer(idSupplier, "inlined_", true);
+
+    MakeDeclaredNamesUnique callback = new MakeDeclaredNamesUnique(renamer);
+    NodeTraversal.traverse(compiler, script, callback);
+
+    assertEquals("CONST_VAL$$inlined_0", constVar.getString());
+    assertFalse(constVar.getBooleanProp(Node.IS_CONSTANT_NAME));
+  }
+
+  // Tests ContextualRenameInverter processing AST to invert renamed variables
+  @Test
+  public void testContextualRenameInverter_process_invertsUniqueNames() {
+    Compiler compiler = new Compiler();
+    Node script = new Node(Token.SCRIPT);
+
+    Node fn = new Node(Token.FUNCTION);
+    Node fnName = Node.newString(Token.NAME, "foo");
+    Node fnParams = new Node(Token.LP);
+    Node fnParam = Node.newString(Token.NAME, "x$$1");
+    fnParams.addChildToBack(fnParam);
+    Node fnBody = new Node(Token.BLOCK);
+    Node refParam = Node.newString(Token.NAME, "x$$1");
+    fnBody.addChildToBack(new Node(Token.EXPR_RESULT, refParam));
+
+    fn.addChildToBack(fnName);
+    fn.addChildToBack(fnParams);
+    fn.addChildToBack(fnBody);
+    script.addChildToBack(fn);
+
     CompilerPass inverter = MakeDeclaredNamesUnique.getContextualRenameInverter(compiler);
-    inverter.process(null, root);
+    inverter.process(null, script);
 
-    String result = compiler.toSource(root);
-    assertTrue(result.contains("x$$1"));
+    assertEquals("x", fnParam.getString());
+    assertEquals("x", refParam.getString());
   }
 
-  // Tests traversal preserves object property names matching renamed variable names
+  // Tests ContextualRenameInverter does not invert when outer scope conflict exists
   @Test
-  public void testTraverse_objectProperties_notRenamed() {
-    String js = "var a = 1; function f(a) { var obj = {a: a}; return obj.a; }";
-    Node root = compiler.parseTestCode(js);
-    NodeTraversal.traverse(compiler, root, new MakeDeclaredNamesUnique());
+  public void testContextualRenameInverter_process_doesNotInvertOnConflict() {
+    Compiler compiler = new Compiler();
+    Node script = new Node(Token.SCRIPT);
 
-    String result = compiler.toSource(root);
-    assertTrue(result.contains("{a: a$$1}") || result.contains("{a: a$$2}") || result.contains(".a"));
+    Node outerVar = Node.newString(Token.VAR, "");
+    Node outerX = Node.newString(Token.NAME, "x");
+    outerVar.addChildToBack(outerX);
+
+    Node fn = new Node(Token.FUNCTION);
+    Node fnName = Node.newString(Token.NAME, "foo");
+    Node fnParams = new Node(Token.LP);
+    Node fnParam = Node.newString(Token.NAME, "x$$1");
+    fnParams.addChildToBack(fnParam);
+    Node fnBody = new Node(Token.BLOCK);
+
+    fn.addChildToBack(fnName);
+    fn.addChildToBack(fnParams);
+    fn.addChildToBack(fnBody);
+
+    script.addChildToBack(outerVar);
+    script.addChildToBack(fn);
+
+    CompilerPass inverter = MakeDeclaredNamesUnique.getContextualRenameInverter(compiler);
+    inverter.process(null, script);
+
+    assertEquals("x", outerX.getString());
+    assertEquals("x$$1", fnParam.getString());
   }
 
-  // Tests traversal with multiple duplicate var statements in the same scope
+  // Tests named function expressions traversal
   @Test
-  public void testTraverse_duplicateVarInSameScope() {
-    String js = "function f() { var a = 1; var a = 2; return a; }";
-    Node root = compiler.parseTestCode(js);
-    NodeTraversal.traverse(compiler, root, new MakeDeclaredNamesUnique());
+  public void testMakeDeclaredNamesUnique_functionExpression_renamesNameNode() {
+    Compiler compiler = new Compiler();
+    Node script = new Node(Token.SCRIPT);
 
-    String result = compiler.toSource(root);
-    assertNotNull(result);
-    assertFalse(result.contains("a$$"));
-  }
+    Node outerFn = Node.newString(Token.NAME, "rec");
+    Node outerVar = Node.newString(Token.VAR, "");
+    outerVar.addChildToBack(outerFn);
 
-  // Tests traversal with arguments parameter handling
-  @Test
-  public void testTraverse_argumentsParameter() {
-    String js = "function f(arguments) { return arguments; }";
-    Node root = compiler.parseTestCode(js);
-    NodeTraversal.traverse(compiler, root, new MakeDeclaredNamesUnique());
+    Node exprResult = new Node(Token.EXPR_RESULT);
+    Node fnExpr = new Node(Token.FUNCTION);
+    Node fnExprName = Node.newString(Token.NAME, "rec");
+    Node fnExprParams = new Node(Token.LP);
+    Node fnExprBody = new Node(Token.BLOCK);
+    fnExpr.addChildToBack(fnExprName);
+    fnExpr.addChildToBack(fnExprParams);
+    fnExpr.addChildToBack(fnExprBody);
+    exprResult.addChildToBack(fnExpr);
 
-    String result = compiler.toSource(root);
-    assertNotNull(result);
-  }
+    script.addChildToBack(outerVar);
+    script.addChildToBack(exprResult);
 
-  // Tests traversal with nested catch blocks sharing catch variable name
-  @Test
-  public void testTraverse_nestedCatchBlocks() {
-    String js = "try {} catch(e) { try {} catch(e) { var x = e; } }";
-    Node root = compiler.parseTestCode(js);
-    NodeTraversal.traverse(compiler, root, new MakeDeclaredNamesUnique());
+    MakeDeclaredNamesUnique callback = new MakeDeclaredNamesUnique();
+    NodeTraversal.traverse(compiler, script, callback);
 
-    String result = compiler.toSource(root);
-    assertNotNull(result);
-    assertTrue(result.contains("e$$1") || result.contains("e$$2"));
+    assertEquals("rec", outerFn.getString());
+    assertEquals("rec$$1", fnExprName.getString());
   }
 }

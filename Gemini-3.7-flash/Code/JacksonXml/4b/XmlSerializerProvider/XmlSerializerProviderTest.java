@@ -3,10 +3,7 @@ package com.fasterxml.jackson.dataformat.xml.ser;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-
 import javax.xml.namespace.QName;
 
 import org.junit.Before;
@@ -22,231 +19,215 @@ import com.fasterxml.jackson.databind.PropertyName;
 import com.fasterxml.jackson.databind.SerializationConfig;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
-import com.fasterxml.jackson.databind.ser.SerializerFactory;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.databind.util.TokenBuffer;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import com.fasterxml.jackson.dataformat.xml.util.XmlRootNameLookup;
 
 public class XmlSerializerProviderTest {
 
-    private XmlMapper _xmlMapper;
-    private XmlRootNameLookup _rootNames;
-    private XmlSerializerProvider _provider;
+    private XmlMapper xmlMapper;
+    private XmlSerializerProvider provider;
 
     public static class SimpleBean {
-        public String name = "test";
-        public int value = 42;
-    }
-
-    @JacksonXmlRootElement(localName = "customRoot", namespace = "http://example.com/ns")
-    public static class NsBean {
-        public String field = "val";
+        public int x = 1;
+        public String y = "test";
     }
 
     public static class FailingBean {
-        public String getThrows() {
-            throw new RuntimeException("runtime-error-in-getter");
+        public String getValue() {
+            throw new RuntimeException("Simulated failure");
         }
     }
 
     @Before
     public void setUp() {
-        _xmlMapper = new XmlMapper();
-        _rootNames = new XmlRootNameLookup();
-        _provider = new XmlSerializerProvider(_rootNames);
+        xmlMapper = new XmlMapper();
+        provider = new XmlSerializerProvider(new XmlRootNameLookup());
     }
 
-    // Tests constructor and createInstance functionality
+    // Tests constructor and createInstance copy behavior
     @Test
-    public void testCreateInstance_withConfigAndFactory_returnsConfiguredInstance() {
-        SerializationConfig config = _xmlMapper.getSerializationConfig();
-        SerializerFactory factory = _xmlMapper.getSerializerFactory();
-
-        DefaultSerializerProvider instance = _provider.createInstance(config, factory);
-
+    public void testCreateInstance_validConfig_returnsNewInstance() {
+        SerializationConfig config = xmlMapper.getSerializationConfig();
+        DefaultSerializerProvider instance = provider.createInstance(config, xmlMapper.getSerializerFactory());
         assertNotNull(instance);
         assertTrue(instance instanceof XmlSerializerProvider);
-        XmlSerializerProvider xmlInstance = (XmlSerializerProvider) instance;
-        assertSame(_rootNames, xmlInstance._rootNameLookup);
     }
 
-    // Tests serializing null value output
+    // Tests serialization of null value using ToXmlGenerator
     @Test
-    public void testSerializeValue_nullValue_serializesNullTag() throws Exception {
-        String xml = _xmlMapper.writeValueAsString(null);
+    public void testSerializeValue_nullValue_serializesXmlNull() throws IOException {
+        String xml = xmlMapper.writeValueAsString(null);
         assertNotNull(xml);
         assertTrue(xml.contains("<null") || xml.contains("<null/>"));
     }
 
-    // Tests serializing a normal POJO using serializeValue(gen, value)
+    // Tests serialization of simple Object
     @Test
-    public void testSerializeValue_simpleBean_serializesCorrectXml() throws Exception {
+    public void testSerializeValue_simpleBean_serializesCorrectly() throws IOException {
         SimpleBean bean = new SimpleBean();
-        String xml = _xmlMapper.writeValueAsString(bean);
-
+        String xml = xmlMapper.writeValueAsString(bean);
         assertNotNull(xml);
         assertTrue(xml.contains("<SimpleBean>"));
-        assertTrue(xml.contains("<name>test</name>"));
-        assertTrue(xml.contains("<value>42</value>"));
-        assertTrue(xml.contains("</SimpleBean>"));
+        assertTrue(xml.contains("<x>1</x>"));
+        assertTrue(xml.contains("<y>test</y>"));
     }
 
-    // Tests serializing POJO with namespace
+    // Tests serialization of indexed type (List) triggering root array handling
     @Test
-    public void testSerializeValue_beanWithNamespace_serializesNamespace() throws Exception {
-        NsBean bean = new NsBean();
-        String xml = _xmlMapper.writeValueAsString(bean);
+    public void testSerializeValue_listType_serializesAsArray() throws IOException {
+        List<String> list = new ArrayList<String>();
+        list.add("a");
+        list.add("b");
+        String xml = xmlMapper.writeValueAsString(list);
+        assertNotNull(xml);
+        assertTrue(xml.contains("<item>a</item>"));
+        assertTrue(xml.contains("<item>b</item>"));
+    }
 
+    // Tests serializeValue with explicit JavaType
+    @Test
+    public void testSerializeValue_withJavaType_serializesCorrectly() throws IOException {
+        SimpleBean bean = new SimpleBean();
+        JavaType javaType = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        StringWriter sw = new StringWriter();
+        ToXmlGenerator xgen = xmlMapper.getFactory().createGenerator(sw);
+        
+        DefaultSerializerProvider prov = provider.createInstance(xmlMapper.getSerializationConfig(), xmlMapper.getSerializerFactory());
+        prov.serializeValue(xgen, bean, javaType);
+        xgen.close();
+
+        String xml = sw.toString();
+        assertTrue(xml.contains("<SimpleBean>"));
+        assertTrue(xml.contains("<x>1</x>"));
+    }
+
+    // Tests serializeValue with explicit JavaType and null value
+    @Test
+    public void testSerializeValue_withJavaTypeAndNullValue_serializesXmlNull() throws IOException {
+        JavaType javaType = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        StringWriter sw = new StringWriter();
+        ToXmlGenerator xgen = xmlMapper.getFactory().createGenerator(sw);
+        
+        DefaultSerializerProvider prov = provider.createInstance(xmlMapper.getSerializationConfig(), xmlMapper.getSerializerFactory());
+        prov.serializeValue(xgen, null, javaType);
+        xgen.close();
+
+        String xml = sw.toString();
+        assertTrue(xml.contains("<null"));
+    }
+
+    // Tests serializeValue with explicit JavaType and custom JsonSerializer
+    @Test
+    public void testSerializeValue_withJavaTypeAndCustomSerializer_usesProvidedSerializer() throws IOException {
+        SimpleBean bean = new SimpleBean();
+        JavaType javaType = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        JsonSerializer<Object> ser = new JsonSerializer<Object>() {
+            @Override
+            public void serialize(Object value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+                gen.writeString("custom-output");
+            }
+        };
+
+        StringWriter sw = new StringWriter();
+        ToXmlGenerator xgen = xmlMapper.getFactory().createGenerator(sw);
+        
+        DefaultSerializerProvider prov = provider.createInstance(xmlMapper.getSerializationConfig(), xmlMapper.getSerializerFactory());
+        prov.serializeValue(xgen, bean, javaType, ser);
+        xgen.close();
+
+        String xml = sw.toString();
+        assertTrue(xml.contains("custom-output"));
+    }
+
+    // Tests serializeValue with null JsonSerializer falling back to findTypedValueSerializer
+    @Test
+    public void testSerializeValue_withJavaTypeAndNullSerializer_findsSerializer() throws IOException {
+        SimpleBean bean = new SimpleBean();
+        JavaType javaType = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+
+        StringWriter sw = new StringWriter();
+        ToXmlGenerator xgen = xmlMapper.getFactory().createGenerator(sw);
+        
+        DefaultSerializerProvider prov = provider.createInstance(xmlMapper.getSerializationConfig(), xmlMapper.getSerializerFactory());
+        prov.serializeValue(xgen, bean, javaType, null);
+        xgen.close();
+
+        String xml = sw.toString();
+        assertTrue(xml.contains("<SimpleBean>"));
+    }
+
+    // Tests serializeValue with TokenBuffer where _asXmlGenerator returns null
+    @Test
+    public void testSerializeValue_withTokenBuffer_succeedsWithoutXmlGenerator() throws IOException {
+        TokenBuffer buffer = new TokenBuffer(xmlMapper, false);
+        SimpleBean bean = new SimpleBean();
+
+        DefaultSerializerProvider prov = provider.createInstance(xmlMapper.getSerializationConfig(), xmlMapper.getSerializerFactory());
+        prov.serializeValue(buffer, bean);
+        assertNotNull(buffer.firstToken());
+        buffer.close();
+    }
+
+    // Tests _asXmlGenerator throwing JsonMappingException for unsupported JsonGenerator
+    @Test(expected = JsonMappingException.class)
+    public void testSerializeValue_withNonXmlGenerator_throwsJsonMappingException() throws IOException {
+        JsonFactory standardFactory = new JsonFactory();
+        StringWriter sw = new StringWriter();
+        JsonGenerator standardGen = standardFactory.createGenerator(sw);
+
+        DefaultSerializerProvider prov = provider.createInstance(xmlMapper.getSerializationConfig(), xmlMapper.getSerializerFactory());
+        prov.serializeValue(standardGen, new SimpleBean());
+    }
+
+    // Tests root name resolution from config with namespace
+    @Test
+    public void testRootNameFromConfig_withNamespace_configuresCorrectly() throws IOException {
+        PropertyName propName = new PropertyName("customRoot", "http://example.com/ns");
+        XmlMapper mapperWithRoot = new XmlMapper();
+        String xml = mapperWithRoot.writer().withRootName(propName).writeValueAsString(new SimpleBean());
         assertNotNull(xml);
         assertTrue(xml.contains("customRoot"));
         assertTrue(xml.contains("http://example.com/ns"));
-        assertTrue(xml.contains("<field>val</field>"));
     }
 
-    // Tests serializing indexed type (array/list) triggering _startRootArray and gen.writeEndObject()
+    // Tests root name resolution from config without namespace
     @Test
-    public void testSerializeValue_listType_serializesWithRootItemElements() throws Exception {
-        List<String> list = Arrays.asList("first", "second");
-        String xml = _xmlMapper.writeValueAsString(list);
-
+    public void testRootNameFromConfig_withoutNamespace_configuresCorrectly() throws IOException {
+        PropertyName propName = new PropertyName("simpleRoot");
+        String xml = xmlMapper.writer().withRootName(propName).writeValueAsString(new SimpleBean());
         assertNotNull(xml);
-        assertTrue(xml.contains("<item>first</item>"));
-        assertTrue(xml.contains("<item>second</item>"));
+        assertTrue(xml.contains("<simpleRoot>"));
+        assertTrue(xml.contains("</simpleRoot>"));
     }
 
-    // Tests serializeValue(gen, value, javaType)
+    // Tests root name resolution when root name is not configured
     @Test
-    public void testSerializeValue_withJavaType_serializesExpectedXml() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
-        StringWriter sw = new StringWriter();
-        ToXmlGenerator xgen = _xmlMapper.getFactory().createGenerator(sw);
-
-        DefaultSerializerProvider prov = (DefaultSerializerProvider) _xmlMapper.getSerializerProviderInstance();
-        prov.serializeValue(xgen, new SimpleBean(), type);
-        xgen.close();
-
-        String xml = sw.toString();
-        assertTrue(xml.contains("<SimpleBean>"));
-        assertTrue(xml.contains("<name>test</name>"));
+    public void testRootNameFromConfig_nullConfiguredRootName_returnsNull() {
+        SerializationConfig config = xmlMapper.getSerializationConfig();
+        XmlSerializerProvider prov = new XmlSerializerProvider(provider, config, xmlMapper.getSerializerFactory());
+        QName qname = prov._rootNameFromConfig();
+        assertNull(qname);
     }
 
-    // Tests serializeValue(gen, value, javaType) with null value
-    @Test
-    public void testSerializeValue_withJavaTypeNullValue_serializesNullTag() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
-        StringWriter sw = new StringWriter();
-        ToXmlGenerator xgen = _xmlMapper.getFactory().createGenerator(sw);
-
-        DefaultSerializerProvider prov = (DefaultSerializerProvider) _xmlMapper.getSerializerProviderInstance();
-        prov.serializeValue(xgen, null, type);
-        xgen.close();
-
-        String xml = sw.toString();
-        assertTrue(xml.contains("<null") || xml.contains("<null/>"));
-    }
-
-    // Tests serializeValue(gen, value, javaType, ser)
-    @Test
-    public void testSerializeValue_withCustomSerializer_usesProvidedSerializer() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
-        JsonSerializer<Object> ser = _xmlMapper.getSerializerProviderInstance().findTypedValueSerializer(type, true, null);
-
-        StringWriter sw = new StringWriter();
-        ToXmlGenerator xgen = _xmlMapper.getFactory().createGenerator(sw);
-
-        DefaultSerializerProvider prov = (DefaultSerializerProvider) _xmlMapper.getSerializerProviderInstance();
-        prov.serializeValue(xgen, "testString", type, ser);
-        xgen.close();
-
-        String xml = sw.toString();
-        assertTrue(xml.contains("testString"));
-    }
-
-    // Tests serializeValue(gen, value, javaType, ser) with null value
-    @Test
-    public void testSerializeValue_withCustomSerializerNullValue_serializesNullTag() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
-        JsonSerializer<Object> ser = _xmlMapper.getSerializerProviderInstance().findTypedValueSerializer(type, true, null);
-
-        StringWriter sw = new StringWriter();
-        ToXmlGenerator xgen = _xmlMapper.getFactory().createGenerator(sw);
-
-        DefaultSerializerProvider prov = (DefaultSerializerProvider) _xmlMapper.getSerializerProviderInstance();
-        prov.serializeValue(xgen, null, type, ser);
-        xgen.close();
-
-        String xml = sw.toString();
-        assertTrue(xml.contains("<null") || xml.contains("<null/>"));
-    }
-
-    // Tests serializeValue when generator is a TokenBuffer
-    @Test
-    public void testSerializeValue_withTokenBuffer_succeedsWithoutXmlGenerator() throws Exception {
-        TokenBuffer buffer = new TokenBuffer(_xmlMapper, false);
-        _xmlMapper.writeValue(buffer, new SimpleBean());
-        buffer.close();
-
-        assertNotNull(buffer.firstToken());
-    }
-
-    // Tests serializeValue null value when generator is a TokenBuffer
-    @Test
-    public void testSerializeValue_nullValueWithTokenBuffer_succeeds() throws Exception {
-        TokenBuffer buffer = new TokenBuffer(_xmlMapper, false);
-        _xmlMapper.writeValue(buffer, null);
-        buffer.close();
-
-        assertNotNull(buffer.firstToken());
-    }
-
-    // Tests _asXmlGenerator with unsupported generator type throws JsonMappingException
+    // Tests exception handling when POJO getter throws RuntimeException
     @Test(expected = JsonMappingException.class)
-    public void testAsXmlGenerator_unsupportedGenerator_throwsJsonMappingException() throws Exception {
-        JsonFactory nonXmlFactory = new JsonFactory();
-        JsonGenerator jsonGen = nonXmlFactory.createGenerator(new StringWriter());
-
-        _provider._asXmlGenerator(jsonGen);
+    public void testSerializeValue_runtimeExceptionInGetter_wrapsInJsonMappingException() throws IOException {
+        xmlMapper.writeValueAsString(new FailingBean());
     }
 
-    // Tests _rootNameFromConfig with empty namespace vs configured namespace
+    // Tests _serializeXmlNull with explicit ToXmlGenerator
     @Test
-    public void testSerializeValue_withExplicitRootNameConfig_usesConfiguredName() throws Exception {
-        String xml = _xmlMapper.writer()
-                .withRootName(new PropertyName("customSimpleRoot"))
-                .writeValueAsString(new SimpleBean());
-
-        assertNotNull(xml);
-        assertTrue(xml.contains("<customSimpleRoot>"));
-        assertTrue(xml.contains("</customSimpleRoot>"));
-    }
-
-    // Tests _rootNameFromConfig with namespace
-    @Test
-    public void testSerializeValue_withExplicitRootNameAndNamespace_usesConfiguredNamespace() throws Exception {
-        String xml = _xmlMapper.writer()
-                .withRootName(new PropertyName("customNsRoot", "http://custom.com/ns"))
-                .writeValueAsString(new SimpleBean());
-
-        assertNotNull(xml);
-        assertTrue(xml.contains("<customNsRoot"));
-        assertTrue(xml.contains("http://custom.com/ns"));
-    }
-
-    // Tests exception path in serializeValue wrapping RuntimeException to JsonMappingException
-    @Test(expected = JsonMappingException.class)
-    public void testSerializeValue_runtimeExceptionInGetter_throwsJsonMappingException() throws Exception {
-        _xmlMapper.writeValueAsString(new FailingBean());
-    }
-
-    // Tests _initWithRootName when rootName is null to guard against NPE
-    @Test
-    public void testInitWithRootName_nullRootName_handlesGracefully() throws Exception {
+    public void testSerializeXmlNull_directCall_writesNullElement() throws IOException {
         StringWriter sw = new StringWriter();
-        ToXmlGenerator xgen = _xmlMapper.getFactory().createGenerator(sw);
-
-        _provider._initWithRootName(xgen, new QName("testRoot"));
+        ToXmlGenerator xgen = xmlMapper.getFactory().createGenerator(sw);
+        
+        XmlSerializerProvider prov = new XmlSerializerProvider(provider, xmlMapper.getSerializationConfig(), xmlMapper.getSerializerFactory());
+        prov._serializeXmlNull(xgen);
         xgen.close();
+
+        String xml = sw.toString();
+        assertTrue(xml.contains("<null"));
     }
 }

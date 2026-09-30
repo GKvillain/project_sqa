@@ -1,6 +1,5 @@
 package com.fasterxml.jackson.databind.deser;
 
-import java.io.Serializable;
 import java.util.*;
 
 import org.junit.Before;
@@ -8,54 +7,73 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.databind.cfg.DeserializerFactoryConfig;
-import com.fasterxml.jackson.databind.module.SimpleAbstractTypeResolver;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class BeanDeserializerFactoryTest {
 
-    private ObjectMapper mapper;
-    private BeanDeserializerFactory factory;
-    private DeserializationContext ctxt;
+    private BeanDeserializerFactory _factory;
+    private ObjectMapper _mapper;
+    private DeserializationContext _context;
 
-    // Helper classes for testing
+    // Helper POJOs for testing
     static class SimpleBean {
         public int x;
-        public String name;
+        public String y;
     }
 
-    @JsonIgnoreProperties({"ignoredField"})
-    static class IgnoredPropsBean {
-        public int a;
-        public int ignoredField;
+    static class ThrowableBean extends Exception {
+        private static final long serialVersionUID = 1L;
+        public int extra;
+        public ThrowableBean() { super(); }
+        public ThrowableBean(String msg) { super(msg); }
     }
 
-    static class SetterlessBean {
-        private List<String> list = new ArrayList<String>();
-        private Map<String, String> map = new HashMap<String, String>();
-
-        public List<String> getList() { return list; }
-        public Map<String, String> getMap() { return map; }
+    static abstract class AbstractBean {
+        public int id;
     }
 
-    static class AnySetterBean {
-        public Map<String, Object> extra = new HashMap<String, Object>();
+    static class ConcreteBean extends AbstractBean {
+    }
 
-        @com.fasterxml.jackson.annotation.JsonAnySetter
-        public void setExtra(String key, Object value) {
-            extra.put(key, value);
+    @JsonDeserialize(builder = ValueClassBuilder.class)
+    static class ValueClass {
+        final int value;
+        ValueClass(int v) { this.value = v; }
+    }
+
+    @JsonPOJOBuilder(buildMethodName = "build", withPrefix = "with")
+    static class ValueClassBuilder {
+        private int _value;
+        public ValueClassBuilder withValue(int v) {
+            this._value = v;
+            return this;
+        }
+        public ValueClass build() {
+            return new ValueClass(_value);
         }
     }
 
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    static class IdentifiedBean {
+        public int id;
+        public String name;
+    }
+
+    @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "id")
+    static class SequenceIdentifiedBean {
+        public int id;
+    }
+
     static class CreatorBean {
-        public final int a;
-        public final String b;
+        final int a;
+        final String b;
 
         @JsonCreator
         public CreatorBean(@JsonProperty("a") int a, @JsonProperty("b") String b) {
@@ -64,213 +82,177 @@ public class BeanDeserializerFactoryTest {
         }
     }
 
-    @com.fasterxml.jackson.annotation.JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
-    static class ObjectIdBean {
-        public int id;
-        public String value;
-    }
+    static class CustomSubFactory extends BeanDeserializerFactory {
+        private static final long serialVersionUID = 1L;
 
-    @com.fasterxml.jackson.annotation.JsonDeserialize(builder = SimpleBuilder.class)
-    static class ValueClassWithBuilder {
-        final int value;
-
-        ValueClassWithBuilder(int v) {
-            this.value = v;
-        }
-    }
-
-    @JsonPOJOBuilder(buildMethodName = "create", withPrefix = "with")
-    static class SimpleBuilder {
-        public int value;
-
-        public SimpleBuilder withValue(int v) {
-            this.value = v;
-            return this;
-        }
-
-        public ValueClassWithBuilder create() {
-            return new ValueClassWithBuilder(value);
-        }
-    }
-
-    static class SubFactory extends BeanDeserializerFactory {
-        public SubFactory(DeserializerFactoryConfig config) {
+        public CustomSubFactory(DeserializerFactoryConfig config) {
             super(config);
-        }
-    }
-
-    public interface AbstractTypeInterface {
-        public int getValue();
-    }
-
-    public static class AbstractTypeInterfaceImpl implements AbstractTypeInterface {
-        private int value;
-        public AbstractTypeInterfaceImpl() {}
-        public AbstractTypeInterfaceImpl(int v) { this.value = v; }
-        public void setValue(int v) { this.value = v; }
-        public int getValue() { return value; }
-    }
-
-    static class CustomException extends Throwable {
-        public CustomException(String msg) {
-            super(msg);
         }
     }
 
     @Before
     public void setUp() {
-        mapper = new ObjectMapper();
-        factory = BeanDeserializerFactory.instance;
-        ctxt = mapper.getDeserializationContext();
+        _factory = BeanDeserializerFactory.instance;
+        _mapper = new ObjectMapper();
+        _context = _mapper.getDeserializationContext();
     }
 
-    // Tests singleton instance creation and withConfig with same config
+    // Tests singleton instance existence
+    @Test
+    public void testInstance_notNull() {
+        assertNotNull(BeanDeserializerFactory.instance);
+    }
+
+    // Tests withConfig with same configuration returning same instance
     @Test
     public void testWithConfig_sameConfig_returnsSameInstance() {
-        DeserializerFactoryConfig config = factory.getFactoryConfig();
-        DeserializerFactory newFactory = factory.withConfig(config);
-        assertSame(factory, newFactory);
+        DeserializerFactoryConfig config = _factory.getFactoryConfig();
+        DeserializerFactory result = _factory.withConfig(config);
+        assertSame(_factory, result);
     }
 
-    // Tests withConfig with new config returns new instance
+    // Tests withConfig with new configuration returning new instance
     @Test
-    public void testWithConfig_differentConfig_returnsNewInstance() {
-        DeserializerFactoryConfig config = new DeserializerFactoryConfig();
-        DeserializerFactory newFactory = factory.withConfig(config);
-        assertNotSame(factory, newFactory);
-        assertEquals(BeanDeserializerFactory.class, newFactory.getClass());
+    public void testWithConfig_newConfig_returnsNewInstance() {
+        DeserializerFactoryConfig newConfig = new DeserializerFactoryConfig();
+        DeserializerFactory result = _factory.withConfig(newConfig);
+        assertNotSame(_factory, result);
+        assertTrue(result instanceof BeanDeserializerFactory);
     }
 
     // Tests withConfig when called on subclass without overriding throws IllegalStateException
     @Test(expected = IllegalStateException.class)
-    public void testWithConfig_subclassWithoutOverride_throwsException() {
-        SubFactory subFactory = new SubFactory(new DeserializerFactoryConfig());
+    public void testWithConfig_subclassWithoutOverride_throwsIllegalStateException() {
+        CustomSubFactory subFactory = new CustomSubFactory(new DeserializerFactoryConfig());
         subFactory.withConfig(new DeserializerFactoryConfig());
     }
 
-    // Tests deserializing standard bean
-    @Test
-    public void testCreateBeanDeserializer_standardBean_success() throws Exception {
-        String json = "{\"x\": 10, \"name\": \"test\"}";
-        SimpleBean result = mapper.readValue(json, SimpleBean.class);
-        assertNotNull(result);
-        assertEquals(10, result.x);
-        assertEquals("test", result.name);
-    }
-
-    // Tests illegal types security check for JdbcRowSetImpl
+    // Tests checkIllegalTypes with known illegal/nasty class name
     @Test(expected = JsonMappingException.class)
-    public void testCheckIllegalTypes_jdbcRowSet_throwsException() throws Exception {
-        Class<?> cls = Class.forName("com.sun.rowset.JdbcRowSetImpl");
-        JavaType type = mapper.constructType(cls);
-        DeserializationConfig config = mapper.getDeserializationConfig();
-        BeanDescription beanDesc = config.introspect(type);
-        factory.checkIllegalTypes(ctxt, type, beanDesc);
+    public void testCheckIllegalTypes_illegalClass_throwsJsonMappingException() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructFromCanonical("com.sun.rowset.JdbcRowSetImpl");
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(type);
+        _factory.checkIllegalTypes(_context, type, beanDesc);
     }
 
-    // Tests illegal types security check passes for safe type
+    // Tests checkIllegalTypes with valid class name
     @Test
-    public void testCheckIllegalTypes_safeType_noException() throws Exception {
-        JavaType type = mapper.constructType(SimpleBean.class);
-        DeserializationConfig config = mapper.getDeserializationConfig();
-        BeanDescription beanDesc = config.introspect(type);
-        factory.checkIllegalTypes(ctxt, type, beanDesc);
+    public void testCheckIllegalTypes_validClass_doesNotThrow() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(type);
+        _factory.checkIllegalTypes(_context, type, beanDesc);
     }
 
-    // Tests Throwable deserialization builder
+    // Tests createBeanDeserializer for standard bean
     @Test
-    public void testBuildThrowableDeserializer_customException_success() throws Exception {
-        String json = "{\"message\": \"test error\"}";
-        CustomException result = mapper.readValue(json, CustomException.class);
-        assertNotNull(result);
-        assertEquals("test error", result.getMessage());
+    public void testCreateBeanDeserializer_simpleBean_returnsDeserializer() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(type);
+        JsonDeserializer<Object> deser = _factory.createBeanDeserializer(_context, type, beanDesc);
+        assertNotNull(deser);
     }
 
-    // Tests abstract type materialization via AbstractTypeResolver
+    // Tests createBeanDeserializer for Throwable types
     @Test
-    public void testMaterializeAbstractType_withResolver_resolvesConcrete() throws Exception {
-        SimpleAbstractTypeResolver resolver = new SimpleAbstractTypeResolver();
-        resolver.addMapping(AbstractTypeInterface.class, AbstractTypeInterfaceImpl.class);
-        SimpleModule module = new SimpleModule();
-        module.setAbstractTypes(resolver);
-        ObjectMapper absMapper = new ObjectMapper();
-        absMapper.registerModule(module);
-
-        String json = "{\"value\": 42}";
-        AbstractTypeInterface result = absMapper.readValue(json, AbstractTypeInterface.class);
-        assertNotNull(result);
-        assertTrue(result instanceof AbstractTypeInterfaceImpl);
-        assertEquals(42, result.getValue());
+    public void testCreateBeanDeserializer_throwableType_returnsThrowableDeserializer() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(ThrowableBean.class);
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(type);
+        JsonDeserializer<Object> deser = _factory.createBeanDeserializer(_context, type, beanDesc);
+        assertNotNull(deser);
     }
 
-    // Tests Builder-based deserializer
+    // Tests createBeanDeserializer for abstract type with materializer
     @Test
-    public void testCreateBuilderBasedDeserializer_success() throws Exception {
-        String json = "{\"value\": 99}";
-        ValueClassWithBuilder result = mapper.readValue(json, ValueClassWithBuilder.class);
-        assertNotNull(result);
-        assertEquals(99, result.value);
+    public void testCreateBeanDeserializer_abstractTypeWithResolver_returnsDeserializer() throws Exception {
+        AbstractTypeResolver resolver = new SimpleAbstractTypeResolver().addMapping(AbstractBean.class, ConcreteBean.class);
+        DeserializerFactoryConfig config = new DeserializerFactoryConfig().withAbstractTypeResolver(resolver);
+        BeanDeserializerFactory customFactory = new BeanDeserializerFactory(config);
+
+        ObjectMapper mapper = new ObjectMapper();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+        JavaType type = TypeFactory.defaultInstance().constructType(AbstractBean.class);
+        BeanDescription beanDesc = mapper.getDeserializationConfig().introspect(type);
+
+        JsonDeserializer<Object> deser = customFactory.createBeanDeserializer(ctxt, type, beanDesc);
+        assertNotNull(deser);
     }
 
-    // Tests Creator properties deserialization
+    // Tests createBuilderBasedDeserializer for builder-annotated class
     @Test
-    public void testAddBeanProps_creatorProperties_success() throws Exception {
-        String json = "{\"a\": 5, \"b\": \"hello\"}";
-        CreatorBean result = mapper.readValue(json, CreatorBean.class);
-        assertNotNull(result);
-        assertEquals(5, result.a);
-        assertEquals("hello", result.b);
+    public void testCreateBuilderBasedDeserializer_builderAnnotated_returnsDeserializer() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(ValueClass.class);
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(type);
+        JsonDeserializer<Object> deser = _factory.createBuilderBasedDeserializer(
+                _context, type, beanDesc, ValueClassBuilder.class);
+        assertNotNull(deser);
     }
 
-    // Tests Setterless properties (Collections/Maps with only getter)
+    // Tests createBeanDeserializer with Property-based ObjectId
     @Test
-    public void testAddBeanProps_setterlessProperties_success() throws Exception {
-        String json = "{\"list\": [\"item1\", \"item2\"], \"map\": {\"k\": \"v\"}}";
-        SetterlessBean result = mapper.readValue(json, SetterlessBean.class);
-        assertNotNull(result);
-        assertEquals(2, result.getList().size());
-        assertEquals("item1", result.getList().get(0));
-        assertEquals("v", result.getMap().get("k"));
+    public void testCreateBeanDeserializer_propertyObjectId_returnsDeserializer() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(IdentifiedBean.class);
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(type);
+        JsonDeserializer<Object> deser = _factory.createBeanDeserializer(_context, type, beanDesc);
+        assertNotNull(deser);
     }
 
-    // Tests AnySetter handling
+    // Tests createBeanDeserializer with Non-Property ObjectId
     @Test
-    public void testConstructAnySetter_success() throws Exception {
-        String json = "{\"customKey\": \"customValue\"}";
-        AnySetterBean result = mapper.readValue(json, AnySetterBean.class);
-        assertNotNull(result);
-        assertEquals("customValue", result.extra.get("customKey"));
+    public void testCreateBeanDeserializer_sequenceObjectId_returnsDeserializer() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(SequenceIdentifiedBean.class);
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(type);
+        JsonDeserializer<Object> deser = _factory.createBeanDeserializer(_context, type, beanDesc);
+        assertNotNull(deser);
     }
 
-    // Tests Ignored properties filter
+    // Tests createBeanDeserializer for Bean with creator parameters
     @Test
-    public void testFilterBeanProps_ignoredProperties_skipped() throws Exception {
-        String json = "{\"a\": 1, \"ignoredField\": 2}";
-        IgnoredPropsBean result = mapper.readValue(json, IgnoredPropsBean.class);
-        assertNotNull(result);
-        assertEquals(1, result.a);
-        assertEquals(0, result.ignoredField);
+    public void testCreateBeanDeserializer_creatorProperties_returnsDeserializer() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(CreatorBean.class);
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(type);
+        JsonDeserializer<Object> deser = _factory.createBeanDeserializer(_context, type, beanDesc);
+        assertNotNull(deser);
     }
 
-    // Tests Object Id property handling
+    // Tests isPotentialBeanType with valid non-primitive class
     @Test
-    public void testAddObjectIdReader_propertyBased_success() throws Exception {
-        String json = "{\"id\": 123, \"value\": \"abc\"}";
-        ObjectIdBean result = mapper.readValue(json, ObjectIdBean.class);
-        assertNotNull(result);
-        assertEquals(123, result.id);
-        assertEquals("abc", result.value);
+    public void testIsPotentialBeanType_validClass_returnsTrue() {
+        assertTrue(_factory.isPotentialBeanType(SimpleBean.class));
     }
 
-    // Tests non-bean primitive type check
+    // Tests isPotentialBeanType with primitive type throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testIsPotentialBeanType_primitive_throwsException() {
-        factory.isPotentialBeanType(int.class);
+    public void testIsPotentialBeanType_primitiveClass_throwsException() {
+        _factory.isPotentialBeanType(int.class);
     }
 
-    // Tests non-bean array type check
+    // Tests isPotentialBeanType with array class throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testIsPotentialBeanType_array_throwsException() {
-        factory.isPotentialBeanType(int[].class);
+    public void testIsPotentialBeanType_arrayClass_throwsException() {
+        _factory.isPotentialBeanType(SimpleBean[].class);
+    }
+
+    // Tests DeserializerModifier interaction
+    @Test
+    public void testBuildBeanDeserializer_withModifier_invokesModifier() throws Exception {
+        final boolean[] modified = new boolean[1];
+        BeanDeserializerModifier modifier = new BeanDeserializerModifier() {
+            @Override
+            public JsonDeserializer<?> modifyDeserializer(DeserializationConfig config,
+                    BeanDescription beanDesc, JsonDeserializer<?> deserializer) {
+                modified[0] = true;
+                return deserializer;
+            }
+        };
+
+        DeserializerFactoryConfig config = new DeserializerFactoryConfig().withDeserializerModifier(modifier);
+        BeanDeserializerFactory customFactory = new BeanDeserializerFactory(config);
+
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(type);
+        JsonDeserializer<Object> deser = customFactory.createBeanDeserializer(_context, type, beanDesc);
+
+        assertNotNull(deser);
+        assertTrue(modified[0]);
     }
 }

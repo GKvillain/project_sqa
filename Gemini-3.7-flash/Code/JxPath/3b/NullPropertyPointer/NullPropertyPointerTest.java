@@ -1,247 +1,267 @@
 package org.apache.commons.jxpath.ri.model.beans;
 
+import java.util.HashMap;
 import java.util.Locale;
 import org.apache.commons.jxpath.JXPathContext;
 import org.apache.commons.jxpath.JXPathInvalidAccessException;
 import org.apache.commons.jxpath.ri.QName;
 import org.apache.commons.jxpath.ri.model.NodePointer;
+import org.apache.commons.jxpath.ri.model.VariablePointer;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 public class NullPropertyPointerTest {
 
     // Tests default property name and getName
     @Test
-    public void testGetName_defaultState_returnsStarQName() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
-        NullPropertyPointer npp = new NullPropertyPointer(parent);
+    public void testGetName_default_returnsWildcardQName() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
         assertEquals("*", npp.getPropertyName());
         assertEquals(new QName("*"), npp.getName());
     }
 
-    // Tests setPropertyName updates propertyName and getName
+    // Tests custom property name setting and getting
     @Test
-    public void testSetPropertyName_customName_updatesName() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
-        NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setPropertyName("customProp");
-        assertEquals("customProp", npp.getPropertyName());
-        assertEquals(new QName("customProp"), npp.getName());
+    public void testSetPropertyName_customName_returnsUpdatedQName() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
+        npp.setPropertyName("testProperty");
+        assertEquals("testProperty", npp.getPropertyName());
+        assertEquals(new QName("testProperty"), npp.getName());
     }
 
-    // Tests basic structural query methods
+    // Tests getLength returns 0
     @Test
-    public void testBasicProperties_defaultState_returnsExpectedValues() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
-        NullPropertyPointer npp = new NullPropertyPointer(parent);
-
+    public void testGetLength_returnsZero() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
         assertEquals(0, npp.getLength());
+    }
+
+    // Tests getBaseValue and getImmediateNode return null
+    @Test
+    public void testGetBaseValueAndImmediateNode_returnNull() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
         assertNull(npp.getBaseValue());
         assertNull(npp.getImmediateNode());
+    }
+
+    // Tests isLeaf returns true
+    @Test
+    public void testIsLeaf_returnsTrue() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
         assertTrue(npp.isLeaf());
+    }
+
+    // Tests isActual, isActualProperty, and isContainer
+    @Test
+    public void testFlags_isActualAndContainer() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
         assertFalse(npp.isActual());
         assertFalse(npp.isActualProperty());
         assertTrue(npp.isContainer());
+    }
+
+    // Tests getPropertyCount and getPropertyNames
+    @Test
+    public void testGetPropertyCountAndNames_empty() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
         assertEquals(0, npp.getPropertyCount());
         assertNotNull(npp.getPropertyNames());
         assertEquals(0, npp.getPropertyNames().length);
-
-        // setPropertyIndex should be a no-op and not throw
-        npp.setPropertyIndex(5);
     }
 
-    // Tests getValuePointer returns a NullPointer with matching QName
+    // Tests getValuePointer returns a NullPointer with correct name
     @Test
-    public void testGetValuePointer_customPropertyName_returnsNullPointer() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
-        NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setPropertyName("field");
-        NodePointer valuePointer = npp.getValuePointer();
-
-        assertNotNull(valuePointer);
-        assertTrue(valuePointer instanceof NullPointer);
-        assertEquals(new QName("field"), valuePointer.getName());
+    public void testGetValuePointer_returnsNullPointer() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
+        npp.setPropertyName("childProp");
+        NodePointer vp = npp.getValuePointer();
+        assertNotNull(vp);
+        assertTrue(vp instanceof NullPointer);
+        assertEquals(new QName("childProp"), vp.getName());
     }
 
-    // Tests isCollection returns false for WHOLE_COLLECTION and true when indexed
+    // Tests isCollection with WHOLE_COLLECTION and specific index
     @Test
-    public void testIsCollection_wholeCollectionAndIndexed_returnsCorrectBoolean() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
-        NullPropertyPointer npp = new NullPropertyPointer(parent);
-
+    public void testIsCollection_indexHandling() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
+        npp.setIndex(PropertyPointer.WHOLE_COLLECTION);
         assertFalse(npp.isCollection());
+
         npp.setIndex(0);
         assertTrue(npp.isCollection());
-        npp.setIndex(2);
-        assertTrue(npp.isCollection());
+    }
+
+    // Tests setPropertyIndex does not fail
+    @Test
+    public void testSetPropertyIndex_noOp() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
+        npp.setPropertyIndex(5);
+        assertEquals(0, npp.getPropertyCount());
     }
 
     // Tests asPath when byNameAttribute is false
     @Test
-    public void testAsPath_standardPath_returnsSuperAsPath() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
+    public void testAsPath_standardPropertyPath() {
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), new Object(), Locale.getDefault());
         NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setPropertyName("child");
-        String path = npp.asPath();
-        assertNotNull(path);
-        assertTrue(path.endsWith("child") || path.endsWith("*"));
+        npp.setPropertyName("foo");
+        assertEquals("/foo", npp.asPath());
     }
 
-    // Tests asPath when byNameAttribute is true
+    // Tests asPath when byNameAttribute is true without index
     @Test
-    public void testAsPath_byNameAttribute_formatsCorrectly() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "parent");
+    public void testAsPath_nameAttributeWithoutIndex() {
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), new Object(), Locale.getDefault());
         NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setNameAttributeValue("simpleName");
-
-        assertEquals("simpleName", npp.getPropertyName());
-        String path = npp.asPath();
-        assertTrue(path.contains("[@name='simpleName']"));
+        npp.setNameAttributeValue("bar");
+        assertEquals("/.[@name='bar']", npp.asPath());
     }
 
-    // Tests asPath with escape characters in name attribute
+    // Tests asPath when byNameAttribute is true with index
     @Test
-    public void testAsPath_nameAttributeWithQuotes_escapesCorrectly() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "parent");
+    public void testAsPath_nameAttributeWithIndex() {
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), new Object(), Locale.getDefault());
+        NullPropertyPointer npp = new NullPropertyPointer(parent);
+        npp.setNameAttributeValue("bar");
+        npp.setIndex(2);
+        assertEquals("/.[@name='bar'][3]", npp.asPath());
+    }
+
+    // Tests asPath escaping single and double quotes in attribute value
+    @Test
+    public void testAsPath_escapingQuotesInNameAttribute() {
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), new Object(), Locale.getDefault());
         NullPropertyPointer npp = new NullPropertyPointer(parent);
         npp.setNameAttributeValue("a'b\"c");
-
-        String path = npp.asPath();
-        assertTrue(path.contains("[@name='a&apos;b&quot;c']"));
+        assertEquals("/.[@name='a&apos;b&quot;c']", npp.asPath());
     }
 
-    // Tests asPath when byNameAttribute is true and index is specified
-    @Test
-    public void testAsPath_byNameAttributeWithIndex_includesIndex() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "parent");
-        NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setNameAttributeValue("item");
-        npp.setIndex(2);
-
-        String path = npp.asPath();
-        assertTrue(path.endsWith("[@name='item'][3]"));
-    }
-
-    // Tests setValue with null parent throws JXPathInvalidAccessException
+    // Tests setValue throws exception when parent is null
     @Test(expected = JXPathInvalidAccessException.class)
     public void testSetValue_nullParent_throwsException() {
         NullPropertyPointer npp = new NullPropertyPointer(null);
-        npp.setValue("testValue");
+        npp.setValue("value");
     }
 
-    // Tests setValue with container parent throws JXPathInvalidAccessException
+    // Tests setValue throws exception when parent is container
     @Test(expected = JXPathInvalidAccessException.class)
-    public void testSetValue_containerParent_throwsException() {
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
-        NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setValue("testValue");
+    public void testSetValue_parentIsContainer_throwsException() {
+        NullPointer nullParent = new NullPointer(Locale.getDefault());
+        NullPropertyPointer npp = new NullPropertyPointer(nullParent);
+        npp.setValue("value");
     }
 
-    // Tests setValue with non-dynamic PropertyOwnerPointer throws JXPathInvalidAccessException
+    // Tests setValue throws exception when parent does not support dynamic properties
     @Test(expected = JXPathInvalidAccessException.class)
     public void testSetValue_nonDynamicParent_throwsException() {
-        BeanPointer parent = new BeanPointer(new QName("bean"), new Object(), new PropertyBeanInfo() {
-            public PropertyDescriptor getPropertyDescriptor(String propertyName) {
-                return null;
-            }
-            public PropertyDescriptor[] getPropertyDescriptors() {
-                return new PropertyDescriptor[0];
-            }
-            public boolean isAtomic() {
-                return false;
-            }
-            public boolean isDynamic() {
-                return false;
-            }
-        }, Locale.getDefault());
-
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), new Object(), Locale.getDefault());
         NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setValue("testValue");
+        npp.setValue("value");
     }
 
-    // Tests createPath on NullPropertyPointer when parent is NullPointer
+    // Tests setValue delegates to dynamic property owner pointer
     @Test
-    public void testCreatePath_nullPointerParent_createsPath() {
-        JXPathContext context = JXPathContext.newContext(new Object());
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
+    public void testSetValue_dynamicPropertyOwnerParent_setsValue() {
+        HashMap map = new HashMap();
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), map, Locale.getDefault());
         NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setPropertyName("prop");
-
-        try {
-            NodePointer result = npp.createPath(context);
-            assertNotNull(result);
-        }
-        catch (UnsupportedOperationException e) {
-            // Expected if parent NullPointer does not support createPath
-        }
+        npp.setPropertyName("dynamicKey");
+        npp.setValue("dynamicValue");
+        assertEquals("dynamicValue", map.get("dynamicKey"));
     }
 
-    // Tests createPath with value on NullPropertyPointer
+    // Tests createPath creates child on context
     @Test
-    public void testCreatePathWithValue_nullPointerParent_handlesInvocation() {
-        JXPathContext context = JXPathContext.newContext(new Object());
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
+    public void testCreatePath_mapContext_createsProperty() {
+        HashMap map = new HashMap();
+        JXPathContext context = JXPathContext.newContext(map);
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), map, Locale.getDefault());
         NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setPropertyName("prop");
+        npp.setPropertyName("newKey");
 
-        try {
-            NodePointer result = npp.createPath(context, "val");
-            assertNotNull(result);
-        }
-        catch (UnsupportedOperationException e) {
-            // Expected if parent NullPointer does not support createPath
-        }
+        NodePointer result = npp.createPath(context);
+        assertNotNull(result);
+        assertEquals(new QName("newKey"), result.getName());
     }
 
-    // Tests createPath with attribute flag set
+    // Tests createPath with value on dynamic property owner
     @Test
-    public void testCreatePath_attributePointer_delegatesToCreateAttribute() {
-        JXPathContext context = JXPathContext.newContext(new Object());
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
+    public void testCreatePathWithValue_mapContext_setsValue() {
+        HashMap map = new HashMap();
+        JXPathContext context = JXPathContext.newContext(map);
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), map, Locale.getDefault());
         NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setAttribute(true);
-        npp.setPropertyName("attr");
+        npp.setPropertyName("newKey");
 
-        try {
-            NodePointer result = npp.createPath(context);
-            assertNotNull(result);
-        }
-        catch (UnsupportedOperationException e) {
-            // Expected if parent does not support createAttribute
-        }
+        NodePointer result = npp.createPath(context, "testVal");
+        assertNotNull(result);
+        assertEquals("testVal", map.get("newKey"));
     }
 
-    // Tests createChild with QName and index
+    // Tests asPath when parent is null and propertyName is set
+    @Test
+    public void testAsPath_nullParent_standardProperty() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
+        npp.setPropertyName("testProp");
+        assertEquals("/testProp", npp.asPath());
+    }
+
+    // Tests asPath when parent is null and nameAttributeValue is set
+    @Test
+    public void testAsPath_nullParent_nameAttribute() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
+        npp.setNameAttributeValue("testAttr");
+        assertEquals(".[@name='testAttr']", npp.asPath());
+    }
+
+    // Tests asPath when parent is not null and standard property has an index
+    @Test
+    public void testAsPath_standardPropertyWithIndex() {
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), new Object(), Locale.getDefault());
+        NullPropertyPointer npp = new NullPropertyPointer(parent);
+        npp.setPropertyName("items");
+        npp.setIndex(1);
+        assertEquals("/items[2]", npp.asPath());
+    }
+
+    // Tests createPath throws exception when parent is null
+    @Test(expected = JXPathInvalidAccessException.class)
+    public void testCreatePath_nullParent_throwsException() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
+        npp.createPath(JXPathContext.newContext(new Object()));
+    }
+
+    // Tests createPath with value throws exception when parent is null
+    @Test(expected = JXPathInvalidAccessException.class)
+    public void testCreatePathWithValue_nullParent_throwsException() {
+        NullPropertyPointer npp = new NullPropertyPointer(null);
+        npp.createPath(JXPathContext.newContext(new Object()), "val");
+    }
+
+    // Tests createChild delegates properly via createPath
     @Test
     public void testCreateChild_delegatesToCreatePath() {
-        JXPathContext context = JXPathContext.newContext(new Object());
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
+        HashMap map = new HashMap();
+        JXPathContext context = JXPathContext.newContext(map);
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), map, Locale.getDefault());
         NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setPropertyName("prop");
+        npp.setPropertyName("subMap");
 
-        try {
-            NodePointer result = npp.createChild(context, new QName("child"), 0);
-            assertNotNull(result);
-        }
-        catch (UnsupportedOperationException e) {
-            // Expected propagation from createPath
-        }
+        NodePointer childPointer = npp.createChild(context, new QName("childKey"), 0);
+        assertNotNull(childPointer);
     }
 
-    // Tests createChild with QName, index, and value
+    // Tests createChild with value delegates properly via createPath
     @Test
     public void testCreateChildWithValue_delegatesToCreatePath() {
-        JXPathContext context = JXPathContext.newContext(new Object());
-        NullPointer parent = new NullPointer(Locale.getDefault(), "id");
+        HashMap map = new HashMap();
+        JXPathContext context = JXPathContext.newContext(map);
+        NodePointer parent = NodePointer.newNodePointer(new QName("root"), map, Locale.getDefault());
         NullPropertyPointer npp = new NullPropertyPointer(parent);
-        npp.setPropertyName("prop");
+        npp.setPropertyName("subMap");
 
-        try {
-            NodePointer result = npp.createChild(context, new QName("child"), 0, "val");
-            assertNotNull(result);
-        }
-        catch (UnsupportedOperationException e) {
-            // Expected propagation from createPath
-        }
+        NodePointer childPointer = npp.createChild(context, new QName("childKey"), 0, "childValue");
+        assertNotNull(childPointer);
     }
 }

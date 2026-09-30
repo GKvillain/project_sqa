@@ -1,187 +1,207 @@
 package org.jsoup.nodes;
 
 import org.junit.Test;
-
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class EntitiesTest {
 
-    // Tests string without ampersand returns immediately without modification
+    // Tests escaping with standard base mode in UTF-8
     @Test
-    public void testUnescape_noAmpersand_returnsOriginal() {
-        String input = "Hello World! No entities here.";
-        assertEquals(input, Entities.unescape(input));
-    }
-
-    // Tests empty string handling
-    @Test
-    public void testUnescape_emptyString_returnsEmpty() {
-        assertEquals("", Entities.unescape(""));
-    }
-
-    // Tests unescaping common named entities with semicolon
-    @Test
-    public void testUnescape_namedEntities_unescapesCorrectly() {
-        assertEquals("&", Entities.unescape("&amp;"));
-        assertEquals("<", Entities.unescape("&lt;"));
-        assertEquals(">", Entities.unescape("&gt;"));
-        assertEquals("\"", Entities.unescape("&quot;"));
-        assertEquals("'", Entities.unescape("&apos;"));
-        assertEquals("©", Entities.unescape("&copy;"));
-    }
-
-    // Tests unescaping decimal numeric character references
-    @Test
-    public void testUnescape_decimalEntities_unescapesCorrectly() {
-        assertEquals("A", Entities.unescape("&#65;"));
-        assertEquals("&", Entities.unescape("&#38;"));
-        assertEquals("©", Entities.unescape("&#169;"));
-    }
-
-    // Tests unescaping lowercase and uppercase hexadecimal character references
-    @Test
-    public void testUnescape_hexEntities_unescapesCorrectly() {
-        assertEquals("A", Entities.unescape("&#x41;"));
-        assertEquals("A", Entities.unescape("&#X41;"));
-        assertEquals("—", Entities.unescape("&#x2014;"));
-    }
-
-    // Tests unescaping entities without trailing semicolon
-    @Test
-    public void testUnescape_withoutTrailingSemicolon_unescapesCorrectly() {
-        assertEquals("&", Entities.unescape("&amp"));
-        assertEquals("A", Entities.unescape("&#65"));
-        assertEquals("A", Entities.unescape("&#x41"));
-    }
-
-    // Tests unknown named entity remains unchanged
-    @Test
-    public void testUnescape_unknownNamedEntity_leavesUnchanged() {
-        assertEquals("&foobar;", Entities.unescape("&foobar;"));
-        assertEquals("&notanentity;", Entities.unescape("&notanentity;"));
-    }
-
-    // Tests invalid numeric format branch (NumberFormatException path)
-    @Test
-    public void testUnescape_invalidNumericEntity_leavesUnchanged() {
-        assertEquals("&#99999999999999999999;", Entities.unescape("&#99999999999999999999;"));
-    }
-
-    // Tests mixed text containing multiple entities and plain text
-    @Test
-    public void testUnescape_mixedContent_unescapesAllEntities() {
-        String input = "One &amp; Two &lt; Three &gt; &#65; &#x42;";
-        String expected = "One & Two < Three > A B";
-        assertEquals(expected, Entities.unescape(input));
-    }
-
-    // Tests escaping with base escape mode and ASCII encoder
-    @Test
-    public void testEscape_baseModeAsciiEncoder_escapesMappedCharacters() {
-        CharsetEncoder asciiEncoder = Charset.forName("US-ASCII").newEncoder();
-        String input = "<foo & \"bar\">";
-        String escaped = Entities.escape(input, asciiEncoder, Entities.EscapeMode.base);
-        assertEquals("&lt;foo &amp; &quot;bar&quot;&gt;", escaped);
+    public void testEscape_baseModeUtf8_escapesBasicEntities() {
+        CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
+        String escaped = Entities.escape("Hello & < > \" '", encoder, Entities.EscapeMode.base);
+        assertEquals("Hello &amp; &lt; &gt; &quot; '", escaped);
     }
 
     // Tests escaping with extended mode
     @Test
     public void testEscape_extendedMode_escapesExtendedEntities() {
-        CharsetEncoder asciiEncoder = Charset.forName("US-ASCII").newEncoder();
-        String input = "© & ®";
-        String escaped = Entities.escape(input, asciiEncoder, Entities.EscapeMode.extended);
-        assertEquals("&copy; &amp; &reg;", escaped);
+        CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
+        String escaped = Entities.escape("\u00A0 \u00A9 \u00C6", encoder, Entities.EscapeMode.extended);
+        assertEquals("&nbsp; &copy; &aelig;", escaped);
     }
 
-    // Tests escaping characters that encoder can encode without mapping
+    // Tests escaping characters that cannot be encoded by the charset
     @Test
-    public void testEscape_utf8Encoder_leavesUnmappedEncodableCharacters() {
-        CharsetEncoder utf8Encoder = Charset.forName("UTF-8").newEncoder();
-        String input = "Hello 世界!";
-        String escaped = Entities.escape(input, utf8Encoder, Entities.EscapeMode.base);
-        assertEquals("Hello 世界!", escaped);
+    public void testEscape_unencodableCharacters_escapesToNumericEntity() {
+        CharsetEncoder encoder = Charset.forName("US-ASCII").newEncoder();
+        String escaped = Entities.escape("Hello \u0102 \u00C0", encoder, Entities.EscapeMode.base);
+        assertEquals("Hello &#258; &agrave;", escaped);
     }
 
-    // Tests escaping characters that cannot be encoded by encoder and not in base map (numeric fallback)
-    @Test
-    public void testEscape_unencodableUnmappedCharacter_escapesAsNumericEntity() {
-        CharsetEncoder asciiEncoder = Charset.forName("US-ASCII").newEncoder();
-        String input = "Hello \u4e2d\u6587";
-        String escaped = Entities.escape(input, asciiEncoder, Entities.EscapeMode.base);
-        assertEquals("Hello &#20013;&#25991;", escaped);
-    }
-
-    // Tests escape overload taking Document.OutputSettings
+    // Tests escaping via Document.OutputSettings helper
     @Test
     public void testEscape_withOutputSettings_escapesCorrectly() {
-        Document doc = new Document("http://example.com");
-        doc.outputSettings().charset("US-ASCII");
-        doc.outputSettings().escapeMode(Entities.EscapeMode.base);
+        Document.OutputSettings settings = new Document.OutputSettings();
+        settings.charset("US-ASCII");
+        settings.escapeMode(Entities.EscapeMode.base);
+        String escaped = Entities.escape("& < > \u00A0", settings);
+        assertEquals("&amp; &lt; &gt; &nbsp;", escaped);
+    }
 
-        String input = "1 < 2 & 3 > 0";
-        String escaped = Entities.escape(input, doc.outputSettings());
-        assertEquals("1 &lt; 2 &amp; 3 &gt; 0", escaped);
+    // Tests string with no ampersand returns early in unescape
+    @Test
+    public void testUnescape_noAmpersand_returnsOriginalString() {
+        String input = "Hello World, no entities here!";
+        String unescaped = Entities.unescape(input);
+        assertEquals(input, unescaped);
+    }
+
+    // Tests unescaping empty string
+    @Test
+    public void testUnescape_emptyString_returnsEmptyString() {
+        assertEquals("", Entities.unescape(""));
+    }
+
+    // Tests unescaping standard named entities in lower case
+    @Test
+    public void testUnescape_namedEntitiesLowerCase_unescapesCorrectly() {
+        String input = "&amp; &lt; &gt; &quot; &nbsp; &copy;";
+        String expected = "& < > \" \u00A0 \u00A9";
+        assertEquals(expected, Entities.unescape(input));
+    }
+
+    // Tests unescaping uppercase and mixed case named entities
+    @Test
+    public void testUnescape_namedEntitiesUppercase_unescapesCorrectly() {
+        String input = "&AMP; &LT; &GT; &QUOT; &COPY; &AElig;";
+        String expected = "& < > \" \u00A9 \u00C6";
+        assertEquals(expected, Entities.unescape(input));
+    }
+
+    // Tests unescaping decimal numeric entities
+    @Test
+    public void testUnescape_decimalNumericEntities_unescapesCorrectly() {
+        String input = "&#38; &#60; &#62; &#34; &#160;";
+        String expected = "& < > \" \u00A0";
+        assertEquals(expected, Entities.unescape(input));
+    }
+
+    // Tests unescaping hex numeric entities with lower 'x' and upper 'X'
+    @Test
+    public void testUnescape_hexNumericEntities_unescapesCorrectly() {
+        String input = "&#x26; &#X3C; &#x3e; &#x22; &#xa0;";
+        String expected = "& < > \" \u00A0";
+        assertEquals(expected, Entities.unescape(input));
+    }
+
+    // Tests unescaping entities without trailing semicolons
+    @Test
+    public void testUnescape_entitiesWithoutSemicolon_unescapesCorrectly() {
+        String input = "&amp &lt &gt &quot &#38 &#x26";
+        String expected = "& < > \" & &";
+        assertEquals(expected, Entities.unescape(input));
+    }
+
+    // Tests unescaping invalid / unknown named entity leaves it as-is
+    @Test
+    public void testUnescape_unknownEntityName_replacesWithOriginal() {
+        String input = "&nonexistententity; &foobar;";
+        assertEquals(input, Entities.unescape(input));
+    }
+
+    // Tests unescaping invalid numeric format within entity syntax
+    @Test
+    public void testUnescape_invalidNumericFormat_replacesWithOriginal() {
+        String input = "&#xZZ; &#999999999999999999999999999999;";
+        assertEquals(input, Entities.unescape(input));
+    }
+
+    // Tests unescaping mixed text containing valid, invalid, and numeric entities
+    @Test
+    public void testUnescape_mixedTextAndEntities_unescapesCorrectly() {
+        String input = "Text with &amp; some &#60;tags&#62; and &unknown; plus &#x201C;quotes&#x201D;.";
+        String expected = "Text with & some <tags> and &unknown; plus \u201Cquotes\u201D.";
+        assertEquals(expected, Entities.unescape(input));
     }
 
     // Tests EscapeMode enum values and valueOf
     @Test
-    public void testEscapeMode_enumValues_returnsValidConstants() {
+    public void testEscapeMode_enumValues_areAccessible() {
+        Entities.EscapeMode[] modes = Entities.EscapeMode.values();
+        assertTrue(modes.length >= 2);
         assertEquals(Entities.EscapeMode.base, Entities.EscapeMode.valueOf("base"));
         assertEquals(Entities.EscapeMode.extended, Entities.EscapeMode.valueOf("extended"));
-        assertEquals(2, Entities.EscapeMode.values().length);
     }
 
-    // Tests isNamedEntity helper method
     @Test
-    public void testIsNamedEntity() {
+    public void testIsNamedEntity_validAndInvalidNames() {
         assertTrue(Entities.isNamedEntity("lt"));
+        assertTrue(Entities.isNamedEntity("gt"));
+        assertTrue(Entities.isNamedEntity("amp"));
         assertTrue(Entities.isNamedEntity("copy"));
         assertFalse(Entities.isNamedEntity("nonExistentEntityName"));
     }
 
-    // Tests isBaseNamedEntity helper method
     @Test
-    public void testIsBaseNamedEntity() {
-        assertTrue(Entities.isBaseNamedEntity("lt"));
+    public void testIsBaseNamedEntity_validAndInvalidNames() {
         assertTrue(Entities.isBaseNamedEntity("amp"));
+        assertTrue(Entities.isBaseNamedEntity("lt"));
+        assertTrue(Entities.isBaseNamedEntity("gt"));
+        assertTrue(Entities.isBaseNamedEntity("quot"));
         assertFalse(Entities.isBaseNamedEntity("copy"));
         assertFalse(Entities.isBaseNamedEntity("nonExistentEntityName"));
     }
 
-    // Tests getCharacterByName helper method
     @Test
-    public void testGetCharacterByName() {
+    public void testGetCharacterByName_returnsExpectedCharacterOrNull() {
         assertEquals(Character.valueOf('<'), Entities.getCharacterByName("lt"));
+        assertEquals(Character.valueOf('>'), Entities.getCharacterByName("gt"));
         assertEquals(Character.valueOf('&'), Entities.getCharacterByName("amp"));
-        assertEquals(Character.valueOf('©'), Entities.getCharacterByName("copy"));
+        assertEquals(Character.valueOf('"'), Entities.getCharacterByName("quot"));
         assertNull(Entities.getCharacterByName("nonExistentEntityName"));
     }
 
-    // Tests strict unescaping mode (requires trailing semicolons)
     @Test
-    public void testUnescape_strictMode() {
-        assertEquals("&", Entities.unescape("&amp;", true));
-        assertEquals("&amp", Entities.unescape("&amp", true));
-        assertEquals("A", Entities.unescape("&#65;", true));
-        assertEquals("&#65", Entities.unescape("&#65", true));
-        assertEquals("A", Entities.unescape("&#x41;", true));
-        assertEquals("&#x41", Entities.unescape("&#x41", true));
-        assertEquals("No entities", Entities.unescape("No entities", true));
+    public void testUnescape_strictModeTrueAndFalse() {
+        String input = "&amp; &lt &gt; &#60; &unknown;";
+        String expectedStrict = "& < &unknown;";
+        String unescapedStrict = Entities.unescape("&amp; &#60; &unknown;", true);
+        assertEquals(expectedStrict, unescapedStrict);
+
+        String unescapedLoose = Entities.unescape(input, false);
+        assertEquals("& < > < &unknown;", unescapedLoose);
     }
 
-    // Tests numeric entity beyond maximum character value range (> 0xFFFF)
     @Test
-    public void testUnescape_numericCodePointAboveMaxChar_leavesUnchanged() {
-        assertEquals("&#65536;", Entities.unescape("&#65536;"));
-        assertEquals("&#x10000;", Entities.unescape("&#x10000;"));
+    public void testUnescape_malformedAmpersandSequences() {
+        String input = "& &; &#; &#x; &amp";
+        String expected = "& &; &#; &#x; &";
+        assertEquals(expected, Entities.unescape(input));
     }
 
-    // Tests Entities instantiation coverage
     @Test
-    public void testConstructor() {
+    public void testUnescape_supplementaryCharacters() {
+        String input = "&#x1F600; &#128512;";
+        String expected = "\uD83D\uDE00 \uD83D\uDE00";
+        assertEquals(expected, Entities.unescape(input));
+    }
+
+    @Test
+    public void testEscape_noSpecialCharacters_returnsUnchanged() {
+        CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
+        String input = "Simple text without special chars 12345.";
+        String escaped = Entities.escape(input, encoder, Entities.EscapeMode.base);
+        assertEquals(input, escaped);
+    }
+
+    @Test
+    public void testEscape_escapeModeMapsAccessible() {
+        assertNotNull(Entities.EscapeMode.base.getMap());
+        assertNotNull(Entities.EscapeMode.extended.getMap());
+        assertTrue(Entities.EscapeMode.base.getMap().size() > 0);
+        assertTrue(Entities.EscapeMode.extended.getMap().size() > Entities.EscapeMode.base.getMap().size());
+    }
+
+    @Test
+    public void testEntitiesConstructorInstantiable() {
         Entities entities = new Entities();
         assertNotNull(entities);
     }

@@ -1,11 +1,14 @@
 package org.jsoup.helper;
 
 import org.jsoup.Connection;
+import org.jsoup.parser.Parser;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.Proxy;
 import java.net.URL;
 import java.nio.charset.IllegalCharsetNameException;
 import java.util.*;
@@ -14,219 +17,323 @@ import static org.junit.Assert.*;
 
 public class HttpConnectionTest {
 
-    // Tests that multiple response headers with the same name are combined with a comma
+    // Tests connect factory method with URL instance
     @Test
-    public void testProcessResponseHeaders_multipleValuesForSameHeader_combinesWithComma() {
-        HttpConnection.Response res = new HttpConnection.Response();
-        Map<String, List<String>> headers = new HashMap<String, List<String>>();
-        headers.put("Cache-Control", Arrays.asList("no-cache", "no-store", "must-revalidate"));
-
-        res.processResponseHeaders(headers);
-
-        assertEquals("no-cache, no-store, must-revalidate", res.header("Cache-Control"));
-    }
-
-    // Tests parsing of Set-Cookie response headers into response cookies
-    @Test
-    public void testProcessResponseHeaders_setCookieHeaders_parsesCookies() {
-        HttpConnection.Response res = new HttpConnection.Response();
-        Map<String, List<String>> headers = new HashMap<String, List<String>>();
-        headers.put("Set-Cookie", Arrays.asList("session_id=abc1234; Path=/; Secure", "theme=dark; Path=/"));
-
-        res.processResponseHeaders(headers);
-
-        assertTrue(res.hasCookie("session_id"));
-        assertEquals("abc1234", res.cookie("session_id"));
-        assertTrue(res.hasCookie("theme"));
-        assertEquals("dark", res.cookie("theme"));
-    }
-
-    // Tests handling of null header key in response headers map
-    @Test
-    public void testProcessResponseHeaders_nullHeaderName_ignored() {
-        HttpConnection.Response res = new HttpConnection.Response();
-        Map<String, List<String>> headers = new HashMap<String, List<String>>();
-        headers.put(null, Collections.singletonList("HTTP/1.1 200 OK"));
-        headers.put("Content-Type", Collections.singletonList("text/html"));
-
-        res.processResponseHeaders(headers);
-
-        assertEquals("text/html", res.header("Content-Type"));
-    }
-
-    // Tests connect with valid URL string containing spaces that need encoding
-    @Test
-    public void testConnect_stringUrlWithSpaces_encodesSpaces() {
-        Connection con = HttpConnection.connect("http://example.com/test path");
-        assertEquals("http://example.com/test%20path", con.request().url().toExternalForm());
-    }
-
-    // Tests connect with URL object
-    @Test
-    public void testConnect_validUrlObject_setsUrl() throws MalformedURLException {
-        URL url = new URL("http://example.com");
+    public void testConnect_validURL_returnsConnectionWithConfiguredUrl() throws MalformedURLException {
+        URL url = new URL("http://example.com/test");
         Connection con = HttpConnection.connect(url);
+        assertNotNull(con);
         assertEquals(url, con.request().url());
     }
 
-    // Tests connect with invalid URL string throwing IllegalArgumentException
+    // Tests URL encoding when url string contains spaces
+    @Test
+    public void testConnect_urlStringWithSpaces_encodesSpacesProperly() {
+        Connection con = HttpConnection.connect("http://example.com/test path/page.html");
+        assertEquals("http://example.com/test%20path/page.html", con.request().url().toExternalForm());
+    }
+
+    // Tests malformed URL string throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testConnect_malformedUrlString_throwsException() {
-        HttpConnection.connect("not_a_valid_url");
+    public void testConnect_malformedUrl_throwsIllegalArgumentException() {
+        HttpConnection.connect("invalid://url:bad:format");
     }
 
-    // Tests case-insensitive header management
-    @Test
-    public void testHeader_caseInsensitiveOperations_worksCorrectly() {
-        Connection con = HttpConnection.connect("http://example.com");
-        con.header("Accept-Encoding", "gzip, deflate");
-
-        assertTrue(con.request().hasHeader("accept-encoding"));
-        assertTrue(con.request().hasHeader("ACCEPT-ENCODING"));
-        assertEquals("gzip, deflate", con.request().header("accept-encoding"));
-        assertTrue(con.request().hasHeaderWithValue("accept-encoding", "gzip, deflate"));
-        assertFalse(con.request().hasHeaderWithValue("accept-encoding", "identity"));
-
-        con.request().removeHeader("ACCEPT-ENCODING");
-        assertFalse(con.request().hasHeader("Accept-Encoding"));
+    // Tests empty URL string throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testConnect_emptyUrl_throwsIllegalArgumentException() {
+        HttpConnection.connect("");
     }
 
-    // Tests cookie management in Base/Request
-    @Test
-    public void testCookie_addAndRemove_worksCorrectly() {
-        Connection con = HttpConnection.connect("http://example.com");
-        con.cookie("token", "xyz");
-
-        assertTrue(con.request().hasCookie("token"));
-        assertEquals("xyz", con.request().cookie("token"));
-
-        con.request().removeCookie("token");
-        assertFalse(con.request().hasCookie("token"));
-        assertNull(con.request().cookie("token"));
+    // Tests negative timeout value throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testTimeout_negativeValue_throwsIllegalArgumentException() {
+        HttpConnection.connect("http://example.com").timeout(-1);
     }
 
-    // Tests adding multiple cookies using a map
-    @Test
-    public void testCookies_mapInput_addsAllCookies() {
-        Connection con = HttpConnection.connect("http://example.com");
-        Map<String, String> cookies = new LinkedHashMap<String, String>();
-        cookies.put("c1", "v1");
-        cookies.put("c2", "v2");
-        con.cookies(cookies);
-
-        assertEquals("v1", con.request().cookie("c1"));
-        assertEquals("v2", con.request().cookie("c2"));
+    // Tests negative maxBodySize throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testMaxBodySize_negativeValue_throwsIllegalArgumentException() {
+        HttpConnection.connect("http://example.com").maxBodySize(-1);
     }
 
-    // Tests user agent and referrer helper methods
+    // Tests adding data key-value pairs using varargs
     @Test
-    public void testUserAgentAndReferrer_setsCorrectHeaders() {
+    public void testData_varargsKeyValues_addsDataToRequest() {
         Connection con = HttpConnection.connect("http://example.com");
-        con.userAgent("Mozilla/5.0");
-        con.referrer("http://google.com");
-
-        assertEquals("Mozilla/5.0", con.request().header("User-Agent"));
-        assertEquals("http://google.com", con.request().header("Referer"));
-    }
-
-    // Tests data key-value pairs varargs
-    @Test
-    public void testData_varargs_populatesDataCollection() {
-        Connection con = HttpConnection.connect("http://example.com");
-        con.data("k1", "v1", "k2", "v2");
-
+        con.data("key1", "val1", "key2", "val2");
         Collection<Connection.KeyVal> data = con.request().data();
         assertEquals(2, data.size());
+        Iterator<Connection.KeyVal> it = data.iterator();
+        assertEquals("key1=val1", it.next().toString());
+        assertEquals("key2=val2", it.next().toString());
     }
 
-    // Tests data varargs with odd number of arguments
+    // Tests odd number of varargs in data() throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testData_oddNumberOfVarargs_throwsException() {
-        Connection con = HttpConnection.connect("http://example.com");
-        con.data("k1", "v1", "k2");
+    public void testData_oddNumberOfVarargs_throwsIllegalArgumentException() {
+        HttpConnection.connect("http://example.com").data("key1", "val1", "orphanKey");
     }
 
-    // Tests data key-value with input stream
+    // Tests header operations with case-insensitivity and removal
     @Test
-    public void testData_withInputStream_createsStreamKeyVal() {
+    public void testHeader_caseInsensitiveOperations_updatesAndRemovesCorrectly() {
         Connection con = HttpConnection.connect("http://example.com");
-        InputStream in = new ByteArrayInputStream(new byte[]{1, 2, 3});
-        con.data("uploadFile", "test.txt", in);
+        con.header("Content-Type", "text/html");
+        assertTrue(con.request().hasHeader("content-type"));
+        assertTrue(con.request().hasHeaderWithValue("CONTENT-TYPE", "text/html"));
+        assertEquals("text/html", con.request().header("CONTENT-TYPE"));
+
+        con.header("content-type", "application/json");
+        assertEquals("application/json", con.request().header("Content-Type"));
+        assertEquals(2, con.request().headers().size()); // Accept-Encoding default + Content-Type
+
+        con.request().removeHeader("CONTENT-TYPE");
+        assertFalse(con.request().hasHeader("Content-Type"));
+        assertNull(con.request().header("Content-Type"));
+    }
+
+    // Tests cookie addition, query, and removal
+    @Test
+    public void testCookie_addAndRemove_maintainsCookieMap() {
+        Connection con = HttpConnection.connect("http://example.com");
+        con.cookie("session", "abc123");
+        assertTrue(con.request().hasCookie("session"));
+        assertEquals("abc123", con.request().cookie("session"));
+
+        Map<String, String> cookieMap = new HashMap<String, String>();
+        cookieMap.put("theme", "dark");
+        con.cookies(cookieMap);
+        assertEquals(2, con.request().cookies().size());
+
+        con.request().removeCookie("session");
+        assertFalse(con.request().hasCookie("session"));
+        assertEquals(1, con.request().cookies().size());
+    }
+
+    // Tests unsupported charset for post data throws IllegalCharsetNameException
+    @Test(expected = IllegalCharsetNameException.class)
+    public void testPostDataCharset_unsupportedCharset_throwsIllegalCharsetNameException() {
+        HttpConnection.connect("http://example.com").postDataCharset("INVALID_CHARSET_NAME_123");
+    }
+
+    // Tests combining multiple response header values with comma (Defects4J Bug 48)
+    @Test
+    public void testProcessResponseHeaders_multipleValuesForSameHeader_combinesWithComma() {
+        HttpConnection.Response res = new HttpConnection.Response();
+        Map<String, List<String>> headers = new LinkedHashMap<String, List<String>>();
+        List<String> values = new ArrayList<String>();
+        values.add("no-cache");
+        values.add("no-store");
+        headers.put("Cache-Control", values);
+
+        res.processResponseHeaders(headers);
+        assertEquals("no-cache, no-store", res.header("Cache-Control"));
+    }
+
+    // Tests Set-Cookie header parsing in response
+    @Test
+    public void testProcessResponseHeaders_setCookieHeaders_parsesCookiesProperly() {
+        HttpConnection.Response res = new HttpConnection.Response();
+        Map<String, List<String>> headers = new LinkedHashMap<String, List<String>>();
+        headers.put("Set-Cookie", Arrays.asList("SID=12345; Path=/; Secure", "UID=67890; HttpOnly"));
+
+        res.processResponseHeaders(headers);
+        assertTrue(res.hasCookie("SID"));
+        assertEquals("12345", res.cookie("SID"));
+        assertTrue(res.hasCookie("UID"));
+        assertEquals("67890", res.cookie("UID"));
+    }
+
+    // Tests KeyVal creation with input stream
+    @Test
+    public void testKeyVal_streamCreation_setsPropertiesCorrectly() {
+        ByteArrayInputStream stream = new ByteArrayInputStream("data".getBytes());
+        HttpConnection.KeyVal kv = HttpConnection.KeyVal.create("upload", "file.txt", stream);
+        assertEquals("upload", kv.key());
+        assertEquals("file.txt", kv.value());
+        assertTrue(kv.hasInputStream());
+        assertSame(stream, kv.inputStream());
+    }
+
+    // Tests configuring fluent request properties
+    @Test
+    public void testRequest_fluentConfiguration_updatesRequestState() {
+        Connection con = HttpConnection.connect("http://example.com");
+        con.userAgent("Mozilla/5.0")
+           .referrer("http://google.com")
+           .method(Connection.Method.POST)
+           .followRedirects(false)
+           .ignoreHttpErrors(true)
+           .ignoreContentType(true)
+           .validateTLSCertificates(false)
+           .parser(Parser.xmlParser());
+
+        Connection.Request req = con.request();
+        assertEquals("Mozilla/5.0", req.header("User-Agent"));
+        assertEquals("http://google.com", req.header("Referer"));
+        assertEquals(Connection.Method.POST, req.method());
+        assertFalse(req.followRedirects());
+        assertTrue(req.ignoreHttpErrors());
+        assertTrue(req.ignoreContentType());
+        assertFalse(req.validateTLSCertificates());
+        assertNotNull(req.parser());
+    }
+
+    @Test
+    public void testData_fromMap_addsAllEntries() {
+        Connection con = HttpConnection.connect("http://example.com");
+        Map<String, String> dataMap = new LinkedHashMap<String, String>();
+        dataMap.put("param1", "val1");
+        dataMap.put("param2", "val2");
+
+        con.data(dataMap);
+        Collection<Connection.KeyVal> data = con.request().data();
+        assertEquals(2, data.size());
+
+        Iterator<Connection.KeyVal> it = data.iterator();
+        Connection.KeyVal kv1 = it.next();
+        assertEquals("param1", kv1.key());
+        assertEquals("val1", kv1.value());
+
+        Connection.KeyVal kv2 = it.next();
+        assertEquals("param2", kv2.key());
+        assertEquals("val2", kv2.value());
+    }
+
+    @Test
+    public void testData_singleKeyValInstance_addsKeyVal() {
+        Connection con = HttpConnection.connect("http://example.com");
+        HttpConnection.KeyVal kv = HttpConnection.KeyVal.create("name", "value");
+        con.data(kv);
+
+        Collection<Connection.KeyVal> data = con.request().data();
+        assertEquals(1, data.size());
+        assertTrue(data.contains(kv));
+    }
+
+    @Test
+    public void testData_withInputStream_addsInputStreamData() {
+        Connection con = HttpConnection.connect("http://example.com");
+        InputStream is = new ByteArrayInputStream("content".getBytes());
+        con.data("fileField", "filename.png", is);
 
         Collection<Connection.KeyVal> data = con.request().data();
         assertEquals(1, data.size());
         Connection.KeyVal kv = data.iterator().next();
-        assertEquals("uploadFile", kv.key());
-        assertEquals("test.txt", kv.value());
+        assertEquals("fileField", kv.key());
+        assertEquals("filename.png", kv.value());
+        assertSame(is, kv.inputStream());
         assertTrue(kv.hasInputStream());
-        assertEquals(in, kv.inputStream());
     }
 
-    // Tests KeyVal create and toString
     @Test
-    public void testKeyVal_basicOperations_returnsExpectedValues() {
-        HttpConnection.KeyVal kv = HttpConnection.KeyVal.create("username", "admin");
-        assertEquals("username", kv.key());
-        assertEquals("admin", kv.value());
-        assertFalse(kv.hasInputStream());
-        assertNull(kv.inputStream());
-        assertEquals("username=admin", kv.toString());
+    public void testKeyVal_mutators_updateValuesProperly() {
+        HttpConnection.KeyVal kv = HttpConnection.KeyVal.create("k1", "v1");
+        kv.key("k2");
+        assertEquals("k2", kv.key());
+        kv.value("v2");
+        assertEquals("v2", kv.value());
+
+        InputStream is = new ByteArrayInputStream("test".getBytes());
+        kv.inputStream(is);
+        assertSame(is, kv.inputStream());
+        assertTrue(kv.hasInputStream());
     }
 
-    // Tests boundary values for timeout and maxBodySize
     @Test
-    public void testTimeoutAndMaxBodySize_zeroValue_allowed() {
+    public void testHeaders_fromMap_addsAllHeaders() {
         Connection con = HttpConnection.connect("http://example.com");
-        con.timeout(0);
-        con.maxBodySize(0);
+        Map<String, String> headers = new HashMap<String, String>();
+        headers.put("X-Custom-1", "Val1");
+        headers.put("X-Custom-2", "Val2");
 
-        assertEquals(0, con.request().timeout());
-        assertEquals(0, con.request().maxBodySize());
+        con.headers(headers);
+        assertTrue(con.request().hasHeader("X-Custom-1"));
+        assertEquals("Val1", con.request().header("X-Custom-1"));
+        assertTrue(con.request().hasHeader("X-Custom-2"));
+        assertEquals("Val2", con.request().header("X-Custom-2"));
     }
 
-    // Tests negative timeout validation
-    @Test(expected = IllegalArgumentException.class)
-    public void testTimeout_negativeValue_throwsException() {
-        Connection con = HttpConnection.connect("http://example.com");
-        con.timeout(-1);
-    }
-
-    // Tests negative maxBodySize validation
-    @Test(expected = IllegalArgumentException.class)
-    public void testMaxBodySize_negativeValue_throwsException() {
-        Connection con = HttpConnection.connect("http://example.com");
-        con.maxBodySize(-1);
-    }
-
-    // Tests invalid charset for postDataCharset
-    @Test(expected = IllegalCharsetNameException.class)
-    public void testPostDataCharset_invalidCharset_throwsException() {
-        Connection con = HttpConnection.connect("http://example.com");
-        con.postDataCharset("INVALID_CHARSET_NAME_123");
-    }
-
-    // Tests valid charset for postDataCharset
     @Test
-    public void testPostDataCharset_validCharset_setsCharset() {
+    public void testHasHeaderWithValue_returnsFalseWhenValueDiffersOrMissing() {
         Connection con = HttpConnection.connect("http://example.com");
+        con.header("X-Test", "expectedValue");
+
+        assertTrue(con.request().hasHeaderWithValue("X-Test", "expectedValue"));
+        assertFalse(con.request().hasHeaderWithValue("X-Test", "differentValue"));
+        assertFalse(con.request().hasHeaderWithValue("X-NonExistent", "expectedValue"));
+    }
+
+    @Test
+    public void testProxy_configuration_setsProxyCorrectly() {
+        Connection con = HttpConnection.connect("http://example.com");
+        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("localhost", 8080));
+        con.proxy(proxy);
+        assertEquals(proxy, con.request().proxy());
+
+        con.proxy("127.0.0.1", 9090);
+        Proxy setProxy = con.request().proxy();
+        assertNotNull(setProxy);
+        assertEquals(Proxy.Type.HTTP, setProxy.type());
+        assertTrue(setProxy.address().toString().contains("127.0.0.1:9090"));
+    }
+
+    @Test
+    public void testRequestAndResponse_replaceInstances_updatesCorrectly() {
+        Connection con = HttpConnection.connect("http://example.com");
+        Connection.Request newReq = new HttpConnection.Request();
+        Connection.Response newRes = new HttpConnection.Response();
+
+        con.request(newReq);
+        con.response(newRes);
+
+        assertSame(newReq, con.request());
+        assertSame(newRes, con.response());
+    }
+
+    @Test
+    public void testPostDataCharset_validCharset_updatesCharset() {
+        Connection con = HttpConnection.connect("http://example.com");
+        con.postDataCharset("ISO-8859-1");
+        assertEquals("ISO-8859-1", con.request().postDataCharset());
+
         con.postDataCharset("UTF-8");
         assertEquals("UTF-8", con.request().postDataCharset());
     }
 
-    // Tests method, followRedirects, ignoreHttpErrors, and ignoreContentType configuration
     @Test
-    public void testRequest_configurationFlags_setCorrectly() {
-        Connection con = HttpConnection.connect("http://example.com");
-        con.method(Connection.Method.POST);
-        con.followRedirects(false);
-        con.ignoreHttpErrors(true);
-        con.ignoreContentType(true);
-        con.validateTLSCertificates(false);
+    public void testProcessResponseHeaders_handlesNullHeaderNameAndEmptyCookies() {
+        HttpConnection.Response res = new HttpConnection.Response();
+        Map<String, List<String>> headers = new LinkedHashMap<String, List<String>>();
+        // HTTP status line often has null key
+        headers.put(null, Collections.singletonList("HTTP/1.1 200 OK"));
+        // Malformed cookie entries (empty name or blank string)
+        headers.put("Set-Cookie", Arrays.asList("", "=emptyName", "validName="));
 
-        assertEquals(Connection.Method.POST, con.request().method());
-        assertFalse(con.request().followRedirects());
-        assertTrue(con.request().ignoreHttpErrors());
-        assertTrue(con.request().ignoreContentType());
-        assertFalse(con.request().validateTLSCertificates());
+        res.processResponseHeaders(headers);
+        assertFalse(res.hasHeader(""));
+        assertTrue(res.hasCookie("validName"));
+        assertEquals("", res.cookie("validName"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHeader_nullKey_throwsIllegalArgumentException() {
+        HttpConnection.connect("http://example.com").header(null, "value");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testHeader_emptyKey_throwsIllegalArgumentException() {
+        HttpConnection.connect("http://example.com").header("", "value");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCookie_nullKey_throwsIllegalArgumentException() {
+        HttpConnection.connect("http://example.com").cookie(null, "value");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testCookie_emptyKey_throwsIllegalArgumentException() {
+        HttpConnection.connect("http://example.com").cookie("", "value");
     }
 }

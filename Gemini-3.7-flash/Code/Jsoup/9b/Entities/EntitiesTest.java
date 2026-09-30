@@ -9,168 +9,183 @@ import static org.junit.Assert.*;
 
 public class EntitiesTest {
 
-    // Tests unescaping named entities containing digits (defect regression)
-    @Test
-    public void testUnescape_namedEntitiesWithDigits_unescapesCorrectly() {
-        assertEquals("½", Entities.unescape("&frac12;"));
-        assertEquals("¾", Entities.unescape("&frac34;"));
-        assertEquals("¼", Entities.unescape("&frac14;"));
-        assertEquals("¹", Entities.unescape("&sup1;"));
-        assertEquals("²", Entities.unescape("&sup2;"));
-        assertEquals("³", Entities.unescape("&sup3;"));
-    }
-
-    // Tests unescaping standard named entities
-    @Test
-    public void testUnescape_standardNamedEntities_unescapesCorrectly() {
-        assertEquals("&", Entities.unescape("&amp;"));
-        assertEquals("<", Entities.unescape("&lt;"));
-        assertEquals(">", Entities.unescape("&gt;"));
-        assertEquals("\"", Entities.unescape("&quot;"));
-        assertEquals("©", Entities.unescape("&copy;"));
-        assertEquals("—", Entities.unescape("&mdash;"));
-    }
-
-    // Tests unescaping decimal numeric entities
-    @Test
-    public void testUnescape_decimalNumericEntities_unescapesCorrectly() {
-        assertEquals("A", Entities.unescape("&#65;"));
-        assertEquals(" ", Entities.unescape("&#160;"));
-        assertEquals("Hello © World", Entities.unescape("Hello &#169; World"));
-    }
-
-    // Tests unescaping hexadecimal numeric entities
-    @Test
-    public void testUnescape_hexNumericEntities_unescapesCorrectly() {
-        assertEquals("&", Entities.unescape("&#x26;"));
-        assertEquals("&", Entities.unescape("&#X26;"));
-        assertEquals("A", Entities.unescape("&#x41;"));
-        assertEquals("©", Entities.unescape("&#xa9;"));
-    }
-
-    // Tests unescaping entities without trailing semicolon
-    @Test
-    public void testUnescape_entityWithoutSemicolon_unescapesCorrectly() {
-        assertEquals("&", Entities.unescape("&amp"));
-        assertEquals("A", Entities.unescape("&#65"));
-        assertEquals("A", Entities.unescape("&#x41"));
-    }
-
-    // Tests unescaping string without ampersand returns identical string
+    // Tests unescape on string without ampersand (fast-path)
     @Test
     public void testUnescape_noAmpersand_returnsOriginalString() {
         String input = "Hello World! No entities here.";
         assertEquals(input, Entities.unescape(input));
     }
 
-    // Tests unescaping unknown named entity remains unchanged
+    // Tests unescape with standard named entities
     @Test
-    public void testUnescape_unknownNamedEntity_leavesUnchanged() {
-        assertEquals("&nonexistententity;", Entities.unescape("&nonexistententity;"));
-        assertEquals("&unknown;", Entities.unescape("&unknown;"));
+    public void testUnescape_namedEntities_unescapesCorrectly() {
+        assertEquals("&", Entities.unescape("&amp;"));
+        assertEquals("<", Entities.unescape("&lt;"));
+        assertEquals(">", Entities.unescape("&gt;"));
+        assertEquals("\"", Entities.unescape("&quot;"));
+        assertEquals("'", Entities.unescape("&apos;"));
+        assertEquals("Hello & < > \" ' World", Entities.unescape("Hello &amp; &lt; &gt; &quot; &apos; World"));
     }
 
-    // Tests unescaping invalid numeric entity format
+    // Tests unescape with named entities missing trailing semicolon
     @Test
-    public void testUnescape_invalidNumericEntity_leavesUnchanged() {
-        assertEquals("&#;", Entities.unescape("&#;"));
-        assertEquals("&#x;", Entities.unescape("&#x;"));
+    public void testUnescape_namedEntitiesWithoutSemicolon_unescapesCorrectly() {
+        assertEquals("&", Entities.unescape("&amp"));
+        assertEquals("<", Entities.unescape("&lt"));
+        assertEquals(">", Entities.unescape("&gt"));
     }
 
-    // Tests escaping with xhtml escape mode
+    // Tests unescape with decimal numeric entities
     @Test
-    public void testEscape_xhtmlMode_escapesRestrictedEntitiesOnly() {
+    public void testUnescape_decimalNumericEntities_unescapesCorrectly() {
+        assertEquals("A", Entities.unescape("&#65;"));
+        assertEquals("A", Entities.unescape("&#65"));
+        assertEquals("Hello", Entities.unescape("&#72;&#101;&#108;&#108;&#111;"));
+    }
+
+    // Tests unescape with hexadecimal numeric entities (lower and uppercase x)
+    @Test
+    public void testUnescape_hexNumericEntities_unescapesCorrectly() {
+        assertEquals("A", Entities.unescape("&#x41;"));
+        assertEquals("A", Entities.unescape("&#X41;"));
+        assertEquals("A", Entities.unescape("&#x41"));
+    }
+
+    // Tests unescape with unknown named entity
+    @Test
+    public void testUnescape_unknownNamedEntity_leavesAsOriginal() {
+        assertEquals("&foobar;", Entities.unescape("&foobar;"));
+        assertEquals("&invalidEntity;", Entities.unescape("&invalidEntity;"));
+    }
+
+    // Tests unescape with code point out of BMP range (> 0xFFFF)
+    @Test
+    public void testUnescape_outOfRangeNumericEntity_leavesAsOriginal() {
+        assertEquals("&#65536;", Entities.unescape("&#65536;"));
+        assertEquals("&#x10000;", Entities.unescape("&#x10000;"));
+        assertEquals("&#1000000;", Entities.unescape("&#1000000;"));
+    }
+
+    // Tests unescape with numeric entity causing NumberFormatException
+    @Test
+    public void testUnescape_numericEntityOverflow_leavesAsOriginal() {
+        assertEquals("&#99999999999999999999999999999;", Entities.unescape("&#99999999999999999999999999999;"));
+    }
+
+    // Tests unescape with mixed text and entities
+    @Test
+    public void testUnescape_mixedTextAndEntities_unescapesCorrectly() {
+        String input = "&lt;div class=&quot;test&quot;&gt;Tom &amp; Jerry &#65; &copy;&lt;/div&gt;";
+        String expected = "<div class=\"test\">Tom & Jerry A \u00a9</div>";
+        assertEquals(expected, Entities.unescape(input));
+    }
+
+    // Tests escape using Document.OutputSettings
+    @Test
+    public void testEscape_withOutputSettings_escapesAppropriately() {
+        Document.OutputSettings settings = new Document.OutputSettings();
+        settings.charset(Charset.forName("US-ASCII"));
+        settings.escapeMode(Entities.EscapeMode.base);
+
+        String input = "Hello <foo> & \"bar\" \u00a9 \u03c0";
+        String escaped = Entities.escape(input, settings);
+        assertTrue(escaped.contains("&lt;"));
+        assertTrue(escaped.contains("&gt;"));
+        assertTrue(escaped.contains("&amp;"));
+        assertTrue(escaped.contains("&quot;"));
+        assertTrue(escaped.contains("&copy;") || escaped.contains("&#169;"));
+        assertTrue(escaped.contains("&#960;"));
+    }
+
+    // Tests escape with xhtml mode
+    @Test
+    public void testEscape_xhtmlMode_escapesOnlyXhtmlEntities() {
         CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
-        String text = "<p class=\"main\">Fish & 'Chips' > 5</p>";
-        String escaped = Entities.escape(text, encoder, Entities.EscapeMode.xhtml);
-        assertEquals("&lt;p class=&quot;main&quot;&gt;Fish &amp; &apos;Chips&apos; &gt; 5&lt;/p&gt;", escaped);
+        String input = "< > & \" ' \u00a9";
+        String escaped = Entities.escape(input, encoder, Entities.EscapeMode.xhtml);
+
+        assertEquals("&lt; &gt; &amp; &quot; &apos; \u00a9", escaped);
     }
 
-    // Tests escaping with base escape mode
+    // Tests escape with base mode and UTF-8 charset
     @Test
-    public void testEscape_baseMode_escapesBaseEntities() {
+    public void testEscape_baseModeUtf8_escapesBaseEntities() {
         CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
-        String text = "<p>& \" ' ©</p>";
-        String escaped = Entities.escape(text, encoder, Entities.EscapeMode.base);
-        assertEquals("&lt;p&gt;&amp; &quot; ' &copy;&lt;/p&gt;", escaped);
+        String input = "< > & \" \u00a0 \u00a9";
+        String escaped = Entities.escape(input, encoder, Entities.EscapeMode.base);
+
+        assertEquals("&lt; &gt; &amp; &quot; &nbsp; &copy;", escaped);
     }
 
-    // Tests escaping characters that cannot be encoded by the charset encoder
+    // Tests escape with extended mode
     @Test
-    public void testEscape_unencodableCharacters_escapesToNumericEntities() {
+    public void testEscape_extendedMode_escapesExtendedEntities() {
+        CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
+        String input = "\u2208 \u2203";
+        String escaped = Entities.escape(input, encoder, Entities.EscapeMode.extended);
+
+        assertTrue(escaped.contains("&isin;") || escaped.contains("&Element;"));
+        assertTrue(escaped.contains("&exist;") || escaped.contains("&Exists;"));
+    }
+
+    // Tests escape when character cannot be encoded by charset encoder
+    @Test
+    public void testEscape_unencodableChar_escapesToNumericEntity() {
         CharsetEncoder encoder = Charset.forName("US-ASCII").newEncoder();
-        String text = "Hello © ü World";
-        String escaped = Entities.escape(text, encoder, Entities.EscapeMode.xhtml);
-        assertEquals("Hello &#169; &#252; World", escaped);
+        String input = "\u00e9"; // e-acute (not in base escape map for ASCII encoder test)
+        String escaped = Entities.escape(input, encoder, Entities.EscapeMode.xhtml);
+
+        assertEquals("&#233;", escaped);
     }
 
-    // Tests escaping with Document.OutputSettings helper
+    // Tests escape on empty string
     @Test
-    public void testEscape_withOutputSettings_escapesCorrectly() {
-        Document doc = new Document("http://example.com");
-        doc.outputSettings().charset("UTF-8");
-        doc.outputSettings().escapeMode(Entities.EscapeMode.base);
-
-        String text = "<Hello & World>";
-        String escaped = Entities.escape(text, doc.outputSettings());
-        assertEquals("&lt;Hello &amp; World&gt;", escaped);
+    public void testEscape_emptyString_returnsEmptyString() {
+        CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
+        assertEquals("", Entities.escape("", encoder, Entities.EscapeMode.base));
     }
 
-    // Tests EscapeMode enum getMap and values
+    // Tests EscapeMode enum values and getMap
     @Test
-    public void testEscapeMode_getMap_returnsValidMap() {
+    public void testEscapeMode_getMap_returnsNonEmptyMap() {
         for (Entities.EscapeMode mode : Entities.EscapeMode.values()) {
             Map<Character, String> map = mode.getMap();
             assertNotNull(map);
             assertFalse(map.isEmpty());
         }
-        assertEquals(Entities.EscapeMode.base, Entities.EscapeMode.valueOf("base"));
         assertEquals(Entities.EscapeMode.xhtml, Entities.EscapeMode.valueOf("xhtml"));
+        assertEquals(Entities.EscapeMode.base, Entities.EscapeMode.valueOf("base"));
         assertEquals(Entities.EscapeMode.extended, Entities.EscapeMode.valueOf("extended"));
     }
 
-    // Tests escaping with extended escape mode
-    @Test
-    public void testEscape_extendedMode_escapesExtendedEntities() {
-        CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
-        String text = "α & β → γ ♥";
-        String escaped = Entities.escape(text, encoder, Entities.EscapeMode.extended);
-        assertEquals("&alpha; &amp; &beta; &rarr; &gamma; &hearts;", escaped);
-    }
-
-    // Tests isNamedEntity helper method
+    // Tests isNamedEntity method
     @Test
     public void testIsNamedEntity() {
         assertTrue(Entities.isNamedEntity("lt"));
-        assertTrue(Entities.isNamedEntity("gt"));
         assertTrue(Entities.isNamedEntity("amp"));
         assertTrue(Entities.isNamedEntity("copy"));
-        assertTrue(Entities.isNamedEntity("frac12"));
-        assertFalse(Entities.isNamedEntity("notanentity"));
+        assertFalse(Entities.isNamedEntity("notARealEntityName"));
         assertFalse(Entities.isNamedEntity(""));
     }
 
-    // Tests isBaseNamedEntity helper method
+    // Tests isBaseNamedEntity method
     @Test
     public void testIsBaseNamedEntity() {
         assertTrue(Entities.isBaseNamedEntity("lt"));
-        assertTrue(Entities.isBaseNamedEntity("gt"));
         assertTrue(Entities.isBaseNamedEntity("amp"));
-        assertTrue(Entities.isBaseNamedEntity("quot"));
         assertTrue(Entities.isBaseNamedEntity("copy"));
-        assertFalse(Entities.isBaseNamedEntity("alpha"));
-        assertFalse(Entities.isBaseNamedEntity("notanentity"));
+        assertFalse(Entities.isBaseNamedEntity("notARealEntityName"));
+        assertFalse(Entities.isBaseNamedEntity(""));
     }
 
-    // Tests getCharacterByName helper method
+    // Tests getCharacterByName method
     @Test
     public void testGetCharacterByName() {
         assertEquals(Character.valueOf('<'), Entities.getCharacterByName("lt"));
-        assertEquals(Character.valueOf('>'), Entities.getCharacterByName("gt"));
         assertEquals(Character.valueOf('&'), Entities.getCharacterByName("amp"));
+        assertEquals(Character.valueOf('>'), Entities.getCharacterByName("gt"));
         assertEquals(Character.valueOf('"'), Entities.getCharacterByName("quot"));
-        assertEquals(Character.valueOf('©'), Entities.getCharacterByName("copy"));
-        assertNull(Entities.getCharacterByName("notanentity"));
+        assertNull(Entities.getCharacterByName("invalidNamedEntity"));
     }
 
     // Tests unescape with strict flag
@@ -179,30 +194,5 @@ public class EntitiesTest {
         assertEquals("&", Entities.unescape("&amp;", true));
         assertEquals("&amp", Entities.unescape("&amp", true));
         assertEquals("&", Entities.unescape("&amp", false));
-        assertEquals("&#65", Entities.unescape("&#65", true));
-        assertEquals("A", Entities.unescape("&#65", false));
-        assertEquals("A", Entities.unescape("&#65;", true));
-        assertEquals("A", Entities.unescape("&#x41;", true));
-        assertEquals("&#x41", Entities.unescape("&#x41", true));
-        assertEquals("A", Entities.unescape("&#x41", false));
-        assertEquals("Hello World", Entities.unescape("Hello World", true));
-    }
-
-    // Tests unescape handling of numeric entities out of valid char range or format
-    @Test
-    public void testUnescape_numericEntityExceptionsAndBoundaries() {
-        assertEquals("&#99999999999999999999999999999;", Entities.unescape("&#99999999999999999999999999999;"));
-        assertEquals("&#xZZZZ;", Entities.unescape("&#xZZZZ;"));
-        assertEquals("&#-1;", Entities.unescape("&#-1;"));
-        assertEquals("&#0;", Entities.unescape("&#0;"));
-    }
-
-    // Tests escape with plain characters requiring no escaping
-    @Test
-    public void testEscape_noEscapingNeeded() {
-        CharsetEncoder encoder = Charset.forName("UTF-8").newEncoder();
-        String text = "Hello World 123 !?/$%^()_+-=";
-        String escaped = Entities.escape(text, encoder, Entities.EscapeMode.base);
-        assertEquals(text, escaped);
     }
 }

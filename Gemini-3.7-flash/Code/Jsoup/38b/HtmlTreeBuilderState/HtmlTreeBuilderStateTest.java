@@ -2,9 +2,7 @@ package org.jsoup.parser;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.DocumentType;
 import org.jsoup.nodes.Element;
-import org.jsoup.nodes.Node;
 import org.jsoup.select.Elements;
 import org.junit.Test;
 
@@ -12,205 +10,281 @@ import static org.junit.Assert.*;
 
 public class HtmlTreeBuilderStateTest {
 
-    // Tests defect 38: image tag inside svg should not be converted to img
+    // Tests defect where image tag inside svg should not be alias-converted to img
     @Test
-    public void testProcess_imageInSvg_preservesImageTag() {
-        String html = "<svg><image href=\"test.png\"/></svg>";
+    public void testInBody_svgImage_retainsImageTag() {
+        String html = "<svg><image href=\"foo.png\" /></svg>";
         Document doc = Jsoup.parse(html);
-        Element svg = doc.select("svg").first();
-        assertNotNull(svg);
-        Element image = svg.select("image").first();
-        assertNotNull(image);
-        assertEquals("image", image.nodeName());
-        assertNull(doc.select("img").first());
+        assertNotNull(doc.select("svg image").first());
+        assertEquals(0, doc.select("img").size());
     }
 
-    // Tests normal case: image tag outside svg is converted to img in InBody
+    // Tests normal case where image tag outside svg is converted to img tag
     @Test
-    public void testProcess_imageOutsideSvg_convertsToImg() {
-        String html = "<div><image src=\"test.png\" alt=\"photo\"></div>";
+    public void testInBody_imageOutsideSvg_convertsToImgTag() {
+        String html = "<p><image src=\"foo.png\"></p>";
         Document doc = Jsoup.parse(html);
-        Element img = doc.select("img").first();
-        assertNotNull(img);
-        assertEquals("img", img.nodeName());
-        assertEquals("test.png", img.attr("src"));
-        assertNull(doc.select("image").first());
+        assertNotNull(doc.select("img").first());
+        assertEquals("foo.png", doc.select("img").first().attr("src"));
+        assertEquals(0, doc.select("image").size());
     }
 
-    // Tests Initial state processing doctype and quirks mode
+    // Tests Initial state doctype handling and quirks mode
     @Test
-    public void testInitial_doctypeDeclaration_setsQuirksAndDoctype() {
-        Document doc = Jsoup.parse("<!DOCTYPE html><html><head></head><body></body></html>");
-        DocumentType doctype = null;
-        for (Node node : doc.childNodes()) {
-            if (node instanceof DocumentType) {
-                doctype = (DocumentType) node;
-                break;
-            }
-        }
-        assertNotNull(doctype);
-        assertEquals("html", doctype.attr("name"));
+    public void testInitial_doctype_setsDoctypeAndQuirksMode() {
+        String html = "<!DOCTYPE html><html><head></head><body></body></html>";
+        Document doc = Jsoup.parse(html);
         assertEquals(Document.QuirksMode.noQuirks, doc.quirksMode());
+        assertEquals("html", doc.childNode(0).nodeName());
     }
 
-    // Tests BeforeHead and InHead states handling metadata and title
+    // Tests BeforeHtml and BeforeHead states with comments and whitespace
     @Test
-    public void testInHead_metadataAndTitle_correctlyParsed() {
-        String html = "<html><head><title>Test Title</title><meta charset=\"UTF-8\"><link rel=\"stylesheet\" href=\"style.css\"></head><body></body></html>";
+    public void testBeforeHtml_commentsAndWhitespace_preserved() {
+        String html = "  <!-- comment before html --><html><head><!-- comment in head --></head><body></body></html>";
+        Document doc = Jsoup.parse(html);
+        assertNotNull(doc.head());
+        assertNotNull(doc.body());
+        assertTrue(doc.html().contains("comment before html"));
+        assertTrue(doc.html().contains("comment in head"));
+    }
+
+    // Tests InHead state handling title, base, and style
+    @Test
+    public void testInHead_titleAndMetaAndStyle_handledCorrectly() {
+        String html = "<html><head><title>Test Title</title><meta charset=\"utf-8\"><style>body { color: red; }</style></head><body></body></html>";
         Document doc = Jsoup.parse(html);
         assertEquals("Test Title", doc.title());
-        assertEquals("UTF-8", doc.select("meta").first().attr("charset"));
-        assertEquals("style.css", doc.select("link").first().attr("href"));
+        assertEquals("utf-8", doc.select("meta").first().attr("charset"));
+        assertEquals("body { color: red; }", doc.select("style").first().data());
     }
 
-    // Tests InHeadNoscript state and fallback
+    // Tests InHeadNoscript state transitions
     @Test
-    public void testInHeadNoscript_noscriptElements_processedInHead() {
-        String html = "<head><noscript><link rel=\"stylesheet\" href=\"fallback.css\"><style>body{color:red;}</style></noscript></head>";
+    public void testInHeadNoscript_nestedElements_parsedCorrectly() {
+        String html = "<head><noscript><link rel=\"stylesheet\" href=\"style.css\"></noscript></head><body>Hello</body>";
         Document doc = Jsoup.parse(html);
-        Element link = doc.select("head noscript link").first();
-        assertNotNull(link);
-        assertEquals("fallback.css", link.attr("href"));
+        assertNotNull(doc.select("head noscript link").first());
+        assertEquals("Hello", doc.body().text());
     }
 
-    // Tests AfterHead state transitioning to InBody on normal content
+    // Tests AfterHead state transitioning to InBody on normal body tag
     @Test
-    public void testAfterHead_implicitBody_createdOnTextToken() {
-        String html = "<html><head></head>Hello World</html>";
+    public void testAfterHead_bodyTag_transitionsToInBody() {
+        String html = "<head></head><body class=\"main\"><p>Text</p></body>";
         Document doc = Jsoup.parse(html);
-        assertNotNull(doc.body());
-        assertEquals("Hello World", doc.body().text());
+        assertEquals("main", doc.body().className());
+        assertEquals("Text", doc.select("p").first().text());
     }
 
-    // Tests InBody heading elements auto-closing previous headings
+    // Tests InBody state p closers and heading tags
     @Test
-    public void testInBody_nestedHeadings_autoClosePreviousHeading() {
-        String html = "<h1>Heading 1<h2>Heading 2</h2></h1>";
+    public void testInBody_headingsAndParagraphClosers_closesP() {
+        String html = "<body><p>Para 1<h1>Heading 1</h1><p>Para 2<div>Div content</div></body>";
         Document doc = Jsoup.parse(html);
-        Elements h1 = doc.select("h1");
-        Elements h2 = doc.select("h2");
-        assertEquals(1, h1.size());
-        assertEquals(1, h2.size());
-        assertEquals("Heading 1", h1.first().text());
-        assertEquals("Heading 2", h2.first().text());
-        assertFalse(h1.first().children().contains(h2.first()));
+        assertEquals(2, doc.select("p").size());
+        assertEquals("Para 1", doc.select("p").get(0).text());
+        assertEquals("Heading 1", doc.select("h1").first().text());
+        assertEquals("Para 2", doc.select("p").get(1).text());
+        assertEquals("Div content", doc.select("div").first().text());
     }
 
-    // Tests InBody list items (li) auto-closing previous li
+    // Tests InBody Adoption Agency Algorithm with nested formatting tags
     @Test
-    public void testInBody_nestedListItems_autoClose() {
-        String html = "<ul><li>Item 1<li>Item 2<li>Item 3</ul>";
+    public void testInBody_adoptionAgencyAlgorithm_formatsProperly() {
+        String html = "<p><b>Bold <i>and italic</b> only italic</i></p>";
         Document doc = Jsoup.parse(html);
-        Elements items = doc.select("ul > li");
-        assertEquals(3, items.size());
-        assertEquals("Item 1", items.get(0).text());
-        assertEquals("Item 2", items.get(1).text());
-        assertEquals("Item 3", items.get(2).text());
+        Elements bTags = doc.select("b");
+        Elements iTags = doc.select("i");
+        assertEquals(1, bTags.size());
+        assertEquals("Bold and italic", bTags.text());
+        assertEquals(2, iTags.size());
     }
 
-    // Tests InBody Adoption Agency Algorithm with formatting tags
+    // Tests InBody isindex tag conversion into form and input elements
     @Test
-    public void testInBody_adoptionAgencyAlgorithm_reconstructsFormatting() {
-        String html = "<b>1<p>2</b>3</p>";
-        Document doc = Jsoup.parse(html);
-        assertEquals("<b>1</b><p><b>2</b>3</p>", doc.body().html().replaceAll("\\r?\\n", ""));
-    }
-
-    // Tests InBody form and input parsing
-    @Test
-    public void testInBody_formAndInputElements_parsedCorrectly() {
-        String html = "<form action=\"/submit\"><input type=\"text\" name=\"user\"/><input type=\"hidden\" name=\"token\" value=\"123\"/></form>";
-        Document doc = Jsoup.parse(html);
-        Element form = doc.select("form").first();
-        assertNotNull(form);
-        assertEquals("/submit", form.attr("action"));
-        assertEquals(2, form.select("input").size());
-    }
-
-    // Tests InBody isindex tag legacy conversion
-    @Test
-    public void testInBody_isindexTag_convertsToFormWithInput() {
-        String html = "<body><isindex action=\"/search\" prompt=\"Search:\"></body>";
+    public void testInBody_isindex_transformsToFormAndInput() {
+        String html = "<body><isindex action=\"/search\" prompt=\"Search: \"></body>";
         Document doc = Jsoup.parse(html);
         Element form = doc.select("form").first();
         assertNotNull(form);
         assertEquals("/search", form.attr("action"));
-        Element input = form.select("input[name=isindex]").first();
+        Element input = doc.select("input").first();
         assertNotNull(input);
+        assertEquals("isindex", input.attr("name"));
     }
 
-    // Tests InTable state and foster parenting of non-table elements
+    // Tests InTable state foster parenting when non-table content is in table
     @Test
-    public void testInTable_fosterParenting_movesMisplacedTextAndTagsBeforeTable() {
-        String html = "<table>Misplaced Text<b>Bold</b><tr><td>Cell</td></tr></table>";
+    public void testInTable_fosterParenting_insertsContentBeforeTable() {
+        String html = "<table>Text Outside<tr><td>Cell</td></tr></table>";
         Document doc = Jsoup.parse(html);
-        Element body = doc.body();
-        assertTrue(body.text().startsWith("Misplaced TextBold"));
-        assertEquals(1, doc.select("table td").size());
-        assertEquals("Cell", doc.select("table td").first().text());
+        assertEquals("Text Outside", doc.body().textNodes().get(0).text());
+        assertEquals("Cell", doc.select("td").first().text());
     }
 
-    // Tests InTableBody and InRow states handling table cells
+    // Tests InTableText state character handling
     @Test
-    public void testInTableBody_implicitRowsAndCells_constructed() {
-        String html = "<table><tbody><tr><td>Cell 1<td>Cell 2<tr><th>Header 1</th></tr></tbody></table>";
+    public void testInTableText_whitespaceAndData_handlesAppropriately() {
+        String html = "<table>   <tr><td>Content</td></tr></table>";
         Document doc = Jsoup.parse(html);
-        Elements rows = doc.select("table tbody tr");
-        assertEquals(2, rows.size());
-        assertEquals(2, rows.get(0).select("td").size());
-        assertEquals(1, rows.get(1).select("th").size());
+        assertEquals("Content", doc.select("td").first().text());
     }
 
-    // Tests InCaption state handling caption content and transition back to table
+    // Tests InSelect state option and optgroup parsing
     @Test
-    public void testInCaption_tableCaption_parsedCorrectly() {
-        String html = "<table><caption>Table <b>Caption</b></caption><tr><td>Data</td></tr></table>";
+    public void testInSelect_optionsAndOptgroup_parsedCorrectly() {
+        String html = "<select><optgroup label=\"group\"><option>1<option>2</optgroup><option>3</select>";
         Document doc = Jsoup.parse(html);
-        Element caption = doc.select("table caption").first();
-        assertNotNull(caption);
-        assertEquals("Table Caption", caption.text());
-        assertEquals("Data", doc.select("table td").first().text());
+        assertEquals(1, doc.select("optgroup").size());
+        assertEquals(3, doc.select("option").size());
+        assertEquals("1", doc.select("option").get(0).text());
     }
 
-    // Tests InSelect and InSelectInTable states
+    // Tests InSelectInTable state when select is enclosed inside table cell
     @Test
-    public void testInSelect_optionsAndOptgroups_structured() {
-        String html = "<select name=\"choice\"><optgroup label=\"G1\"><option value=\"1\">One<option value=\"2\">Two</optgroup><option value=\"3\">Three</select>";
+    public void testInSelectInTable_selectInsideTable_transitionsCorrectly() {
+        String html = "<table><tr><td><select><option>Option 1</option></td><td>Next Cell</td></tr></table>";
         Document doc = Jsoup.parse(html);
-        Element select = doc.select("select").first();
-        assertNotNull(select);
-        assertEquals(1, select.select("optgroup").size());
-        assertEquals(3, select.select("option").size());
+        assertEquals(1, doc.select("select").size());
+        assertEquals(2, doc.select("td").size());
+        assertEquals("Next Cell", doc.select("td").get(1).text());
     }
 
-    // Tests InFrameset and AfterFrameset states
+    // Tests InFrameset and AfterFrameset state parsing
     @Test
-    public void testInFrameset_frameAndNoframes_handled() {
-        String html = "<html><frameset cols=\"50%,50%\"><frame src=\"frame1.html\"><frame src=\"frame2.html\"><noframes><body>No frames</body></noframes></frameset></html>";
+    public void testInFrameset_framesetWithFrames_parsedCorrectly() {
+        String html = "<html><frameset rows=\"50%,50%\"><frame src=\"top.html\"><frame src=\"bottom.html\"><noframes><p>No frames</p></noframes></frameset></html>";
         Document doc = Jsoup.parse(html);
-        Element frameset = doc.select("frameset").first();
-        assertNotNull(frameset);
-        assertEquals(2, frameset.select("frame").size());
-        assertEquals("50%,50%", frameset.attr("cols"));
+        assertEquals(1, doc.select("frameset").size());
+        assertEquals(2, doc.select("frame").size());
+        assertEquals("top.html", doc.select("frame").first().attr("src"));
     }
 
-    // Tests Text state parsing raw text elements like script, style, textarea
+    // Tests Text state parsing raw text elements (textarea, xmp, iframe)
     @Test
-    public void testText_rawTextInScriptAndTextarea_preservedWithoutSubElements() {
-        String html = "<script>var a = '<b>not markup</b>';</script><textarea><p>plain text</p></textarea>";
+    public void testText_rawtextAndRcdata_retainsRawData() {
+        String html = "<textarea><b>Not Bold</b></textarea><xmp><i>Raw</i></xmp>";
         Document doc = Jsoup.parse(html);
-        assertEquals("var a = '<b>not markup</b>';", doc.select("script").first().data());
-        assertEquals("<p>plain text</p>", doc.select("textarea").first().text());
+        assertEquals("<b>Not Bold</b>", doc.select("textarea").first().text());
+        assertEquals("<i>Raw</i>", doc.select("xmp").first().text());
     }
 
-    // Tests button scope handling in InBody
+    // Tests InCaption, InColumnGroup, InTableBody, InRow, and InCell states
     @Test
-    public void testInBody_nestedButton_autoClosesPreviousButton() {
-        String html = "<button>Button 1<button>Button 2</button>";
+    public void testTableSubStates_captionColgroupTheadTbodyTfoot() {
+        String html = "<table>" +
+                "<caption>Table Caption</caption>" +
+                "<colgroup><col class=\"col1\"><col class=\"col2\"></colgroup>" +
+                "<thead><tr><th>H1</th><th>H2</th></tr></thead>" +
+                "<tbody><tr><td>D1</td><td>D2</td></tr></tbody>" +
+                "<tfoot><tr><td>F1</td><td>F2</td></tr></tfoot>" +
+                "</table>";
         Document doc = Jsoup.parse(html);
-        Elements buttons = doc.select("button");
-        assertEquals(2, buttons.size());
-        assertEquals("Button 1", buttons.get(0).text());
-        assertEquals("Button 2", buttons.get(1).text());
+        assertEquals("Table Caption", doc.select("caption").text());
+        assertEquals(2, doc.select("col").size());
+        assertEquals("H1", doc.select("th").first().text());
+        assertEquals("D1", doc.select("tbody td").first().text());
+        assertEquals("F1", doc.select("tfoot td").first().text());
+    }
+
+    // Tests InTable hidden input and form handling
+    @Test
+    public void testInTable_hiddenInputAndForm() {
+        String html = "<table><input type=\"hidden\" name=\"token\" value=\"123\">" +
+                "<form action=\"/submit\"><tr><td>Cell</td></tr></form></table>";
+        Document doc = Jsoup.parse(html);
+        Element input = doc.select("table > input").first();
+        assertNotNull(input);
+        assertEquals("123", input.val());
+        assertNotNull(doc.select("form").first());
+    }
+
+    // Tests InTable foster parenting with pending characters in InTableText
+    @Test
+    public void testInTableText_mixedCharacters_fosterParented() {
+        String html = "<table>   foo <tr><td>Bar</td></tr></table>";
+        Document doc = Jsoup.parse(html);
+        assertTrue(doc.body().text().startsWith("foo"));
+        assertEquals("Bar", doc.select("td").first().text());
+    }
+
+    // Tests InBody list elements auto-closing (li, dt, dd)
+    @Test
+    public void testInBody_listElements_autoClose() {
+        String html = "<ul><li>Item 1<li>Item 2</ul><dl><dt>Term 1<dd>Desc 1<dt>Term 2<dd>Desc 2</dl>";
+        Document doc = Jsoup.parse(html);
+        assertEquals(2, doc.select("li").size());
+        assertEquals("Item 1", doc.select("li").get(0).text());
+        assertEquals("Item 2", doc.select("li").get(1).text());
+        assertEquals(2, doc.select("dt").size());
+        assertEquals(2, doc.select("dd").size());
+    }
+
+    // Tests nested anchor tags self-closing behavior in InBody
+    @Test
+    public void testInBody_nestedAnchors_closedProperly() {
+        String html = "<a href=\"1\">Link 1 <a href=\"2\">Link 2</a></a>";
+        Document doc = Jsoup.parse(html);
+        Elements links = doc.select("a");
+        assertEquals(2, links.size());
+        assertEquals("Link 1 ", links.get(0).text());
+        assertEquals("Link 2", links.get(1).text());
+    }
+
+    // Tests InBody buttons closing paragraph tags
+    @Test
+    public void testInBody_buttonWithP_handledCorrectly() {
+        String html = "<p>Paragraph<button>Click</button>";
+        Document doc = Jsoup.parse(html);
+        assertEquals(1, doc.select("p").size());
+        assertEquals("Paragraph", doc.select("p").first().text());
+        assertEquals("Click", doc.select("button").first().text());
+    }
+
+    // Tests AfterBody and AfterAfterBody comments and content handling
+    @Test
+    public void testAfterBody_commentsAndTrailingContent() {
+        String html = "<html><head></head><body>Content</body></html><!-- comment after html -->";
+        Document doc = Jsoup.parse(html);
+        assertEquals("Content", doc.body().text());
+        assertTrue(doc.outerHtml().contains("comment after html"));
+    }
+
+    // Tests quirks mode detection for legacy doctypes
+    @Test
+    public void testInitial_quirksModeDoctypes() {
+        String html = "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//\"><html><body>Quirks</body></html>";
+        Document doc = Jsoup.parse(html);
+        assertEquals(Document.QuirksMode.quirks, doc.quirksMode());
+    }
+
+    // Tests InForeignContent MathML elements parsing
+    @Test
+    public void testInForeignContent_mathML() {
+        String html = "<math><mi>x</mi><mo>+</mo><mn>1</mn></math>";
+        Document doc = Jsoup.parse(html);
+        assertNotNull(doc.select("math").first());
+        assertEquals("x", doc.select("mi").first().text());
+        assertEquals("+", doc.select("mo").first().text());
+        assertEquals("1", doc.select("mn").first().text());
+    }
+
+    // Tests nested frameset in InFrameset and AfterFrameset
+    @Test
+    public void testInFrameset_nestedFramesets() {
+        String html = "<html><frameset rows=\"*\"><frameset cols=\"50,50\"><frame src=\"1.html\"><frame src=\"2.html\"></frameset></frameset></html>";
+        Document doc = Jsoup.parse(html);
+        assertEquals(2, doc.select("frameset").size());
+        assertEquals(2, doc.select("frame").size());
+    }
+
+    // Tests InHead script, base, and noframes handling
+    @Test
+    public void testInHead_baseAndScript() {
+        String html = "<html><head><base href=\"http://example.com/\"><script>var x = 1;</script><noframes>No frames</noframes></head><body></body></html>";
+        Document doc = Jsoup.parse(html);
+        assertEquals("http://example.com/", doc.baseUri());
+        assertEquals("var x = 1;", doc.select("script").first().data());
     }
 }

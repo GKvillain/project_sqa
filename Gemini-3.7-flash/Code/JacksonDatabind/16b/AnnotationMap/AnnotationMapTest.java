@@ -1,222 +1,202 @@
 package com.fasterxml.jackson.databind.introspect;
 
+import org.junit.Before;
+import org.junit.Test;
+
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Iterator;
 
-import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class AnnotationMapTest {
 
     @Retention(RetentionPolicy.RUNTIME)
-    private @interface TestAnn1 {
-        String value() default "1";
+    private @interface TestAnnotationA {
+        String value() default "A1";
     }
 
     @Retention(RetentionPolicy.RUNTIME)
-    private @interface TestAnn2 {
-        String value() default "2";
+    private @interface TestAnnotationB {
+        int value() default 0;
     }
 
-    @TestAnn1("first")
-    @TestAnn2("second")
-    private static class AnnotatedClass1 { }
+    @TestAnnotationA("A1")
+    @TestAnnotationB(1)
+    private static class AnnotatedClass1 {}
 
-    @TestAnn1("override")
-    private static class AnnotatedClass2 { }
+    @TestAnnotationA("A2")
+    @TestAnnotationB(2)
+    private static class AnnotatedClass2 {}
 
-    private Annotation getAnn1(Class<?> clazz) {
-        return clazz.getAnnotation(TestAnn1.class);
+    private Annotation annA1;
+    private Annotation annA2;
+    private Annotation annB1;
+
+    @Before
+    public void setUp() {
+        annA1 = AnnotatedClass1.class.getAnnotation(TestAnnotationA.class);
+        annA2 = AnnotatedClass2.class.getAnnotation(TestAnnotationA.class);
+        annB1 = AnnotatedClass1.class.getAnnotation(TestAnnotationB.class);
     }
 
-    private Annotation getAnn2(Class<?> clazz) {
-        return clazz.getAnnotation(TestAnn2.class);
-    }
-
-    // Tests add method with a new annotation returns true and increases size
+    // Tests adding a new annotation to empty map returns true
     @Test
-    public void testAdd_newAnnotation_returnsTrue() {
+    public void testAdd_newAnnotationToEmptyMap_returnsTrue() {
         AnnotationMap map = new AnnotationMap();
-        Annotation ann1 = getAnn1(AnnotatedClass1.class);
-        boolean changed = map.add(ann1);
-
+        boolean changed = map.add(annA1);
         assertTrue(changed);
         assertEquals(1, map.size());
-        assertEquals(ann1, map.get(TestAnn1.class));
+        assertEquals(annA1, map.get(TestAnnotationA.class));
     }
 
-    // Tests add method when same annotation instance is added again returns false
+    // Tests adding the identical annotation already present returns false
     @Test
-    public void testAdd_sameAnnotationTwice_returnsFalseOnSecondAdd() {
+    public void testAdd_sameAnnotationAlreadyPresent_returnsFalse() {
         AnnotationMap map = new AnnotationMap();
-        Annotation ann1 = getAnn1(AnnotatedClass1.class);
-        map.add(ann1);
-
-        boolean changed = map.add(ann1);
+        map.add(annA1);
+        boolean changed = map.add(annA1);
         assertFalse(changed);
         assertEquals(1, map.size());
     }
 
-    // Tests add method when different annotation with same type is added returns true
+    // Tests replacing existing annotation with different instance of same type returns true
     @Test
-    public void testAdd_differentValueOfSameType_returnsTrue() {
+    public void testAdd_differentAnnotationSameType_returnsTrue() {
         AnnotationMap map = new AnnotationMap();
-        Annotation ann1 = getAnn1(AnnotatedClass1.class);
-        Annotation ann2 = getAnn1(AnnotatedClass2.class);
-
-        map.add(ann1);
-        boolean changed = map.add(ann2);
-
+        map.add(annA1);
+        boolean changed = map.add(annA2);
         assertTrue(changed);
-        assertEquals(1, map.size());
-        assertEquals(ann2, map.get(TestAnn1.class));
+        assertEquals(annA2, map.get(TestAnnotationA.class));
     }
 
     // Tests addIfNotPresent when annotation is not yet in map
     @Test
-    public void testAddIfNotPresent_notPresent_addsAndReturnsTrue() {
+    public void testAddIfNotPresent_annotationNotPresent_returnsTrueAndAdds() {
         AnnotationMap map = new AnnotationMap();
-        Annotation ann1 = getAnn1(AnnotatedClass1.class);
-
-        boolean added = map.addIfNotPresent(ann1);
+        boolean added = map.addIfNotPresent(annA1);
         assertTrue(added);
         assertEquals(1, map.size());
-        assertEquals(ann1, map.get(TestAnn1.class));
+        assertEquals(annA1, map.get(TestAnnotationA.class));
     }
 
-    // Tests addIfNotPresent when annotation type already exists in map
+    // Tests addIfNotPresent when annotation type already exists
     @Test
-    public void testAddIfNotPresent_alreadyPresent_returnsFalseAndDoesNotReplace() {
+    public void testAddIfNotPresent_annotationAlreadyPresent_returnsFalseAndDoesNotReplace() {
         AnnotationMap map = new AnnotationMap();
-        Annotation ann1 = getAnn1(AnnotatedClass1.class);
-        Annotation ann2 = getAnn1(AnnotatedClass2.class);
-
-        map.addIfNotPresent(ann1);
-        boolean added = map.addIfNotPresent(ann2);
-
+        map.add(annA1);
+        boolean added = map.addIfNotPresent(annA2);
         assertFalse(added);
         assertEquals(1, map.size());
-        assertEquals(ann1, map.get(TestAnn1.class));
+        assertEquals(annA1, map.get(TestAnnotationA.class));
     }
 
     // Tests get when map is null/empty
     @Test
     public void testGet_emptyMap_returnsNull() {
         AnnotationMap map = new AnnotationMap();
-        assertNull(map.get(TestAnn1.class));
+        assertNull(map.get(TestAnnotationA.class));
     }
 
-    // Tests get when requested annotation type is missing from non-empty map
+    // Tests get when annotation type exists and does not exist
     @Test
-    public void testGet_missingAnnotation_returnsNull() {
+    public void testGet_existingAndNonExistingType_returnsCorrectResult() {
         AnnotationMap map = new AnnotationMap();
-        map.add(getAnn1(AnnotatedClass1.class));
-
-        assertNull(map.get(TestAnn2.class));
+        map.add(annA1);
+        assertNotNull(map.get(TestAnnotationA.class));
+        assertNull(map.get(TestAnnotationB.class));
     }
 
-    // Tests size on empty and non-empty map
+    // Tests size of empty and populated map
     @Test
-    public void testSize_variousStates_returnsCorrectSize() {
+    public void testSize_emptyAndPopulatedMap_returnsCorrectSize() {
         AnnotationMap map = new AnnotationMap();
         assertEquals(0, map.size());
-
-        map.add(getAnn1(AnnotatedClass1.class));
+        map.add(annA1);
         assertEquals(1, map.size());
-
-        map.add(getAnn2(AnnotatedClass1.class));
+        map.add(annB1);
         assertEquals(2, map.size());
     }
 
-    // Tests annotations() on empty or uninitialized map
+    // Tests annotations iterator when map is uninitialized or empty
     @Test
     public void testAnnotations_emptyMap_returnsEmptyIterable() {
         AnnotationMap map = new AnnotationMap();
-        Iterable<Annotation> iterable = map.annotations();
-        assertNotNull(iterable);
-        assertFalse(iterable.iterator().hasNext());
+        Iterable<Annotation> it = map.annotations();
+        assertNotNull(it);
+        assertFalse(it.iterator().hasNext());
     }
 
-    // Tests annotations() on map with elements
+    // Tests annotations iterator when map contains elements
     @Test
     public void testAnnotations_populatedMap_returnsAllAnnotations() {
         AnnotationMap map = new AnnotationMap();
-        map.add(getAnn1(AnnotatedClass1.class));
-        map.add(getAnn2(AnnotatedClass1.class));
-
-        Iterable<Annotation> iterable = map.annotations();
+        map.add(annA1);
+        map.add(annB1);
         int count = 0;
-        for (Iterator<Annotation> it = iterable.iterator(); it.hasNext();) {
-            it.next();
+        for (Annotation a : map.annotations()) {
+            assertNotNull(a);
             count++;
         }
         assertEquals(2, count);
-    }
-
-    // Tests toString on empty map
-    @Test
-    public void testToString_emptyMap_returnsNullRepresentation() {
-        AnnotationMap map = new AnnotationMap();
-        assertEquals("[null]", map.toString());
-    }
-
-    // Tests toString on populated map
-    @Test
-    public void testToString_populatedMap_returnsMapString() {
-        AnnotationMap map = new AnnotationMap();
-        map.add(getAnn1(AnnotatedClass1.class));
-        String str = map.toString();
-        assertNotNull(str);
-        assertTrue(str.contains(TestAnn1.class.getName()));
     }
 
     // Tests merge when primary is null or empty
     @Test
     public void testMerge_primaryNullOrEmpty_returnsSecondary() {
         AnnotationMap secondary = new AnnotationMap();
-        secondary.add(getAnn1(AnnotatedClass1.class));
+        secondary.add(annA1);
 
-        AnnotationMap result1 = AnnotationMap.merge(null, secondary);
-        assertSame(secondary, result1);
+        assertSame(secondary, AnnotationMap.merge(null, secondary));
 
-        AnnotationMap primaryEmpty = new AnnotationMap();
-        AnnotationMap result2 = AnnotationMap.merge(primaryEmpty, secondary);
-        assertSame(secondary, result2);
+        AnnotationMap emptyPrimary = new AnnotationMap();
+        assertSame(secondary, AnnotationMap.merge(emptyPrimary, secondary));
     }
 
     // Tests merge when secondary is null or empty
     @Test
     public void testMerge_secondaryNullOrEmpty_returnsPrimary() {
         AnnotationMap primary = new AnnotationMap();
-        primary.add(getAnn1(AnnotatedClass1.class));
+        primary.add(annA1);
 
-        AnnotationMap result1 = AnnotationMap.merge(primary, null);
-        assertSame(primary, result1);
+        assertSame(primary, AnnotationMap.merge(primary, null));
 
-        AnnotationMap secondaryEmpty = new AnnotationMap();
-        AnnotationMap result2 = AnnotationMap.merge(primary, secondaryEmpty);
-        assertSame(primary, result2);
+        AnnotationMap emptySecondary = new AnnotationMap();
+        assertSame(primary, AnnotationMap.merge(primary, emptySecondary));
     }
 
-    // Tests merge when both maps have annotations with overriding
+    // Tests merge when both maps have elements with primary overriding secondary
     @Test
     public void testMerge_bothPopulated_primaryOverridesSecondary() {
         AnnotationMap primary = new AnnotationMap();
-        Annotation ann1Primary = getAnn1(AnnotatedClass2.class);
-        primary.add(ann1Primary);
+        primary.add(annA1);
 
         AnnotationMap secondary = new AnnotationMap();
-        Annotation ann1Secondary = getAnn1(AnnotatedClass1.class);
-        Annotation ann2Secondary = getAnn2(AnnotatedClass1.class);
-        secondary.add(ann1Secondary);
-        secondary.add(ann2Secondary);
+        secondary.add(annA2);
+        secondary.add(annB1);
 
         AnnotationMap merged = AnnotationMap.merge(primary, secondary);
         assertNotNull(merged);
         assertEquals(2, merged.size());
-        assertEquals(ann1Primary, merged.get(TestAnn1.class));
-        assertEquals(ann2Secondary, merged.get(TestAnn2.class));
+        assertEquals(annA1, merged.get(TestAnnotationA.class));
+        assertEquals(annB1, merged.get(TestAnnotationB.class));
+    }
+
+    // Tests toString for null/empty map
+    @Test
+    public void testToString_emptyMap_returnsNullRepresentation() {
+        AnnotationMap map = new AnnotationMap();
+        assertEquals("[null]", map.toString());
+    }
+
+    // Tests toString for populated map
+    @Test
+    public void testToString_populatedMap_returnsMapString() {
+        AnnotationMap map = new AnnotationMap();
+        map.add(annA1);
+        String str = map.toString();
+        assertNotNull(str);
+        assertTrue(str.contains(TestAnnotationA.class.getName()));
     }
 }

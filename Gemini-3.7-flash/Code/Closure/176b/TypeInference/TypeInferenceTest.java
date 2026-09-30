@@ -1,9 +1,16 @@
 package com.google.javascript.jscomp;
 
+import static com.google.javascript.rhino.jstype.JSTypeNative.ARRAY_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.BOOLEAN_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.CHECKED_UNKNOWN_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NULL_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NUMBER_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.REGEXP_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.STRING_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.UNKNOWN_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.VOID_TYPE;
+
 import com.google.common.collect.Maps;
-import com.google.javascript.jscomp.CodingConvention.AssertionFunctionSpec;
-import com.google.javascript.jscomp.type.ReverseAbstractInterpreter;
-import com.google.javascript.jscomp.type.SemanticReverseAbstractInterpreter;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.jstype.JSType;
 import com.google.javascript.rhino.jstype.JSTypeNative;
@@ -13,14 +20,15 @@ import org.junit.Test;
 
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TypeInferenceTest {
 
   private Compiler compiler;
   private JSTypeRegistry registry;
+  private Scope topScope;
+  private Scope functionScope;
+  private Node rootBlockNode;
 
   @Before
   public void setUp() {
@@ -31,32 +39,35 @@ public class TypeInferenceTest {
     registry = compiler.getTypeRegistry();
   }
 
-  private Node parseAndInfer(String js) {
-    Node root = compiler.parseTestCode(js);
+  private void inFunction(String js) {
+    Node scriptNode = compiler.parseTestCode("function f() {" + js + "}");
     assertEquals(0, compiler.getErrorCount());
-    TypedScopeCreator scopeCreator = new TypedScopeCreator(compiler);
-    Scope globalScope = scopeCreator.createScope(root, null);
 
-    ControlFlowAnalysis cfa = new ControlFlowAnalysis(compiler, false, true);
-    cfa.process(null, root);
+    TypedScopeCreator scopeCreator = new TypedScopeCreator(compiler);
+    topScope = scopeCreator.createScope(scriptNode, null);
+
+    Node functionNode = findFunctionNode(scriptNode);
+    assertNotNull(functionNode);
+
+    functionScope = scopeCreator.createScope(functionNode, topScope);
+    rootBlockNode = functionNode.getLastChild();
+
+    ControlFlowAnalysis cfa = new ControlFlowAnalysis(compiler, false, false);
+    cfa.process(null, rootBlockNode);
     ControlFlowGraph<Node> cfg = cfa.getCfg();
 
-    ReverseAbstractInterpreter rai = new SemanticReverseAbstractInterpreter(
-        compiler.getCodingConvention(), registry);
-    Map<String, AssertionFunctionSpec> assertionMap = Maps.newHashMap();
-
+    Map<String, CodingConvention.AssertionFunctionSpec> assertionMap = Maps.newHashMap();
     TypeInference typeInference = new TypeInference(
-        compiler, cfg, rai, globalScope, assertionMap);
+        compiler, cfg, compiler.getReverseAbstractInterpreter(), functionScope, assertionMap);
     typeInference.analyze();
-    return root;
   }
 
-  private Node findFirstNode(Node root, int tokenType) {
-    if (root.getType() == tokenType) {
-      return root;
+  private Node findFunctionNode(Node n) {
+    if (n.isFunction()) {
+      return n;
     }
-    for (Node child = root.getFirstChild(); child != null; child = child.getNext()) {
-      Node result = findFirstNode(child, tokenType);
+    for (Node child : n.children()) {
+      Node result = findFunctionNode(child);
       if (result != null) {
         return result;
       }
@@ -64,189 +75,272 @@ public class TypeInferenceTest {
     return null;
   }
 
-  // Tests declared variable assignment with object literal (Regression for 176b)
-  @Test
-  public void testUpdateScopeForTypeChange_declaredVarObjectLiteral_keepsDeclaredType() {
-    Node root = parseAndInfer("/** @type {Object} */ var x = {}; x.result = 1; x.result = true;");
-    assertNotNull(root);
-    Node varNode = findFirstNode(root, com.google.javascript.rhino.Token.VAR);
-    assertNotNull(varNode);
-    Node nameNode = varNode.getFirstChild();
-    assertNotNull(nameNode.getJSType());
-    assertNotNull(nameNode.getJSType().toMaybeObjectType());
+  private Node findLastNameNode(Node n, String name) {
+    Node last = null;
+    if (n.isName() && name.equals(n.getString())) {
+      last = n;
+    }
+    for (Node child : n.children()) {
+      Node result = findLastNameNode(child, name);
+      if (result != null) {
+        last = result;
+      }
+    }
+    return last;
   }
 
-  // Tests declared variable assignment with null initialization
-  @Test
-  public void testUpdateScopeForTypeChange_declaredVarNullLiteral_hasDeclaredType() {
-    Node root = parseAndInfer("/** @type {Object} */ var x = null; x = {};");
-    assertNotNull(root);
-    Node varNode = findFirstNode(root, com.google.javascript.rhino.Token.VAR);
-    assertNotNull(varNode);
-    Node nameNode = varNode.getFirstChild();
-    assertNotNull(nameNode.getJSType());
+  private JSType getType(String name) {
+    Node nameNode = findLastNameNode(rootBlockNode, name);
+    assertNotNull("Node not found: " + name, nameNode);
+    return nameNode.getJSType();
   }
 
-  // Tests inferred variable type change on assignment
-  @Test
-  public void testTraverseAssign_inferredVariable_updatesVariableType() {
-    Node root = parseAndInfer("var x = 1; x = 'str';");
-    Node assignNode = findFirstNode(root, com.google.javascript.rhino.Token.ASSIGN);
-    assertNotNull(assignNode);
-    assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), assignNode.getJSType());
+  private JSType getNativeType(JSTypeNative typeId) {
+    return registry.getNativeType(typeId);
   }
 
-  // Tests string addition yielding string type
+  // Tests Issue 783: Assignment of null to declared Object type (Defects4J 176 regression)
   @Test
-  public void testTraverseAdd_stringAndNumber_infersStringType() {
-    Node root = parseAndInfer("var a = 'hello ' + 5;");
-    Node addNode = findFirstNode(root, com.google.javascript.rhino.Token.ADD);
-    assertNotNull(addNode);
-    assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), addNode.getJSType());
+  public void testIssue783_assignNullToDeclaredObject_infersNullType() {
+    inFunction(
+        "/** @type {Object} */ var x = {};" +
+        "var y = (x = null);");
+    assertEquals(getNativeType(NULL_TYPE), getType("y"));
   }
 
-  // Tests number addition yielding number type
+  // Tests Issue 783b: Assignment of string to declared Object type (Defects4J 176 regression)
   @Test
-  public void testTraverseAdd_twoNumbers_infersNumberType() {
-    Node root = parseAndInfer("var a = 5 + 10;");
-    Node addNode = findFirstNode(root, com.google.javascript.rhino.Token.ADD);
-    assertNotNull(addNode);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), addNode.getJSType());
+  public void testIssue783b_assignStringToDeclaredObject_infersStringType() {
+    inFunction(
+        "/** @type {Object} */ var x = {};" +
+        "var y = (x = 'foo');");
+    assertEquals(getNativeType(STRING_TYPE), getType("y"));
   }
 
-  // Tests bitwise and arithmetic operations inferring number type
+  // Tests Issue 783c: Assignment of boolean to declared Object type (Defects4J 176 regression)
   @Test
-  public void testTraverseArithmetic_bitwiseAndSub_infersNumberType() {
-    Node root = parseAndInfer("var a = 10 - 2; var b = 10 & 2; var c = 10 | 2;");
-    Node subNode = findFirstNode(root, com.google.javascript.rhino.Token.SUB);
-    assertNotNull(subNode);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), subNode.getJSType());
+  public void testIssue783c_assignBooleanToDeclaredObject_infersBooleanType() {
+    inFunction(
+        "/** @type {Object} */ var x = {};" +
+        "var y = (x = true);");
+    assertEquals(getNativeType(BOOLEAN_TYPE), getType("y"));
+  }
 
-    Node bitAndNode = findFirstNode(root, com.google.javascript.rhino.Token.BITAND);
-    assertNotNull(bitAndNode);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), bitAndNode.getJSType());
+  // Tests addition of numbers
+  @Test
+  public void testTraverseAdd_numbers_infersNumberType() {
+    inFunction("var x = 1 + 2;");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("x"));
+  }
+
+  // Tests addition involving strings
+  @Test
+  public void testTraverseAdd_stringConcatenation_infersStringType() {
+    inFunction("var x = 'hello' + 5;");
+    assertEquals(getNativeType(STRING_TYPE), getType("x"));
   }
 
   // Tests array literal traversal
   @Test
-  public void testTraverseArrayLiteral_elementsPresent_infersArrayType() {
-    Node root = parseAndInfer("var arr = [1, 'two', 3];");
-    Node arrayNode = findFirstNode(root, com.google.javascript.rhino.Token.ARRAYLIT);
-    assertNotNull(arrayNode);
-    assertEquals(registry.getNativeType(JSTypeNative.ARRAY_TYPE), arrayNode.getJSType());
+  public void testTraverseArrayLiteral_infersArrayType() {
+    inFunction("var arr = [1, 2, 3];");
+    assertEquals(getNativeType(ARRAY_TYPE), getType("arr"));
   }
 
-  // Tests object literal traversal and property inference
+  // Tests object literal traversal
   @Test
-  public void testTraverseObjectLiteral_definesProperties() {
-    Node root = parseAndInfer("var obj = { foo: 'bar', count: 42 };");
-    Node objNode = findFirstNode(root, com.google.javascript.rhino.Token.OBJECTLIT);
-    assertNotNull(objNode);
-    JSType objType = objNode.getJSType();
-    assertNotNull(objType);
-    assertNotNull(objType.toMaybeObjectType());
+  public void testTraverseObjectLiteral_infersObjectType() {
+    inFunction("var obj = {a: 1, b: 'str'};");
+    assertNotNull(getType("obj"));
+    assertTrue(getType("obj").isObjectType());
   }
 
-  // Tests short-circuiting AND operator
+  // Tests logical AND operator
   @Test
-  public void testTraverseAnd_booleanOperands_infersType() {
-    Node root = parseAndInfer("var res = true && false;");
-    Node andNode = findFirstNode(root, com.google.javascript.rhino.Token.AND);
-    assertNotNull(andNode);
-    assertNotNull(andNode.getJSType());
+  public void testTraverseAnd_shortCircuiting_infersCorrectType() {
+    inFunction("var x = true && 'hello';");
+    assertEquals(getNativeType(STRING_TYPE), getType("x"));
   }
 
-  // Tests short-circuiting OR operator
+  // Tests logical OR operator
   @Test
-  public void testTraverseOr_differentTypes_infersUnionType() {
-    Node root = parseAndInfer("var res = 'default' || 123;");
-    Node orNode = findFirstNode(root, com.google.javascript.rhino.Token.OR);
-    assertNotNull(orNode);
-    assertNotNull(orNode.getJSType());
+  public void testTraverseOr_shortCircuiting_infersCorrectType() {
+    inFunction("var x = false || 42;");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("x"));
   }
 
   // Tests ternary hook operator
   @Test
-  public void testTraverseHook_conditionalBranches_infersSupertype() {
-    Node root = parseAndInfer("var x = true ? 1 : 2;");
-    Node hookNode = findFirstNode(root, com.google.javascript.rhino.Token.HOOK);
-    assertNotNull(hookNode);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), hookNode.getJSType());
+  public void testTraverseHook_conditionalTernary_infersUnionType() {
+    inFunction("var cond = true; var x = cond ? 1 : 'str';");
+    JSType unionType = registry.createUnionType(NUMBER_TYPE, STRING_TYPE);
+    assertEquals(unionType, getType("x"));
   }
 
-  // Tests comparison and relational operators inferring boolean type
+  // Tests typeof operator
   @Test
-  public void testTraverseRelational_comparison_infersBooleanType() {
-    Node root = parseAndInfer("var eq = (1 === 2); var lt = (1 < 2); var inst = ({} instanceof Object);");
-    Node sheqNode = findFirstNode(root, com.google.javascript.rhino.Token.SHEQ);
-    assertNotNull(sheqNode);
-    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), sheqNode.getJSType());
-
-    Node ltNode = findFirstNode(root, com.google.javascript.rhino.Token.LT);
-    assertNotNull(ltNode);
-    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), ltNode.getJSType());
-
-    Node instNode = findFirstNode(root, com.google.javascript.rhino.Token.INSTANCEOF);
-    assertNotNull(instNode);
-    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), instNode.getJSType());
+  public void testTraverseTypeOf_operator_infersStringType() {
+    inFunction("var x = typeof 123;");
+    assertEquals(getNativeType(STRING_TYPE), getType("x"));
   }
 
-  // Tests typeof expression inferring string type
+  // Tests unary plus and minus operators
   @Test
-  public void testTraverseTypeof_expression_infersStringType() {
-    Node root = parseAndInfer("var t = typeof 123;");
-    Node typeofNode = findFirstNode(root, com.google.javascript.rhino.Token.TYPEOF);
-    assertNotNull(typeofNode);
-    assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), typeofNode.getJSType());
+  public void testTraverseUnaryOps_negationAndPlus_infersNumberType() {
+    inFunction("var a = -'5'; var b = +'5';");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("a"));
+    assertEquals(getNativeType(NUMBER_TYPE), getType("b"));
   }
 
-  // Tests catch block variable type inference
+  // Tests comparison operators
   @Test
-  public void testTraverseCatch_untypedCatchVar_infersUnknownType() {
-    Node root = parseAndInfer("try { throw 'err'; } catch (e) { var x = e; }");
-    Node catchNode = findFirstNode(root, com.google.javascript.rhino.Token.CATCH);
-    assertNotNull(catchNode);
-    Node catchParam = catchNode.getFirstChild();
-    assertNotNull(catchParam);
-    assertEquals(registry.getNativeType(JSTypeNative.UNKNOWN_TYPE), catchParam.getJSType());
+  public void testTraverseComparison_operators_infersBooleanType() {
+    inFunction("var a = 1 < 2; var b = 3 === 4;");
+    assertEquals(getNativeType(BOOLEAN_TYPE), getType("a"));
+    assertEquals(getNativeType(BOOLEAN_TYPE), getType("b"));
   }
 
-  // Tests constructor invocation with new keyword
+  // Tests bitwise and arithmetic operations
   @Test
-  public void testTraverseNew_customConstructor_infersInstanceType() {
-    Node root = parseAndInfer("/** @constructor */ function Foo() {} var f = new Foo();");
-    Node newNode = findFirstNode(root, com.google.javascript.rhino.Token.NEW);
-    assertNotNull(newNode);
-    JSType newType = newNode.getJSType();
-    assertNotNull(newType);
-    assertNotNull(newType.toMaybeObjectType());
+  public void testTraverseBitwiseAndArithmetic_infersNumberType() {
+    inFunction("var a = 1 & 2; var b = 3 * 4; var c = 5 % 2;");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("a"));
+    assertEquals(getNativeType(NUMBER_TYPE), getType("b"));
+    assertEquals(getNativeType(NUMBER_TYPE), getType("c"));
   }
 
-  // Tests function call return type inference
+  // Tests catch block variable typing
   @Test
-  public void testTraverseCall_typedFunction_infersReturnType() {
-    Node root = parseAndInfer("/** @return {string} */ function getStr() { return 'a'; } var s = getStr();");
-    Node callNode = findFirstNode(root, com.google.javascript.rhino.Token.CALL);
-    assertNotNull(callNode);
-    assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), callNode.getJSType());
+  public void testTraverseCatch_untypedCatchParam_infersUnknownType() {
+    inFunction("try {} catch (e) { var x = e; }");
+    assertEquals(getNativeType(UNKNOWN_TYPE), getType("x"));
   }
 
-  // Tests type cast evaluation
+  // Tests property access on declared object
   @Test
-  public void testTraverseCast_explicitTypeCast_infersCastedType() {
-    Node root = parseAndInfer("var x = /** @type {number} */ ('test');");
-    Node castNode = findFirstNode(root, com.google.javascript.rhino.Token.CAST);
-    if (castNode != null) {
-      assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), castNode.getJSType());
-    }
+  public void testTraverseGetProp_propertyAccess_infersDeclaredPropertyType() {
+    inFunction("/** @type {{foo: number}} */ var obj = {foo: 1}; var x = obj.foo;");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("x"));
   }
 
-  // Tests for-in loop variable iteration
+  // Tests comma operator
   @Test
-  public void testBranchedFlowThrough_forInLoop_infersStringPropertyKey() {
-    Node root = parseAndInfer("var obj = {a: 1, b: 2}; for (var k in obj) { var val = k; }");
-    assertNotNull(root);
-    Node forInNode = findFirstNode(root, com.google.javascript.rhino.Token.FOR);
-    assertNotNull(forInNode);
+  public void testTraverseComma_operator_infersLastChildType() {
+    inFunction("var x = (1, 'second');");
+    assertEquals(getNativeType(STRING_TYPE), getType("x"));
+  }
+
+  // Tests logical NOT operator
+  @Test
+  public void testTraverseNot_infersBooleanType() {
+    inFunction("var x = !0; var y = !'hello';");
+    assertEquals(getNativeType(BOOLEAN_TYPE), getType("x"));
+    assertEquals(getNativeType(BOOLEAN_TYPE), getType("y"));
+  }
+
+  // Tests bitwise NOT operator (~)
+  @Test
+  public void testTraverseBitwiseNot_infersNumberType() {
+    inFunction("var x = ~42;");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("x"));
+  }
+
+  // Tests increment and decrement operations (INC and DEC)
+  @Test
+  public void testTraverseIncDec_infersNumberType() {
+    inFunction("var a = 1; var b = a++; var c = ++a; var d = a--; var e = --a;");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("b"));
+    assertEquals(getNativeType(NUMBER_TYPE), getType("c"));
+    assertEquals(getNativeType(NUMBER_TYPE), getType("d"));
+    assertEquals(getNativeType(NUMBER_TYPE), getType("e"));
+  }
+
+  // Tests delete operator (DELPROP)
+  @Test
+  public void testTraverseDelProp_infersBooleanType() {
+    inFunction("var obj = {a: 1}; var x = delete obj.a;");
+    assertEquals(getNativeType(BOOLEAN_TYPE), getType("x"));
+  }
+
+  // Tests instanceof operator
+  @Test
+  public void testTraverseInstanceOf_infersBooleanType() {
+    inFunction("var x = ({}) instanceof Object;");
+    assertEquals(getNativeType(BOOLEAN_TYPE), getType("x"));
+  }
+
+  // Tests in operator
+  @Test
+  public void testTraverseIn_infersBooleanType() {
+    inFunction("var x = 'prop' in {};");
+    assertEquals(getNativeType(BOOLEAN_TYPE), getType("x"));
+  }
+
+  // Tests void operator
+  @Test
+  public void testTraverseVoid_infersVoidType() {
+    inFunction("var x = void 0;");
+    assertEquals(getNativeType(VOID_TYPE), getType("x"));
+  }
+
+  // Tests RegExp literal traversal
+  @Test
+  public void testTraverseRegExp_infersRegExpType() {
+    inFunction("var re = /abc/g;");
+    assertEquals(getNativeType(REGEXP_TYPE), getType("re"));
+  }
+
+  // Tests compound assignment operators (ASSIGN_ADD, ASSIGN_SUB, etc.)
+  @Test
+  public void testTraverseAssignOps_infersEvaluatedType() {
+    inFunction("var x = 1; x += 2; var y = x;" +
+               "var s = 'a'; s += 'b'; var t = s;" +
+               "var num = 10; num *= 2; var res = num;");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("y"));
+    assertEquals(getNativeType(STRING_TYPE), getType("t"));
+    assertEquals(getNativeType(NUMBER_TYPE), getType("res"));
+  }
+
+  // Tests element access (GETELEM) on typed Array
+  @Test
+  public void testTraverseGetElem_arrayAccess_infersElementType() {
+    inFunction("/** @type {Array.<number>} */ var arr = [1, 2]; var x = arr[0];");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("x"));
+  }
+
+  // Tests type refinement through conditional check (null narrowing)
+  @Test
+  public void testTypeRefinement_nullCheck_narrowsType() {
+    inFunction("/** @type {?string} */ var x = null; if (x !== null) { var y = x; }");
+    assertEquals(getNativeType(STRING_TYPE), getType("y"));
+  }
+
+  // Tests type refinement through typeof operator
+  @Test
+  public void testTypeRefinement_typeofCheck_narrowsType() {
+    inFunction("/** @type {number|string} */ var x = 1; if (typeof x === 'string') { var y = x; }");
+    assertEquals(getNativeType(STRING_TYPE), getType("y"));
+  }
+
+  // Tests type refinement through instanceof operator
+  @Test
+  public void testTypeRefinement_instanceofCheck_narrowsType() {
+    inFunction("/** @type {Object} */ var x = {}; if (x instanceof Array) { var y = x; }");
+    assertEquals(getNativeType(ARRAY_TYPE), getType("y"));
+  }
+
+  // Tests function expression inference
+  @Test
+  public void testTraverseFunctionExpression_infersFunctionType() {
+    inFunction("var fn = function(a, b) { return a + b; };");
+    assertNotNull(getType("fn"));
+    assertTrue(getType("fn").isFunctionType());
+  }
+
+  // Tests explicit type casting annotation
+  @Test
+  public void testTraverseCast_infersExplicitType() {
+    inFunction("var x = /** @type {number} */ ('123');");
+    assertEquals(getNativeType(NUMBER_TYPE), getType("x"));
   }
 }

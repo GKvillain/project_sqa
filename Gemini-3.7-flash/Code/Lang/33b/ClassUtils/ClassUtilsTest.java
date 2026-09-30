@@ -1,111 +1,88 @@
 package org.apache.commons.lang3;
 
 import org.junit.Test;
-
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-/**
- * Unit tests for {@link ClassUtils}.
- */
 public class ClassUtilsTest {
 
-    // Tests instantiation of public constructor
+    // Tests constructor public access for JavaBean tools
     @Test
-    public void testConstructor_instantiation_createsInstance() {
+    public void testConstructor_default_canBeInstantiated() {
         assertNotNull(new ClassUtils());
+        Constructor<?>[] cons = ClassUtils.class.getDeclaredConstructors();
+        assertEquals(1, cons.length);
+        assertTrue(Modifier.isPublic(cons[0].getModifiers()));
     }
 
-    // Tests toClass with array containing null element (Defects4J Lang-33 regression)
+    // Tests toClass with array containing null elements (Lang-33 defect)
     @Test
-    public void testToClass_arrayWithNullElement_returnsArrayWithNull() {
-        Object[] array = new Object[] { "Hello", null, Integer.valueOf(1) };
-        Class<?>[] result = ClassUtils.toClass(array);
-        assertNotNull(result);
-        assertEquals(3, result.length);
-        assertEquals(String.class, result[0]);
-        assertNull(result[1]);
-        assertEquals(Integer.class, result[2]);
+    public void testToClass_arrayWithNullElements_returnsArrayWithNull() {
+        Object[] array = new Object[] { "Test", null, 123 };
+        Class<?>[] classes = ClassUtils.toClass(array);
+        assertNotNull(classes);
+        assertEquals(3, classes.length);
+        assertEquals(String.class, classes[0]);
+        assertNull(classes[1]);
+        assertEquals(Integer.class, classes[2]);
     }
 
-    // Tests toClass with null input and empty input
+    // Tests toClass with null and empty array inputs
     @Test
     public void testToClass_nullAndEmptyInput_returnsNullAndEmpty() {
         assertNull(ClassUtils.toClass(null));
         assertArrayEquals(ArrayUtils.EMPTY_CLASS_ARRAY, ClassUtils.toClass(new Object[0]));
     }
 
-    // Tests getShortClassName for Class, Object and String including arrays and inner classes
+    // Tests getShortClassName with various representations
     @Test
-    public void testGetShortClassName_variousInputs_returnsShortNames() {
-        assertEquals("", ClassUtils.getShortClassName((Class<?>) null));
+    public void testGetShortClassName_variousInputs_returnsExpectedShortName() {
         assertEquals("", ClassUtils.getShortClassName((String) null));
         assertEquals("", ClassUtils.getShortClassName(""));
-        assertEquals("null", ClassUtils.getShortClassName((Object) null, "null"));
-        assertEquals("String", ClassUtils.getShortClassName("hello", "null"));
-        assertEquals("ClassUtils", ClassUtils.getShortClassName(ClassUtils.class));
-        assertEquals("ClassUtilsTest.InnerClass", ClassUtils.getShortClassName(InnerClass.class));
+        assertEquals("default", ClassUtils.getShortClassName((Object) null, "default"));
+        assertEquals("String", ClassUtils.getShortClassName("hello", "default"));
+        assertEquals("String", ClassUtils.getShortClassName(String.class));
+        assertEquals("", ClassUtils.getShortClassName((Class<?>) null));
         assertEquals("int[]", ClassUtils.getShortClassName(int[].class));
-        assertEquals("String[]", ClassUtils.getShortClassName(String[].class));
-        assertEquals("int[][]", ClassUtils.getShortClassName("[[I"));
-        assertEquals("String[]", ClassUtils.getShortClassName("[Ljava.lang.String;"));
+        assertEquals("String[][]", ClassUtils.getShortClassName(String[][].class));
+        assertEquals("Map.Entry", ClassUtils.getShortClassName(Map.Entry.class));
+        assertEquals("ClassUtilsTest.InnerClass", ClassUtils.getShortClassName("org.apache.commons.lang3.ClassUtilsTest$InnerClass"));
     }
 
-    // Tests getPackageName for Class, Object and String including array forms
+    // Tests getPackageName with various representations
     @Test
-    public void testGetPackageName_variousInputs_returnsPackageNames() {
-        assertEquals("", ClassUtils.getPackageName((Class<?>) null));
+    public void testGetPackageName_variousInputs_returnsExpectedPackage() {
         assertEquals("", ClassUtils.getPackageName((String) null));
         assertEquals("", ClassUtils.getPackageName(""));
         assertEquals("default", ClassUtils.getPackageName((Object) null, "default"));
         assertEquals("java.lang", ClassUtils.getPackageName("hello", "default"));
-        assertEquals("org.apache.commons.lang3", ClassUtils.getPackageName(ClassUtils.class));
-        assertEquals("java.lang", ClassUtils.getPackageName("[Ljava.lang.String;"));
+        assertEquals("java.lang", ClassUtils.getPackageName(String.class));
+        assertEquals("", ClassUtils.getPackageName((Class<?>) null));
+        assertEquals("java.lang", ClassUtils.getPackageName(String[].class));
         assertEquals("", ClassUtils.getPackageName("UnpackagedClass"));
     }
 
-    // Tests getShortCanonicalName and getPackageCanonicalName
+    // Tests getAllSuperclasses and getAllInterfaces hierarchies
     @Test
-    public void testGetCanonicalNames_variousInputs_returnsCanonicalForms() {
-        assertNull(ClassUtils.getShortCanonicalName((Object) null, null));
-        assertEquals("", ClassUtils.getShortCanonicalName((Class<?>) null));
-        assertEquals("String[]", ClassUtils.getShortCanonicalName("[Ljava.lang.String;"));
-        assertEquals("int[]", ClassUtils.getShortCanonicalName("[I"));
-        assertEquals("", ClassUtils.getPackageCanonicalName((Class<?>) null));
-        assertNull(ClassUtils.getPackageCanonicalName((Object) null, null));
-        assertEquals("java.lang", ClassUtils.getPackageCanonicalName("[Ljava.lang.String;"));
-        assertEquals("", ClassUtils.getPackageCanonicalName("[I"));
-    }
-
-    // Tests getAllSuperclasses with inheritance hierarchy and null
-    @Test
-    public void testGetAllSuperclasses_classHierarchy_returnsSuperclassList() {
+    public void testGetAllSuperclassesAndInterfaces_validClass_returnsHierarchy() {
         assertNull(ClassUtils.getAllSuperclasses(null));
+        assertNull(ClassUtils.getAllInterfaces(null));
+
         List<Class<?>> superclasses = ClassUtils.getAllSuperclasses(ArrayList.class);
         assertTrue(superclasses.contains(java.util.AbstractList.class));
-        assertTrue(superclasses.contains(java.util.AbstractCollection.class));
         assertTrue(superclasses.contains(Object.class));
-        assertFalse(superclasses.contains(ArrayList.class));
-    }
 
-    // Tests getAllInterfaces with inheritance hierarchy and null
-    @Test
-    public void testGetAllInterfaces_classHierarchy_returnsInterfacesList() {
-        assertNull(ClassUtils.getAllInterfaces(null));
         List<Class<?>> interfaces = ClassUtils.getAllInterfaces(ArrayList.class);
         assertTrue(interfaces.contains(List.class));
+        assertTrue(interfaces.contains(java.util.Collection.class));
+        assertTrue(interfaces.contains(Iterable.class));
         assertTrue(interfaces.contains(java.util.RandomAccess.class));
         assertTrue(interfaces.contains(Cloneable.class));
         assertTrue(interfaces.contains(java.io.Serializable.class));
@@ -113,168 +90,176 @@ public class ClassUtilsTest {
 
     // Tests convertClassNamesToClasses and convertClassesToClassNames
     @Test
-    public void testConvertClassNamesAndClasses_validAndInvalidEntries_returnsConvertedList() {
+    public void testConvertClassNamesAndClasses_lists_convertsBothWays() {
         assertNull(ClassUtils.convertClassNamesToClasses(null));
         assertNull(ClassUtils.convertClassesToClassNames(null));
 
-        List<String> names = Arrays.asList("java.lang.String", "non.existent.ClassName", null);
+        List<String> names = new ArrayList<String>();
+        names.add("java.lang.String");
+        names.add("invalid.ClassName");
+        names.add(null);
+
         List<Class<?>> classes = ClassUtils.convertClassNamesToClasses(names);
         assertEquals(3, classes.size());
         assertEquals(String.class, classes.get(0));
         assertNull(classes.get(1));
         assertNull(classes.get(2));
 
-        List<Class<?>> classList = Arrays.<Class<?>>asList(String.class, null, Integer.class);
-        List<String> convertedNames = ClassUtils.convertClassesToClassNames(classList);
+        List<String> convertedNames = ClassUtils.convertClassesToClassNames(classes);
         assertEquals(3, convertedNames.size());
         assertEquals("java.lang.String", convertedNames.get(0));
         assertNull(convertedNames.get(1));
-        assertEquals("java.lang.Integer", convertedNames.get(2));
+        assertNull(convertedNames.get(2));
     }
 
-    // Tests primitiveToWrapper and primitivesToWrappers
+    // Tests primitiveToWrapper and wrapperToPrimitive conversions
     @Test
-    public void testPrimitiveToWrapper_primitivesAndWrappers_returnsWrapperTypes() {
-        assertNull(ClassUtils.primitiveToWrapper(null));
-        assertEquals(Integer.class, ClassUtils.primitiveToWrapper(Integer.TYPE));
+    public void testPrimitiveAndWrapperConversions_allTypes_convertsCorrectly() {
+        assertEquals(Integer.class, ClassUtils.primitiveToWrapper(int.class));
+        assertEquals(Boolean.class, ClassUtils.primitiveToWrapper(boolean.class));
+        assertEquals(Byte.class, ClassUtils.primitiveToWrapper(byte.class));
+        assertEquals(Character.class, ClassUtils.primitiveToWrapper(char.class));
+        assertEquals(Short.class, ClassUtils.primitiveToWrapper(short.class));
+        assertEquals(Long.class, ClassUtils.primitiveToWrapper(long.class));
+        assertEquals(Float.class, ClassUtils.primitiveToWrapper(float.class));
+        assertEquals(Double.class, ClassUtils.primitiveToWrapper(double.class));
         assertEquals(Void.TYPE, ClassUtils.primitiveToWrapper(Void.TYPE));
         assertEquals(String.class, ClassUtils.primitiveToWrapper(String.class));
+        assertNull(ClassUtils.primitiveToWrapper(null));
+
+        assertEquals(int.class, ClassUtils.wrapperToPrimitive(Integer.class));
+        assertEquals(boolean.class, ClassUtils.wrapperToPrimitive(Boolean.class));
+        assertEquals(byte.class, ClassUtils.wrapperToPrimitive(Byte.class));
+        assertEquals(char.class, ClassUtils.wrapperToPrimitive(Character.class));
+        assertEquals(short.class, ClassUtils.wrapperToPrimitive(Short.class));
+        assertEquals(long.class, ClassUtils.wrapperToPrimitive(Long.class));
+        assertEquals(float.class, ClassUtils.wrapperToPrimitive(Float.class));
+        assertEquals(double.class, ClassUtils.wrapperToPrimitive(Double.class));
+        assertNull(ClassUtils.wrapperToPrimitive(Void.class));
+        assertNull(ClassUtils.wrapperToPrimitive(String.class));
+        assertNull(ClassUtils.wrapperToPrimitive(null));
 
         assertNull(ClassUtils.primitivesToWrappers(null));
         assertArrayEquals(new Class<?>[0], ClassUtils.primitivesToWrappers(new Class<?>[0]));
-
-        Class<?>[] primitives = new Class<?>[] { Integer.TYPE, Boolean.TYPE, String.class, null };
-        Class<?>[] wrappers = ClassUtils.primitivesToWrappers(primitives);
+        Class<?>[] prims = new Class<?>[] { int.class, String.class };
+        Class<?>[] wrappers = ClassUtils.primitivesToWrappers(prims);
         assertEquals(Integer.class, wrappers[0]);
-        assertEquals(Boolean.class, wrappers[1]);
-        assertEquals(String.class, wrappers[2]);
-        assertNull(wrappers[3]);
-    }
-
-    // Tests wrapperToPrimitive and wrappersToPrimitives
-    @Test
-    public void testWrapperToPrimitive_wrappersAndPrimitives_returnsPrimitiveTypes() {
-        assertNull(ClassUtils.wrapperToPrimitive(null));
-        assertEquals(Integer.TYPE, ClassUtils.wrapperToPrimitive(Integer.class));
-        assertEquals(Double.TYPE, ClassUtils.wrapperToPrimitive(Double.class));
-        assertNull(ClassUtils.wrapperToPrimitive(String.class));
-        assertNull(ClassUtils.wrapperToPrimitive(Void.TYPE));
+        assertEquals(String.class, wrappers[1]);
 
         assertNull(ClassUtils.wrappersToPrimitives(null));
         assertArrayEquals(new Class<?>[0], ClassUtils.wrappersToPrimitives(new Class<?>[0]));
-
-        Class<?>[] wrappers = new Class<?>[] { Integer.class, Double.class, String.class, null };
-        Class<?>[] primitives = ClassUtils.wrappersToPrimitives(wrappers);
-        assertEquals(Integer.TYPE, primitives[0]);
-        assertEquals(Double.TYPE, primitives[1]);
-        assertNull(primitives[2]);
-        assertNull(primitives[3]);
+        Class<?>[] toPrims = ClassUtils.wrappersToPrimitives(wrappers);
+        assertEquals(int.class, toPrims[0]);
+        assertNull(toPrims[1]);
     }
 
-    // Tests isAssignable with widening conversions for primitives
+    // Tests isAssignable single class widening and autoboxing branches
     @Test
-    public void testIsAssignable_primitiveWidening_returnsTrue() {
-        assertTrue(ClassUtils.isAssignable(Byte.TYPE, Short.TYPE));
-        assertTrue(ClassUtils.isAssignable(Byte.TYPE, Integer.TYPE));
-        assertTrue(ClassUtils.isAssignable(Byte.TYPE, Long.TYPE));
-        assertTrue(ClassUtils.isAssignable(Byte.TYPE, Float.TYPE));
-        assertTrue(ClassUtils.isAssignable(Byte.TYPE, Double.TYPE));
-
-        assertTrue(ClassUtils.isAssignable(Short.TYPE, Integer.TYPE));
-        assertTrue(ClassUtils.isAssignable(Short.TYPE, Long.TYPE));
-        assertTrue(ClassUtils.isAssignable(Short.TYPE, Float.TYPE));
-        assertTrue(ClassUtils.isAssignable(Short.TYPE, Double.TYPE));
-
-        assertTrue(ClassUtils.isAssignable(Character.TYPE, Integer.TYPE));
-        assertTrue(ClassUtils.isAssignable(Character.TYPE, Long.TYPE));
-        assertTrue(ClassUtils.isAssignable(Character.TYPE, Float.TYPE));
-        assertTrue(ClassUtils.isAssignable(Character.TYPE, Double.TYPE));
-
-        assertTrue(ClassUtils.isAssignable(Integer.TYPE, Long.TYPE));
-        assertTrue(ClassUtils.isAssignable(Integer.TYPE, Float.TYPE));
-        assertTrue(ClassUtils.isAssignable(Integer.TYPE, Double.TYPE));
-
-        assertTrue(ClassUtils.isAssignable(Long.TYPE, Float.TYPE));
-        assertTrue(ClassUtils.isAssignable(Long.TYPE, Double.TYPE));
-
-        assertTrue(ClassUtils.isAssignable(Float.TYPE, Double.TYPE));
-
-        assertFalse(ClassUtils.isAssignable(Boolean.TYPE, Integer.TYPE));
-        assertFalse(ClassUtils.isAssignable(Double.TYPE, Float.TYPE));
-    }
-
-    // Tests isAssignable with autoboxing true and false
-    @Test
-    public void testIsAssignable_autoboxing_returnsCorrectResult() {
-        assertTrue(ClassUtils.isAssignable(Integer.TYPE, Integer.class, true));
-        assertTrue(ClassUtils.isAssignable(Integer.class, Integer.TYPE, true));
-        assertFalse(ClassUtils.isAssignable(Integer.TYPE, Integer.class, false));
-        assertFalse(ClassUtils.isAssignable(Integer.class, Integer.TYPE, false));
-    }
-
-    // Tests isAssignable with null checks and class arrays
-    @Test
-    public void testIsAssignable_nullInputsAndClassArrays_returnsExpected() {
+    public void testIsAssignable_primitivesAndWidening_returnsExpected() {
         assertFalse(ClassUtils.isAssignable((Class<?>) null, null));
         assertFalse(ClassUtils.isAssignable(String.class, null));
-        assertTrue(ClassUtils.isAssignable((Class<?>) null, Object.class));
-        assertFalse(ClassUtils.isAssignable((Class<?>) null, Integer.TYPE));
+        assertTrue(ClassUtils.isAssignable(null, Object.class));
+        assertFalse(ClassUtils.isAssignable(null, int.class));
 
-        Class<?>[] from = new Class<?>[] { String.class, Integer.class };
-        Class<?>[] to = new Class<?>[] { Object.class, Number.class };
-        assertTrue(ClassUtils.isAssignable(from, to, false));
+        assertTrue(ClassUtils.isAssignable(String.class, Object.class));
+        assertFalse(ClassUtils.isAssignable(Object.class, String.class));
 
-        Class<?>[] mismatchLen = new Class<?>[] { String.class };
-        assertFalse(ClassUtils.isAssignable(from, mismatchLen, false));
+        // Widening primitives
+        assertTrue(ClassUtils.isAssignable(byte.class, short.class, false));
+        assertTrue(ClassUtils.isAssignable(byte.class, int.class, false));
+        assertTrue(ClassUtils.isAssignable(byte.class, long.class, false));
+        assertTrue(ClassUtils.isAssignable(byte.class, float.class, false));
+        assertTrue(ClassUtils.isAssignable(byte.class, double.class, false));
+        assertFalse(ClassUtils.isAssignable(byte.class, char.class, false));
 
-        assertTrue(ClassUtils.isAssignable((Class<?>[]) null, (Class<?>[]) null));
+        assertTrue(ClassUtils.isAssignable(short.class, int.class, false));
+        assertTrue(ClassUtils.isAssignable(char.class, int.class, false));
+        assertTrue(ClassUtils.isAssignable(int.class, long.class, false));
+        assertTrue(ClassUtils.isAssignable(int.class, float.class, false));
+        assertTrue(ClassUtils.isAssignable(int.class, double.class, false));
+        assertTrue(ClassUtils.isAssignable(long.class, float.class, false));
+        assertTrue(ClassUtils.isAssignable(long.class, double.class, false));
+        assertTrue(ClassUtils.isAssignable(float.class, double.class, false));
+        assertFalse(ClassUtils.isAssignable(boolean.class, int.class, false));
+        assertFalse(ClassUtils.isAssignable(double.class, float.class, false));
+
+        // Autoboxing
+        assertTrue(ClassUtils.isAssignable(int.class, Integer.class, true));
+        assertTrue(ClassUtils.isAssignable(Integer.class, int.class, true));
+        assertTrue(ClassUtils.isAssignable(int.class, Long.class, true));
+        assertFalse(ClassUtils.isAssignable(int.class, Integer.class, false));
     }
 
-    // Tests isInnerClass for inner, top-level classes and null
+    // Tests isAssignable with class arrays
     @Test
-    public void testIsInnerClass_variousClasses_returnsExpected() {
+    public void testIsAssignable_classArrays_returnsExpected() {
+        assertFalse(ClassUtils.isAssignable(new Class<?>[] { String.class }, new Class<?>[] { String.class, Integer.class }));
+        assertTrue(ClassUtils.isAssignable((Class<?>[]) null, (Class<?>[]) null));
+        assertTrue(ClassUtils.isAssignable(new Class<?>[] { Integer.class, String.class }, new Class<?>[] { Number.class, Object.class }));
+        assertFalse(ClassUtils.isAssignable(new Class<?>[] { Object.class }, new Class<?>[] { String.class }));
+    }
+
+    // Tests isInnerClass detection
+    @Test
+    public void testIsInnerClass_topLevelAndNested_returnsCorrectResult() {
         assertFalse(ClassUtils.isInnerClass(null));
         assertFalse(ClassUtils.isInnerClass(String.class));
-        assertTrue(ClassUtils.isInnerClass(InnerClass.class));
         assertTrue(ClassUtils.isInnerClass(Map.Entry.class));
     }
 
-    // Tests getClass with different ClassLoader overloads and primitive/array names
+    // Tests getClass loading mechanism with various formats
     @Test
-    public void testGetClass_primitiveAndArrayNames_loadsExpectedClass() throws ClassNotFoundException {
+    public void testGetClass_validClassNames_returnsLoadedClasses() throws Exception {
         assertEquals(int.class, ClassUtils.getClass("int"));
         assertEquals(int[].class, ClassUtils.getClass("int[]"));
         assertEquals(String[].class, ClassUtils.getClass("java.lang.String[]"));
         assertEquals(String[].class, ClassUtils.getClass("[Ljava.lang.String;"));
         assertEquals(String.class, ClassUtils.getClass(ClassLoader.getSystemClassLoader(), "java.lang.String"));
+        assertEquals(String.class, ClassUtils.getClass("java.lang.String", false));
     }
 
-    // Tests getClass throwing ClassNotFoundException
+    // Tests getClass throws ClassNotFoundException for missing classes
     @Test(expected = ClassNotFoundException.class)
-    public void testGetClass_nonExistentClassName_throwsClassNotFoundException() throws ClassNotFoundException {
-        ClassUtils.getClass("non.existent.ClassName");
+    public void testGetClass_notFound_throwsClassNotFoundException() throws Exception {
+        ClassUtils.getClass("non.existing.ClassName");
     }
 
-    // Tests getPublicMethod on public method and interface/superclass implementation
+    // Tests getPublicMethod lookup for public methods and interfaces
     @Test
-    public void testGetPublicMethod_publicMethodAndInterface_returnsMethod() throws Exception {
+    public void testGetPublicMethod_interfaceAndPublicMethods_returnsInvokableMethod() throws Exception {
         Method method = ClassUtils.getPublicMethod(ArrayList.class, "size", new Class<?>[0]);
         assertNotNull(method);
-        assertTrue(Modifier.isPublic(method.getDeclaringClass().getModifiers()));
+        assertEquals("size", method.getName());
 
-        Method unmodifiableMethod = ClassUtils.getPublicMethod(
-                Collections.unmodifiableList(new ArrayList<String>()).getClass(), "size", new Class<?>[0]);
-        assertNotNull(unmodifiableMethod);
-        assertTrue(Modifier.isPublic(unmodifiableMethod.getDeclaringClass().getModifiers()));
+        Method unmodifiableSetMethod = ClassUtils.getPublicMethod(
+                Collections.unmodifiableSet(Collections.emptySet()).getClass(), "isEmpty", new Class<?>[0]);
+        assertNotNull(unmodifiableSetMethod);
+        assertTrue(Modifier.isPublic(unmodifiableSetMethod.getDeclaringClass().getModifiers()));
     }
 
-    // Tests getPublicMethod throwing NoSuchMethodException
+    // Tests getPublicMethod NoSuchMethodException when method does not exist
     @Test(expected = NoSuchMethodException.class)
-    public void testGetPublicMethod_nonExistentMethod_throwsNoSuchMethodException() throws Exception {
-        ClassUtils.getPublicMethod(String.class, "nonExistentMethodName", new Class<?>[0]);
+    public void testGetPublicMethod_nonExistingMethod_throwsNoSuchMethodException() throws Exception {
+        ClassUtils.getPublicMethod(String.class, "nonExistingMethod", new Class<?>[0]);
     }
 
-    // Static nested class used for inner class testing
-    private static class InnerClass {
+    // Tests getShortCanonicalName and getPackageCanonicalName methods
+    @Test
+    public void testGetCanonicalNameVariants_variousInputs_returnsExpectedNames() {
+        assertEquals("", ClassUtils.getShortCanonicalName((String) null));
+        assertEquals("", ClassUtils.getShortCanonicalName((Class<?>) null));
+        assertEquals("default", ClassUtils.getShortCanonicalName((Object) null, "default"));
+        assertEquals("String", ClassUtils.getShortCanonicalName("hello", "default"));
+        assertEquals("int[]", ClassUtils.getShortCanonicalName("[I"));
+        assertEquals("String[]", ClassUtils.getShortCanonicalName("[Ljava.lang.String;"));
+        assertEquals("String[][]", ClassUtils.getShortCanonicalName("[[Ljava.lang.String;"));
+
+        assertEquals("", ClassUtils.getPackageCanonicalName((String) null));
+        assertEquals("", ClassUtils.getPackageCanonicalName((Class<?>) null));
+        assertEquals("default", ClassUtils.getPackageCanonicalName((Object) null, "default"));
+        assertEquals("java.lang", ClassUtils.getPackageCanonicalName("hello", "default"));
+        assertEquals("", ClassUtils.getPackageCanonicalName("[I"));
+        assertEquals("java.lang", ClassUtils.getPackageCanonicalName("[Ljava.lang.String;"));
+        assertEquals("java.lang", ClassUtils.getPackageCanonicalName(String[].class));
     }
 }

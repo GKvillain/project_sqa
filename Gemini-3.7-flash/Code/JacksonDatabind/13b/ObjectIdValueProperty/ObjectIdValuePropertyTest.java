@@ -8,12 +8,10 @@ import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import com.fasterxml.jackson.annotation.ObjectIdGenerator;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import com.fasterxml.jackson.annotation.ObjectIdResolver;
 import com.fasterxml.jackson.annotation.SimpleObjectIdResolver;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -21,164 +19,179 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyMetadata;
 import com.fasterxml.jackson.databind.PropertyName;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
-import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class ObjectIdValuePropertyTest {
 
+    private ObjectMapper mapper;
+    private JavaType stringType;
+    private JsonDeserializer<Object> stringDeserializer;
+    private ObjectIdReader defaultObjectIdReader;
+
     @Retention(RetentionPolicy.RUNTIME)
-    private @interface TestAnnotation {}
-
-    private ObjectMapper _objectMapper;
-    private JavaType _idType;
-    private PropertyName _propertyName;
-    private ObjectIdGenerator<?> _generator;
-    private ObjectIdResolver _resolver;
-    private JsonDeserializer<Object> _deserializer;
-
-    @Before
-    public void setUp() {
-        _objectMapper = new ObjectMapper();
-        _idType = TypeFactory.defaultInstance().constructType(String.class);
-        _propertyName = new PropertyName("id");
-        _generator = new ObjectIdGenerators.IntSequenceGenerator();
-        _resolver = new SimpleObjectIdResolver();
-        _deserializer = new JsonDeserializer<Object>() {
-            @Override
-            public Object deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-                return p.getText();
-            }
-        };
+    private @interface DummyAnnotation {
     }
 
-    // Tests constructor initialization and basic property accessors
+    static class SimpleModel {
+        public String id;
+        public String name;
+    }
+
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    static class IdentifiedModel {
+        public String id;
+        public String name;
+
+        public IdentifiedModel() {}
+
+        public IdentifiedModel(String id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+    }
+
+    @Before
+    @SuppressWarnings("unchecked")
+    public void setUp() throws Exception {
+        mapper = new ObjectMapper();
+        stringType = mapper.constructType(String.class);
+        stringDeserializer = (JsonDeserializer<Object>) mapper.getDeserializationConfig()
+                .findRootValueDeserializer(stringType);
+        defaultObjectIdReader = ObjectIdReader.construct(
+                stringType,
+                new PropertyName("id"),
+                new ObjectIdGenerators.IntSequenceGenerator(),
+                stringDeserializer,
+                null,
+                new SimpleObjectIdResolver()
+        );
+    }
+
+    // Tests constructor initialization and metadata retrieval
     @Test
-    public void testConstructor_validReader_initializesCorrectly() {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_REQUIRED);
+    public void testConstructor_validReaderAndMetadata_initializedProperly() {
+        ObjectIdValueProperty prop = new ObjectIdValueProperty(defaultObjectIdReader, PropertyMetadata.STD_REQUIRED);
 
         assertEquals("id", prop.getName());
-        assertEquals(_idType, prop.getType());
         assertEquals(PropertyMetadata.STD_REQUIRED, prop.getMetadata());
-        assertNull(prop.getAnnotation(TestAnnotation.class));
+        assertEquals(stringType, prop.getType());
+        assertSame(stringDeserializer, prop.getValueDeserializer());
+        assertSame(defaultObjectIdReader, prop._objectIdReader);
+    }
+
+    // Tests getAnnotation always returns null
+    @Test
+    public void testGetAnnotation_anyAnnotationClass_returnsNull() {
+        ObjectIdValueProperty prop = new ObjectIdValueProperty(defaultObjectIdReader, PropertyMetadata.STD_REQUIRED);
+
+        assertNull(prop.getAnnotation(DummyAnnotation.class));
+        assertNull(prop.getAnnotation(Override.class));
+    }
+
+    // Tests getMember always returns null
+    @Test
+    public void testGetMember_noMemberAssociated_returnsNull() {
+        ObjectIdValueProperty prop = new ObjectIdValueProperty(defaultObjectIdReader, PropertyMetadata.STD_OPTIONAL);
+
         assertNull(prop.getMember());
     }
 
-    // Tests withName method returns a new instance with updated property name
+    // Tests withName creates a new copy with the updated PropertyName
     @Test
-    public void testWithName_newPropertyName_returnsUpdatedInstance() {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_OPTIONAL);
-
+    public void testWithName_newPropertyName_returnsNewInstanceWithNewName() {
+        ObjectIdValueProperty prop = new ObjectIdValueProperty(defaultObjectIdReader, PropertyMetadata.STD_REQUIRED);
         PropertyName newName = new PropertyName("customId");
-        ObjectIdValueProperty updated = prop.withName(newName);
 
-        assertNotNull(updated);
-        assertNotSame(prop, updated);
-        assertEquals("customId", updated.getName());
+        ObjectIdValueProperty renamedProp = prop.withName(newName);
+
+        assertNotNull(renamedProp);
+        assertNotSame(prop, renamedProp);
+        assertEquals("customId", renamedProp.getName());
+        assertSame(defaultObjectIdReader, renamedProp._objectIdReader);
     }
 
-    // Tests withName method with same name
+    // Tests withValueDeserializer creates a new copy with updated deserializer
     @Test
-    public void testWithName_samePropertyName_returnsUpdatedInstance() {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_OPTIONAL);
-
-        ObjectIdValueProperty updated = prop.withName(_propertyName);
-
-        assertNotNull(updated);
-        assertEquals("id", updated.getName());
-    }
-
-    // Tests withValueDeserializer returns a new instance with updated deserializer
-    @Test
-    public void testWithValueDeserializer_newDeserializer_returnsUpdatedInstance() {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_OPTIONAL);
-
-        JsonDeserializer<Object> newDeser = new JsonDeserializer<Object>() {
+    public void testWithValueDeserializer_differentDeserializer_returnsNewInstanceWithDeserializer() {
+        ObjectIdValueProperty prop = new ObjectIdValueProperty(defaultObjectIdReader, PropertyMetadata.STD_REQUIRED);
+        JsonDeserializer<?> dummyDeser = new JsonDeserializer<Object>() {
             @Override
             public Object deserialize(JsonParser p, DeserializationContext ctxt) {
-                return "custom";
+                return "dummy";
             }
         };
 
-        ObjectIdValueProperty updated = prop.withValueDeserializer(newDeser);
+        ObjectIdValueProperty updatedProp = prop.withValueDeserializer(dummyDeser);
 
-        assertNotNull(updated);
-        assertNotSame(prop, updated);
-        assertSame(newDeser, updated.getValueDeserializer());
+        assertNotNull(updatedProp);
+        assertNotSame(prop, updatedProp);
+        assertSame(dummyDeser, updatedProp.getValueDeserializer());
+        assertSame(defaultObjectIdReader, updatedProp._objectIdReader);
     }
 
-    // Tests set method throws UnsupportedOperationException when idProperty is null
+    // Tests set throws UnsupportedOperationException when idProperty is null
     @Test(expected = UnsupportedOperationException.class)
     public void testSet_noIdProperty_throwsUnsupportedOperationException() throws IOException {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_OPTIONAL);
-
-        prop.set(new Object(), "someValue");
+        ObjectIdValueProperty prop = new ObjectIdValueProperty(defaultObjectIdReader, PropertyMetadata.STD_REQUIRED);
+        prop.set(new Object(), "test-id");
     }
 
     // Tests setAndReturn throws UnsupportedOperationException when idProperty is null
     @Test(expected = UnsupportedOperationException.class)
     public void testSetAndReturn_noIdProperty_throwsUnsupportedOperationException() throws IOException {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_OPTIONAL);
-
-        prop.setAndReturn(new Object(), "someValue");
+        ObjectIdValueProperty prop = new ObjectIdValueProperty(defaultObjectIdReader, PropertyMetadata.STD_REQUIRED);
+        prop.setAndReturn(new Object(), "test-id");
     }
 
-    // Tests deserializeSetAndReturn without underlying SettableBeanProperty idProperty
+    // Tests deserializeAndSet and deserializeSetAndReturn without underlying idProperty
     @Test
-    public void testDeserializeSetAndReturn_withoutIdProperty_bindsAndReturnsInstance() throws IOException {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_OPTIONAL);
-
-        JsonParser parser = _objectMapper.getFactory().createParser("\"123\"");
+    public void testDeserializeSetAndReturn_noIdProperty_bindsIdAndReturnsInstance() throws Exception {
+        ObjectIdValueProperty prop = new ObjectIdValueProperty(defaultObjectIdReader, PropertyMetadata.STD_REQUIRED);
+        JsonParser parser = mapper.getFactory().createParser("\"12345\"");
         parser.nextToken();
-        DeserializationContext ctxt = _objectMapper.getDeserializationContext();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
 
-        Object instance = new Object();
+        SimpleModel instance = new SimpleModel();
         Object result = prop.deserializeSetAndReturn(parser, ctxt, instance);
 
         assertSame(instance, result);
+        assertNull(instance.id);
         parser.close();
     }
 
-    // Tests deserializeAndSet executes without throwing exception when idProperty is null
+    // Tests deserializeAndSet execution path
     @Test
-    public void testDeserializeAndSet_withoutIdProperty_successfullyExecutes() throws IOException {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_OPTIONAL);
-
-        JsonParser parser = _objectMapper.getFactory().createParser("\"456\"");
+    public void testDeserializeAndSet_validParser_executesWithoutException() throws Exception {
+        ObjectIdValueProperty prop = new ObjectIdValueProperty(defaultObjectIdReader, PropertyMetadata.STD_REQUIRED);
+        JsonParser parser = mapper.getFactory().createParser("\"id-999\"");
         parser.nextToken();
-        DeserializationContext ctxt = _objectMapper.getDeserializationContext();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
 
-        Object instance = new Object();
+        SimpleModel instance = new SimpleModel();
         prop.deserializeAndSet(parser, ctxt, instance);
 
+        assertNull(instance.id);
         parser.close();
     }
 
-    // Tests deprecated String constructor
-    @SuppressWarnings("deprecation")
+    // Tests deserialization of object with @JsonIdentityInfo end-to-end
     @Test
-    public void testDeprecatedConstructor_stringName_createsInstance() {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_OPTIONAL);
+    public void testDeserialize_identifiedObject_resolvesObjectId() throws Exception {
+        String json = "{\"id\":\"abc\",\"name\":\"testObject\"}";
+        IdentifiedModel result = mapper.readValue(json, IdentifiedModel.class);
 
-        ObjectIdValueProperty copy = new ObjectIdValueProperty(prop, "renamed");
-        assertEquals("renamed", copy.getName());
+        assertNotNull(result);
+        assertEquals("abc", result.id);
+        assertEquals("testObject", result.name);
     }
 
-    // Tests deprecated PropertyName constructor
-    @SuppressWarnings("deprecation")
+    // Tests deserialization when ObjectId is null in JSON payload
     @Test
-    public void testDeprecatedConstructor_propertyName_createsInstance() {
-        ObjectIdReader reader = ObjectIdReader.construct(_idType, _propertyName, _generator, _deserializer, null, _resolver);
-        ObjectIdValueProperty prop = new ObjectIdValueProperty(reader, PropertyMetadata.STD_OPTIONAL);
+    public void testDeserialize_nullObjectId_handlesGracefully() throws Exception {
+        String json = "{\"id\":null,\"name\":\"nullIdObject\"}";
+        IdentifiedModel result = mapper.readValue(json, IdentifiedModel.class);
 
-        ObjectIdValueProperty copy = new ObjectIdValueProperty(prop, new PropertyName("renamedProp"));
-        assertEquals("renamedProp", copy.getName());
+        assertNotNull(result);
+        assertNull(result.id);
+        assertEquals("nullIdObject", result.name);
     }
 }

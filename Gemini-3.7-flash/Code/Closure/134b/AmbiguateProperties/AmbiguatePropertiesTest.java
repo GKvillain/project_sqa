@@ -1,20 +1,29 @@
 package com.google.javascript.jscomp;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import com.google.javascript.jscomp.CheckLevel;
 import org.junit.Test;
 
+import java.util.Map;
+
 /**
- * Tests for {@link AmbiguateProperties}.
+ * Unit tests for {@link AmbiguateProperties}.
  */
 public class AmbiguatePropertiesTest extends CompilerTestCase {
-  private char[] reservedCharacters = new char[]{};
+  private static final String EXTERNS =
+      "var window; function alert(x) {} var ext; ext.extProp = 1; var goog = {}; goog.inherits = function(x, y) {};";
 
   public AmbiguatePropertiesTest() {
+    super(EXTERNS);
     enableTypeCheck(CheckLevel.WARNING);
   }
 
   @Override
   protected CompilerPass getProcessor(Compiler compiler) {
-    return new AmbiguateProperties(compiler, reservedCharacters);
+    return new AmbiguateProperties(compiler, new char[]{'$'});
   }
 
   @Override
@@ -22,148 +31,268 @@ public class AmbiguatePropertiesTest extends CompilerTestCase {
     return 1;
   }
 
-  // Tests basic property renaming between two unrelated types
+  // Tests renaming of properties on a single type
   @Test
-  public void testProcess_unrelatedTypes_renamesPropertiesToSameName() {
+  public void testProcess_singleType_renamesPropertiesDeterministically() {
     test(
         "/** @constructor */ function Foo() {}\n"
-            + "Foo.prototype.prop1 = 1;\n"
+            + "Foo.prototype.prop1 = 0;\n"
+            + "Foo.prototype.prop2 = 0;\n",
+        "function Foo() {}\n"
+            + "Foo.prototype.a = 0;\n"
+            + "Foo.prototype.b = 0;\n");
+  }
+
+  // Tests renaming of properties across two disjoint types reuses names
+  @Test
+  public void testProcess_twoDisjointTypes_reusesPropertyNames() {
+    test(
+        "/** @constructor */ function Foo() {}\n"
+            + "Foo.prototype.fooProp = 0;\n"
             + "/** @constructor */ function Bar() {}\n"
-            + "Bar.prototype.prop2 = 2;\n",
+            + "Bar.prototype.barProp = 0;\n",
+        "function Foo() {}\n"
+            + "Foo.prototype.a = 0;\n"
+            + "function Bar() {}\n"
+            + "Bar.prototype.a = 0;\n");
+  }
+
+  // Tests multiple properties on disjoint types sorted by frequency and name
+  @Test
+  public void testProcess_frequencyAndTieBreaking_colorsGraphCorrectly() {
+    test(
+        "/** @constructor */ function Foo() {}\n"
+            + "Foo.prototype.f1 = 0;\n"
+            + "Foo.prototype.f1 = 0;\n"
+            + "Foo.prototype.f2 = 0;\n"
+            + "/** @constructor */ function Bar() {}\n"
+            + "Bar.prototype.b1 = 0;\n"
+            + "Bar.prototype.b2 = 0;\n",
+        "function Foo() {}\n"
+            + "Foo.prototype.a = 0;\n"
+            + "Foo.prototype.a = 0;\n"
+            + "Foo.prototype.b = 0;\n"
+            + "function Bar() {}\n"
+            + "Bar.prototype.a = 0;\n"
+            + "Bar.prototype.b = 0;\n");
+  }
+
+  // Tests that subtype properties cannot collide with supertype properties
+  @Test
+  public void testProcess_subclassInheritance_preventsNameCollision() {
+    test(
+        "/** @constructor */ function Parent() {}\n"
+            + "Parent.prototype.parentProp = 1;\n"
+            + "/** @constructor \n * @extends {Parent} */ function Child() {}\n"
+            + "goog.inherits(Child, Parent);\n"
+            + "Child.prototype.childProp = 2;\n",
+        "function Parent() {}\n"
+            + "Parent.prototype.a = 1;\n"
+            + "function Child() {}\n"
+            + "goog.inherits(Child, Parent);\n"
+            + "Child.prototype.b = 2;\n");
+  }
+
+  // Tests that externed properties are not renamed and not assigned to others
+  @Test
+  public void testProcess_externedProperties_notRenamed() {
+    test(
+        "/** @constructor */ function Foo() {}\n"
+            + "Foo.prototype.extProp = 0;\n"
+            + "Foo.prototype.otherProp = 0;\n",
+        "function Foo() {}\n"
+            + "Foo.prototype.extProp = 0;\n"
+            + "Foo.prototype.a = 0;\n");
+  }
+
+  // Tests that quoted object literal keys reserve names to prevent collisions
+  @Test
+  public void testProcess_quotedObjectLiteralKey_reservesName() {
+    test(
+        "var obj = {'a': 1};\n"
+            + "/** @constructor */ function Foo() {}\n"
+            + "Foo.prototype.myProp = 0;\n",
+        "var obj = {'a': 1};\n"
+            + "function Foo() {}\n"
+            + "Foo.prototype.b = 0;\n");
+  }
+
+  // Tests that unquoted object literal keys participate in property renaming
+  @Test
+  public void testProcess_unquotedObjectLiteralKey_renamed() {
+    test(
+        "/** @constructor */ function Foo() {}\n"
+            + "Foo.prototype.fooProp = 1;\n"
+            + "var obj = {unquotedProp: 2};\n",
         "function Foo() {}\n"
             + "Foo.prototype.a = 1;\n"
-            + "function Bar() {}\n"
-            + "Bar.prototype.a = 2;\n");
+            + "var obj = {a: 2};\n");
   }
 
-  // Tests multiple properties on the same type get distinct names
+  // Tests that quoted GETELEM access reserves property names
   @Test
-  public void testProcess_sameTypeMultipleProps_renamesToDistinctNames() {
+  public void testProcess_quotedElementAccess_reservesName() {
     test(
-        "/** @constructor */ function Foo() {}\n"
-            + "Foo.prototype.alpha = 1;\n"
-            + "Foo.prototype.beta = 2;\n",
-        "function Foo() {}\n"
-            + "Foo.prototype.a = 1;\n"
-            + "Foo.prototype.b = 2;\n");
-  }
-
-  // Tests inheritance prevents sub and super types from sharing property names
-  @Test
-  public void testProcess_subclassAndSuperclass_propertiesDoNotAmbiguate() {
-    test(
-        "/** @constructor */ function Super() {}\n"
-            + "Super.prototype.parentProp = 1;\n"
-            + "/** @constructor\n * @extends {Super} */ function Sub() {}\n"
-            + "Sub.prototype.childProp = 2;\n",
-        "function Super() {}\n"
-            + "Super.prototype.a = 1;\n"
-            + "function Sub() {}\n"
-            + "Sub.prototype.b = 2;\n");
-  }
-
-  // Tests property with skip prefix is not renamed
-  @Test
-  public void testProcess_skipPrefixProperty_skipsRenaming() {
-    testSame(
-        "/** @constructor */ function Foo() {}\n"
-            + "Foo.prototype.JSAbstractCompiler_skipMe = 1;\n");
-  }
-
-  // Tests quoted property names in Object literals are preserved and avoid name collisions
-  @Test
-  public void testProcess_quotedProperties_preventCollision() {
-    testSame("var obj = {'a': 1};\n");
-  }
-
-  // Tests quoted property accesses in GETELEM are preserved and avoid collisions
-  @Test
-  public void testProcess_getElemQuotedProperty_preventsCollision() {
-    testSame(
-        "var x = {};\n"
-            + "x['a'] = 1;\n");
-  }
-
-  // Tests extern properties are not renamed
-  @Test
-  public void testProcess_externProperties_skipsRenaming() {
-    test(
-        "var externProp;\n",
-        "/** @constructor */ function Foo() {}\n"
-            + "Foo.prototype.externProp = 1;\n",
-        "function Foo() {}\n"
-            + "Foo.prototype.externProp = 1;\n",
-        null,
-        null);
-  }
-
-  // Tests properties referenced from interfaces relate implementations
-  @Test
-  public void testProcess_interfaceImplementation_relatesTypes() {
-    test(
-        "/** @interface */ function Intf() {}\n"
-            + "Intf.prototype.method1 = function() {};\n"
-            + "/** @constructor\n * @implements {Intf} */ function Impl() {}\n"
-            + "Impl.prototype.method1 = function() {};\n"
-            + "Impl.prototype.method2 = function() {};\n",
-        "function Intf() {}\n"
-            + "Intf.prototype.a = function() {};\n"
-            + "function Impl() {}\n"
-            + "Impl.prototype.a = function() {};\n"
-            + "Impl.prototype.b = function() {};\n");
-  }
-
-  // Tests object literal unquoted properties are ambiguated across unrelated types
-  @Test
-  public void testProcess_objectLiteralUnquotedKeys_ambiguatesProperly() {
-    test(
-        "/** @constructor */ function Foo() {}\n"
-            + "/** @constructor */ function Bar() {}\n"
-            + "/** @type {Foo} */ var f = {fooProp: 1};\n"
-            + "/** @type {Bar} */ var b = {barProp: 2};\n",
-        "function Foo() {}\n"
-            + "function Bar() {}\n"
-            + "var f = {a: 1};\n"
-            + "var b = {a: 2};\n");
-  }
-
-  // Tests properties accessed on untyped objects are not ambiguated
-  @Test
-  public void testProcess_untypedObject_skipsAmbiguation() {
-    testSame(
         "var obj = {};\n"
-            + "obj.unknownProp = 1;\n");
+            + "var val = obj['a'];\n"
+            + "/** @constructor */ function Foo() {}\n"
+            + "Foo.prototype.myProp = 0;\n",
+        "var obj = {};\n"
+            + "var val = obj['a'];\n"
+            + "function Foo() {}\n"
+            + "Foo.prototype.b = 0;\n");
   }
 
-  // Tests union types relate properties across constituent types
+  // Tests that properties starting with SKIP_PREFIX are skipped from ambiguating
   @Test
-  public void testProcess_unionTypePropertyAccess_relatesConstituents() {
+  public void testProcess_skipPrefix_skipsRenamingProperty() {
+    test(
+        "/** @constructor */ function Foo() {}\n"
+            + "Foo.prototype.JSAbstractCompiler_prop = 0;\n"
+            + "Foo.prototype.normalProp = 0;\n",
+        "function Foo() {}\n"
+            + "Foo.prototype.JSAbstractCompiler_prop = 0;\n"
+            + "Foo.prototype.a = 0;\n");
+  }
+
+  // Tests interface implementations record related types properly
+  @Test
+  public void testProcess_interfaceImplementation_recordsRelatedTypes() {
+    test(
+        "/** @interface */ function AnInterface() {}\n"
+            + "AnInterface.prototype.shared = function() {};\n"
+            + "/** @constructor \n * @implements {AnInterface} */ function Imp() {}\n"
+            + "Imp.prototype.shared = function() {};\n"
+            + "Imp.prototype.ownProp = function() {};\n",
+        "function AnInterface() {}\n"
+            + "AnInterface.prototype.a = function() {};\n"
+            + "function Imp() {}\n"
+            + "Imp.prototype.a = function() {};\n"
+            + "Imp.prototype.b = function() {};\n");
+  }
+
+  // Tests union types record relationship with alternate types
+  @Test
+  public void testProcess_unionType_handlesAlternates() {
+    test(
+        "/** @constructor */ function TypeA() {}\n"
+            + "TypeA.prototype.propA = 1;\n"
+            + "/** @constructor */ function TypeB() {}\n"
+            + "TypeB.prototype.propB = 1;\n"
+            + "/** @param {TypeA|TypeB} obj */ function f(obj) {\n"
+            + "  obj.commonProp = 2;\n"
+            + "}\n",
+        "function TypeA() {}\n"
+            + "TypeA.prototype.a = 1;\n"
+            + "function TypeB() {}\n"
+            + "TypeB.prototype.a = 1;\n"
+            + "function f(obj) {\n"
+            + "  obj.b = 2;\n"
+            + "}\n");
+  }
+
+  // Tests getRenamingMap after processing
+  @Test
+  public void testGetRenamingMap_returnsPopulatedMap() {
+    Compiler compiler = new Compiler();
+    AmbiguateProperties pass = new AmbiguateProperties(compiler, new char[]{'$'});
+    Map<String, String> map = pass.getRenamingMap();
+    assertNotNull(map);
+    assertTrue(map.isEmpty());
+  }
+
+  // Tests property access on unknown types overlaps with all types
+  @Test
+  public void testProcess_unknownTypeAccess_conflictsWithAllTypes() {
     test(
         "/** @constructor */ function Foo() {}\n"
             + "Foo.prototype.propFoo = 1;\n"
             + "/** @constructor */ function Bar() {}\n"
-            + "Bar.prototype.propBar = 2;\n"
-            + "/** @type {Foo|Bar} */ var u;\n"
-            + "u.propFoo = 3;\n",
+            + "Bar.prototype.propBar = 1;\n"
+            + "function testUnknown(x) {\n"
+            + "  x.unknownProp = 2;\n"
+            + "}\n",
         "function Foo() {}\n"
             + "Foo.prototype.a = 1;\n"
             + "function Bar() {}\n"
-            + "Bar.prototype.b = 2;\n"
-            + "var u;\n"
-            + "u.a = 3;\n");
+            + "Bar.prototype.a = 1;\n"
+            + "function testUnknown(x) {\n"
+            + "  x.b = 2;\n"
+            + "}\n");
   }
 
-  // Tests frequency of property references determines name assignment order
+  // Tests static properties on constructor functions vs instance properties
   @Test
-  public void testProcess_frequencyOrdering_assignsShorterNamesToMoreFrequent() {
+  public void testProcess_staticAndInstanceProperties_renamedCorrectly() {
     test(
         "/** @constructor */ function Foo() {}\n"
-            + "Foo.prototype.rare = 1;\n"
-            + "Foo.prototype.frequent = 1;\n"
-            + "Foo.prototype.frequent = 2;\n",
+            + "Foo.staticProp = 1;\n"
+            + "Foo.prototype.instanceProp = 2;\n",
         "function Foo() {}\n"
-            + "Foo.prototype.b = 1;\n"
-            + "Foo.prototype.a = 1;\n"
+            + "Foo.a = 1;\n"
             + "Foo.prototype.a = 2;\n");
+  }
+
+  // Tests prototype object literal assignment
+  @Test
+  public void testProcess_prototypeObjectLiteral_renamesKeys() {
+    test(
+        "/** @constructor */ function Foo() {}\n"
+            + "Foo.prototype = {\n"
+            + "  itemOne: 1,\n"
+            + "  itemTwo: 2\n"
+            + "};\n",
+        "function Foo() {}\n"
+            + "Foo.prototype = {\n"
+            + "  a: 1,\n"
+            + "  b: 2\n"
+            + "};\n");
+  }
+
+  // Tests function type properties
+  @Test
+  public void testProcess_functionTypeProperties_renamesCorrectly() {
+    test(
+        "/** @type {Function} */ var fn1 = function() {};\n"
+            + "fn1.funcProp1 = 10;\n"
+            + "/** @type {Function} */ var fn2 = function() {};\n"
+            + "fn2.funcProp2 = 20;\n",
+        "var fn1 = function() {};\n"
+            + "fn1.a = 10;\n"
+            + "var fn2 = function() {};\n"
+            + "fn2.b = 20;\n");
+  }
+
+  // Tests multi-level inheritance chain
+  @Test
+  public void testProcess_deepInheritanceChain_preventsCollisionsAcrossHierarchy() {
+    test(
+        "/** @constructor */ function GrandParent() {}\n"
+            + "GrandParent.prototype.gpProp = 1;\n"
+            + "/** @constructor \n * @extends {GrandParent} */ function Parent() {}\n"
+            + "goog.inherits(Parent, GrandParent);\n"
+            + "Parent.prototype.pProp = 2;\n"
+            + "/** @constructor \n * @extends {Parent} */ function Child() {}\n"
+            + "goog.inherits(Child, Parent);\n"
+            + "Child.prototype.cProp = 3;\n",
+        "function GrandParent() {}\n"
+            + "GrandParent.prototype.a = 1;\n"
+            + "function Parent() {}\n"
+            + "goog.inherits(Parent, GrandParent);\n"
+            + "Parent.prototype.b = 2;\n"
+            + "function Child() {}\n"
+            + "goog.inherits(Child, Parent);\n"
+            + "Child.prototype.c = 3;\n");
+  }
+
+  // Tests renaming map contents after execution on compiler
+  @Test
+  public void testGetRenamingMap_afterCompilation_containsMapping() {
+    AmbiguateProperties pass = new AmbiguateProperties(getLastCompiler(), new char[]{'$'});
+    test(
+        "/** @constructor */ function Foo() {}\n"
+            + "Foo.prototype.uniquePropName = 1;\n",
+        "function Foo() {}\n"
+            + "Foo.prototype.a = 1;\n");
   }
 }

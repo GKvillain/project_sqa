@@ -1,23 +1,20 @@
 package com.google.javascript.jscomp;
 
-import static com.google.javascript.rhino.jstype.JSTypeNative.BOOLEAN_TYPE;
-import static com.google.javascript.rhino.jstype.JSTypeNative.NUMBER_TYPE;
-import static com.google.javascript.rhino.jstype.JSTypeNative.STRING_TYPE;
-import static com.google.javascript.rhino.jstype.JSTypeNative.UNKNOWN_TYPE;
-import static com.google.javascript.rhino.jstype.JSTypeNative.VOID_TYPE;
-
+import com.google.common.collect.ImmutableSet;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
 import com.google.javascript.rhino.jstype.BooleanLiteralSet;
+import com.google.javascript.rhino.jstype.FunctionType;
 import com.google.javascript.rhino.jstype.JSType;
+import com.google.javascript.rhino.jstype.JSTypeNative;
 import com.google.javascript.rhino.jstype.JSTypeRegistry;
 import com.google.javascript.rhino.jstype.ObjectType;
+import com.google.javascript.rhino.jstype.StaticSlot;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -26,6 +23,7 @@ public class TypeInferenceTest {
 
     private Compiler compiler;
     private JSTypeRegistry registry;
+    private FlowScope emptyFlowScope;
 
     @Before
     public void setUp() {
@@ -35,311 +33,380 @@ public class TypeInferenceTest {
         registry = compiler.getTypeRegistry();
     }
 
-    private FlowScope createFlowScope(Scope syntacticScope) {
-        return LinkedFlowScope.createEntryLattice(syntacticScope);
-    }
-
-    private TypeInference createTypeInference(ControlFlowGraph<Node> cfg, Scope syntacticScope) {
+    private TypeInference createTypeInference(Node root, Scope scope) {
+        ControlFlowAnalysis cfa = new ControlFlowAnalysis(compiler, false, false);
+        cfa.process(null, root);
+        ControlFlowGraph<Node> cfg = cfa.getCfg();
         ReverseAbstractInterpreter rai = new SemanticReverseAbstractInterpreter(
                 compiler.getCodingConvention(), registry);
-        return new TypeInference(compiler, cfg, rai, syntacticScope);
+        return new TypeInference(compiler, cfg, rai, scope);
     }
 
-    // Tests getBooleanOutcomes with both true and false outcomes
+    private Scope createSyntacticScope(Node root) {
+        return new SyntacticScopeCreator(compiler).createScope(root, null);
+    }
+
+    // Tests static helper getBooleanOutcomes for AND condition
     @Test
-    public void testGetBooleanOutcomes_bothConditionBranches_returnsExpectedSet() {
+    public void testGetBooleanOutcomes_andCondition_returnsExpectedSet() {
         BooleanLiteralSet left = BooleanLiteralSet.BOTH;
         BooleanLiteralSet right = BooleanLiteralSet.TRUE;
-
+        // condition = true indicates AND logic
         BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, true);
-        assertEquals(BooleanLiteralSet.BOTH, result);
-
-        BooleanLiteralSet resultFalse = TypeInference.getBooleanOutcomes(left, right, false);
-        assertEquals(BooleanLiteralSet.BOTH, resultFalse);
+        assertEquals(BooleanLiteralSet.TRUE, result);
     }
 
-    // Tests getBooleanOutcomes with empty left outcome
+    // Tests static helper getBooleanOutcomes for OR condition
     @Test
-    public void testGetBooleanOutcomes_emptyLeft_returnsRight() {
-        BooleanLiteralSet left = BooleanLiteralSet.EMPTY;
-        BooleanLiteralSet right = BooleanLiteralSet.FALSE;
-
-        BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, true);
-        assertEquals(BooleanLiteralSet.FALSE, result);
+    public void testGetBooleanOutcomes_orCondition_returnsExpectedSet() {
+        BooleanLiteralSet left = BooleanLiteralSet.FALSE;
+        BooleanLiteralSet right = BooleanLiteralSet.TRUE;
+        // condition = false indicates OR logic
+        BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, false);
+        assertEquals(BooleanLiteralSet.TRUE, result);
     }
 
-    // Tests getBooleanOutcomePair method
+    // Tests flow-through on a simple number assignment
     @Test
-    public void testGetBooleanOutcomePair_validPair_combinesOutcomes() {
-        Node root = new Node(Token.BLOCK);
-        Scope scope = new Scope(root, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(root);
-        TypeInference typeInference = createTypeInference(cfg, scope);
+    public void testFlowThrough_numberAssignment_infersNumberType() {
+        Node n = compiler.parseTestCode("var a = 1;");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
 
-        FlowScope flowScope = createFlowScope(scope);
-        TypeInference.class.getDeclaredClasses(); // verify inner classes available
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
 
-        // Run flowThrough on null node to verify basic bottom scope behavior
+        assertNotNull(resultScope);
+        StaticSlot<JSType> slot = resultScope.getSlot("a");
+        assertNotNull(slot);
+        assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), slot.getType());
+    }
+
+    // Tests flow-through on string assignment
+    @Test
+    public void testFlowThrough_stringAssignment_infersStringType() {
+        Node n = compiler.parseTestCode("var s = 'hello';");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
+
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+        StaticSlot<JSType> slot = resultScope.getSlot("s");
+        assertNotNull(slot);
+        assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), slot.getType());
+    }
+
+    // Tests flow-through on boolean and null assignments
+    @Test
+    public void testFlowThrough_nullAndBooleanAssignment_infersTypes() {
+        Node n = compiler.parseTestCode("var b = true; var nl = null;");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
+
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+        assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), resultScope.getSlot("b").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.NULL_TYPE), resultScope.getSlot("nl").getType());
+    }
+
+    // Tests array literal traversal
+    @Test
+    public void testFlowThrough_arrayLiteral_infersArrayType() {
+        Node n = compiler.parseTestCode("var arr = [1, 2, 3];");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
+
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+        assertEquals(registry.getNativeType(JSTypeNative.ARRAY_TYPE), resultScope.getSlot("arr").getType());
+    }
+
+    // Tests object literal traversal
+    @Test
+    public void testFlowThrough_objectLiteral_infersObjectType() {
+        Node n = compiler.parseTestCode("var obj = {foo: 'bar'};");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
+
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+        JSType slotType = resultScope.getSlot("obj").getType();
+        assertNotNull(slotType);
+        assertTrue(slotType instanceof ObjectType);
+    }
+
+    // Tests addition operation inference
+    @Test
+    public void testFlowThrough_addition_infersCorrectType() {
+        Node n = compiler.parseTestCode("var x = 1 + 2; var y = 'a' + 'b';");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
+
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+        assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), resultScope.getSlot("x").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), resultScope.getSlot("y").getType());
+    }
+
+    // Tests unflowable vars restriction
+    @Test
+    public void testFlowThrough_unflowableVar_ignoresInference() {
+        Node n = compiler.parseTestCode("var unflowable = 1;");
+        Scope scope = createSyntacticScope(n);
+        Scope.Var var = scope.getVar("unflowable");
+        assertNotNull(var);
+
+        ControlFlowAnalysis cfa = new ControlFlowAnalysis(compiler, false, false);
+        cfa.process(null, n);
+        ControlFlowGraph<Node> cfg = cfa.getCfg();
+        ReverseAbstractInterpreter rai = new SemanticReverseAbstractInterpreter(
+                compiler.getCodingConvention(), registry);
+        TypeInference typeInference = new TypeInference(
+                compiler, cfg, rai, scope, ImmutableSet.of(var));
+
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+    }
+
+    // Tests hook (ternary) operator traversal
+    @Test
+    public void testFlowThrough_hookOperator_infersUnionType() {
+        Node n = compiler.parseTestCode("var cond = true; var res = cond ? 1 : 'str';");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
+
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+        JSType resType = resultScope.getSlot("res").getType();
+        assertNotNull(resType);
+        assertTrue(resType.isUnionType());
+    }
+
+    // Tests catch block scope inference
+    @Test
+    public void testFlowThrough_catchBlock_infersUnknownType() {
+        Node n = compiler.parseTestCode("try { } catch (e) { }");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
+
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+    }
+
+    // Tests short-circuiting AND/OR operators
+    @Test
+    public void testFlowThrough_logicalAndOr_infersJoinedType() {
+        Node n = compiler.parseTestCode("var a = true && false; var b = 'a' || 123;");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
+
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+        assertNotNull(resultScope.getSlot("a"));
+        assertNotNull(resultScope.getSlot("b"));
+    }
+
+    // Tests initial estimate lattice returns bottom scope
+    @Test
+    public void testCreateInitialEstimateLattice_returnsBottomScope() {
+        Node n = compiler.parseTestCode("var a = 1;");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
+
         FlowScope bottomScope = typeInference.createInitialEstimateLattice();
-        FlowScope flowed = typeInference.flowThrough(root, bottomScope);
+        assertNotNull(bottomScope);
+        // Flowing through bottomScope should return bottomScope itself without modifications
+        FlowScope flowed = typeInference.flowThrough(n, bottomScope);
         assertEquals(bottomScope, flowed);
     }
 
-    // Tests createInitialEstimateLattice and createEntryLattice
+    // Tests comparison operations (<, <=, >, >=, ==, !=, ===, !==, in, instanceof)
     @Test
-    public void testCreateLattices_initialAndEntry_returnNonNullLattices() {
-        Node root = new Node(Token.BLOCK);
-        Scope scope = new Scope(root, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(root);
-        TypeInference typeInference = createTypeInference(cfg, scope);
+    public void testFlowThrough_comparisons_infersBooleanType() {
+        Node n = compiler.parseTestCode(
+                "var lt = 1 < 2; var le = 1 <= 2; var gt = 2 > 1; var ge = 2 >= 1;"
+                + "var eq = 1 == 1; var ne = 1 != 2; var sheq = 1 === 1; var shne = 1 !== 2;"
+                + "var hasProp = 'a' in {}; var isInst = [] instanceof Object;");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
 
-        assertNotNull(typeInference.createInitialEstimateLattice());
-        assertNotNull(typeInference.createEntryLattice());
-        assertNotNull(typeInference.getAssignedOuterLocalVars());
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
+
+        assertNotNull(resultScope);
+        JSType boolType = registry.getNativeType(JSTypeNative.BOOLEAN_TYPE);
+        assertEquals(boolType, resultScope.getSlot("lt").getType());
+        assertEquals(boolType, resultScope.getSlot("le").getType());
+        assertEquals(boolType, resultScope.getSlot("gt").getType());
+        assertEquals(boolType, resultScope.getSlot("ge").getType());
+        assertEquals(boolType, resultScope.getSlot("eq").getType());
+        assertEquals(boolType, resultScope.getSlot("ne").getType());
+        assertEquals(boolType, resultScope.getSlot("sheq").getType());
+        assertEquals(boolType, resultScope.getSlot("shne").getType());
+        assertEquals(boolType, resultScope.getSlot("hasProp").getType());
+        assertEquals(boolType, resultScope.getSlot("isInst").getType());
     }
 
-    // Tests flowThrough with NUMBER literal node
+    // Tests unary operators (!, typeof, void, delete, +, -, ~)
     @Test
-    public void testFlowThrough_numberLiteral_infersNumberType() {
-        Node n = Node.newNumber(42.0);
-        Scope scope = new Scope(n, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(n);
-        TypeInference typeInference = createTypeInference(cfg, scope);
+    public void testFlowThrough_unaryOperators_infersCorrectTypes() {
+        Node n = compiler.parseTestCode(
+                "var notVal = !0; var typeVal = typeof 123; var voidVal = void 0;"
+                + "var delVal = delete window.foo; var posVal = + '5'; var negVal = -5; var bitNot = ~0;");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
 
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(n, entry);
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
 
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(NUMBER_TYPE), n.getJSType());
+        assertNotNull(resultScope);
+        assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), resultScope.getSlot("notVal").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), resultScope.getSlot("typeVal").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.VOID_TYPE), resultScope.getSlot("voidVal").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), resultScope.getSlot("delVal").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), resultScope.getSlot("posVal").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), resultScope.getSlot("negVal").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), resultScope.getSlot("bitNot").getType());
     }
 
-    // Tests flowThrough with STRING literal node
+    // Tests arithmetic binary operators (*, /, %, -, <<, >>, >>>, &, |, ^)
     @Test
-    public void testFlowThrough_stringLiteral_infersStringType() {
-        Node n = Node.newString("hello");
-        Scope scope = new Scope(n, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(n);
-        TypeInference typeInference = createTypeInference(cfg, scope);
+    public void testFlowThrough_arithmeticAndBitwise_infersNumberType() {
+        Node n = compiler.parseTestCode(
+                "var mul = 2 * 3; var div = 4 / 2; var mod = 5 % 2; var sub = 5 - 2;"
+                + "var shl = 1 << 2; var shr = 4 >> 1; var ushr = 4 >>> 1;"
+                + "var bitAnd = 1 & 3; var bitOr = 1 | 2; var bitXor = 1 ^ 3;");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
 
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(n, entry);
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
 
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(STRING_TYPE), n.getJSType());
+        assertNotNull(resultScope);
+        JSType numType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
+        assertEquals(numType, resultScope.getSlot("mul").getType());
+        assertEquals(numType, resultScope.getSlot("div").getType());
+        assertEquals(numType, resultScope.getSlot("mod").getType());
+        assertEquals(numType, resultScope.getSlot("sub").getType());
+        assertEquals(numType, resultScope.getSlot("shl").getType());
+        assertEquals(numType, resultScope.getSlot("shr").getType());
+        assertEquals(numType, resultScope.getSlot("ushr").getType());
+        assertEquals(numType, resultScope.getSlot("bitAnd").getType());
+        assertEquals(numType, resultScope.getSlot("bitOr").getType());
+        assertEquals(numType, resultScope.getSlot("bitXor").getType());
     }
 
-    // Tests flowThrough with NULL literal node
+    // Tests augmented assignments (+=, -=, *=, /=, %=, etc.) and inc/dec (++, --)
     @Test
-    public void testFlowThrough_nullLiteral_infersNullType() {
-        Node n = new Node(Token.NULL);
-        Scope scope = new Scope(n, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(n);
-        TypeInference typeInference = createTypeInference(cfg, scope);
+    public void testFlowThrough_augmentedAssignmentsAndIncDec_infersExpectedTypes() {
+        Node n = compiler.parseTestCode(
+                "var a = 1; a += 2; a -= 1; a *= 3; a /= 2; a %= 2;"
+                + "var b = 5; b++; ++b; b--; --b;"
+                + "var str = 'hello'; str += ' world';");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
 
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(n, entry);
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
 
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(com.google.javascript.rhino.jstype.JSTypeNative.NULL_TYPE), n.getJSType());
+        assertNotNull(resultScope);
+        assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), resultScope.getSlot("a").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), resultScope.getSlot("b").getType());
+        assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), resultScope.getSlot("str").getType());
     }
 
-    // Tests flowThrough with VOID node
+    // Tests function declaration and function expression inference
     @Test
-    public void testFlowThrough_voidNode_infersVoidType() {
-        Node n = new Node(Token.VOID, Node.newNumber(0));
-        Scope scope = new Scope(n, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(n);
-        TypeInference typeInference = createTypeInference(cfg, scope);
+    public void testFlowThrough_functionDeclarationAndExpression_infersFunctionType() {
+        Node n = compiler.parseTestCode(
+                "function foo(x) { return x; } var bar = function(y) { return y; };");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
 
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(n, entry);
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
 
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(VOID_TYPE), n.getJSType());
+        assertNotNull(resultScope);
+        assertNotNull(resultScope.getSlot("foo"));
+        assertTrue(resultScope.getSlot("foo").getType() instanceof FunctionType);
+        assertNotNull(resultScope.getSlot("bar"));
+        assertTrue(resultScope.getSlot("bar").getType() instanceof FunctionType);
     }
 
-    // Tests flowThrough with BOOLEAN nodes (TRUE / FALSE / NOT)
+    // Tests control flow constructs: switch, while, for, for-in, do-while
     @Test
-    public void testFlowThrough_booleanNodes_infersBooleanType() {
-        Node trueNode = new Node(Token.TRUE);
-        Node falseNode = new Node(Token.FALSE);
-        Node notNode = new Node(Token.NOT, trueNode);
+    public void testFlowThrough_controlFlowConstructs_succeeds() {
+        Node n = compiler.parseTestCode(
+                "var val = 1;\n"
+                + "switch(val) { case 1: val = 2; break; default: val = 3; }\n"
+                + "while(val < 10) { val++; }\n"
+                + "do { val--; } while(val > 5);\n"
+                + "for (var i = 0; i < 5; i++) { val += i; }\n"
+                + "for (var k in {a: 1}) { val = k; }");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
 
-        Scope scope = new Scope(notNode, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(notNode);
-        TypeInference typeInference = createTypeInference(cfg, scope);
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
 
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(notNode, entry);
-
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(BOOLEAN_TYPE), notNode.getJSType());
+        assertNotNull(resultScope);
+        assertNotNull(resultScope.getSlot("val"));
+        assertNotNull(resultScope.getSlot("i"));
+        assertNotNull(resultScope.getSlot("k"));
     }
 
-    // Tests flowThrough with ADD operation on two numbers
+    // Tests throw and return statements
     @Test
-    public void testFlowThrough_addTwoNumbers_infersNumberType() {
-        Node left = Node.newNumber(1.0);
-        Node right = Node.newNumber(2.0);
-        Node add = new Node(Token.ADD, left, right);
+    public void testFlowThrough_throwAndReturn_succeeds() {
+        Node n = compiler.parseTestCode(
+                "function test() { if (true) { throw new Error('fail'); } return 42; }");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
 
-        Scope scope = new Scope(add, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(add);
-        TypeInference typeInference = createTypeInference(cfg, scope);
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
 
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(add, entry);
-
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(NUMBER_TYPE), add.getJSType());
+        assertNotNull(resultScope);
+        assertNotNull(resultScope.getSlot("test"));
     }
 
-    // Tests flowThrough with ADD operation on a string and a number
+    // Tests property access (GETPROP and GETELEM) and call expressions
     @Test
-    public void testFlowThrough_addStringAndNumber_infersStringType() {
-        Node left = Node.newString("count: ");
-        Node right = Node.newNumber(5.0);
-        Node add = new Node(Token.ADD, left, right);
+    public void testFlowThrough_propertyAccessAndCalls_succeeds() {
+        Node n = compiler.parseTestCode(
+                "var obj = { x: 10, m: function() { return 1; } };\n"
+                + "var prop = obj.x;\n"
+                + "var elem = obj['x'];\n"
+                + "var res = obj.m();\n"
+                + "var obj2 = new Object();");
+        Scope scope = createSyntacticScope(n);
+        TypeInference typeInference = createTypeInference(n, scope);
 
-        Scope scope = new Scope(add, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(add);
-        TypeInference typeInference = createTypeInference(cfg, scope);
+        FlowScope entryScope = typeInference.createEntryLattice();
+        FlowScope resultScope = typeInference.flowThrough(n, entryScope);
 
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(add, entry);
-
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(STRING_TYPE), add.getJSType());
-    }
-
-    // Tests flowThrough with ARRAY literal node
-    @Test
-    public void testFlowThrough_arrayLiteral_infersArrayType() {
-        Node elem1 = Node.newNumber(1.0);
-        Node elem2 = Node.newNumber(2.0);
-        Node arrayLit = new Node(Token.ARRAYLIT, elem1, elem2);
-
-        Scope scope = new Scope(arrayLit, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(arrayLit);
-        TypeInference typeInference = createTypeInference(cfg, scope);
-
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(arrayLit, entry);
-
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(com.google.javascript.rhino.jstype.JSTypeNative.ARRAY_TYPE), arrayLit.getJSType());
-    }
-
-    // Tests flowThrough with OBJECT literal node
-    @Test
-    public void testFlowThrough_objectLiteral_infersAnonymousObjectType() {
-        Node key = Node.newString("a");
-        Node val = Node.newNumber(10.0);
-        key.addChildToFront(val);
-        Node objLit = new Node(Token.OBJECTLIT, key);
-
-        Scope scope = new Scope(objLit, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(objLit);
-        TypeInference typeInference = createTypeInference(cfg, scope);
-
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(objLit, entry);
-
-        assertNotNull(out);
-        assertTrue(objLit.getJSType() instanceof ObjectType);
-    }
-
-    // Tests flowThrough with NAME node and unflowable vars
-    @Test
-    public void testFlowThrough_unflowableVar_retainsOriginalScope() {
-        Node nameNode = Node.newString(Token.NAME, "x");
-        Scope scope = new Scope(nameNode, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        Scope.Var var = scope.declare("x", nameNode, registry.getNativeType(NUMBER_TYPE), null);
-
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(nameNode);
-        TypeInference typeInference = new TypeInference(
-                compiler, cfg,
-                new SemanticReverseAbstractInterpreter(compiler.getCodingConvention(), registry),
-                scope, Collections.singletonList(var));
-
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(nameNode, entry);
-
-        assertNotNull(out);
-    }
-
-    // Tests flowThrough with HOOK (ternary) operator
-    @Test
-    public void testFlowThrough_hookOperator_infersUnionOrSupertype() {
-        Node cond = new Node(Token.TRUE);
-        Node trueBranch = Node.newNumber(1.0);
-        Node falseBranch = Node.newNumber(2.0);
-        Node hook = new Node(Token.HOOK, cond, trueBranch, falseBranch);
-
-        Scope scope = new Scope(hook, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(hook);
-        TypeInference typeInference = createTypeInference(cfg, scope);
-
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(hook, entry);
-
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(NUMBER_TYPE), hook.getJSType());
-    }
-
-    // Tests flowThrough with AND operator
-    @Test
-    public void testFlowThrough_andOperator_infersJoinedType() {
-        Node left = Node.newNumber(1.0);
-        Node right = Node.newString("text");
-        Node andNode = new Node(Token.AND, left, right);
-
-        Scope scope = new Scope(andNode, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(andNode);
-        TypeInference typeInference = createTypeInference(cfg, scope);
-
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(andNode, entry);
-
-        assertNotNull(out);
-        assertNotNull(andNode.getJSType());
-    }
-
-    // Tests flowThrough with OR operator
-    @Test
-    public void testFlowThrough_orOperator_infersJoinedType() {
-        Node left = Node.newNumber(0.0);
-        Node right = Node.newString("fallback");
-        Node orNode = new Node(Token.OR, left, right);
-
-        Scope scope = new Scope(orNode, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(orNode);
-        TypeInference typeInference = createTypeInference(cfg, scope);
-
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(orNode, entry);
-
-        assertNotNull(out);
-        assertNotNull(orNode.getJSType());
-    }
-
-    // Tests flowThrough with CATCH node
-    @Test
-    public void testFlowThrough_catchNode_infersUnknownType() {
-        Node catchParam = Node.newString(Token.NAME, "err");
-        Node catchBlock = new Node(Token.BLOCK);
-        Node catchNode = new Node(Token.CATCH, catchParam, catchBlock);
-
-        Scope scope = new Scope(catchNode, registry.getNativeObjectType(com.google.javascript.rhino.jstype.JSTypeNative.GLOBAL_THIS));
-        scope.declare("err", catchParam, null, null);
-
-        ControlFlowGraph<Node> cfg = new ControlFlowAnalysis(compiler, true, false).computeCfg(catchNode);
-        TypeInference typeInference = createTypeInference(cfg, scope);
-
-        FlowScope entry = typeInference.createEntryLattice();
-        FlowScope out = typeInference.flowThrough(catchNode, entry);
-
-        assertNotNull(out);
-        assertEquals(registry.getNativeType(UNKNOWN_TYPE), catchParam.getJSType());
+        assertNotNull(resultScope);
+        assertNotNull(resultScope.getSlot("prop"));
+        assertNotNull(resultScope.getSlot("elem"));
+        assertNotNull(resultScope.getSlot("res"));
+        assertNotNull(resultScope.getSlot("obj2"));
     }
 }

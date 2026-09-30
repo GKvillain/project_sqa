@@ -1,29 +1,24 @@
 package org.mockito.internal;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-
+import java.util.Collections;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import org.mockito.exceptions.base.MockitoException;
-import org.mockito.exceptions.misusing.UnfinishedStubbingException;
 import org.mockito.internal.creation.MockSettingsImpl;
 import org.mockito.internal.invocation.Invocation;
 import org.mockito.internal.invocation.InvocationBuilder;
-import org.mockito.internal.invocation.InvocationMatcher;
-import org.mockito.internal.progress.MockingProgress;
-import org.mockito.internal.stubbing.InvocationContainer;
-import org.mockito.internal.stubbing.StubbedInvocationMatcher;
+import org.mockito.internal.progress.ThreadSafeMockingProgress;
 import org.mockito.internal.stubbing.answers.Returns;
-import org.mockito.internal.verification.VerificationDataImpl;
+import org.mockito.internal.stubbing.answers.ThrowsException;
+import org.mockito.internal.verification.MockAwareVerificationMode;
 import org.mockito.internal.verification.VerificationModeFactory;
-import org.mockito.invocation.InvocationOnMock;
+import org.mockito.listeners.InvocationListener;
+import org.mockito.listeners.MethodInvocationReport;
 import org.mockito.stubbing.Answer;
 import org.mockito.stubbing.VoidMethodStubbable;
-import org.mockito.verification.VerificationMode;
 
 public class MockHandlerTest {
 
@@ -32,159 +27,202 @@ public class MockHandlerTest {
 
     @Before
     public void setUp() {
+        new ThreadSafeMockingProgress().reset();
         mockSettings = new MockSettingsImpl();
         mockHandler = new MockHandler<Object>(mockSettings);
     }
 
-    // Tests default constructor initializes internal fields correctly
+    @After
+    public void tearDown() {
+        new ThreadSafeMockingProgress().reset();
+    }
+
+    // Tests default constructor initializes mockSettings and invocationContainer
     @Test
-    public void testDefaultConstructor_initializesProperly() {
+    public void testConstructor_default_initializesNonNullState() {
         MockHandler<Object> handler = new MockHandler<Object>();
         assertNotNull(handler.getMockSettings());
         assertNotNull(handler.getInvocationContainer());
     }
 
-    // Tests constructor with MockSettings initializes properly
+    // Tests constructor with specific MockSettingsImpl
     @Test
-    public void testConstructor_withMockSettings_initializesProperly() {
-        MockSettingsImpl settings = new MockSettingsImpl();
-        MockHandler<Object> handler = new MockHandler<Object>(settings);
-        assertSame(settings, handler.getMockSettings());
-        assertNotNull(handler.getInvocationContainer());
+    public void testConstructor_withMockSettings_setsSameSettings() {
+        MockSettingsImpl customSettings = new MockSettingsImpl();
+        MockHandler<Object> handler = new MockHandler<Object>(customSettings);
+        assertSame(customSettings, handler.getMockSettings());
     }
 
-    // Tests constructor with old MockHandler copies mock settings
+    // Tests constructor copying settings from old MockHandler
     @Test
     public void testConstructor_withOldMockHandler_copiesSettings() {
-        MockHandler<Object> handler = new MockHandler<Object>(mockHandler);
-        assertSame(mockSettings, handler.getMockSettings());
-        assertNotNull(handler.getInvocationContainer());
+        MockHandler<Object> copyHandler = new MockHandler<Object>(mockHandler);
+        assertSame(mockHandler.getMockSettings(), copyHandler.getMockSettings());
     }
 
-    // Tests getMockSettings returns current settings
+    // Tests handle method with unstubbed invocation returning default answer
     @Test
-    public void testGetMockSettings_returnsSettingsInstance() {
-        assertSame(mockSettings, mockHandler.getMockSettings());
+    public void testHandle_unstubbedInvocation_returnsDefaultAnswer() throws Throwable {
+        Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
+        Object result = mockHandler.handle(invocation);
+        assertNull(result);
     }
 
-    // Tests getInvocationContainer returns valid invocation container
+    // Tests handle when answers for stubbing are queued (first call sets method for stubbing)
     @Test
-    public void testGetInvocationContainer_returnsNonNullContainer() {
-        InvocationContainer container = mockHandler.getInvocationContainer();
-        assertNotNull(container);
+    public void testHandle_hasAnswersForStubbing_returnsNullOnFirstCall() throws Throwable {
+        mockHandler.setAnswersForStubbing(Collections.<Answer>singletonList(new Returns("stubbedValue")));
+        Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
+        
+        Object firstResult = mockHandler.handle(invocation);
+        assertNull(firstResult);
+
+        Object secondResult = mockHandler.handle(invocation);
+        assertEquals("stubbedValue", secondResult);
+    }
+
+    // Tests handle returning stubbed answer on matching invocation
+    @Test
+    public void testHandle_stubbedInvocation_returnsConfiguredValue() throws Throwable {
+        Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
+        mockHandler.setAnswersForStubbing(Collections.<Answer>singletonList(new Returns("expectedResult")));
+        
+        mockHandler.handle(invocation);
+        Object result = mockHandler.handle(invocation);
+        assertEquals("expectedResult", result);
+    }
+
+    // Tests handle re-throwing exception when stubbed with ThrowsException
+    @Test(expected = IllegalArgumentException.class)
+    public void testHandle_stubbedWithException_throwsConfiguredException() throws Throwable {
+        Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
+        mockHandler.setAnswersForStubbing(Collections.<Answer>singletonList(new ThrowsException(new IllegalArgumentException())));
+        
+        mockHandler.handle(invocation);
+        mockHandler.handle(invocation);
+    }
+
+    // Tests handle when verification mode is set on the current mock
+    @Test
+    public void testHandle_withVerificationMode_verifiesAndReturnsNull() throws Throwable {
+        Invocation invocation = new InvocationBuilder().mock("mockObject").method("simpleMethod").toInvocation();
+        mockHandler.handle(invocation);
+
+        mockHandler.mockingProgress.verificationStarted(VerificationModeFactory.times(1));
+        Object result = mockHandler.handle(invocation);
+        assertNull(result);
+    }
+
+    // Tests defect scenario: handle should not verify if verification mode belongs to a different mock
+    @Test
+    public void testHandle_verificationModeForDifferentMock_doesNotConsumeVerificationOnCurrentMock() throws Throwable {
+        Object mockA = "mockA";
+        Object mockB = "mockB";
+
+        MockAwareVerificationMode verificationMode = new MockAwareVerificationMode(mockA, VerificationModeFactory.times(1));
+        mockHandler.mockingProgress.verificationStarted(verificationMode);
+
+        Invocation invocationB = new InvocationBuilder().mock(mockB).method("simpleMethod").toInvocation();
+        mockHandler.handle(invocationB);
+
+        // Verification mode for mockA should still be preserved in mocking progress
+        assertNotNull(mockHandler.mockingProgress.pullVerificationMode());
     }
 
     // Tests voidMethodStubbable returns a non-null VoidMethodStubbable instance
     @Test
-    public void testVoidMethodStubbable_returnsStubbableInstance() {
-        Object mock = new Object();
-        VoidMethodStubbable<Object> stubbable = mockHandler.voidMethodStubbable(mock);
+    public void testVoidMethodStubbable_validMock_returnsNonNull() {
+        VoidMethodStubbable<Object> stubbable = mockHandler.voidMethodStubbable("testMock");
         assertNotNull(stubbable);
     }
 
-    // Tests handle method returns default answer when invocation is unstubbed
+    // Tests getInvocationContainer returns non-null container
     @Test
-    public void testHandle_unstubbedInvocation_returnsDefaultAnswer() throws Throwable {
-        mockSettings.defaultAnswer(new Returns("default_value"));
+    public void testGetInvocationContainer_returnsNonNullContainer() {
+        assertNotNull(mockHandler.getInvocationContainer());
+    }
+
+    // Tests getMockSettings returns configured mock settings
+    @Test
+    public void testGetMockSettings_returnsConfiguredSettings() {
+        assertEquals(mockSettings, mockHandler.getMockSettings());
+    }
+
+    // Tests handle method with custom default answer configured in mock settings
+    @Test
+    public void testHandle_customDefaultAnswer_returnsConfiguredDefault() throws Throwable {
+        mockSettings.defaultAnswer(new Returns("customDefault"));
         MockHandler<Object> handler = new MockHandler<Object>(mockSettings);
-
         Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
+        
         Object result = handler.handle(invocation);
-
-        assertEquals("default_value", result);
+        assertEquals("customDefault", result);
     }
 
-    // Tests handle method when answers for stubbing are queued (doAnswer / doReturn style)
+    // Tests handle with multiple consecutive answers for stubbing
     @Test
-    public void testHandle_hasAnswersForStubbing_stubsMethodAndReturnsNull() throws Throwable {
-        List<Answer> answers = new ArrayList<Answer>();
-        answers.add(new Returns("stubbed_via_doAnswer"));
-        mockHandler.setAnswersForStubbing(answers);
-
+    public void testHandle_consecutiveAnswers_returnsAnswersInSequence() throws Throwable {
+        mockHandler.setAnswersForStubbing(Arrays.<Answer>asList(new Returns("first"), new Returns("second")));
         Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
-        Object firstCallResult = mockHandler.handle(invocation);
-        assertNull(firstCallResult);
 
-        // After stubbing is registered, the next regular invocation should return the stubbed value
-        Object secondCallResult = mockHandler.handle(invocation);
-        assertEquals("stubbed_via_doAnswer", secondCallResult);
+        mockHandler.handle(invocation); // register stubbing
+        assertEquals("first", mockHandler.handle(invocation));
+        assertEquals("second", mockHandler.handle(invocation));
+        assertEquals("second", mockHandler.handle(invocation));
     }
 
-    // Tests handle method when stubbed answer exists for invocation
+    // Tests invocation listener notification on successful handle
     @Test
-    public void testHandle_stubbedInvocation_returnsStubbedValue() throws Throwable {
-        Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
-        InvocationMatcher matcher = new InvocationMatcher(invocation);
-        StubbedInvocationMatcher stubbedInvocationMatcher = new StubbedInvocationMatcher(matcher, new Returns("stubbed_value"));
-        mockHandler.invocationContainerImpl.setMethodForStubbing(matcher);
-        mockHandler.invocationContainerImpl.addAnswer(new Returns("stubbed_value"));
-
-        Object result = mockHandler.handle(invocation);
-        assertEquals("stubbed_value", result);
-    }
-
-    // Tests handle method executes verification when verification mode is set
-    @Test
-    public void testHandle_withVerificationMode_performsVerificationAndReturnsNull() throws Throwable {
-        final boolean[] verified = new boolean[]{false};
-        VerificationMode verificationMode = new VerificationMode() {
-            public void verify(org.mockito.internal.verification.api.VerificationData data) {
-                verified[0] = true;
+    public void testHandle_withInvocationListener_notifiesListenerOnSuccess() throws Throwable {
+        final boolean[] listenerCalled = new boolean[]{false};
+        InvocationListener listener = new InvocationListener() {
+            public void reportInvocation(MethodInvocationReport methodInvocationReport) {
+                listenerCalled[0] = true;
+                assertNotNull(methodInvocationReport.getInvocation());
+                assertEquals("returnedValue", methodInvocationReport.getReturnedValue());
+                assertNull(methodInvocationReport.getThrowable());
             }
         };
 
-        mockHandler.mockingProgress.verificationStarted(verificationMode);
-        Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
-
-        Object result = mockHandler.handle(invocation);
-        assertNull(result);
-        assertTrue(verified[0]);
-    }
-
-    // Tests setAnswersForStubbing properly passes answers to invocationContainer
-    @Test
-    public void testSetAnswersForStubbing_delegatesToInvocationContainer() {
-        List<Answer> answers = Arrays.<Answer>asList(new Returns("val1"), new Returns("val2"));
-        mockHandler.setAnswersForStubbing(answers);
-        assertTrue(mockHandler.invocationContainerImpl.hasAnswersForStubbing());
-    }
-
-    // Tests handle method validates state and throws exception if state is invalid
-    @Test(expected = MockitoException.class)
-    public void testHandle_invalidMockingProgressState_throwsException() throws Throwable {
-        mockHandler.mockingProgress.stubbingStarted();
-        mockHandler.mockingProgress.stubbingStarted();
-
-        Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
-        mockHandler.handle(invocation);
-    }
-
-    // Tests handle captures arguments when stubbed invocation has argument matchers
-    @Test
-    public void testHandle_stubbedInvocationWithArguments_capturesArgumentsCorrectly() throws Throwable {
-        Invocation stubInvocation = new InvocationBuilder().method("differentMethod").args("inputArg").toInvocation();
-        InvocationMatcher matcher = new InvocationMatcher(stubInvocation);
-        mockHandler.invocationContainerImpl.setMethodForStubbing(matcher);
-        mockHandler.invocationContainerImpl.addAnswer(new Answer<Object>() {
-            public Object answer(InvocationOnMock invocation) {
-                return invocation.getArguments()[0] + "_processed";
-            }
-        });
-
-        Invocation callInvocation = new InvocationBuilder().method("differentMethod").args("inputArg").toInvocation();
-        Object result = mockHandler.handle(callInvocation);
-        assertEquals("inputArg_processed", result);
-    }
-
-    // Tests resetInvocationForPotentialStubbing after unstubbed invocation handles nested calls
-    @Test
-    public void testHandle_unstubbedInvocation_resetsInvocationForPotentialStubbing() throws Throwable {
-        mockSettings.defaultAnswer(new Returns(null));
+        mockSettings.invocationListeners(listener);
         MockHandler<Object> handler = new MockHandler<Object>(mockSettings);
+        handler.setAnswersForStubbing(Collections.<Answer>singletonList(new Returns("returnedValue")));
+        
+        Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
+        handler.handle(invocation); // register stubbing
+        listenerCalled[0] = false; // reset after registration invocation
 
-        Invocation invocation1 = new InvocationBuilder().method("simpleMethod").seq(1).toInvocation();
-        handler.handle(invocation1);
+        Object result = handler.handle(invocation);
+        assertEquals("returnedValue", result);
+        assertTrue(listenerCalled[0]);
+    }
 
-        assertNotNull(handler.getInvocationContainer());
+    // Tests invocation listener notification when invocation throws exception
+    @Test
+    public void testHandle_withInvocationListener_notifiesListenerOnException() throws Throwable {
+        final boolean[] listenerCalled = new boolean[]{false};
+        final RuntimeException expectedException = new RuntimeException("boom");
+        InvocationListener listener = new InvocationListener() {
+            public void reportInvocation(MethodInvocationReport methodInvocationReport) {
+                listenerCalled[0] = true;
+                assertSame(expectedException, methodInvocationReport.getThrowable());
+            }
+        };
+
+        mockSettings.invocationListeners(listener);
+        MockHandler<Object> handler = new MockHandler<Object>(mockSettings);
+        handler.setAnswersForStubbing(Collections.<Answer>singletonList(new ThrowsException(expectedException)));
+        
+        Invocation invocation = new InvocationBuilder().method("simpleMethod").toInvocation();
+        handler.handle(invocation); // register stubbing
+        listenerCalled[0] = false;
+
+        try {
+            handler.handle(invocation);
+            fail("Expected exception to be thrown");
+        } catch (RuntimeException e) {
+            assertSame(expectedException, e);
+        }
+        assertTrue(listenerCalled[0]);
     }
 }

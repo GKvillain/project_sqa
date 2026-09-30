@@ -5,82 +5,85 @@ import static org.junit.Assert.*;
 
 public class DocumentTypeTest {
 
-    // Tests nodeName method returns correct value
+    // Tests constructor and attribute getters with valid inputs
+    @Test
+    public void testConstructor_validInputs_setsAttributesCorrectly() {
+        DocumentType documentType = new DocumentType("html", "publicId", "systemId", "http://example.com");
+        assertEquals("html", documentType.attr("name"));
+        assertEquals("publicId", documentType.attr("publicId"));
+        assertEquals("systemId", documentType.attr("systemId"));
+        assertEquals("http://example.com", documentType.baseUri());
+    }
+
+    // Tests nodeName returns "#doctype"
     @Test
     public void testNodeName_default_returnsDoctypeNodeName() {
         DocumentType documentType = new DocumentType("html", "", "", "");
         assertEquals("#doctype", documentType.nodeName());
     }
 
-    // Tests doctype creation with only name
+    // Tests outerHtml for standard HTML5 doctype
     @Test
-    public void testOuterHtml_onlyName_returnsSimpleDoctype() {
+    public void testOuterHtml_nameOnly_generatesHtml5Doctype() {
         DocumentType documentType = new DocumentType("html", "", "", "");
         assertEquals("<!DOCTYPE html>", documentType.outerHtml());
     }
 
-    // Tests doctype with name, publicId, and systemId
+    // Tests outerHtml with both publicId and systemId present
     @Test
-    public void testOuterHtml_withPublicAndSystemId_returnsFullDoctype() {
-        DocumentType documentType = new DocumentType(
-                "html",
-                "-//W3C//DTD XHTML 1.0 Strict//EN",
-                "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd",
-                ""
-        );
-        assertEquals(
-                "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">",
-                documentType.outerHtml()
-        );
+    public void testOuterHtml_publicAndSystemDoctype_generatesCorrectString() {
+        DocumentType documentType = new DocumentType("html", "-//W3C//DTD HTML 4.01//EN", "http://www.w3.org/TR/html4/strict.dtd", "");
+        assertEquals("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">", documentType.outerHtml());
     }
 
-    // Tests doctype with publicId but blank systemId
+    // Tests outerHtml with publicId present and systemId empty
     @Test
-    public void testOuterHtml_withPublicIdOnly_returnsPublicDoctype() {
+    public void testOuterHtml_publicIdOnly_generatesCorrectString() {
         DocumentType documentType = new DocumentType("html", "-//W3C//DTD HTML 4.01//EN", "", "");
         assertEquals("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">", documentType.outerHtml());
     }
 
-    // Tests doctype with systemId but blank publicId
+    // Tests outerHtml with systemId present and publicId empty
     @Test
-    public void testOuterHtml_withSystemIdOnly_returnsSystemDoctype() {
-        DocumentType documentType = new DocumentType("html", "", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd", "");
-        assertEquals("<!DOCTYPE html \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">", documentType.outerHtml());
+    public void testOuterHtml_systemIdOnly_generatesCorrectString() {
+        DocumentType documentType = new DocumentType("html", "", "http://www.w3.org/TR/html4/strict.dtd", "");
+        assertEquals("<!DOCTYPE html \"http://www.w3.org/TR/html4/strict.dtd\">", documentType.outerHtml());
     }
 
-    // Tests attribute storage and retrieval
+    // Tests outerHtml with whitespace-only publicId and systemId
     @Test
-    public void testAttr_validValues_returnsStoredAttributes() {
-        DocumentType documentType = new DocumentType("html", "pubId", "sysId", "http://example.com");
-        assertEquals("html", documentType.attr("name"));
-        assertEquals("pubId", documentType.attr("publicId"));
-        assertEquals("sysId", documentType.attr("systemId"));
-        assertEquals("http://example.com", documentType.baseUri());
-    }
-
-    // Tests outerHtml output with base URI
-    @Test
-    public void testOuterHtml_withBaseUri_ignoresBaseUriInDoctypeOutput() {
-        DocumentType documentType = new DocumentType("html", "", "", "http://example.com");
-        assertEquals("<!DOCTYPE html>", documentType.outerHtml());
-    }
-
-    // Tests exception when name is null
-    @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_nullName_throwsException() {
-        new DocumentType(null, "public", "system", "");
-    }
-
-    // Tests exception when name is empty
-    @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_emptyName_throwsException() {
-        new DocumentType("", "public", "system", "");
-    }
-
-    // Tests outerHtml with blank attributes containing whitespace
-    @Test
-    public void testOuterHtml_blankWhitespaceIds_ignoresBlankIds() {
+    public void testOuterHtml_blankPublicAndSystemIds_generatesOnlyName() {
         DocumentType documentType = new DocumentType("html", "   ", "   ", "");
         assertEquals("<!DOCTYPE html>", documentType.outerHtml());
+    }
+
+    // Tests exception path when name is null
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructor_nullName_throwsIllegalArgumentException() {
+        new DocumentType(null, "publicId", "systemId", "");
+    }
+
+    // Tests exception path when name is empty string
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructor_emptyName_throwsIllegalArgumentException() {
+        new DocumentType("", "publicId", "systemId", "");
+    }
+
+    // Tests outerHtml appending to an existing StringBuilder
+    @Test
+    public void testOuterHtmlHead_existingAccumulator_appendsCorrectly() {
+        DocumentType documentType = new DocumentType("html", "", "", "");
+        StringBuilder sb = new StringBuilder("prefix_");
+        documentType.outerHtmlHead(sb, 0, new Document("").outputSettings());
+        assertEquals("prefix_<!DOCTYPE html>", sb.toString());
+    }
+
+    // Tests outerHtmlTail does not modify StringBuilder
+    @Test
+    public void testOuterHtmlTail_noop_doesNotModifyAccumulator() {
+        DocumentType documentType = new DocumentType("html", "", "", "");
+        StringBuilder sb = new StringBuilder("prefix");
+        documentType.outerHtmlTail(sb, 0, new Document("").outputSettings());
+        assertEquals("prefix", sb.toString());
     }
 }

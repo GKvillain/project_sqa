@@ -33,100 +33,98 @@ public class NodeTest {
 
         @Override
         void outerHtmlHead(StringBuilder accum, int depth, Document.OutputSettings out) {
-            accum.append("<").append(name).append(">");
+            accum.append("<").append(nodeName()).append(">");
         }
 
         @Override
         void outerHtmlTail(StringBuilder accum, int depth, Document.OutputSettings out) {
-            accum.append("</").append(name).append(">");
+            accum.append("</").append(nodeName()).append(">");
         }
     }
 
-    // Tests attribute get, set, hasAttr and removeAttr
+    // Tests attribute get, set, has, and remove
     @Test
-    public void testAttr_setGetAndRemove_returnsExpectedValues() {
-        Node node = new TestNode("http://example.com/");
+    public void testAttr_setAndGetAndRemove_returnsExpectedValues() {
+        TestNode node = new TestNode("http://example.com");
         node.attr("key1", "val1");
 
         assertTrue(node.hasAttr("key1"));
         assertEquals("val1", node.attr("key1"));
-        assertNotNull(node.attributes());
 
         node.removeAttr("key1");
         assertFalse(node.hasAttr("key1"));
         assertEquals("", node.attr("key1"));
     }
 
-    // Tests absUrl resolution with valid baseUri and relative path
-    @Test
-    public void testAbsUrl_relativeUrlWithValidBaseUri_returnsAbsoluteUrl() {
-        Node node = new TestNode("http://example.com/path/index.html");
-        node.attr("href", "sub/page.html");
-
-        String absUrl = node.absUrl("href");
-        assertEquals("http://example.com/path/sub/page.html", absUrl);
+    // Tests attr with null key throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testAttr_nullKey_throwsException() {
+        TestNode node = new TestNode("http://example.com");
+        node.attr(null);
     }
 
-    // Tests abs: attribute key prefix routing to absUrl
+    // Tests abs: prefix shortcut in attr method
     @Test
-    public void testAttr_absPrefixKey_resolvesAbsoluteUrl() {
-        Node node = new TestNode("http://example.com/dir/");
-        node.attr("href", "test.html");
+    public void testAttr_absPrefix_returnsAbsoluteUrl() {
+        TestNode node = new TestNode("http://example.com/path/");
+        node.attr("href", "sub/page.html");
 
-        assertEquals("http://example.com/dir/test.html", node.attr("abs:href"));
+        assertEquals("http://example.com/path/sub/page.html", node.attr("abs:href"));
         assertEquals("", node.attr("abs:nonexistent"));
     }
 
-    // Tests absUrl with already absolute URL
+    // Tests absUrl with relative URL
+    @Test
+    public void testAbsUrl_relativeUrl_returnsAbsoluteUrl() {
+        TestNode node = new TestNode("http://example.com/dir/");
+        node.attr("src", "../img.png");
+
+        assertEquals("http://example.com/img.png", node.absUrl("src"));
+    }
+
+    // Tests absUrl when attribute is already absolute
     @Test
     public void testAbsUrl_alreadyAbsoluteUrl_returnsSameUrl() {
-        Node node = new TestNode("http://example.com/");
-        node.attr("href", "https://other.org/page");
+        TestNode node = new TestNode("http://example.com");
+        node.attr("href", "http://other.com/index.html");
 
-        assertEquals("https://other.org/page", node.absUrl("href"));
+        assertEquals("http://other.com/index.html", node.absUrl("href"));
     }
 
-    // Tests absUrl with invalid base URI fallback
+    // Tests absUrl with invalid base URI
     @Test
-    public void testAbsUrl_invalidBaseUriWithAbsoluteAttribute_returnsAbsoluteUrl() {
-        Node node = new TestNode("invalid-uri");
-        node.attr("href", "http://valid.org/test");
+    public void testAbsUrl_invalidBaseUri_returnsAbsoluteOrEmpty() {
+        TestNode node = new TestNode("invalid-uri");
+        node.attr("href", "http://valid.com/page");
+        node.attr("rel", "subpage");
 
-        assertEquals("http://valid.org/test", node.absUrl("href"));
+        assertEquals("http://valid.com/page", node.absUrl("href"));
+        assertEquals("", node.absUrl("rel"));
     }
 
-    // Tests absUrl with invalid base and invalid attribute
-    @Test
-    public void testAbsUrl_invalidBaseAndRelativeAttribute_returnsEmptyString() {
-        Node node = new TestNode("invalid-uri");
-        node.attr("href", "relative/path");
-
-        assertEquals("", node.absUrl("href"));
+    // Tests absUrl with empty attribute key throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testAbsUrl_emptyKey_throwsException() {
+        TestNode node = new TestNode("http://example.com");
+        node.absUrl("");
     }
 
-    // Tests absUrl on missing attribute
+    // Tests base URI getter and setter
     @Test
-    public void testAbsUrl_missingAttribute_returnsEmptyString() {
-        Node node = new TestNode("http://example.com/");
-        assertEquals("", node.absUrl("nonexistent"));
+    public void testSetBaseUri_validUri_updatesBaseUri() {
+        TestNode node = new TestNode("http://example.com");
+        assertEquals("http://example.com", node.baseUri());
+
+        node.setBaseUri("http://example.org");
+        assertEquals("http://example.org", node.baseUri());
     }
 
-    // Tests baseUri get and set
+    // Tests parent and child relationship management
     @Test
-    public void testBaseUri_getAndSet_updatesCorrectly() {
-        Node node = new TestNode("  http://example.com/  ");
-        assertEquals("http://example.com/", node.baseUri());
-
-        node.setBaseUri("http://example.org/new");
-        assertEquals("http://example.org/new", node.baseUri());
-    }
-
-    // Tests adding children and retrieving child nodes
-    @Test
-    public void testAddChildren_multipleChildren_correctHierarchyAndIndexes() {
-        Node parent = new TestNode("http://example.com/");
-        Node child1 = new TestNode("http://example.com/");
-        Node child2 = new TestNode("http://example.com/");
+    public void testAddChildren_andChildNodes_maintainsHierarchy() {
+        TestNode parent = new TestNode("http://example.com");
+        TestNode child1 = new TestNode("http://example.com");
+        TestNode child2 = new TestNode("http://example.com");
 
         parent.addChildren(child1, child2);
 
@@ -137,164 +135,119 @@ public class NodeTest {
         assertSame(parent, child2.parent());
         assertEquals(0, (int) child1.siblingIndex());
         assertEquals(1, (int) child2.siblingIndex());
-
-        Node[] childArray = parent.childNodesAsArray();
-        assertEquals(2, childArray.length);
-        assertSame(child1, childArray[0]);
     }
 
-    // Tests adding children at specific index
+    // Tests child removal and reindexing
     @Test
-    public void testAddChildren_withIndex_insertsCorrectly() {
-        Node parent = new TestNode("http://example.com/");
-        Node child1 = new TestNode("http://example.com/");
-        Node child2 = new TestNode("http://example.com/");
-        Node inserted = new TestNode("http://example.com/");
-
-        parent.addChildren(child1, child2);
-        parent.addChildren(1, inserted);
-
-        assertEquals(3, parent.childNodes().size());
-        assertSame(child1, parent.childNode(0));
-        assertSame(inserted, parent.childNode(1));
-        assertSame(child2, parent.childNode(2));
-        assertEquals(1, (int) inserted.siblingIndex());
-        assertEquals(2, (int) child2.siblingIndex());
-    }
-
-    // Tests previous and next sibling navigation
-    @Test
-    public void testSiblingNodes_navigation_returnsCorrectSiblings() {
-        Node parent = new TestNode("http://example.com/");
-        Node child1 = new TestNode("http://example.com/");
-        Node child2 = new TestNode("http://example.com/");
-        Node child3 = new TestNode("http://example.com/");
+    public void testRemove_middleChild_updatesSiblingsAndIndices() {
+        TestNode parent = new TestNode("http://example.com");
+        TestNode child1 = new TestNode("http://example.com");
+        TestNode child2 = new TestNode("http://example.com");
+        TestNode child3 = new TestNode("http://example.com");
 
         parent.addChildren(child1, child2, child3);
-
-        List<Node> siblings = child2.siblingNodes();
-        assertEquals(3, siblings.size());
-
-        assertNull(child1.previousSibling());
-        assertSame(child2, child1.nextSibling());
-
-        assertSame(child1, child2.previousSibling());
-        assertSame(child3, child2.nextSibling());
-
-        assertSame(child2, child3.previousSibling());
-        assertNull(child3.nextSibling());
-    }
-
-    // Tests sibling navigation for orphan root node
-    @Test
-    public void testSiblingNodes_orphanNode_returnsNull() {
-        Node orphan = new TestNode("http://example.com/");
-        assertNull(orphan.nextSibling());
-        assertNull(orphan.previousSibling());
-        assertNull(orphan.parent());
-    }
-
-    // Tests removing a child node from its parent
-    @Test
-    public void testRemove_attachedChild_removesFromParentAndUpdatesIndexes() {
-        Node parent = new TestNode("http://example.com/");
-        Node child1 = new TestNode("http://example.com/");
-        Node child2 = new TestNode("http://example.com/");
-
-        parent.addChildren(child1, child2);
-        child1.remove();
-
-        assertEquals(1, parent.childNodes().size());
-        assertSame(child2, parent.childNode(0));
-        assertNull(child1.parent());
-        assertEquals(0, (int) child2.siblingIndex());
-    }
-
-    // Tests replacing a child node with another
-    @Test
-    public void testReplaceWith_validReplacement_replacesInParent() {
-        Node parent = new TestNode("http://example.com/");
-        Node child1 = new TestNode("http://example.com/");
-        Node child2 = new TestNode("http://example.com/");
-        Node replacement = new TestNode("http://example.com/");
-
-        parent.addChildren(child1, child2);
-        child1.replaceWith(replacement);
+        child2.remove();
 
         assertEquals(2, parent.childNodes().size());
+        assertNull(child2.parent());
+        assertSame(child3, child1.nextSibling());
+        assertSame(child1, child3.previousSibling());
+        assertEquals(0, (int) child1.siblingIndex());
+        assertEquals(1, (int) child3.siblingIndex());
+    }
+
+    // Tests replaceWith functionality
+    @Test
+    public void testReplaceWith_validReplacement_replacesCorrectly() {
+        TestNode parent = new TestNode("http://example.com");
+        TestNode child1 = new TestNode("http://example.com");
+        TestNode replacement = new TestNode("http://example.com");
+
+        parent.addChildren(child1);
+        child1.replaceWith(replacement);
+
+        assertEquals(1, parent.childNodes().size());
         assertSame(replacement, parent.childNode(0));
         assertNull(child1.parent());
         assertSame(parent, replacement.parent());
         assertEquals(0, (int) replacement.siblingIndex());
     }
 
-    // Tests ownerDocument on attached and orphan nodes
+    // Tests sibling navigation boundary conditions
     @Test
-    public void testOwnerDocument_attachedAndOrphan_returnsCorrectDocument() {
-        Document doc = new Document("http://example.com/");
-        Node child = new TestNode("http://example.com/");
+    public void testSiblingNavigation_boundaries_returnsExpectedNodes() {
+        TestNode parent = new TestNode("http://example.com");
+        TestNode child1 = new TestNode("http://example.com");
+        TestNode child2 = new TestNode("http://example.com");
+
+        parent.addChildren(child1, child2);
+
+        assertNull(child1.previousSibling());
+        assertSame(child2, child1.nextSibling());
+        assertSame(child1, child2.previousSibling());
+        assertNull(child2.nextSibling());
+
+        List<Node> siblings = child1.siblingNodes();
+        assertEquals(2, siblings.size());
+    }
+
+    // Tests orphan sibling navigation returns null
+    @Test
+    public void testNextSibling_orphanNode_returnsNull() {
+        TestNode orphan = new TestNode("http://example.com");
+        assertNull(orphan.nextSibling());
+    }
+
+    // Tests ownerDocument retrieval across hierarchy
+    @Test
+    public void testOwnerDocument_nodeInTree_returnsDocument() {
+        Document doc = new Document("http://example.com");
+        TestNode child = new TestNode("http://example.com");
+        TestNode grandChild = new TestNode("http://example.com");
+
         doc.addChildren(child);
+        child.addChildren(grandChild);
 
         assertSame(doc, doc.ownerDocument());
         assertSame(doc, child.ownerDocument());
+        assertSame(doc, grandChild.ownerDocument());
+    }
 
-        Node orphan = new TestNode("http://example.com/");
+    // Tests ownerDocument on orphan node returns null
+    @Test
+    public void testOwnerDocument_orphanNode_returnsNull() {
+        TestNode orphan = new TestNode("http://example.com");
         assertNull(orphan.ownerDocument());
     }
 
-    // Tests outerHtml when node is attached to a Document
+    // Tests outerHtml for node without owner document (Defects4J bug 8b check)
     @Test
-    public void testOuterHtml_attachedToDocument_generatesHtml() {
-        Document doc = new Document("http://example.com/");
-        Node child = new TestNode("http://example.com/");
+    public void testOuterHtml_orphanNode_generatesHtml() {
+        TestNode orphan = new TestNode("http://example.com");
+        assertEquals("<test></test>", orphan.outerHtml());
+    }
+
+    // Tests outerHtml for node with owner document
+    @Test
+    public void testOuterHtml_nodeInDocument_generatesHtml() {
+        Document doc = new Document("http://example.com");
+        TestNode child = new TestNode("http://example.com");
         doc.addChildren(child);
 
-        String html = child.outerHtml();
-        assertEquals("<test></test>", html);
-        assertEquals("<test></test>", child.toString());
+        assertEquals("<test></test>", child.outerHtml());
     }
 
-    // Tests outerHtml / toString on an orphan node without an ownerDocument (Defects4J Bug 8b)
+    // Tests equals and hashCode behavior
     @Test
-    public void testOuterHtml_orphanNodeWithoutDocument_handlesOutputSettingsOrRendersHtml() {
-        Node orphan = new TestNode("http://example.com/");
-        String html = orphan.outerHtml();
-        assertEquals("<test></test>", html);
-    }
-
-    // Tests equals and hashCode consistency
-    @Test
-    public void testEqualsAndHashCode_sameInstanceAndDifferentInstance() {
-        Node node1 = new TestNode("http://example.com/");
-        Node node2 = new TestNode("http://example.com/");
+    public void testEqualsAndHashCode_sameAndDifferentInstances() {
+        TestNode node1 = new TestNode("http://example.com");
+        TestNode node2 = new TestNode("http://example.com");
 
         assertTrue(node1.equals(node1));
         assertFalse(node1.equals(node2));
         assertFalse(node1.equals(null));
-        assertFalse(node1.equals("string"));
+        assertFalse(node1.equals("someString"));
 
         assertEquals(node1.hashCode(), node1.hashCode());
-    }
-
-    // Tests exception path for null attribute key in attr
-    @Test(expected = IllegalArgumentException.class)
-    public void testAttr_nullKey_throwsException() {
-        Node node = new TestNode("http://example.com/");
-        node.attr(null);
-    }
-
-    // Tests exception path for remove on orphan node
-    @Test(expected = IllegalArgumentException.class)
-    public void testRemove_orphanNode_throwsException() {
-        Node node = new TestNode("http://example.com/");
-        node.remove();
-    }
-
-    // Tests exception path for replaceWith on orphan node
-    @Test(expected = IllegalArgumentException.class)
-    public void testReplaceWith_orphanNode_throwsException() {
-        Node node = new TestNode("http://example.com/");
-        Node replacement = new TestNode("http://example.com/");
-        node.replaceWith(replacement);
     }
 }

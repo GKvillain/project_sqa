@@ -3,14 +3,12 @@ package com.fasterxml.jackson.databind.deser.std;
 import java.io.IOException;
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.*;
-
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.io.NumberInput;
+import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
@@ -18,296 +16,321 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.NullValueProvider;
-import com.fasterxml.jackson.databind.deser.impl.NullsAsEmptyProvider;
-import com.fasterxml.jackson.databind.deser.impl.NullsConstantProvider;
-import com.fasterxml.jackson.databind.deser.impl.NullsFailProvider;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public class StdDeserializerTest {
 
-    private static class ConcreteStdDeserializer extends StdDeserializer<Object> {
+    private ObjectMapper _mapper;
+    private TestStdDeser _deser;
+
+    private static class TestStdDeser extends StdDeserializer<Object> {
         private static final long serialVersionUID = 1L;
 
-        public ConcreteStdDeserializer(Class<?> vc) {
+        protected TestStdDeser(Class<?> vc) {
             super(vc);
         }
 
-        public ConcreteStdDeserializer(JavaType vt) {
+        protected TestStdDeser(JavaType vt) {
             super(vt);
         }
 
-        public ConcreteStdDeserializer(StdDeserializer<?> src) {
+        protected TestStdDeser(TestStdDeser src) {
             super(src);
         }
 
         @Override
         public Object deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-            return p.getText();
+            return null;
         }
     }
 
-    private ObjectMapper mapper;
-    private ConcreteStdDeserializer deser;
-
     @Before
     public void setUp() {
-        mapper = new ObjectMapper();
-        deser = new ConcreteStdDeserializer(Integer.TYPE);
+        _mapper = new ObjectMapper();
+        _deser = new TestStdDeser(Integer.class);
     }
 
-    // Tests constructors and basic accessors
-    @Test
-    public void testHandledType_variousConstructors_returnsExpectedClass() {
-        assertEquals(Integer.TYPE, deser.handledType());
-        assertEquals(Integer.TYPE, deser.getValueClass());
-        assertNull(deser.getValueType());
-
-        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
-        ConcreteStdDeserializer fromType = new ConcreteStdDeserializer(type);
-        assertEquals(String.class, fromType.handledType());
-
-        ConcreteStdDeserializer fromNullType = new ConcreteStdDeserializer((JavaType) null);
-        assertEquals(Object.class, fromNullType.handledType());
-
-        ConcreteStdDeserializer copied = new ConcreteStdDeserializer(fromType);
-        assertEquals(String.class, copied.handledType());
+    private DeserializationContext createContext(ObjectMapper mapper) {
+        return mapper.getDeserializationContext();
     }
 
-    // Tests helper arithmetic overflow methods
+    // Tests constructors and type accessors
     @Test
-    public void testOverflowHelpers_boundaryValues_identifiesOverflowCorrectly() {
-        assertFalse(deser._byteOverflow(0));
-        assertFalse(deser._byteOverflow(255));
-        assertFalse(deser._byteOverflow(-128));
-        assertTrue(deser._byteOverflow(-129));
-        assertTrue(deser._byteOverflow(256));
+    public void testConstructorsAndAccessors_validInputs_returnsExpected() {
+        TestStdDeser deserCls = new TestStdDeser(String.class);
+        assertEquals(String.class, deserCls.handledType());
+        assertEquals(String.class, deserCls.getValueClass());
+        assertNull(deserCls.getValueType());
 
-        assertFalse(deser._shortOverflow(0));
-        assertFalse(deser._shortOverflow(Short.MAX_VALUE));
-        assertFalse(deser._shortOverflow(Short.MIN_VALUE));
-        assertTrue(deser._shortOverflow(Short.MAX_VALUE + 1));
-        assertTrue(deser._shortOverflow(Short.MIN_VALUE - 1));
+        JavaType type = TypeFactory.defaultInstance().constructType(Double.class);
+        TestStdDeser deserType = new TestStdDeser(type);
+        assertEquals(Double.class, deserType.handledType());
 
-        assertFalse(deser._intOverflow(0L));
-        assertFalse(deser._intOverflow((long) Integer.MAX_VALUE));
-        assertFalse(deser._intOverflow((long) Integer.MIN_VALUE));
-        assertTrue(deser._intOverflow((long) Integer.MAX_VALUE + 1L));
-        assertTrue(deser._intOverflow((long) Integer.MIN_VALUE - 1L));
+        TestStdDeser deserNullType = new TestStdDeser((JavaType) null);
+        assertEquals(Object.class, deserNullType.handledType());
+
+        TestStdDeser copyDeser = new TestStdDeser(deserCls);
+        assertEquals(String.class, copyDeser.handledType());
     }
 
-    // Tests helper null and number methods
+    // Tests _isIntNumber helper with various numeric and non-numeric strings
     @Test
-    public void testNonNullNumberAndNeitherNull_variousInputs_returnsExpectedResult() {
-        Number nonNull = deser._nonNullNumber(null);
-        assertEquals(0, nonNull.intValue());
+    public void testIsIntNumber_variousInputs_returnsExpectedBoolean() {
+        assertTrue(_deser._isIntNumber("12345"));
+        assertTrue(_deser._isIntNumber("+123"));
+        assertTrue(_deser._isIntNumber("-456"));
+        assertTrue(_deser._isIntNumber("0"));
+        assertFalse(_deser._isIntNumber(""));
+        assertFalse(_deser._isIntNumber("12a34"));
+        assertFalse(_deser._isIntNumber("+"));
+        assertFalse(_deser._isIntNumber("-"));
+        assertFalse(_deser._isIntNumber(" 123"));
+    }
 
-        Number original = Integer.valueOf(42);
-        assertSame(original, deser._nonNullNumber(original));
+    // Tests overflow helper methods for byte, short, and int
+    @Test
+    public void testOverflowHelpers_boundaryValues_detectsOverflow() {
+        assertFalse(_deser._byteOverflow(-128));
+        assertFalse(_deser._byteOverflow(255));
+        assertFalse(_deser._byteOverflow(0));
+        assertTrue(_deser._byteOverflow(-129));
+        assertTrue(_deser._byteOverflow(256));
 
+        assertFalse(_deser._shortOverflow(Short.MIN_VALUE));
+        assertFalse(_deser._shortOverflow(Short.MAX_VALUE));
+        assertTrue(_deser._shortOverflow((int) Short.MIN_VALUE - 1));
+        assertTrue(_deser._shortOverflow((int) Short.MAX_VALUE + 1));
+
+        assertFalse(_deser._intOverflow((long) Integer.MIN_VALUE));
+        assertFalse(_deser._intOverflow((long) Integer.MAX_VALUE));
+        assertTrue(_deser._intOverflow((long) Integer.MIN_VALUE - 1L));
+        assertTrue(_deser._intOverflow((long) Integer.MAX_VALUE + 1L));
+    }
+
+    // Tests _neitherNull helper method
+    @Test
+    public void testNeitherNull_variousCombinations_returnsExpected() {
         assertTrue(StdDeserializer._neitherNull("a", "b"));
         assertFalse(StdDeserializer._neitherNull(null, "b"));
         assertFalse(StdDeserializer._neitherNull("a", null));
         assertFalse(StdDeserializer._neitherNull(null, null));
     }
 
-    // Tests numeric string check
+    // Tests infinity and NaN string detection helpers
     @Test
-    public void testIsIntNumber_variousStrings_identifiesIntegersCorrectly() {
-        assertTrue(deser._isIntNumber("12345"));
-        assertTrue(deser._isIntNumber("+12345"));
-        assertTrue(deser._isIntNumber("-12345"));
-        assertFalse(deser._isIntNumber(""));
-        assertFalse(deser._isIntNumber("123a45"));
-        assertFalse(deser._isIntNumber("12.34"));
+    public void testSpecialFloatStringDetection_variousStrings_returnsExpected() {
+        assertTrue(_deser._isPosInf("Infinity"));
+        assertTrue(_deser._isPosInf("INF"));
+        assertFalse(_deser._isPosInf("inf"));
+
+        assertTrue(_deser._isNegInf("-Infinity"));
+        assertTrue(_deser._isNegInf("-INF"));
+        assertFalse(_deser._isNegInf("-inf"));
+
+        assertTrue(_deser._isNaN("NaN"));
+        assertFalse(_deser._isNaN("nan"));
     }
 
-    // Tests special float string constants
+    // Tests _nonNullNumber fallback
     @Test
-    public void testSpecialFloatStrings_validKeywords_identifiesKeywords() {
-        assertTrue(deser._isPosInf("Infinity"));
-        assertTrue(deser._isPosInf("INF"));
-        assertFalse(deser._isPosInf("other"));
-
-        assertTrue(deser._isNegInf("-Infinity"));
-        assertTrue(deser._isNegInf("-INF"));
-        assertFalse(deser._isNegInf("other"));
-
-        assertTrue(deser._isNaN("NaN"));
-        assertFalse(deser._isNaN("other"));
-
-        assertTrue(deser._hasTextualNull("null"));
-        assertFalse(deser._hasTextualNull("other"));
-
-        assertTrue(deser._isEmptyOrTextualNull(""));
-        assertTrue(deser._isEmptyOrTextualNull("null"));
-        assertFalse(deser._isEmptyOrTextualNull("not-null"));
+    public void testNonNullNumber_nullAndNonNull_returnsExpected() {
+        assertEquals(0, _deser._nonNullNumber(null).intValue());
+        assertEquals(42, _deser._nonNullNumber(42).intValue());
     }
 
-    // Tests double parsing static helper
+    // Tests _hasTextualNull and _isEmptyOrTextualNull helpers
     @Test
-    public void testParseDouble_nastySmallDouble_returnsMinNormal() {
-        double result = StdDeserializer.parseDouble("2.2250738585072012e-308");
-        assertEquals(Double.MIN_NORMAL, result, 0.0);
+    public void testTextualNullChecks_variousInputs_returnsExpected() {
+        assertTrue(_deser._hasTextualNull("null"));
+        assertFalse(_deser._hasTextualNull("NULL"));
+        assertFalse(_deser._hasTextualNull(""));
 
-        double standard = StdDeserializer.parseDouble("123.456");
-        assertEquals(123.456, standard, 0.0001);
+        assertTrue(_deser._isEmptyOrTextualNull(""));
+        assertTrue(_deser._isEmptyOrTextualNull("null"));
+        assertFalse(_deser._isEmptyOrTextualNull("foo"));
     }
 
-    // Tests parsing boolean primitive from JSON tokens
+    // Tests parseDouble helper for nasty double edge cases and standard numbers
+    @Test
+    public void testParseDouble_nastyAndStandard_returnsCorrectDouble() {
+        assertEquals(Double.MIN_NORMAL, StdDeserializer.parseDouble(NumberInput.NASTY_SMALL_DOUBLE), 0.0);
+        assertEquals(3.14159, StdDeserializer.parseDouble("3.14159"), 0.00001);
+        assertEquals(0.0, StdDeserializer.parseDouble("0"), 0.0);
+    }
+
+    // Tests _parseBooleanPrimitive with boolean tokens, int tokens, and aliases
     @Test
     public void testParseBooleanPrimitive_validTokens_parsesCorrectly() throws Exception {
-        JsonParser pTrue = mapper.getFactory().createParser("true");
+        JsonParser pTrue = _mapper.createParser("true");
         pTrue.nextToken();
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-        assertTrue(deser._parseBooleanPrimitive(pTrue, ctxt));
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
+        assertTrue(_deser._parseBooleanPrimitive(pTrue, ctxt));
 
-        JsonParser pFalse = mapper.getFactory().createParser("false");
+        JsonParser pFalse = _mapper.createParser("false");
         pFalse.nextToken();
-        assertFalse(deser._parseBooleanPrimitive(pFalse, ctxt));
+        assertFalse(_deser._parseBooleanPrimitive(pFalse, ctxt));
 
-        JsonParser pInt1 = mapper.getFactory().createParser("1");
-        pInt1.nextToken();
-        assertTrue(deser._parseBooleanPrimitive(pInt1, ctxt));
+        JsonParser pIntOne = _mapper.createParser("1");
+        pIntOne.nextToken();
+        assertTrue(_deser._parseBooleanPrimitive(pIntOne, ctxt));
 
-        JsonParser pInt0 = mapper.getFactory().createParser("0");
-        pInt0.nextToken();
-        assertFalse(deser._parseBooleanPrimitive(pInt0, ctxt));
+        JsonParser pIntZero = _mapper.createParser("0");
+        pIntZero.nextToken();
+        assertFalse(_deser._parseBooleanPrimitive(pIntZero, ctxt));
 
-        JsonParser pStrTrue = mapper.getFactory().createParser("\"True\"");
+        JsonParser pStrTrue = _mapper.createParser("\"True\"");
         pStrTrue.nextToken();
-        assertTrue(deser._parseBooleanPrimitive(pStrTrue, ctxt));
+        assertTrue(_deser._parseBooleanPrimitive(pStrTrue, ctxt));
 
-        JsonParser pStrFalse = mapper.getFactory().createParser("\"False\"");
+        JsonParser pStrFalse = _mapper.createParser("\"False\"");
         pStrFalse.nextToken();
-        assertFalse(deser._parseBooleanPrimitive(pStrFalse, ctxt));
+        assertFalse(_deser._parseBooleanPrimitive(pStrFalse, ctxt));
     }
 
-    // Tests parsing int primitive from string and tokens
+    // Tests _parseIntPrimitive and _parseLongPrimitive from int and string tokens
     @Test
-    public void testParseIntPrimitive_validValues_parsesCorrectly() throws Exception {
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-
-        assertEquals(123, deser._parseIntPrimitive(ctxt, "123"));
-        assertEquals(2147483647, deser._parseIntPrimitive(ctxt, "2147483647"));
-
-        JsonParser pInt = mapper.getFactory().createParser("42");
+    public void testParseIntAndLongPrimitive_validTokens_returnsCorrectValues() throws Exception {
+        JsonParser pInt = _mapper.createParser("12345");
         pInt.nextToken();
-        assertEquals(42, deser._parseIntPrimitive(pInt, ctxt));
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
+        assertEquals(12345, _deser._parseIntPrimitive(pInt, ctxt));
 
-        JsonParser pStr = mapper.getFactory().createParser("\"100\"");
+        JsonParser pStr = _mapper.createParser("\"987654321\"");
         pStr.nextToken();
-        assertEquals(100, deser._parseIntPrimitive(pStr, ctxt));
-    }
+        assertEquals(987654321, _deser._parseIntPrimitive(pStr, ctxt));
 
-    // Tests parsing long primitive from string and tokens
-    @Test
-    public void testParseLongPrimitive_validValues_parsesCorrectly() throws Exception {
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-
-        assertEquals(1234567890123L, deser._parseLongPrimitive(ctxt, "1234567890123"));
-
-        JsonParser pLong = mapper.getFactory().createParser("9876543210");
+        JsonParser pLong = _mapper.createParser("9876543210123");
         pLong.nextToken();
-        assertEquals(9876543210L, deser._parseLongPrimitive(pLong, ctxt));
+        assertEquals(9876543210123L, _deser._parseLongPrimitive(pLong, ctxt));
+
+        JsonParser pStrLong = _mapper.createParser("\"9876543210123\"");
+        pStrLong.nextToken();
+        assertEquals(9876543210123L, _deser._parseLongPrimitive(pStrLong, ctxt));
     }
 
-    // Tests parsing float primitive from special strings and values
+    // Tests _parseBytePrimitive and _parseShortPrimitive with valid values
     @Test
-    public void testParseFloatPrimitive_specialStrings_parsesCorrectly() throws Exception {
-        DeserializationContext ctxt = mapper.getDeserializationContext();
+    public void testParseByteAndShortPrimitive_validValues_returnsPrimitives() throws Exception {
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
 
-        assertEquals(Float.POSITIVE_INFINITY, deser._parseFloatPrimitive(ctxt, "Infinity"), 0.0f);
-        assertEquals(Float.NEGATIVE_INFINITY, deser._parseFloatPrimitive(ctxt, "-Infinity"), 0.0f);
-        assertTrue(Float.isNaN(deser._parseFloatPrimitive(ctxt, "NaN")));
-        assertEquals(12.5f, deser._parseFloatPrimitive(ctxt, "12.5"), 0.0f);
+        JsonParser pByte = _mapper.createParser("120");
+        pByte.nextToken();
+        assertEquals((byte) 120, _deser._parseBytePrimitive(pByte, ctxt));
+
+        JsonParser pShort = _mapper.createParser("32000");
+        pShort.nextToken();
+        assertEquals((short) 32000, _deser._parseShortPrimitive(pShort, ctxt));
     }
 
-    // Tests parsing double primitive from special strings and values
+    // Tests _parseFloatPrimitive and _parseDoublePrimitive with special strings
     @Test
-    public void testParseDoublePrimitive_specialStrings_parsesCorrectly() throws Exception {
-        DeserializationContext ctxt = mapper.getDeserializationContext();
+    public void testParseFloatAndDoublePrimitive_specialStrings_returnsExpected() throws Exception {
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
 
-        assertEquals(Double.POSITIVE_INFINITY, deser._parseDoublePrimitive(ctxt, "Infinity"), 0.0);
-        assertEquals(Double.NEGATIVE_INFINITY, deser._parseDoublePrimitive(ctxt, "-Infinity"), 0.0);
-        assertTrue(Double.isNaN(deser._parseDoublePrimitive(ctxt, "NaN")));
-        assertEquals(99.99, deser._parseDoublePrimitive(ctxt, "99.99"), 0.0001);
+        assertEquals(Float.POSITIVE_INFINITY, _deser._parseFloatPrimitive(ctxt, "Infinity"), 0.0f);
+        assertEquals(Float.NEGATIVE_INFINITY, _deser._parseFloatPrimitive(ctxt, "-Infinity"), 0.0f);
+        assertTrue(Float.isNaN(_deser._parseFloatPrimitive(ctxt, "NaN")));
+        assertEquals(12.5f, _deser._parseFloatPrimitive(ctxt, "12.5"), 0.001f);
+
+        assertEquals(Double.POSITIVE_INFINITY, _deser._parseDoublePrimitive(ctxt, "Infinity"), 0.0);
+        assertEquals(Double.NEGATIVE_INFINITY, _deser._parseDoublePrimitive(ctxt, "-Infinity"), 0.0);
+        assertTrue(Double.isNaN(_deser._parseDoublePrimitive(ctxt, "NaN")));
+        assertEquals(123.456, _deser._parseDoublePrimitive(ctxt, "123.456"), 0.0001);
     }
 
-    // Tests date parsing from timestamp and empty string
+    // Tests _parseDate with long timestamp, valid string, and null token
     @Test
-    public void testParseDate_variousInputs_parsesCorrectly() throws Exception {
-        DeserializationContext ctxt = mapper.getDeserializationContext();
+    public void testParseDate_variousInputs_parsesDate() throws Exception {
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
 
-        JsonParser pInt = mapper.getFactory().createParser("1000000");
-        pInt.nextToken();
-        Date date = deser._parseDate(pInt, ctxt);
-        assertNotNull(date);
-        assertEquals(1000000L, date.getTime());
+        JsonParser pTimestamp = _mapper.createParser("1600000000000");
+        pTimestamp.nextToken();
+        Date date1 = _deser._parseDate(pTimestamp, ctxt);
+        assertEquals(1600000000000L, date1.getTime());
 
-        Date nullDate = deser._parseDate("", ctxt);
+        Date date2 = _deser._parseDate("2020-01-01T00:00:00.000+0000", ctxt);
+        assertNotNull(date2);
+
+        Date emptyDate = _deser._parseDate("", ctxt);
+        assertNull(emptyDate);
+
+        Date nullDate = _deser._parseDate("null", ctxt);
         assertNull(nullDate);
     }
 
-    // Tests parsing string helper
+    // Tests _parseString with string token and non-string token
     @Test
-    public void testParseString_validStringToken_returnsText() throws Exception {
-        JsonParser p = mapper.getFactory().createParser("\"hello world\"");
+    public void testParseString_validAndConvertibleTokens_returnsString() throws Exception {
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
+
+        JsonParser pStr = _mapper.createParser("\"hello\"");
+        pStr.nextToken();
+        assertEquals("hello", _deser._parseString(pStr, ctxt));
+
+        JsonParser pInt = _mapper.createParser("123");
+        pInt.nextToken();
+        assertEquals("123", _deser._parseString(pInt, ctxt));
+    }
+
+    // Tests _findNullProvider for FAIL, SKIP, and AS_EMPTY null policies
+    @Test
+    public void testFindNullProvider_differentNullPolicies_returnsAppropriateProvider() throws Exception {
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
+
+        NullValueProvider failProvider = _deser._findNullProvider(ctxt, null, Nulls.FAIL, _deser);
+        assertNotNull(failProvider);
+
+        NullValueProvider skipProvider = _deser._findNullProvider(ctxt, null, Nulls.SKIP, _deser);
+        assertNotNull(skipProvider);
+
+        NullValueProvider emptyProvider = _deser._findNullProvider(ctxt, null, Nulls.AS_EMPTY, _deser);
+        assertNotNull(emptyProvider);
+
+        NullValueProvider defaultProvider = _deser._findNullProvider(ctxt, null, Nulls.DEFAULT, _deser);
+        assertNull(defaultProvider);
+    }
+
+    // Tests _coerceNullToken with primitive flag triggering validation
+    @Test(expected = JsonMappingException.class)
+    public void testVerifyNullForPrimitive_whenEnabled_throwsException() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        _deser._verifyNullForPrimitive(ctxt);
+    }
+
+    // Tests _failDoubleToIntCoercion throwing JsonMappingException
+    @Test(expected = JsonMappingException.class)
+    public void testFailDoubleToIntCoercion_throwsException() throws Exception {
+        JsonParser p = _mapper.createParser("12.34");
         p.nextToken();
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-        assertEquals("hello world", deser._parseString(p, ctxt));
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
+
+        _deser._failDoubleToIntCoercion(p, ctxt, "int");
     }
 
-    // Tests null provider resolution for FAIL, AS_EMPTY, and SKIP
+    // Tests findFormatOverrides and findFormatFeature default behaviors
     @Test
-    public void testFindNullProvider_differentNullSettings_returnsCorrectProvider() throws Exception {
-        DeserializationContext ctxt = mapper.getDeserializationContext();
+    public void testFormatOverridesAndFeatures_default_returnsExpected() {
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
+        JsonFormat.Value format = _deser.findFormatOverrides(ctxt, null, Integer.class);
+        assertNotNull(format);
 
-        NullValueProvider failProvider = deser._findNullProvider(ctxt, null, Nulls.FAIL, deser);
-        assertTrue(failProvider instanceof NullsFailProvider);
-
-        NullValueProvider skipProvider = deser._findNullProvider(ctxt, null, Nulls.SKIP, deser);
-        assertSame(NullsConstantProvider.skipper(), skipProvider);
-
-        NullValueProvider emptyProvider = deser._findNullProvider(ctxt, null, Nulls.AS_EMPTY, deser);
-        assertTrue(emptyProvider instanceof NullsAsEmptyProvider);
-
-        assertNull(deser._findNullProvider(ctxt, null, Nulls.DEFAULT, deser));
+        Boolean feature = _deser.findFormatFeature(ctxt, null, Integer.class, JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        assertNull(feature);
     }
 
-    // Tests coercion of empty string and textual null when allowed
+    // Tests _coercedTypeDesc method output for standard classes
     @Test
-    public void testCoerceEmptyStringAndTextualNull_allowedCoercion_returnsNull() throws Exception {
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-
-        assertNull(deser._coerceEmptyString(ctxt, false));
-        assertNull(deser._coerceTextualNull(ctxt, false));
-    }
-
-    // Tests fail-on-null-for-primitives verification
-    @Test(expected = JsonMappingException.class)
-    public void testVerifyNullForPrimitive_whenFeatureEnabled_throwsException() throws Exception {
-        ObjectMapper failMapper = new ObjectMapper();
-        failMapper.enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
-        DeserializationContext ctxt = failMapper.getDeserializationContext();
-
-        deser._verifyNullForPrimitive(ctxt);
-    }
-
-    // Tests scalar coercion verification when coercion is disabled
-    @Test(expected = JsonMappingException.class)
-    public void testVerifyStringForScalarCoercion_coercionDisabled_throwsException() throws Exception {
-        ObjectMapper strictMapper = new ObjectMapper();
-        strictMapper.disable(MapperFeature.ALLOW_COERCION_OF_SCALARS);
-        DeserializationContext ctxt = strictMapper.getDeserializationContext();
-
-        deser._verifyStringForScalarCoercion(ctxt, "some-string");
-    }
-
-    // Tests format feature discovery helper
-    @Test
-    public void testFindFormatFeature_withoutOverrides_returnsNull() {
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-        Boolean feat = deser.findFormatFeature(ctxt, null, Integer.class, JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        assertNull(feat);
+    public void testCoercedTypeDesc_standardClass_returnsClassName() {
+        String desc = _deser._coercedTypeDesc();
+        assertNotNull(desc);
+        assertTrue(desc.contains("java.lang.Integer"));
     }
 }

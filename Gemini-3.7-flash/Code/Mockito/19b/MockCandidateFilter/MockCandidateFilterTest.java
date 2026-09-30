@@ -1,6 +1,8 @@
 package org.mockito.internal.configuration.injection.filter;
 
+import org.junit.Before;
 import org.junit.Test;
+
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,47 +14,72 @@ import static org.junit.Assert.*;
 
 public class MockCandidateFilterTest {
 
-    private static class SampleTarget {
+    private static class BaseTarget {
+        protected Number baseNumberField;
+    }
+
+    private static class SampleTarget extends BaseTarget {
         private String stringField;
         private Integer intField;
         private List<String> listField;
+        private boolean primitiveBooleanField;
+        private String[] arrayField;
     }
 
-    // Tests normal case with valid inputs returning an injecter
+    private SampleTarget targetInstance;
+    private Field stringField;
+    private Field intField;
+    private Field listField;
+    private Field baseNumberField;
+    private Field primitiveBooleanField;
+    private Field arrayField;
+
+    @Before
+    public void setUp() throws Exception {
+        targetInstance = new SampleTarget();
+        stringField = SampleTarget.class.getDeclaredField("stringField");
+        intField = SampleTarget.class.getDeclaredField("intField");
+        listField = SampleTarget.class.getDeclaredField("listField");
+        baseNumberField = BaseTarget.class.getDeclaredField("baseNumberField");
+        primitiveBooleanField = SampleTarget.class.getDeclaredField("primitiveBooleanField");
+        arrayField = SampleTarget.class.getDeclaredField("arrayField");
+    }
+
+    // Tests normal case where filter returns an OngoingInjecter instance
     @Test
-    public void testFilterCandidate_validInputs_returnsOngoingInjecter() throws Exception {
-        MockCandidateFilter filter = new MockCandidateFilter() {
-            @Override
-            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
-                return new OngoingInjecter() {
-                    @Override
-                    public Object thenInject() {
-                        return "injectedMock";
-                    }
-                };
+    public void testFilterCandidate_validInputs_returnsOngoingInjecter() {
+        final OngoingInjecter expectedInjecter = new OngoingInjecter() {
+            public boolean thenInject() {
+                return true;
             }
         };
 
-        SampleTarget target = new SampleTarget();
-        Field field = SampleTarget.class.getDeclaredField("stringField");
-        List<Object> mocks = Arrays.<Object>asList("injectedMock");
+        MockCandidateFilter filter = new MockCandidateFilter() {
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                if (mocks != null && fieldToBeInjected != null && fieldInstance != null) {
+                    return expectedInjecter;
+                }
+                return null;
+            }
+        };
 
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        assertNotNull(injecter);
-        assertEquals("injectedMock", injecter.thenInject());
+        Collection<Object> mocks = Arrays.<Object>asList("mockString");
+        OngoingInjecter result = filter.filterCandidate(mocks, stringField, targetInstance);
+
+        assertNotNull(result);
+        assertEquals(expectedInjecter, result);
+        assertTrue(result.thenInject());
     }
 
-    // Tests boundary case with empty mocks collection
+    // Tests case where mocks collection is empty
     @Test
-    public void testFilterCandidate_emptyMocks_returnsOngoingInjecter() throws Exception {
+    public void testFilterCandidate_emptyMocks_returnsInjecterOrNull() {
         MockCandidateFilter filter = new MockCandidateFilter() {
-            @Override
             public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
                 if (mocks.isEmpty()) {
                     return new OngoingInjecter() {
-                        @Override
-                        public Object thenInject() {
-                            return null;
+                        public boolean thenInject() {
+                            return false;
                         }
                     };
                 }
@@ -60,56 +87,51 @@ public class MockCandidateFilterTest {
             }
         };
 
-        SampleTarget target = new SampleTarget();
-        Field field = SampleTarget.class.getDeclaredField("intField");
-        OngoingInjecter injecter = filter.filterCandidate(Collections.emptyList(), field, target);
+        OngoingInjecter result = filter.filterCandidate(Collections.emptyList(), stringField, targetInstance);
 
-        assertNotNull(injecter);
-        assertNull(injecter.thenInject());
+        assertNotNull(result);
+        assertFalse(result.thenInject());
     }
 
-    // Tests argument passing to ensure received parameters match given inputs
+    // Tests boundary case where mocks collection contains multiple candidate objects
     @Test
-    public void testFilterCandidate_argumentPassing_receivesExactArguments() throws Exception {
-        final SampleTarget target = new SampleTarget();
-        final Field field = SampleTarget.class.getDeclaredField("listField");
-        final List<Object> mocks = new ArrayList<Object>();
-        mocks.add(new ArrayList<String>());
-
-        final boolean[] called = new boolean[1];
+    public void testFilterCandidate_multipleCandidates_filtersCorrectMock() {
+        final String expectedMock = "targetMock";
+        final List<Object> capturedCandidates = new ArrayList<Object>();
 
         MockCandidateFilter filter = new MockCandidateFilter() {
-            @Override
-            public OngoingInjecter filterCandidate(Collection<Object> receivedMocks, Field receivedField, Object receivedInstance) {
-                assertSame(mocks, receivedMocks);
-                assertSame(field, receivedField);
-                assertSame(target, receivedInstance);
-                called[0] = true;
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                for (Object mock : mocks) {
+                    if (fieldToBeInjected.getType().isInstance(mock)) {
+                        capturedCandidates.add(mock);
+                    }
+                }
                 return new OngoingInjecter() {
-                    @Override
-                    public Object thenInject() {
-                        return null;
+                    public boolean thenInject() {
+                        return !capturedCandidates.isEmpty();
                     }
                 };
             }
         };
 
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        assertTrue(called[0]);
-        assertNotNull(injecter);
+        List<Object> mocks = Arrays.asList(Integer.valueOf(123), expectedMock, Double.valueOf(45.6));
+        OngoingInjecter result = filter.filterCandidate(mocks, stringField, targetInstance);
+
+        assertNotNull(result);
+        assertTrue(result.thenInject());
+        assertEquals(1, capturedCandidates.size());
+        assertEquals(expectedMock, capturedCandidates.get(0));
     }
 
-    // Tests edge case with null mocks collection
+    // Tests edge case where mocks collection is null
     @Test
-    public void testFilterCandidate_nullMocks_returnsInjecter() throws Exception {
+    public void testFilterCandidate_nullMocks_handledSafely() {
         MockCandidateFilter filter = new MockCandidateFilter() {
-            @Override
             public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
                 if (mocks == null) {
                     return new OngoingInjecter() {
-                        @Override
-                        public Object thenInject() {
-                            return null;
+                        public boolean thenInject() {
+                            return false;
                         }
                     };
                 }
@@ -117,93 +139,261 @@ public class MockCandidateFilterTest {
             }
         };
 
-        SampleTarget target = new SampleTarget();
-        Field field = SampleTarget.class.getDeclaredField("stringField");
-        OngoingInjecter injecter = filter.filterCandidate(null, field, target);
+        OngoingInjecter result = filter.filterCandidate(null, stringField, targetInstance);
 
-        assertNotNull(injecter);
-        assertNull(injecter.thenInject());
+        assertNotNull(result);
+        assertFalse(result.thenInject());
     }
 
-    // Tests edge case with null field instance
+    // Tests edge case where fieldToBeInjected is null
     @Test
-    public void testFilterCandidate_nullFieldInstance_returnsInjecter() throws Exception {
+    public void testFilterCandidate_nullField_returnsNull() {
         MockCandidateFilter filter = new MockCandidateFilter() {
-            @Override
-            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
-                if (fieldInstance == null) {
-                    return new OngoingInjecter() {
-                        @Override
-                        public Object thenInject() {
-                            return null;
-                        }
-                    };
-                }
-                return null;
-            }
-        };
-
-        Field field = SampleTarget.class.getDeclaredField("stringField");
-        OngoingInjecter injecter = filter.filterCandidate(Collections.emptyList(), field, null);
-
-        assertNotNull(injecter);
-        assertNull(injecter.thenInject());
-    }
-
-    // Tests edge case with null fieldToBeInjected
-    @Test
-    public void testFilterCandidate_nullFieldToBeInjected_returnsInjecter() throws Exception {
-        MockCandidateFilter filter = new MockCandidateFilter() {
-            @Override
             public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
                 if (fieldToBeInjected == null) {
-                    return new OngoingInjecter() {
-                        @Override
-                        public Object thenInject() {
-                            return null;
-                        }
-                    };
+                    return null;
+                }
+                return new OngoingInjecter() {
+                    public boolean thenInject() {
+                        return true;
+                    }
+                };
+            }
+        };
+
+        OngoingInjecter result = filter.filterCandidate(Collections.<Object>singletonList("mock"), null, targetInstance);
+
+        assertNull(result);
+    }
+
+    // Tests edge case where fieldInstance is null
+    @Test
+    public void testFilterCandidate_nullFieldInstance_returnsNull() {
+        MockCandidateFilter filter = new MockCandidateFilter() {
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                if (fieldInstance == null) {
+                    return null;
+                }
+                return new OngoingInjecter() {
+                    public boolean thenInject() {
+                        return true;
+                    }
+                };
+            }
+        };
+
+        OngoingInjecter result = filter.filterCandidate(Collections.<Object>singletonList("mock"), stringField, null);
+
+        assertNull(result);
+    }
+
+    // Tests filtering for primitive wrapper field type
+    @Test
+    public void testFilterCandidate_intFieldTypeMatching_returnsInjecter() {
+        final Integer mockInt = Integer.valueOf(42);
+
+        MockCandidateFilter filter = new MockCandidateFilter() {
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                for (Object mock : mocks) {
+                    if (fieldToBeInjected.getType().isAssignableFrom(mock.getClass())) {
+                        return new OngoingInjecter() {
+                            public boolean thenInject() {
+                                return true;
+                            }
+                        };
+                    }
                 }
                 return null;
             }
         };
 
-        SampleTarget target = new SampleTarget();
-        OngoingInjecter injecter = filter.filterCandidate(Collections.emptyList(), null, target);
+        OngoingInjecter result = filter.filterCandidate(Collections.<Object>singletonList(mockInt), intField, targetInstance);
 
-        assertNotNull(injecter);
-        assertNull(injecter.thenInject());
+        assertNotNull(result);
+        assertTrue(result.thenInject());
     }
 
-    // Tests execution of OngoingInjecter thenInject
+    // Tests filtering for generic/interface field type
     @Test
-    public void testFilterCandidate_thenInjectExecution_performsInjectionAction() throws Exception {
-        final Integer mockValue = Integer.valueOf(42);
+    public void testFilterCandidate_listFieldTypeMatching_returnsInjecter() {
+        final ArrayList<String> mockList = new ArrayList<String>();
+
         MockCandidateFilter filter = new MockCandidateFilter() {
-            @Override
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                for (Object mock : mocks) {
+                    if (fieldToBeInjected.getType().isAssignableFrom(mock.getClass())) {
+                        return new OngoingInjecter() {
+                            public boolean thenInject() {
+                                return true;
+                            }
+                        };
+                    }
+                }
+                return null;
+            }
+        };
+
+        OngoingInjecter result = filter.filterCandidate(Collections.<Object>singletonList(mockList), listField, targetInstance);
+
+        assertNotNull(result);
+        assertTrue(result.thenInject());
+    }
+
+    // Tests behavior when no candidate matches the target field type
+    @Test
+    public void testFilterCandidate_noMatchingCandidate_returnsNull() {
+        MockCandidateFilter filter = new MockCandidateFilter() {
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                for (Object mock : mocks) {
+                    if (fieldToBeInjected.getType().isAssignableFrom(mock.getClass())) {
+                        return new OngoingInjecter() {
+                            public boolean thenInject() {
+                                return true;
+                            }
+                        };
+                    }
+                }
+                return null;
+            }
+        };
+
+        OngoingInjecter result = filter.filterCandidate(Collections.<Object>singletonList("nonMatchingString"), intField, targetInstance);
+
+        assertNull(result);
+    }
+
+    // Tests chained filter delegation pattern
+    @Test
+    public void testFilterCandidate_chainedFilterDelegation_passesParametersCorrectly() {
+        final boolean[] filterInvoked = new boolean[]{false, false};
+
+        final MockCandidateFilter nextFilter = new MockCandidateFilter() {
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                filterInvoked[1] = true;
+                return new OngoingInjecter() {
+                    public boolean thenInject() {
+                        return true;
+                    }
+                };
+            }
+        };
+
+        MockCandidateFilter firstFilter = new MockCandidateFilter() {
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                filterInvoked[0] = true;
+                return nextFilter.filterCandidate(mocks, fieldToBeInjected, fieldInstance);
+            }
+        };
+
+        OngoingInjecter result = firstFilter.filterCandidate(Collections.<Object>singletonList("mock"), stringField, targetInstance);
+
+        assertNotNull(result);
+        assertTrue(filterInvoked[0]);
+        assertTrue(filterInvoked[1]);
+        assertTrue(result.thenInject());
+    }
+
+    // Tests handling of null elements within the mocks collection
+    @Test
+    public void testFilterCandidate_collectionWithNullElements_skipsNullsSafely() {
+        MockCandidateFilter filter = new MockCandidateFilter() {
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                for (Object mock : mocks) {
+                    if (mock != null && fieldToBeInjected.getType().isAssignableFrom(mock.getClass())) {
+                        return new OngoingInjecter() {
+                            public boolean thenInject() {
+                                return true;
+                            }
+                        };
+                    }
+                }
+                return null;
+            }
+        };
+
+        Collection<Object> mocks = Arrays.asList(null, "validMockString", null);
+        OngoingInjecter result = filter.filterCandidate(mocks, stringField, targetInstance);
+
+        assertNotNull(result);
+        assertTrue(result.thenInject());
+    }
+
+    // Tests superclass/polymorphic type matching
+    @Test
+    public void testFilterCandidate_inheritedFieldPolymorphicMatching_returnsInjecter() {
+        final Double mockDouble = Double.valueOf(3.14);
+
+        MockCandidateFilter filter = new MockCandidateFilter() {
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                for (Object mock : mocks) {
+                    if (mock != null && fieldToBeInjected.getType().isAssignableFrom(mock.getClass())) {
+                        return new OngoingInjecter() {
+                            public boolean thenInject() {
+                                return true;
+                            }
+                        };
+                    }
+                }
+                return null;
+            }
+        };
+
+        OngoingInjecter result = filter.filterCandidate(Collections.<Object>singletonList(mockDouble), baseNumberField, targetInstance);
+
+        assertNotNull(result);
+        assertTrue(result.thenInject());
+    }
+
+    // Tests array type field matching
+    @Test
+    public void testFilterCandidate_arrayFieldMatching_returnsInjecter() {
+        final String[] mockArray = new String[]{"elem1", "elem2"};
+
+        MockCandidateFilter filter = new MockCandidateFilter() {
+            public OngoingInjecter filterCandidate(Collection<Object> mocks, Field fieldToBeInjected, Object fieldInstance) {
+                for (Object mock : mocks) {
+                    if (mock != null && fieldToBeInjected.getType().isAssignableFrom(mock.getClass())) {
+                        return new OngoingInjecter() {
+                            public boolean thenInject() {
+                                return true;
+                            }
+                        };
+                    }
+                }
+                return null;
+            }
+        };
+
+        OngoingInjecter result = filter.filterCandidate(Collections.<Object>singletonList(mockArray), arrayField, targetInstance);
+
+        assertNotNull(result);
+        assertTrue(result.thenInject());
+    }
+
+    // Tests actual field injection execution via OngoingInjecter
+    @Test
+    public void testFilterCandidate_ongoingInjecterActualInjection_setsFieldValue() {
+        final String injectedValue = "injectedStringValue";
+
+        MockCandidateFilter filter = new MockCandidateFilter() {
             public OngoingInjecter filterCandidate(final Collection<Object> mocks, final Field fieldToBeInjected, final Object fieldInstance) {
                 return new OngoingInjecter() {
-                    @Override
-                    public Object thenInject() {
+                    public boolean thenInject() {
                         try {
                             fieldToBeInjected.setAccessible(true);
                             fieldToBeInjected.set(fieldInstance, mocks.iterator().next());
-                            return fieldToBeInjected.get(fieldInstance);
+                            return true;
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            return false;
                         }
                     }
                 };
             }
         };
 
-        SampleTarget target = new SampleTarget();
-        Field field = SampleTarget.class.getDeclaredField("intField");
-        OngoingInjecter injecter = filter.filterCandidate(Collections.<Object>singletonList(mockValue), field, target);
-
+        OngoingInjecter injecter = filter.filterCandidate(Collections.<Object>singletonList(injectedValue), stringField, targetInstance);
         assertNotNull(injecter);
-        Object injectedResult = injecter.thenInject();
-        assertEquals(mockValue, injectedResult);
-        assertEquals(mockValue, target.intField);
+        assertTrue(injecter.thenInject());
+        assertEquals(injectedValue, targetInstance.stringField);
     }
 }

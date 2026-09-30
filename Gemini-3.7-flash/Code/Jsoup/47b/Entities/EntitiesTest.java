@@ -3,184 +3,163 @@ package org.jsoup.nodes;
 import org.junit.Test;
 
 import java.nio.charset.Charset;
-import java.util.Map;
 
 import static org.junit.Assert.*;
 
 public class EntitiesTest {
 
-    // Tests checking if a valid entity name exists in the full entity set
+    // Tests isNamedEntity with known and unknown entities
     @Test
-    public void testIsNamedEntity_validEntity_returnsTrue() {
+    public void testIsNamedEntity_validAndInvalidNames_returnsExpected() {
         assertTrue(Entities.isNamedEntity("lt"));
         assertTrue(Entities.isNamedEntity("amp"));
         assertTrue(Entities.isNamedEntity("gt"));
         assertTrue(Entities.isNamedEntity("quot"));
-        assertTrue(Entities.isNamedEntity("nbsp"));
+        assertFalse(Entities.isNamedEntity("nonExistentEntityName123"));
     }
 
-    // Tests checking if an invalid entity name exists
+    // Tests isBaseNamedEntity with base, extended, and unknown entities
     @Test
-    public void testIsNamedEntity_invalidEntity_returnsFalse() {
-        assertFalse(Entities.isNamedEntity("notAnEntity123"));
-        assertFalse(Entities.isNamedEntity(""));
-    }
-
-    // Tests checking if an entity is in the base entity set
-    @Test
-    public void testIsBaseNamedEntity_baseAndNonBaseEntities_returnsCorrectBoolean() {
+    public void testIsBaseNamedEntity_baseAndExtendedNames_returnsExpected() {
         assertTrue(Entities.isBaseNamedEntity("lt"));
         assertTrue(Entities.isBaseNamedEntity("amp"));
-        assertTrue(Entities.isBaseNamedEntity("gt"));
         assertTrue(Entities.isBaseNamedEntity("quot"));
-        assertFalse(Entities.isBaseNamedEntity("notinbaseEntityXYZ"));
+        assertFalse(Entities.isBaseNamedEntity("nonExistentEntityName123"));
     }
 
-    // Tests getting character value for known entity names
+    // Tests getCharacterByName with valid and invalid entity names
     @Test
-    public void testGetCharacterByName_validName_returnsCharacter() {
+    public void testGetCharacterByName_validAndInvalidNames_returnsCharacterOrNull() {
         assertEquals(Character.valueOf('<'), Entities.getCharacterByName("lt"));
-        assertEquals(Character.valueOf('>'), Entities.getCharacterByName("gt"));
         assertEquals(Character.valueOf('&'), Entities.getCharacterByName("amp"));
+        assertEquals(Character.valueOf('>'), Entities.getCharacterByName("gt"));
         assertEquals(Character.valueOf('"'), Entities.getCharacterByName("quot"));
+        assertNull(Entities.getCharacterByName("nonExistentEntityName123"));
     }
 
-    // Tests getting character value for unknown entity name returns null
+    // Tests escape with basic characters in normal text data
     @Test
-    public void testGetCharacterByName_invalidName_returnsNull() {
-        assertNull(Entities.getCharacterByName("unknownEntity"));
+    public void testEscape_textDataWithSpecialCharacters_escapesCorrectly() {
+        Document.OutputSettings settings = new Document.OutputSettings();
+        String input = "Hello & < > \" World";
+        String escaped = Entities.escape(input, settings);
+        assertEquals("Hello &amp; &lt; &gt; \" World", escaped);
     }
 
-    // Tests basic escaping of HTML special characters outside attribute
+    // Tests escape with attribute mode enabled
     @Test
-    public void testEscape_textNodeSpecialCharacters_escapesProperly() {
-        Document.OutputSettings out = new Document.OutputSettings();
-        out.charset(Charset.forName("UTF-8"));
-        out.escapeMode(Entities.EscapeMode.base);
-
-        String result = Entities.escape("Hello & < > \" ' World", out);
-        assertEquals("Hello &amp; &lt; &gt; \" ' World", result);
-    }
-
-    // Tests escaping of quotes when inside attribute vs outside attribute
-    @Test
-    public void testEscape_inAttributeQuotes_escapesQuotesOnlyInAttribute() {
-        Document.OutputSettings out = new Document.OutputSettings();
-        out.charset(Charset.forName("UTF-8"));
-        out.escapeMode(Entities.EscapeMode.base);
-
-        StringBuilder accumInAttr = new StringBuilder();
-        Entities.escape(accumInAttr, "value with \"quotes\" & < >", out, true, false, false);
-        assertEquals("value with &quot;quotes&quot; &amp; < >", accumInAttr.toString());
-
-        StringBuilder accumNotInAttr = new StringBuilder();
-        Entities.escape(accumNotInAttr, "value with \"quotes\" & < >", out, false, false, false);
-        assertEquals("value with \"quotes\" &amp; &lt; &gt;", accumNotInAttr.toString());
-    }
-
-    // Tests escaping non-breaking space with different escape modes
-    @Test
-    public void testEscape_nonBreakingSpace_escapesAccordingToMode() {
-        Document.OutputSettings outBase = new Document.OutputSettings();
-        outBase.charset(Charset.forName("UTF-8"));
-        outBase.escapeMode(Entities.EscapeMode.base);
-
-        String baseResult = Entities.escape("hello\u00A0world", outBase);
-        assertEquals("hello&nbsp;world", baseResult);
-
-        Document.OutputSettings outXhtml = new Document.OutputSettings();
-        outXhtml.charset(Charset.forName("UTF-8"));
-        outXhtml.escapeMode(Entities.EscapeMode.xhtml);
-
-        String xhtmlResult = Entities.escape("hello\u00A0world", outXhtml);
-        assertEquals("hello&#xa0;world", xhtmlResult);
-    }
-
-    // Tests whitespace normalisation and leading whitespace stripping
-    @Test
-    public void testEscape_normaliseAndStripLeadingWhitespace_collapsesAndStripsSpaces() {
-        Document.OutputSettings out = new Document.OutputSettings();
-        out.charset(Charset.forName("UTF-8"));
-
+    public void testEscape_attributeMode_escapesQuotesAndAmpersand() {
+        Document.OutputSettings settings = new Document.OutputSettings();
         StringBuilder accum = new StringBuilder();
-        Entities.escape(accum, "   multiple   spaces\n\t text   ", out, false, true, true);
-        assertEquals("multiple spaces text ", accum.toString());
-
-        StringBuilder accumNoStrip = new StringBuilder();
-        Entities.escape(accumNoStrip, "   leading space", out, false, true, false);
-        assertEquals(" leading space", accumNoStrip.toString());
+        String input = "Hello & < > \" World";
+        Entities.escape(accum, input, settings, true, false, false);
+        assertEquals("Hello &amp; < > &quot; World", accum.toString());
     }
 
-    // Tests escaping characters under US-ASCII charset encoding
+    // Tests escape with whitespace normalization and leading whitespace stripping
+    @Test
+    public void testEscape_whitespaceNormalization_collapsesAndStripsSpaces() {
+        Document.OutputSettings settings = new Document.OutputSettings();
+        StringBuilder accum = new StringBuilder();
+        String input = "   Hello   \t\n  World   ";
+        Entities.escape(accum, input, settings, false, true, true);
+        assertEquals("Hello World ", accum.toString());
+    }
+
+    // Tests escape with non-breaking space in base/extended mode vs xhtml mode
+    @Test
+    public void testEscape_nonBreakingSpace_handledAccordingToEscapeMode() {
+        Document.OutputSettings settingsBase = new Document.OutputSettings();
+        settingsBase.escapeMode(Entities.EscapeMode.base);
+        assertEquals("&nbsp;", Entities.escape("\u00A0", settingsBase));
+
+        Document.OutputSettings settingsXhtml = new Document.OutputSettings();
+        settingsXhtml.escapeMode(Entities.EscapeMode.xhtml);
+        assertEquals("&#xa0;", Entities.escape("\u00A0", settingsXhtml));
+    }
+
+    // Tests escape with US-ASCII charset where characters outside ASCII are escaped
     @Test
     public void testEscape_asciiCharset_escapesNonAsciiCharacters() {
-        Document.OutputSettings out = new Document.OutputSettings();
-        out.charset(Charset.forName("US-ASCII"));
-        out.escapeMode(Entities.EscapeMode.base);
-
-        String result = Entities.escape("Ascii & \u00E9 \u03C0", out);
-        assertEquals("Ascii &amp; &eacute; &#x3c0;", result);
+        Document.OutputSettings settings = new Document.OutputSettings();
+        settings.charset("US-ASCII");
+        settings.escapeMode(Entities.EscapeMode.base);
+        String input = "Ç ü é";
+        String escaped = Entities.escape(input, settings);
+        assertTrue(escaped.contains("&Ccedil;"));
+        assertTrue(escaped.contains("&eacute;"));
     }
 
-    // Tests escaping supplementary characters (surrogate pairs) with UTF-8 vs US-ASCII
+    // Tests escape with UTF-8 charset where characters within charset are not escaped
     @Test
-    public void testEscape_supplementaryCharacters_handlesCodePoints() {
-        String supplementary = new String(Character.toChars(0x1F4A9)); // Pile of Poo emoji
-
-        Document.OutputSettings outUtf = new Document.OutputSettings();
-        outUtf.charset(Charset.forName("UTF-8"));
-        String utfResult = Entities.escape(supplementary, outUtf);
-        assertEquals(supplementary, utfResult);
-
-        Document.OutputSettings outAscii = new Document.OutputSettings();
-        outAscii.charset(Charset.forName("US-ASCII"));
-        String asciiResult = Entities.escape(supplementary, outAscii);
-        assertEquals("&#x1f4a9;", asciiResult);
+    public void testEscape_utfCharset_preservesUnicodeCharacters() {
+        Document.OutputSettings settings = new Document.OutputSettings();
+        settings.charset("UTF-8");
+        settings.escapeMode(Entities.EscapeMode.base);
+        String input = "Ç ü é";
+        String escaped = Entities.escape(input, settings);
+        assertEquals("Ç ü é", escaped);
     }
 
-    // Tests unescaping named and numeric entities in normal mode
+    // Tests escape with supplementary code points (surrogate pairs)
+    @Test
+    public void testEscape_supplementaryCharacters_handledCorrectly() {
+        Document.OutputSettings utfSettings = new Document.OutputSettings();
+        utfSettings.charset("UTF-8");
+        String emoji = "\uD83D\uDE00"; // 😀 U+1F600
+        assertEquals(emoji, Entities.escape(emoji, utfSettings));
+
+        Document.OutputSettings asciiSettings = new Document.OutputSettings();
+        asciiSettings.charset("US-ASCII");
+        assertEquals("&#x1f600;", Entities.escape(emoji, asciiSettings));
+    }
+
+    // Tests escape with character not present in named entity map when using fallback encoding
+    @Test
+    public void testEscape_unmappedCharacterInAscii_outputsHexEntity() {
+        Document.OutputSettings settings = new Document.OutputSettings();
+        settings.charset("US-ASCII");
+        settings.escapeMode(Entities.EscapeMode.xhtml);
+        String input = "\u03A9"; // Greek Omega (not in xhtml entity map)
+        String escaped = Entities.escape(input, settings);
+        assertEquals("&#x3a9;", escaped);
+    }
+
+    // Tests unescape without strict mode
     @Test
     public void testUnescape_namedAndNumericEntities_unescapesCorrectly() {
-        String input = "&lt;div class=&quot;main&quot;&gt;Hello &amp; &#39;World&#39; &#x20;&nbsp;&lt;/div&gt;";
-        String unescaped = Entities.unescape(input);
-        assertEquals("<div class=\"main\">Hello & 'World'  \u00A0</div>", unescaped);
+        assertEquals("&", Entities.unescape("&amp;"));
+        assertEquals("<", Entities.unescape("&lt;"));
+        assertEquals(">", Entities.unescape("&gt;"));
+        assertEquals("\"", Entities.unescape("&quot;"));
+        assertEquals("Ç", Entities.unescape("&Ccedil;"));
+        assertEquals("A", Entities.unescape("&#65;"));
+        assertEquals("A", Entities.unescape("&#x41;"));
     }
 
-    // Tests strict unescaping mode requiring trailing semicolon
+    // Tests unescape with strict parameter
     @Test
-    public void testUnescape_strictMode_handlesMissingSemicolon() {
-        String input = "&amp &amp; &lt";
-        assertEquals("& & <", Entities.unescape(input, false));
-        assertEquals("&amp & <", Entities.unescape(input, true));
+    public void testUnescape_withStrictParameter_unescapesAccordingly() {
+        assertEquals("&", Entities.unescape("&amp;", true));
+        assertEquals("&", Entities.unescape("&amp", false));
     }
 
-    // Tests EscapeMode enum maps are populated
+    // Tests EscapeMode enum maps
     @Test
-    public void testEscapeMode_getMap_returnsNonNullPopulatedMap() {
-        Map<Character, String> xhtmlMap = Entities.EscapeMode.xhtml.getMap();
-        assertNotNull(xhtmlMap);
-        assertTrue(xhtmlMap.containsKey('<'));
-        assertTrue(xhtmlMap.containsKey('>'));
-        assertTrue(xhtmlMap.containsKey('&'));
-        assertTrue(xhtmlMap.containsKey('"'));
-
-        Map<Character, String> baseMap = Entities.EscapeMode.base.getMap();
-        assertNotNull(baseMap);
-        assertTrue(baseMap.size() > xhtmlMap.size());
-
-        Map<Character, String> extendedMap = Entities.EscapeMode.extended.getMap();
-        assertNotNull(extendedMap);
-        assertTrue(extendedMap.size() >= baseMap.size());
+    public void testEscapeMode_getMap_returnsNonEmptyMap() {
+        assertNotNull(Entities.EscapeMode.xhtml.getMap());
+        assertNotNull(Entities.EscapeMode.base.getMap());
+        assertNotNull(Entities.EscapeMode.extended.getMap());
+        assertTrue(Entities.EscapeMode.xhtml.getMap().containsKey('<'));
+        assertTrue(Entities.EscapeMode.xhtml.getMap().containsKey('>'));
+        assertTrue(Entities.EscapeMode.xhtml.getMap().containsKey('&'));
+        assertTrue(Entities.EscapeMode.xhtml.getMap().containsKey('"'));
     }
 
-    // Tests fallback charset encoding branch
+    // Tests escape with empty string
     @Test
-    public void testEscape_fallbackCharset_encodesOrEscapesCorrectly() {
-        Document.OutputSettings out = new Document.OutputSettings();
-        out.charset(Charset.forName("ISO-8859-1"));
-        out.escapeMode(Entities.EscapeMode.base);
-
-        String result = Entities.escape("Fran\u00E7ais \u03C0", out);
-        assertEquals("Fran\u00E7ais &#x3c0;", result);
+    public void testEscape_emptyString_returnsEmptyString() {
+        Document.OutputSettings settings = new Document.OutputSettings();
+        assertEquals("", Entities.escape("", settings));
     }
 }

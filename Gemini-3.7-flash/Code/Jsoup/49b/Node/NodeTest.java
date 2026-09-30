@@ -11,270 +11,292 @@ import static org.junit.Assert.*;
 
 public class NodeTest {
 
-    // Tests attribute operations including abs: prefix
+    // Tests inserting nodes at index and updating sibling index (Defects4J 49)
     @Test
-    public void testAttr_variousKeys_returnsExpectedValues() {
-        Document doc = Jsoup.parse("<a href=\"http://example.com/foo\" title=\"link\">Text</a>", "http://example.com/");
-        Element link = doc.select("a").first();
+    public void testAddChildren_insertMultipleAtStart_reindexesCorrectly() {
+        Element parent = new Element(Tag.valueOf("div"), "");
+        Node c1 = new Element(Tag.valueOf("p"), "").text("1");
+        Node c2 = new Element(Tag.valueOf("p"), "").text("2");
+        Node c3 = new Element(Tag.valueOf("p"), "").text("3");
+        parent.addChildren(c1, c2, c3);
 
-        assertEquals("http://example.com/foo", link.attr("href"));
-        assertEquals("link", link.attr("title"));
-        assertEquals("", link.attr("nonexistent"));
-        assertEquals("http://example.com/foo", link.attr("abs:href"));
+        Node new1 = new Element(Tag.valueOf("span"), "").text("A");
+        Node new2 = new Element(Tag.valueOf("span"), "").text("B");
+        parent.addChildren(0, new1, new2);
+
+        assertEquals(5, parent.childNodeSize());
+        assertSame(new1, parent.childNode(0));
+        assertSame(new2, parent.childNode(1));
+        assertSame(c1, parent.childNode(2));
+        assertSame(c2, parent.childNode(3));
+        assertSame(c3, parent.childNode(4));
+
+        assertEquals(0, new1.siblingIndex());
+        assertEquals(1, new2.siblingIndex());
+        assertEquals(2, c1.siblingIndex());
+        assertEquals(3, c2.siblingIndex());
+        assertEquals(4, c3.siblingIndex());
     }
 
-    // Tests hasAttr and removeAttr with standard and abs: attributes
+    // Tests moving existing children within the same parent
     @Test
-    public void testHasAttrAndRemoveAttr_existingAndMissing_returnsExpectedBooleans() {
-        Document doc = Jsoup.parse("<a href=\"/relative\" id=\"my-link\">Link</a>", "http://example.com/");
-        Element link = doc.select("a").first();
+    public void testAddChildren_moveChildrenWithinParent_preservesOrder() {
+        Element parent = new Element(Tag.valueOf("div"), "");
+        Node c1 = new Element(Tag.valueOf("p"), "").text("1");
+        Node c2 = new Element(Tag.valueOf("p"), "").text("2");
+        Node c3 = new Element(Tag.valueOf("p"), "").text("3");
+        Node c4 = new Element(Tag.valueOf("p"), "").text("4");
+        parent.addChildren(c1, c2, c3, c4);
 
-        assertTrue(link.hasAttr("href"));
-        assertTrue(link.hasAttr("id"));
-        assertTrue(link.hasAttr("abs:href"));
-        assertFalse(link.hasAttr("class"));
-        assertFalse(link.hasAttr("abs:class"));
+        parent.addChildren(1, c4);
 
-        link.removeAttr("id");
-        assertFalse(link.hasAttr("id"));
-        assertEquals("", link.attr("id"));
-    }
+        assertEquals(4, parent.childNodeSize());
+        assertSame(c1, parent.childNode(0));
+        assertSame(c4, parent.childNode(1));
+        assertSame(c2, parent.childNode(2));
+        assertSame(c3, parent.childNode(3));
 
-    // Tests absUrl resolution with relative and absolute base URIs
-    @Test
-    public void testAbsUrl_relativeAndAbsolute_resolvesCorrectly() {
-        Document doc = Jsoup.parse("<a href=\"sub/page.html\">Link</a>", "http://example.com/dir/");
-        Element link = doc.select("a").first();
-
-        assertEquals("http://example.com/dir/sub/page.html", link.absUrl("href"));
-        assertEquals("", link.absUrl("nonexistent"));
-    }
-
-    // Tests baseUri updating across descendants
-    @Test
-    public void testSetBaseUri_descendantsUpdated_allDescendantsHaveNewBaseUri() {
-        Document doc = Jsoup.parse("<div><p><span>Hello</span></p></div>", "http://example.com/");
-        doc.setBaseUri("http://newhost.com/path/");
-
-        assertEquals("http://newhost.com/path/", doc.baseUri());
-        assertEquals("http://newhost.com/path/", doc.select("div").first().baseUri());
-        assertEquals("http://newhost.com/path/", doc.select("span").first().baseUri());
-    }
-
-    // Tests child node retrieval, indexing and copying
-    @Test
-    public void testChildNodes_traversalAndCopy_returnsCorrectChildren() {
-        Document doc = Jsoup.parse("<div><p>1</p><p>2</p><p>3</p></div>");
-        Element div = doc.select("div").first();
-
-        assertEquals(3, div.childNodeSize());
-        assertEquals("p", div.childNode(0).nodeName());
-        assertEquals("p", div.childNode(1).nodeName());
-        assertEquals(3, div.childNodes().size());
-
-        List<Node> copy = div.childNodesCopy();
-        assertEquals(3, copy.size());
-        assertNotSame(div.childNode(0), copy.get(0));
-    }
-
-    // Tests inserting nodes at specific indices (including defect jsoup-49 scenario)
-    @Test
-    public void testAddChildrenAtIndex_insertInOrder_correctSequence() {
-        Document doc = Jsoup.parse("<div><p id=\"1\">One</p><p id=\"2\">Two</p><p id=\"3\">Three</p></div>");
-        Element div = doc.select("div").first();
-
-        Element p4 = new Element(Tag.valueOf("p"), "").attr("id", "4");
-        Element p5 = new Element(Tag.valueOf("p"), "").attr("id", "5");
-
-        div.addChildren(1, p4, p5);
-
-        assertEquals(5, div.childNodeSize());
-        assertEquals("1", div.childNode(0).attr("id"));
-        assertEquals("4", div.childNode(1).attr("id"));
-        assertEquals("5", div.childNode(2).attr("id"));
-        assertEquals("2", div.childNode(3).attr("id"));
-        assertEquals("3", div.childNode(4).attr("id"));
-
-        for (int i = 0; i < div.childNodeSize(); i++) {
-            assertEquals(i, div.childNode(i).siblingIndex());
+        for (int i = 0; i < parent.childNodeSize(); i++) {
+            assertEquals(i, parent.childNode(i).siblingIndex());
         }
     }
 
-    // Tests moving children within the same parent via addChildren with index
+    // Tests getting attribute with and without abs: prefix
     @Test
-    public void testAddChildren_movingExistingChildren_preservesIndexIntegrity() {
-        Document doc = Jsoup.parse("<div><p id=\"1\">1</p><p id=\"2\">2</p><p id=\"3\">3</p></div>");
+    public void testAttr_absPrefix_resolvesAbsoluteUrl() {
+        Element link = new Element(Tag.valueOf("a"), "http://example.com/foo/");
+        link.attr("href", "bar.html");
+        link.attr("title", "Test Link");
+
+        assertEquals("bar.html", link.attr("href"));
+        assertEquals("http://example.com/foo/bar.html", link.attr("abs:href"));
+        assertEquals("Test Link", link.attr("title"));
+        assertEquals("", link.attr("nonexistent"));
+        assertEquals("", link.attr("abs:nonexistent"));
+    }
+
+    // Tests hasAttr with regular attribute and abs: prefix
+    @Test
+    public void testHasAttr_absAndRegular_returnsExpected() {
+        Element link = new Element(Tag.valueOf("a"), "http://example.com/");
+        link.attr("href", "index.html");
+
+        assertTrue(link.hasAttr("href"));
+        assertTrue(link.hasAttr("abs:href"));
+        assertFalse(link.hasAttr("rel"));
+        assertFalse(link.hasAttr("abs:rel"));
+    }
+
+    // Tests removeAttr removes the specified attribute
+    @Test
+    public void testRemoveAttr_existingKey_removesAttribute() {
+        Element element = new Element(Tag.valueOf("div"), "");
+        element.attr("class", "container");
+        assertTrue(element.hasAttr("class"));
+
+        element.removeAttr("class");
+        assertFalse(element.hasAttr("class"));
+        assertEquals("", element.attr("class"));
+    }
+
+    // Tests updating baseUri across descendants
+    @Test
+    public void testSetBaseUri_descendantTree_updatesAllNodes() {
+        Document doc = Jsoup.parse("<div><p><a href='/doc'>Link</a></p></div>", "http://example.com/");
         Element div = doc.select("div").first();
-        Node p3 = div.childNode(2);
+        Element link = doc.select("a").first();
 
-        div.addChildren(0, p3);
+        div.setBaseUri("http://example.org/");
 
-        assertEquals(3, div.childNodeSize());
-        assertEquals("3", div.childNode(0).attr("id"));
-        assertEquals("1", div.childNode(1).attr("id"));
-        assertEquals("2", div.childNode(2).attr("id"));
+        assertEquals("http://example.org/", div.baseUri());
+        assertEquals("http://example.org/", link.baseUri());
+        assertEquals("http://example.org/doc", link.absUrl("href"));
     }
 
-    // Tests before and after HTML insertion
+    // Tests childNodesCopy returns a deep cloned copy of children
     @Test
-    public void testBeforeAndAfter_htmlStrings_insertedInCorrectPositions() {
-        Document doc = Jsoup.parse("<div><span id=\"target\">Target</span></div>");
-        Element span = doc.select("#target").first();
+    public void testChildNodesCopy_modifications_doNotAffectOriginal() {
+        Element parent = new Element(Tag.valueOf("div"), "");
+        Element child = new Element(Tag.valueOf("p"), "");
+        child.attr("class", "original");
+        parent.appendChild(child);
 
-        span.before("<i>Before</i>");
-        span.after("<b>After</b>");
+        List<Node> copy = parent.childNodesCopy();
+        assertEquals(1, copy.size());
 
-        Element div = doc.select("div").first();
-        assertEquals(3, div.children().size());
-        assertEquals("i", div.childNode(0).nodeName());
-        assertEquals("span", div.childNode(1).nodeName());
-        assertEquals("b", div.childNode(2).nodeName());
-    }
-
-    // Tests before and after Node insertion
-    @Test
-    public void testBeforeAndAfter_nodeObjects_insertedInCorrectPositions() {
-        Document doc = Jsoup.parse("<div><span id=\"target\">Target</span></div>");
-        Element span = doc.select("#target").first();
-
-        Element beforeNode = new Element(Tag.valueOf("em"), "");
-        Element afterNode = new Element(Tag.valueOf("strong"), "");
-
-        span.before(beforeNode);
-        span.after(afterNode);
-
-        Element div = doc.select("div").first();
-        assertEquals(beforeNode, span.previousSibling());
-        assertEquals(afterNode, span.nextSibling());
-    }
-
-    // Tests sibling retrieval and sibling index properties
-    @Test
-    public void testSiblingNavigation_firstMiddleLast_returnsSiblingsCorrectly() {
-        Document doc = Jsoup.parse("<div><p id=\"1\">1</p><p id=\"2\">2</p><p id=\"3\">3</p></div>");
-        Element div = doc.select("div").first();
-        Node p1 = div.childNode(0);
-        Node p2 = div.childNode(1);
-        Node p3 = div.childNode(2);
-
-        assertNull(p1.previousSibling());
-        assertEquals(p2, p1.nextSibling());
-        assertEquals(p1, p2.previousSibling());
-        assertEquals(p3, p2.nextSibling());
-        assertEquals(p2, p3.previousSibling());
-        assertNull(p3.nextSibling());
-
-        List<Node> p2Siblings = p2.siblingNodes();
-        assertEquals(2, p2Siblings.size());
-        assertTrue(p2Siblings.contains(p1));
-        assertTrue(p2Siblings.contains(p3));
-        assertFalse(p2Siblings.contains(p2));
-    }
-
-    // Tests wrap and unwrap methods
-    @Test
-    public void testWrapAndUnwrap_elementWrapping_structureUpdatedProperly() {
-        Document doc = Jsoup.parse("<div><span id=\"target\">Inner</span></div>");
-        Element span = doc.select("#target").first();
-
-        span.wrap("<div class=\"wrapper\"><p></p></div>");
-        assertEquals("div", span.parent().parent().nodeName());
-        assertEquals("wrapper", span.parent().parent().attr("class"));
-
-        Element p = span.parent();
-        Node firstChild = p.unwrap();
-
-        assertEquals(span, firstChild);
-        assertEquals("wrapper", span.parent().attr("class"));
-    }
-
-    // Tests replaceWith and remove methods
-    @Test
-    public void testReplaceWithAndRemove_modifiesParentChildren() {
-        Document doc = Jsoup.parse("<div><span id=\"target\">Target</span></div>");
-        Element span = doc.select("#target").first();
-        Element replacement = new Element(Tag.valueOf("b"), "");
-
-        span.replaceWith(replacement);
-        assertNull(span.parent());
-        assertEquals(replacement, doc.select("div").first().childNode(0));
-
-        replacement.remove();
-        assertNull(replacement.parent());
-        assertEquals(0, doc.select("div").first().childNodeSize());
+        copy.get(0).attr("class", "modified");
+        assertEquals("original", child.attr("class"));
+        assertEquals("modified", copy.get(0).attr("class"));
     }
 
     // Tests ownerDocument retrieval for attached and detached nodes
     @Test
-    public void testOwnerDocument_attachedAndDetached_returnsExpectedDocument() {
-        Document doc = Jsoup.parse("<div><span>Text</span></div>");
-        Element span = doc.select("span").first();
-        assertSame(doc, span.ownerDocument());
+    public void testOwnerDocument_attachedAndDetached_returnsCorrectDoc() {
+        Document doc = Jsoup.parse("<div><p>Hello</p></div>");
+        Element p = doc.select("p").first();
+        assertSame(doc, p.ownerDocument());
+        assertSame(doc, doc.ownerDocument());
 
-        Element orphan = new Element(Tag.valueOf("p"), "");
-        assertNull(orphan.ownerDocument());
+        Element detached = new Element(Tag.valueOf("span"), "");
+        assertNull(detached.ownerDocument());
     }
 
-    // Tests traverse depth-first visitor
+    // Tests before and after insertions using Node
     @Test
-    public void testTraverse_nodeVisitor_visitsAllNodesInOrder() {
+    public void testBeforeAndAfter_nodeSibling_insertsAtCorrectPositions() {
+        Document doc = Jsoup.parse("<div><p id='mid'>Middle</p></div>");
+        Element mid = doc.select("#mid").first();
+
+        Element before = new Element(Tag.valueOf("p"), "").attr("id", "before");
+        Element after = new Element(Tag.valueOf("p"), "").attr("id", "after");
+
+        mid.before(before);
+        mid.after(after);
+
+        Element div = doc.select("div").first();
+        assertEquals(3, div.childNodeSize());
+        assertSame(before, div.childNode(0));
+        assertSame(mid, div.childNode(1));
+        assertSame(after, div.childNode(2));
+    }
+
+    // Tests before and after insertions using HTML string
+    @Test
+    public void testBeforeAndAfter_htmlString_insertsParsedNodes() {
+        Document doc = Jsoup.parse("<div><p id='mid'>Middle</p></div>");
+        Element mid = doc.select("#mid").first();
+
+        mid.before("<span id='before'>Before</span>");
+        mid.after("<span id='after'>After</span>");
+
+        Element div = doc.select("div").first();
+        assertEquals(3, div.children().size());
+        assertEquals("before", div.child(0).id());
+        assertEquals("mid", div.child(1).id());
+        assertEquals("after", div.child(2).id());
+    }
+
+    // Tests wrap and unwrap methods
+    @Test
+    public void testWrapAndUnwrap_nestedStructure_wrapsAndUnwrapsCorrectly() {
+        Document doc = Jsoup.parse("<div><p>Text</p></div>");
+        Element p = doc.select("p").first();
+
+        p.wrap("<section class='outer'><div class='inner'></div></section>");
+        Element div = doc.select("div").first();
+        assertEquals("section", div.childNode(0).nodeName());
+
+        Element inner = doc.select(".inner").first();
+        assertSame(p, inner.childNode(0));
+
+        p.unwrap();
+        assertEquals("Text", inner.text());
+        assertFalse(inner.children().contains(p));
+    }
+
+    // Tests replaceWith replacing a node in parent
+    @Test
+    public void testReplaceWith_validNode_replacesCorrectly() {
+        Document doc = Jsoup.parse("<div><p id='old'>Old</p></div>");
+        Element oldP = doc.select("#old").first();
+        Element newSpan = new Element(Tag.valueOf("span"), "").attr("id", "new");
+
+        oldP.replaceWith(newSpan);
+
+        Element div = doc.select("div").first();
+        assertNull(oldP.parent());
+        assertSame(newSpan, div.childNode(0));
+        assertEquals(0, newSpan.siblingIndex());
+    }
+
+    // Tests sibling navigation methods
+    @Test
+    public void testSiblings_navigation_returnsExpectedSiblings() {
+        Document doc = Jsoup.parse("<div><p id='1'></p><p id='2'></p><p id='3'></p></div>");
+        Element p1 = doc.select("#1").first();
+        Element p2 = doc.select("#2").first();
+        Element p3 = doc.select("#3").first();
+
+        assertNull(p1.previousSibling());
+        assertSame(p2, p1.nextSibling());
+        assertSame(p1, p2.previousSibling());
+        assertSame(p3, p2.nextSibling());
+        assertNull(p3.nextSibling());
+
+        List<Node> siblings = p2.siblingNodes();
+        assertEquals(2, siblings.size());
+        assertTrue(siblings.contains(p1));
+        assertTrue(siblings.contains(p3));
+        assertFalse(siblings.contains(p2));
+    }
+
+    // Tests sibling navigation when node has no parent
+    @Test
+    public void testSiblings_orphanNode_returnsNullAndEmpty() {
+        Element orphan = new Element(Tag.valueOf("p"), "");
+        assertNull(orphan.parent());
+        assertNull(orphan.previousSibling());
+        assertNull(orphan.nextSibling());
+        assertTrue(orphan.siblingNodes().isEmpty());
+    }
+
+    // Tests traverse depth-first visitor callback
+    @Test
+    public void testTraverse_visitor_visitsHeadAndTail() {
         Document doc = Jsoup.parse("<div><p>Text</p></div>");
         final StringBuilder visited = new StringBuilder();
 
         doc.body().traverse(new NodeVisitor() {
             public void head(Node node, int depth) {
-                visited.append(node.nodeName()).append(":head ");
+                visited.append("H:").append(node.nodeName()).append(";");
             }
 
             public void tail(Node node, int depth) {
-                visited.append(node.nodeName()).append(":tail ");
+                visited.append("T:").append(node.nodeName()).append(";");
             }
         });
 
-        assertTrue(visited.toString().contains("body:head"));
-        assertTrue(visited.toString().contains("div:head"));
-        assertTrue(visited.toString().contains("p:head"));
-        assertTrue(visited.toString().contains("p:tail"));
+        assertTrue(visited.toString().startsWith("H:body;H:div;H:p;H:#text;"));
+        assertTrue(visited.toString().contains("T:p;T:div;T:body;"));
     }
 
-    // Tests clone creates independent deep copy
+    // Tests clone creates an independent deep copy
     @Test
-    public void testClone_deepCopy_isIndependentOfOriginal() {
-        Document doc = Jsoup.parse("<div id=\"main\"><p class=\"text\">Hello</p></div>");
+    public void testClone_deepCopy_isIndependent() {
+        Document doc = Jsoup.parse("<div id='main'><p class='one'>Hello</p></div>");
         Element div = doc.select("#main").first();
-
         Node clone = div.clone();
+
+        assertNotSame(div, clone);
         assertNull(clone.parent());
-        assertEquals(div.childNodeSize(), clone.childNodeSize());
         assertEquals(div.outerHtml(), clone.outerHtml());
 
-        // Modify clone and ensure original is unaffected
-        clone.attr("id", "modified");
-        assertEquals("main", div.attr("id"));
-        assertEquals("modified", clone.attr("id"));
+        Element clonedP = ((Element) clone).select("p").first();
+        clonedP.attr("class", "two");
+
+        assertEquals("one", div.select("p").first().attr("class"));
+        assertEquals("two", clonedP.attr("class"));
     }
 
     // Tests equals and hashCode contract
     @Test
-    public void testEqualsAndHashCode_sameContentAndDifferent_obeysContract() {
-        Element el1 = new Element(Tag.valueOf("p"), "").attr("class", "lead");
-        Element el2 = new Element(Tag.valueOf("p"), "").attr("class", "lead");
-        Element el3 = new Element(Tag.valueOf("p"), "").attr("class", "other");
+    public void testEqualsAndHashCode_sameAndDifferentContent() {
+        Document doc1 = Jsoup.parse("<p class='test'>Hello</p>");
+        Document doc2 = Jsoup.parse("<p class='test'>Hello</p>");
+        Document doc3 = Jsoup.parse("<p class='other'>Hello</p>");
 
-        assertEquals(el1, el2);
-        assertEquals(el1.hashCode(), el2.hashCode());
-        assertFalse(el1.equals(el3));
-        assertFalse(el1.equals(null));
+        Element p1 = doc1.select("p").first();
+        Element p2 = doc2.select("p").first();
+        Element p3 = doc3.select("p").first();
+
+        assertEquals(p1, p2);
+        assertEquals(p1.hashCode(), p2.hashCode());
+        assertNotEquals(p1, p3);
+        assertNotEquals(p1, null);
+        assertNotEquals(p1, "not a node");
     }
 
-    // Tests exception on null attribute key
-    @Test(expected = IllegalArgumentException.class)
-    public void testAttr_nullAttributeKey_throwsException() {
-        Element el = new Element(Tag.valueOf("p"), "");
-        el.attr(null);
-    }
-
-    // Tests exception on removing node without parent
+    // Tests remove node throws exception when parent is null
     @Test(expected = IllegalArgumentException.class)
     public void testRemove_orphanNode_throwsException() {
         Element orphan = new Element(Tag.valueOf("p"), "");

@@ -2,37 +2,46 @@ package com.fasterxml.jackson.databind.ser.std;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.*;
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIdentityReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.BeanProperty;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyMetadata;
+import com.fasterxml.jackson.databind.PropertyName;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitorWrapper;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonObjectFormatVisitor;
-import com.fasterxml.jackson.databind.jsonschema.SchemaAware;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
 import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.databind.ser.BeanSerializer;
 import com.fasterxml.jackson.databind.ser.BeanSerializerBuilder;
+import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.PropertyFilter;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
 import com.fasterxml.jackson.databind.ser.impl.ObjectIdWriter;
+import com.fasterxml.jackson.databind.ser.impl.PropertySerializerMap;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.databind.type.TypeFactory;
@@ -40,140 +49,53 @@ import com.fasterxml.jackson.databind.util.NameTransformer;
 
 public class BeanSerializerBaseTest {
 
-    // --- Helper POJOs for testing ---
+    // Concrete implementation for unit testing BeanSerializerBase methods
+    private static class ConcreteBeanSerializer extends BeanSerializerBase {
+        private static final long serialVersionUID = 1L;
 
-    static class Views {
-        interface ViewA {}
-        interface ViewB {}
-    }
-
-    @JsonPropertyOrder({ "id", "name" })
-    static class SimpleBean {
-        public int id;
-        public String name;
-
-        public SimpleBean(int id, String name) {
-            this.id = id;
-            this.name = name;
-        }
-    }
-
-    @JsonPropertyOrder({ "id", "secret" })
-    static class ViewBean {
-        @JsonView(Views.ViewA.class)
-        public int id = 1;
-
-        @JsonView(Views.ViewB.class)
-        public String secret = "hidden";
-    }
-
-    @JsonFilter("customFilter")
-    static class FilteredBean {
-        public String keep = "keep";
-        public String drop = "drop";
-    }
-
-    @JsonFormat(shape = JsonFormat.Shape.ARRAY)
-    @JsonPropertyOrder({ "x", "y" })
-    static class ArrayShapeBean {
-        public int x;
-        public int y;
-
-        public ArrayShapeBean(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
-    }
-
-    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
-    @JsonPropertyOrder({ "id", "name", "next" })
-    static class SelfRefBean {
-        public int id;
-        public String name;
-        public SelfRefBean next;
-
-        public SelfRefBean(int id, String name) {
-            this.id = id;
-            this.name = name;
-        }
-    }
-
-    @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@id")
-    static class IdBean {
-        public String name;
-
-        public IdBean(String name) {
-            this.name = name;
-        }
-    }
-
-    static class ContainerOfIdBean {
-        @JsonIdentityReference(alwaysAsId = true)
-        public IdBean item;
-
-        public ContainerOfIdBean(IdBean item) {
-            this.item = item;
-        }
-    }
-
-    @JsonIgnoreProperties({ "ignoredProp" })
-    static class IgnoralBean {
-        public String keepProp = "yes";
-        public String ignoredProp = "no";
-    }
-
-    static class AnyGetterBean {
-        public int id = 100;
-        private Map<String, Object> extra = new HashMap<String, Object>();
-
-        public void add(String k, Object v) {
-            extra.put(k, v);
+        public ConcreteBeanSerializer(JavaType type, BeanSerializerBuilder builder,
+                BeanPropertyWriter[] properties, BeanPropertyWriter[] filteredProperties) {
+            super(type, builder, properties, filteredProperties);
         }
 
-        @JsonAnyGetter
-        public Map<String, Object> any() {
-            return extra;
-        }
-    }
-
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-    @JsonTypeName("poly")
-    static class PolyBean {
-        public String value = "hello";
-    }
-
-    static class UnwrappedParent {
-        public int id = 1;
-        @JsonUnwrapped(prefix = "child_")
-        public SimpleBean child = new SimpleBean(2, "sub");
-    }
-
-    // Concrete implementation of BeanSerializerBase for direct testing
-    static class DummyBeanSerializer extends BeanSerializerBase {
-        public DummyBeanSerializer(JavaType type, BeanPropertyWriter[] props) {
-            super(type, (BeanSerializerBuilder) null, props, null);
+        public ConcreteBeanSerializer(ConcreteBeanSerializer src, BeanPropertyWriter[] properties,
+                BeanPropertyWriter[] filteredProperties) {
+            super(src, properties, filteredProperties);
         }
 
-        public DummyBeanSerializer(DummyBeanSerializer src, ObjectIdWriter oiw) {
-            super(src, oiw);
+        public ConcreteBeanSerializer(ConcreteBeanSerializer src, ObjectIdWriter objectIdWriter) {
+            super(src, objectIdWriter);
         }
 
-        public DummyBeanSerializer(DummyBeanSerializer src, String[] toIgnore) {
+        public ConcreteBeanSerializer(ConcreteBeanSerializer src, ObjectIdWriter objectIdWriter, Object filterId) {
+            super(src, objectIdWriter, filterId);
+        }
+
+        public ConcreteBeanSerializer(ConcreteBeanSerializer src, String[] toIgnore) {
             super(src, toIgnore);
         }
 
-        public DummyBeanSerializer(DummyBeanSerializer src, Object filterId) {
-            super(src, src._objectIdWriter, filterId);
+        public ConcreteBeanSerializer(ConcreteBeanSerializer src, Set<String> toIgnore) {
+            super(src, toIgnore);
+        }
+
+        public ConcreteBeanSerializer(ConcreteBeanSerializer src, NameTransformer unwrapper) {
+            super(src, unwrapper);
         }
 
         @Override
         public BeanSerializerBase withObjectIdWriter(ObjectIdWriter objectIdWriter) {
-            return new DummyBeanSerializer(this, objectIdWriter);
+            return new ConcreteBeanSerializer(this, objectIdWriter);
         }
 
         @Override
         protected BeanSerializerBase withIgnorals(String[] toIgnore) {
-            return new DummyBeanSerializer(this, toIgnore);
+            return new ConcreteBeanSerializer(this, toIgnore);
+        }
+
+        @Override
+        protected BeanSerializerBase withIgnorals(Set<String> toIgnore) {
+            return new ConcreteBeanSerializer(this, toIgnore);
         }
 
         @Override
@@ -183,210 +105,373 @@ public class BeanSerializerBaseTest {
 
         @Override
         public BeanSerializerBase withFilterId(Object filterId) {
-            return new DummyBeanSerializer(this, filterId);
+            return new ConcreteBeanSerializer(this, _objectIdWriter, filterId);
         }
 
         @Override
         public void serialize(Object bean, JsonGenerator gen, SerializerProvider provider) throws IOException {
+            if (_objectIdWriter != null) {
+                _serializeWithObjectId(bean, gen, provider, true);
+                return;
+            }
             gen.writeStartObject();
-            serializeFields(bean, gen, provider);
+            if (_propertyFilterId != null) {
+                serializeFieldsFiltered(bean, gen, provider);
+            } else {
+                serializeFields(bean, gen, provider);
+            }
             gen.writeEndObject();
         }
     }
 
-    // Tests normal property serialization of a basic POJO
-    @Test
-    public void testSerialize_simpleBean_producesExpectedJson() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        SimpleBean bean = new SimpleBean(42, "test");
-        String json = mapper.writeValueAsString(bean);
-        assertEquals("{\"id\":42,\"name\":\"test\"}", json);
+    // Helper classes for testing
+    static class Views {
+        interface ViewA {}
+        interface ViewB {}
     }
 
-    // Tests array shape transformation via @JsonFormat(shape = Shape.ARRAY)
-    @Test
-    public void testSerialize_arrayShape_producesJsonArray() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        ArrayShapeBean bean = new ArrayShapeBean(10, 20);
-        String json = mapper.writeValueAsString(bean);
-        assertEquals("[10,20]", json);
+    static class SimpleBean {
+        @JsonProperty("name")
+        public String name = "test";
+
+        @JsonProperty("age")
+        public int age = 25;
     }
 
-    // Tests property filtering using @JsonFilter
+    @JsonFormat(shape = JsonFormat.Shape.ARRAY)
+    static class ArrayFormatBean {
+        public String field1 = "a";
+        public String field2 = "b";
+    }
+
+    @JsonFilter("customFilter")
+    static class FilteredBean {
+        public String prop1 = "val1";
+        public String prop2 = "val2";
+    }
+
+    static class ViewBean {
+        @JsonView(Views.ViewA.class)
+        public String viewA = "A";
+
+        @JsonView(Views.ViewB.class)
+        public String viewB = "B";
+    }
+
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    static class IdClass {
+        public int id = 42;
+        public String text = "content";
+    }
+
+    static class WrapperWithIdRef {
+        @JsonIdentityReference(alwaysAsId = true)
+        public IdClass item = new IdClass();
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
+    static class PolymorphicBean {
+        public String name = "poly";
+    }
+
+    @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "id")
+    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
+    static class PolymorphicIdBean {
+        public String data = "info";
+    }
+
+    static class ThrowingGetterBean {
+        public String getFailing() {
+            throw new RuntimeException("Simulated getter error");
+        }
+    }
+
+    // Tests constructor with null builder
     @Test
-    public void testSerialize_withFilter_excludesFilteredProperties() throws Exception {
+    public void testConstructor_nullBuilder_initializesNullFields() {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        BeanPropertyWriter[] props = new BeanPropertyWriter[0];
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null, props, null);
+
+        assertFalse(serializer.usesObjectId());
+        assertNull(serializer.getFilterId());
+        assertNotNull(serializer.properties());
+        assertFalse(serializer.properties().hasNext());
+    }
+
+    // Tests usesObjectId with and without ObjectIdWriter
+    @Test
+    public void testUsesObjectId_withAndWithoutObjectIdWriter_returnsExpectedBoolean() {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null, NO_PROPS, null);
+        assertFalse(serializer.usesObjectId());
+
+        ObjectIdWriter oiw = ObjectIdWriter.construct(
+                TypeFactory.defaultInstance().constructType(String.class),
+                new PropertyName("id"),
+                new ObjectIdGenerators.IntSequenceGenerator(),
+                false);
+
+        BeanSerializerBase serializerWithId = serializer.withObjectIdWriter(oiw);
+        assertTrue(serializerWithId.usesObjectId());
+    }
+
+    // Tests properties iterator
+    @Test
+    public void testProperties_returnsIteratorOverProps() {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        BeanPropertyWriter bpw = new BeanPropertyWriter();
+        BeanPropertyWriter[] props = new BeanPropertyWriter[] { bpw };
+
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null, props, null);
+        Iterator<PropertyWriter> it = serializer.properties();
+
+        assertTrue(it.hasNext());
+        assertSame(bpw, it.next());
+        assertFalse(it.hasNext());
+    }
+
+    // Tests constructor with ignorals
+    @Test
+    public void testConstructor_withIgnorals_ignoresSpecifiedProperties() {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        BeanPropertyWriter bpw1 = new BeanPropertyWriter();
+        BeanPropertyWriter bpw2 = new BeanPropertyWriter();
+
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null,
+                new BeanPropertyWriter[] { bpw1, bpw2 },
+                new BeanPropertyWriter[] { bpw1, bpw2 });
+
+        BeanSerializerBase filtered = serializer.withIgnorals(new String[] { bpw1.getName() });
+        Iterator<PropertyWriter> it = filtered.properties();
+        
+        // bpw1 should be ignored, leaving bpw2
+        int count = 0;
+        while (it.hasNext()) {
+            it.next();
+            count++;
+        }
+        assertEquals(1, count);
+    }
+
+    // Tests withFilterId mutant factory
+    @Test
+    public void testWithFilterId_newFilterId_updatesFilterId() {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null, NO_PROPS, null);
+
+        assertNull(serializer.getFilterId());
+        BeanSerializerBase withFilter = serializer.withFilterId("myFilter");
+        assertNotNull(withFilter);
+    }
+
+    // Tests NameTransformer unwrapper constructor
+    @Test
+    public void testConstructor_withNameTransformer_renamesProperties() {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        BeanPropertyWriter bpw = new BeanPropertyWriter();
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null,
+                new BeanPropertyWriter[] { bpw }, null);
+
+        NameTransformer transformer = NameTransformer.simpleTransformer("prefix.", "");
+        ConcreteBeanSerializer unwrapped = new ConcreteBeanSerializer(serializer, transformer);
+
+        Iterator<PropertyWriter> it = unwrapped.properties();
+        assertTrue(it.hasNext());
+        PropertyWriter pw = it.next();
+        assertNotNull(pw);
+    }
+
+    // Tests createContextual for POJO with JsonFormat shape = ARRAY
+    @Test
+    public void testCreateContextual_arrayShape_serializesAsArray() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        ArrayFormatBean bean = new ArrayFormatBean();
+        String json = mapper.writeValueAsString(bean);
+
+        assertEquals("[\"a\",\"b\"]", json);
+    }
+
+    // Tests serialization with active filter
+    @Test
+    public void testSerialize_withPropertyFilter_filtersProperties() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         SimpleFilterProvider filters = new SimpleFilterProvider();
-        filters.addFilter("customFilter", SimpleBeanPropertyFilter.filterOutAllExcept("keep"));
+        filters.addFilter("customFilter", SimpleBeanPropertyFilter.filterOutAllExcept("prop1"));
         mapper.setFilterProvider(filters);
 
         FilteredBean bean = new FilteredBean();
         String json = mapper.writeValueAsString(bean);
-        assertEquals("{\"keep\":\"keep\"}", json);
+
+        assertTrue(json.contains("\"prop1\":\"val1\""));
+        assertFalse(json.contains("prop2"));
     }
 
-    // Tests active view filtering with @JsonView
+    // Tests serialization with JsonView active view
     @Test
-    public void testSerialize_withActiveView_includesOnlyViewProperties() throws Exception {
+    public void testSerialize_withJsonView_serializesOnlyActiveView() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         ViewBean bean = new ViewBean();
-        String json = mapper.writerWithView(Views.ViewA.class).writeValueAsString(bean);
-        assertEquals("{\"id\":1}", json);
+
+        String jsonA = mapper.writerWithView(Views.ViewA.class).writeValueAsString(bean);
+        assertTrue(jsonA.contains("\"viewA\":\"A\""));
+        assertFalse(jsonA.contains("viewB"));
+
+        String jsonB = mapper.writerWithView(Views.ViewB.class).writeValueAsString(bean);
+        assertTrue(jsonB.contains("\"viewB\":\"B\""));
+        assertFalse(jsonA.contains("viewA") && !jsonB.contains("viewA"));
     }
 
-    // Tests cyclic reference handling with property-based Object Id
+    // Tests serialization with JsonIdentityReference alwaysAsId
     @Test
-    public void testSerialize_propertyBasedObjectId_resolvesCyclicReference() throws Exception {
+    public void testSerialize_withJsonIdentityReferenceAlwaysAsId_serializesIdOnly() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        SelfRefBean b1 = new SelfRefBean(1, "first");
-        SelfRefBean b2 = new SelfRefBean(2, "second");
-        b1.next = b2;
-        b2.next = b1;
+        WrapperWithIdRef wrapper = new WrapperWithIdRef();
 
-        String json = mapper.writeValueAsString(b1);
-        assertTrue(json.contains("\"id\":1"));
-        assertTrue(json.contains("\"next\":{\"id\":2,\"name\":\"second\",\"next\":1}"));
+        String json = mapper.writeValueAsString(wrapper);
+        assertEquals("{\"item\":42}", json);
     }
 
-    // Tests @JsonIdentityReference(alwaysAsId=true) on referencing property
+    // Tests acceptJsonFormatVisitor with null visitor
     @Test
-    public void testSerialize_alwaysAsId_outputsOnlyId() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        IdBean idBean = new IdBean("item1");
-        ContainerOfIdBean container = new ContainerOfIdBean(idBean);
+    public void testAcceptJsonFormatVisitor_nullVisitor_returnsWithoutException() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null, NO_PROPS, null);
 
-        String json = mapper.writeValueAsString(container);
-        assertEquals("{\"item\":1}", json);
+        // Should return gracefully without NullPointerException
+        serializer.acceptJsonFormatVisitor(null, type);
     }
 
-    // Tests @JsonIgnoreProperties excluding specified fields
+    // Tests getSchema method
     @Test
-    public void testSerialize_withIgnorals_ignoresExcludedFields() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        IgnoralBean bean = new IgnoralBean();
-        String json = mapper.writeValueAsString(bean);
-        assertEquals("{\"keepProp\":\"yes\"}", json);
-    }
-
-    // Tests @JsonAnyGetter serialization
-    @Test
-    public void testSerialize_anyGetter_serializesDynamicFields() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        AnyGetterBean bean = new AnyGetterBean();
-        bean.add("dynKey", "dynVal");
-
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"id\":100"));
-        assertTrue(json.contains("\"dynKey\":\"dynVal\""));
-    }
-
-    // Tests polymorphic type info serialization with type prefix and suffix
-    @Test
-    public void testSerialize_polyBeanWithTypeInfo_includesTypeProperty() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        PolyBean bean = new PolyBean();
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"type\":\"poly\""));
-        assertTrue(json.contains("\"value\":\"hello\""));
-    }
-
-    // Tests JSON unwrapped serialization via NameTransformer
-    @Test
-    public void testSerialize_unwrappedChild_prefixesPropertyNames() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        UnwrappedParent parent = new UnwrappedParent();
-        String json = mapper.writeValueAsString(parent);
-        assertEquals("{\"id\":1,\"child_id\":2,\"child_name\":\"sub\"}", json);
-    }
-
-    // Tests SchemaAware getSchema method
-    @Test
-    public void testGetSchema_simpleBean_returnsObjectSchema() throws Exception {
+    public void testGetSchema_withoutFilter_returnsObjectSchema() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         SerializerProvider provider = mapper.getSerializerProviderInstance();
+
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null, NO_PROPS, null);
+
+        JsonNode schema = serializer.getSchema(provider, null);
+        assertNotNull(schema);
+        assertEquals("object", schema.get("type").textValue());
+        assertNotNull(schema.get("properties"));
+    }
+
+    // Tests resolve null serializer resolution
+    @Test
+    public void testResolve_resolvesWithoutException() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null, NO_PROPS, null);
+
+        serializer.resolve(provider);
+        assertNotNull(serializer);
+    }
+
+    // --- New Tests ---
+
+    @Test
+    public void testSerializeWithType_polymorphicBean_serializesWithTypeInfo() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        PolymorphicBean bean = new PolymorphicBean();
+        String json = mapper.writeValueAsString(bean);
+
+        assertTrue(json.contains("\"@class\":\"com.fasterxml.jackson.databind.ser.std.BeanSerializerBaseTest$PolymorphicBean\""));
+        assertTrue(json.contains("\"name\":\"poly\""));
+    }
+
+    @Test
+    public void testSerializeWithType_withObjectId_serializesObjectIdAndType() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        PolymorphicIdBean bean = new PolymorphicIdBean();
+        String json = mapper.writeValueAsString(bean);
+
+        assertTrue(json.contains("\"@class\":\"com.fasterxml.jackson.databind.ser.std.BeanSerializerBaseTest$PolymorphicIdBean\""));
+        assertTrue(json.contains("\"id\":1"));
+        assertTrue(json.contains("\"data\":\"info\""));
+    }
+
+    @Test
+    public void testSerializeFieldsFiltered_missingFilterProvider_throwsJsonMappingException() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        FilteredBean bean = new FilteredBean();
+        try {
+            mapper.writeValueAsString(bean);
+            fail("Expected JsonMappingException due to missing filter");
+        } catch (JsonMappingException e) {
+            assertTrue(e.getMessage().contains("Can not resolve PropertyFilter with id 'customFilter'"));
+        }
+    }
+
+    @Test
+    public void testWrapAndThrow_wrapsRuntimeExceptionsInJsonMappingException() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        ThrowingGetterBean bean = new ThrowingGetterBean();
+        try {
+            mapper.writeValueAsString(bean);
+            fail("Expected JsonMappingException wrapping getter exception");
+        } catch (JsonMappingException e) {
+            assertTrue(e.getMessage().contains("Simulated getter error"));
+        }
+    }
+
+    @Test
+    public void testAcceptJsonFormatVisitor_withNonNullVisitor_visitsProperties() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
         JavaType type = mapper.constructType(SimpleBean.class);
+        JsonSerializer<Object> ser = mapper.getSerializerProviderInstance().findValueSerializer(type, null);
+
+        final boolean[] visitedObject = new boolean[1];
+        ser.acceptJsonFormatVisitor(new JsonFormatVisitorWrapper.Base(mapper.getSerializerProviderInstance()) {
+            @Override
+            public JsonObjectFormatVisitor expectObjectFormat(JavaType type) {
+                visitedObject[0] = true;
+                return new JsonObjectFormatVisitor.Base(getProvider());
+            }
+        }, type);
+
+        assertTrue("expectObjectFormat should have been invoked", visitedObject[0]);
+    }
+
+    @Test
+    public void testGetSchema_withFilteredBeanAndFilterProvider_generatesSchema() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleFilterProvider filters = new SimpleFilterProvider();
+        filters.addFilter("customFilter", SimpleBeanPropertyFilter.serializeAll());
+        mapper.setFilterProvider(filters);
+
+        JavaType type = mapper.constructType(FilteredBean.class);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
         JsonSerializer<Object> ser = provider.findValueSerializer(type, null);
 
-        assertTrue(ser instanceof SchemaAware);
-        JsonNode schemaNode = ((SchemaAware) ser).getSchema(provider, null);
-        assertNotNull(schemaNode);
-        assertEquals("object", schemaNode.get("type").asText());
-        assertNotNull(schemaNode.get("properties"));
-        assertTrue(schemaNode.get("properties").has("id"));
-        assertTrue(schemaNode.get("properties").has("name"));
+        JsonNode schema = ser.getSchema(provider, null);
+        assertNotNull(schema);
+        assertEquals("object", schema.get("type").textValue());
+        assertNotNull(schema.get("properties"));
     }
 
-    // Tests format visitor acceptJsonFormatVisitor method
     @Test
-    public void testAcceptJsonFormatVisitor_normalVisitor_visitsObjectProperties() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaType type = mapper.constructType(SimpleBean.class);
-        final List<String> visitedProps = new ArrayList<String>();
+    public void testConstructor_withSetIgnorals_ignoresProperties() {
+        JavaType type = TypeFactory.defaultInstance().constructType(SimpleBean.class);
+        BeanPropertyWriter bpw1 = new BeanPropertyWriter();
+        BeanPropertyWriter bpw2 = new BeanPropertyWriter();
 
-        JsonFormatVisitorWrapper visitor = new JsonFormatVisitorWrapper.Base(mapper.getSerializerProviderInstance()) {
-            @Override
-            public JsonObjectFormatVisitor expectObjectFormat(JavaType visitedType) {
-                return new JsonObjectFormatVisitor.Base(getProvider()) {
-                    @Override
-                    public void property(BeanProperty prop) {
-                        visitedProps.add(prop.getName());
-                    }
-                };
-            }
-        };
+        ConcreteBeanSerializer serializer = new ConcreteBeanSerializer(type, null,
+                new BeanPropertyWriter[] { bpw1, bpw2 },
+                new BeanPropertyWriter[] { bpw1, bpw2 });
 
-        mapper.acceptJsonFormatVisitor(SimpleBean.class, visitor);
-        assertTrue(visitedProps.contains("id"));
-        assertTrue(visitedProps.contains("name"));
-    }
+        Set<String> toIgnore = new HashSet<String>();
+        toIgnore.add(bpw1.getName());
+        BeanSerializerBase filtered = serializer.withIgnorals(toIgnore);
 
-    // Tests acceptJsonFormatVisitor with null visitor gracefully returning
-    @Test
-    public void testAcceptJsonFormatVisitor_nullVisitor_doesNotThrow() throws Exception {
-        DummyBeanSerializer ser = new DummyBeanSerializer(
-                TypeFactory.defaultInstance().constructType(SimpleBean.class),
-                BeanSerializerBase.NO_PROPS
-        );
-        ser.acceptJsonFormatVisitor(null, null);
-    }
-
-    // Tests direct helper methods of BeanSerializerBase: properties() and usesObjectId()
-    @Test
-    public void testPropertiesAndUsesObjectId_withoutObjectIdWriter_returnsExpectedValues() {
-        DummyBeanSerializer ser = new DummyBeanSerializer(
-                TypeFactory.defaultInstance().constructType(SimpleBean.class),
-                BeanSerializerBase.NO_PROPS
-        );
-        assertFalse(ser.usesObjectId());
-        Iterator<PropertyWriter> props = ser.properties();
-        assertNotNull(props);
-        assertFalse(props.hasNext());
-    }
-
-    // Tests mutant factories withFilterId and withIgnorals
-    @Test
-    public void testMutantFactories_withFilterIdAndIgnorals_createsNewInstances() {
-        DummyBeanSerializer ser = new DummyBeanSerializer(
-                TypeFactory.defaultInstance().constructType(SimpleBean.class),
-                BeanSerializerBase.NO_PROPS
-        );
-
-        BeanSerializerBase withFilter = ser.withFilterId("filter123");
-        assertNotNull(withFilter);
-
-        BeanSerializerBase withIgn = ser.withIgnorals(new String[] { "id" });
-        assertNotNull(withIgn);
-    }
-
-    // Tests exception handling in serializeFields unwrapping or throwing JsonMappingException
-    @Test(expected = JsonMappingException.class)
-    public void testSerialize_throwingGetter_throwsJsonMappingException() throws Exception {
-        class FaultyBean {
-            public String getFailing() {
-                throw new RuntimeException("Simulated error");
-            }
+        Iterator<PropertyWriter> it = filtered.properties();
+        int count = 0;
+        while (it.hasNext()) {
+            it.next();
+            count++;
         }
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValueAsString(new FaultyBean());
+        assertEquals(1, count);
     }
 }

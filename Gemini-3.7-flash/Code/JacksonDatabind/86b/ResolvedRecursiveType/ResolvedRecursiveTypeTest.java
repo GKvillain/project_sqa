@@ -1,209 +1,152 @@
 package com.fasterxml.jackson.databind.type;
 
-import com.fasterxml.jackson.databind.JavaType;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+import com.fasterxml.jackson.databind.JavaType;
+
 public class ResolvedRecursiveTypeTest {
 
-    // Tests initial state and getSelfReferencedType when unresolved
+    // Tests constructor initialization and default unresolved state
     @Test
-    public void testGetSelfReferencedType_initiallyNull_returnsNull() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-
-        assertNull(recursiveType.getSelfReferencedType());
+    public void testConstructor_validClassAndBindings_initializesUnresolvedState() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        assertNull(type.getSelfReferencedType());
+        assertFalse(type.isContainerType());
     }
 
-    // Tests setReference and getSelfReferencedType on normal resolution
+    // Tests setReference setting the referenced type successfully
     @Test
-    public void testSetReference_validReference_setsReferencedType() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
+    public void testSetReference_validJavaType_setsSelfReferencedType() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
         JavaType refType = SimpleType.constructUnsafe(String.class);
-
-        recursiveType.setReference(refType);
-
-        assertSame(refType, recursiveType.getSelfReferencedType());
+        type.setReference(refType);
+        assertSame(refType, type.getSelfReferencedType());
     }
 
-    // Tests setReference called multiple times throws IllegalStateException
+    // Tests exception thrown when setReference is called more than once
     @Test(expected = IllegalStateException.class)
     public void testSetReference_calledTwice_throwsIllegalStateException() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-        JavaType refType1 = SimpleType.constructUnsafe(String.class);
-        JavaType refType2 = SimpleType.constructUnsafe(Integer.class);
-
-        recursiveType.setReference(refType1);
-        recursiveType.setReference(refType2);
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        JavaType refType = SimpleType.constructUnsafe(String.class);
+        type.setReference(refType);
+        type.setReference(refType);
     }
 
-    // Tests getGenericSignature delegation to referenced type
+    // Tests toString format when reference is unresolved
     @Test
-    public void testGetGenericSignature_resolvedType_delegatesToReferencedType() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(String.class, bindings);
+    public void testToString_unresolvedReference_returnsUnresolvedRepresentation() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        assertEquals("[recursive type; UNRESOLVED]", type.toString());
+    }
+
+    // Tests toString format when reference is resolved
+    @Test
+    public void testToString_resolvedReference_returnsRawClassName() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
         JavaType refType = SimpleType.constructUnsafe(String.class);
-        recursiveType.setReference(refType);
+        type.setReference(refType);
+        assertEquals("[recursive type; java.lang.String]", type.toString());
+    }
+
+    // Tests getGenericSignature delegates to referenced type
+    @Test
+    public void testGetGenericSignature_resolvedReference_delegatesToReferencedType() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        JavaType refType = SimpleType.constructUnsafe(String.class);
+        type.setReference(refType);
 
         StringBuilder sb = new StringBuilder();
-        StringBuilder result = recursiveType.getGenericSignature(sb);
-
-        assertNotNull(result);
-        assertEquals(refType.getGenericSignature(), result.toString());
+        StringBuilder result = type.getGenericSignature(sb);
+        assertEquals(refType.getGenericSignature(new StringBuilder()).toString(), result.toString());
     }
 
-    // Tests getErasedSignature delegation to referenced type
+    // Tests getErasedSignature delegates to referenced type
     @Test
-    public void testGetErasedSignature_resolvedType_delegatesToReferencedType() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(String.class, bindings);
+    public void testGetErasedSignature_resolvedReference_delegatesToReferencedType() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
         JavaType refType = SimpleType.constructUnsafe(String.class);
-        recursiveType.setReference(refType);
+        type.setReference(refType);
 
         StringBuilder sb = new StringBuilder();
-        StringBuilder result = recursiveType.getErasedSignature(sb);
-
-        assertNotNull(result);
-        assertEquals(refType.getErasedSignature(), result.toString());
+        StringBuilder result = type.getErasedSignature(sb);
+        assertEquals(refType.getErasedSignature(new StringBuilder()).toString(), result.toString());
     }
 
-    // Tests withContentType returning this instance
-    @Test
-    public void testWithContentType_anyType_returnsSameInstance() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-        JavaType dummyType = SimpleType.constructUnsafe(String.class);
-
-        assertSame(recursiveType, recursiveType.withContentType(dummyType));
-    }
-
-    // Tests withTypeHandler, withContentTypeHandler, withValueHandler, withContentValueHandler, withStaticTyping
-    @Test
-    public void testWithHandlersAndTyping_variousInputs_returnsSameInstance() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-        Object handler = new Object();
-
-        assertSame(recursiveType, recursiveType.withTypeHandler(handler));
-        assertSame(recursiveType, recursiveType.withContentTypeHandler(handler));
-        assertSame(recursiveType, recursiveType.withValueHandler(handler));
-        assertSame(recursiveType, recursiveType.withContentValueHandler(handler));
-        assertSame(recursiveType, recursiveType.withStaticTyping());
-    }
-
-    // Tests deprecated _narrow returning this instance
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testNarrow_anySubclass_returnsSameInstance() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-
-        assertSame(recursiveType, recursiveType._narrow(String.class));
-    }
-
-    // Tests refine returning null
-    @Test
-    public void testRefine_variousInputs_returnsNull() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-
-        assertNull(recursiveType.refine(String.class, bindings, null, null));
-    }
-
-    // Tests isContainerType returning false
-    @Test
-    public void testIsContainerType_always_returnsFalse() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-
-        assertFalse(recursiveType.isContainerType());
-    }
-
-    // Tests toString when unresolved
-    @Test
-    public void testToString_unresolved_containsUnresolvedTag() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-
-        assertEquals("[recursive type; UNRESOLVED", recursiveType.toString());
-    }
-
-    // Tests toString when resolved
-    @Test
-    public void testToString_resolved_containsReferencedClassName() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-        JavaType refType = SimpleType.constructUnsafe(String.class);
-        recursiveType.setReference(refType);
-
-        assertEquals("[recursive type; java.lang.String", recursiveType.toString());
-    }
-
-    // Tests equals with same object reference
+    // Tests equals when comparing same instance
     @Test
     public void testEquals_sameInstance_returnsTrue() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-
-        assertTrue(recursiveType.equals(recursiveType));
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        assertTrue(type.equals(type));
     }
 
-    // Tests equals with null input
+    // Tests equals when comparing with null
     @Test
-    public void testEquals_null_returnsFalse() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-
-        assertFalse(recursiveType.equals(null));
+    public void testEquals_nullObject_returnsFalse() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        assertFalse(type.equals(null));
     }
 
-    // Tests equals when unresolved
+    // Tests equals when reference is unresolved
     @Test
-    public void testEquals_unresolvedThis_returnsFalse() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType type1 = new ResolvedRecursiveType(Object.class, bindings);
-        ResolvedRecursiveType type2 = new ResolvedRecursiveType(Object.class, bindings);
-        type2.setReference(SimpleType.constructUnsafe(String.class));
-
+    public void testEquals_unresolvedReference_returnsFalse() {
+        ResolvedRecursiveType type1 = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        ResolvedRecursiveType type2 = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
         assertFalse(type1.equals(type2));
     }
 
-    // Tests equals with different class object
+    // Tests equals with different class type
     @Test
-    public void testEquals_differentClass_returnsFalse() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType recursiveType = new ResolvedRecursiveType(Object.class, bindings);
-        recursiveType.setReference(SimpleType.constructUnsafe(String.class));
-
-        assertFalse(recursiveType.equals("some string"));
+    public void testEquals_differentObjectType_returnsFalse() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        JavaType refType = SimpleType.constructUnsafe(String.class);
+        type.setReference(refType);
+        assertFalse(type.equals("not-a-type"));
     }
 
-    // Tests equals with resolved matching reference
+    // Tests equals when both instances resolve to the same type
     @Test
     public void testEquals_sameReferencedType_returnsTrue() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType type1 = new ResolvedRecursiveType(Object.class, bindings);
-        ResolvedRecursiveType type2 = new ResolvedRecursiveType(Object.class, bindings);
+        ResolvedRecursiveType type1 = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        ResolvedRecursiveType type2 = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
         JavaType refType = SimpleType.constructUnsafe(String.class);
-
         type1.setReference(refType);
         type2.setReference(refType);
 
         assertTrue(type1.equals(type2));
     }
 
-    // Tests equals with resolved different reference
+    // Tests equals when instances resolve to different types
     @Test
     public void testEquals_differentReferencedType_returnsFalse() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        ResolvedRecursiveType type1 = new ResolvedRecursiveType(Object.class, bindings);
-        ResolvedRecursiveType type2 = new ResolvedRecursiveType(Object.class, bindings);
-
+        ResolvedRecursiveType type1 = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        ResolvedRecursiveType type2 = new ResolvedRecursiveType(Integer.class, TypeBindings.emptyBindings());
         type1.setReference(SimpleType.constructUnsafe(String.class));
         type2.setReference(SimpleType.constructUnsafe(Integer.class));
 
         assertFalse(type1.equals(type2));
+    }
+
+    // Tests fluent modifier methods returning the same instance (no-op behavior)
+    @Test
+    public void testWithMethods_variousModifiers_returnSameInstance() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        JavaType dummyType = SimpleType.constructUnsafe(Integer.class);
+
+        assertSame(type, type.withContentType(dummyType));
+        assertSame(type, type.withTypeHandler("handler"));
+        assertSame(type, type.withContentTypeHandler("contentHandler"));
+        assertSame(type, type.withValueHandler("valHandler"));
+        assertSame(type, type.withContentValueHandler("contentValHandler"));
+        assertSame(type, type.withStaticTyping());
+        assertSame(type, type._narrow(String.class));
+    }
+
+    // Tests refine method returns null
+    @Test
+    public void testRefine_validArguments_returnsNull() {
+        ResolvedRecursiveType type = new ResolvedRecursiveType(String.class, TypeBindings.emptyBindings());
+        JavaType refined = type.refine(String.class, TypeBindings.emptyBindings(), null, null);
+        assertNull(refined);
     }
 }

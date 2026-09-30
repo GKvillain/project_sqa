@@ -5,213 +5,177 @@ import org.junit.Test;
 import org.mockito.exceptions.base.MockitoException;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.Assert.*;
 
 public class FinalMockCandidateFilterTest {
 
     private FinalMockCandidateFilter filter;
+    private SampleTarget target;
+    private List<Field> allFields;
 
     @Before
     public void setUp() {
         filter = new FinalMockCandidateFilter();
+        target = new SampleTarget();
+        allFields = Arrays.asList(SampleTarget.class.getDeclaredFields());
     }
 
-    // Tests that OngoingInjecter is not null when mock collection is empty
+    // Tests empty mock collection returns injecter that returns null
     @Test
-    public void testFilterCandidate_emptyMocks_returnsNonNullInjecter() throws Exception {
-        SampleTargetFieldOnly target = new SampleTargetFieldOnly();
-        Field field = SampleTargetFieldOnly.class.getDeclaredField("value");
+    public void testFilterCandidate_emptyMockCollection_returnsNullInjecter() throws Exception {
+        Field field = SampleTarget.class.getDeclaredField("valueNoSetter");
         List<Object> mocks = Collections.emptyList();
 
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, allFields, target);
 
         assertNotNull(injecter);
+        assertNull(injecter.thenInject());
+        assertNull(target.valueNoSetter);
     }
 
-    // Tests that thenInject returns null when mock collection is empty
+    // Tests multiple mocks in collection injects first mock candidate
     @Test
-    public void testFilterCandidate_emptyMocks_thenInjectReturnsNull() throws Exception {
-        SampleTargetFieldOnly target = new SampleTargetFieldOnly();
-        Field field = SampleTargetFieldOnly.class.getDeclaredField("value");
-        List<Object> mocks = Collections.emptyList();
+    public void testFilterCandidate_multipleMocks_injectsFirstMock() throws Exception {
+        Field field = SampleTarget.class.getDeclaredField("valueNoSetter");
+        String firstMock = "firstMock";
+        String secondMock = "secondMock";
+        List<Object> mocks = Arrays.asList(firstMock, secondMock);
 
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        Object result = injecter.thenInject();
-
-        assertNull(result);
-        assertNull(target.getValue());
-    }
-
-    // Tests that thenInject returns null when mock collection contains multiple elements
-    @Test
-    public void testFilterCandidate_multipleMocks_thenInjectReturnsNull() throws Exception {
-        SampleTargetFieldOnly target = new SampleTargetFieldOnly();
-        Field field = SampleTargetFieldOnly.class.getDeclaredField("value");
-        List<Object> mocks = Arrays.<Object>asList("mock1", "mock2");
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        Object result = injecter.thenInject();
-
-        assertNull(result);
-        assertNull(target.getValue());
-    }
-
-    // Tests successful injection directly via field access when no setter exists
-    @Test
-    public void testFilterCandidate_singleMockFieldAccess_injectsDirectlyToField() throws Exception {
-        SampleTargetFieldOnly target = new SampleTargetFieldOnly();
-        Field field = SampleTargetFieldOnly.class.getDeclaredField("value");
-        String mockInstance = "injectedMockValue";
-        List<Object> mocks = Collections.<Object>singletonList(mockInstance);
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        Object result = injecter.thenInject();
-
-        assertEquals(mockInstance, result);
-        assertEquals(mockInstance, target.getValue());
-    }
-
-    // Tests successful injection via property setter when setter exists
-    @Test
-    public void testFilterCandidate_singleMockPropertySetter_injectsViaSetter() throws Exception {
-        SampleTargetWithSetter target = new SampleTargetWithSetter();
-        Field field = SampleTargetWithSetter.class.getDeclaredField("value");
-        String mockInstance = "setterMockValue";
-        List<Object> mocks = Collections.<Object>singletonList(mockInstance);
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        Object result = injecter.thenInject();
-
-        assertEquals(mockInstance, result);
-        assertEquals(mockInstance, target.getValue());
-        assertTrue(target.isSetterCalled());
-    }
-
-    // Tests returning the matching mock instance when injected
-    @Test
-    public void testFilterCandidate_singleMock_returnsMatchingMockInstance() throws Exception {
-        SampleTargetFieldOnly target = new SampleTargetFieldOnly();
-        Field field = SampleTargetFieldOnly.class.getDeclaredField("value");
-        Object mockInstance = new String("testInstance");
-        List<Object> mocks = new ArrayList<Object>();
-        mocks.add(mockInstance);
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        Object result = injecter.thenInject();
-
-        assertSame(mockInstance, result);
-    }
-
-    // Tests exception path when setter throws a RuntimeException
-    @Test(expected = MockitoException.class)
-    public void testFilterCandidate_setterThrowsRuntimeException_throwsMockitoException() throws Exception {
-        SampleTargetWithThrowingSetter target = new SampleTargetWithThrowingSetter();
-        Field field = SampleTargetWithThrowingSetter.class.getDeclaredField("value");
-        String mockInstance = "mockValue";
-        List<Object> mocks = Collections.<Object>singletonList(mockInstance);
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        injecter.thenInject();
-    }
-
-    // Tests exception path when field injection fails due to type mismatch
-    @Test(expected = MockitoException.class)
-    public void testFilterCandidate_typeMismatch_throwsMockitoException() throws Exception {
-        SampleTargetFieldOnly target = new SampleTargetFieldOnly();
-        Field field = SampleTargetFieldOnly.class.getDeclaredField("value");
-        Integer incompatibleMock = Integer.valueOf(123);
-        List<Object> mocks = Collections.<Object>singletonList(incompatibleMock);
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        injecter.thenInject();
-    }
-
-    // Tests that OngoingInjecter is not null when mock collection contains multiple elements
-    @Test
-    public void testFilterCandidate_multipleMocks_returnsNonNullInjecter() throws Exception {
-        SampleTargetFieldOnly target = new SampleTargetFieldOnly();
-        Field field = SampleTargetFieldOnly.class.getDeclaredField("value");
-        List<Object> mocks = Arrays.<Object>asList("mock1", "mock2");
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, allFields, target);
 
         assertNotNull(injecter);
-    }
-
-    // Tests injection with a Set collection containing a single mock
-    @Test
-    public void testFilterCandidate_singleMockInSet_injectsCorrectly() throws Exception {
-        SampleTargetFieldOnly target = new SampleTargetFieldOnly();
-        Field field = SampleTargetFieldOnly.class.getDeclaredField("value");
-        String mockInstance = "setMockValue";
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add(mockInstance);
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
         Object result = injecter.thenInject();
-
-        assertEquals(mockInstance, result);
-        assertEquals(mockInstance, target.getValue());
+        assertEquals(firstMock, result);
+        assertEquals(firstMock, target.valueNoSetter);
     }
 
-    // Tests injection when mock instance is null inside a single-element collection
+    // Tests single mock injected directly into field when no setter is available
     @Test
-    public void testFilterCandidate_singleNullMock_injectsNullValue() throws Exception {
-        SampleTargetFieldOnly target = new SampleTargetFieldOnly();
-        Field field = SampleTargetFieldOnly.class.getDeclaredField("value");
+    public void testFilterCandidate_singleMockFieldAccess_injectsAndReturnsMock() throws Exception {
+        Field field = SampleTarget.class.getDeclaredField("valueNoSetter");
+        String mockValue = "injectedViaField";
+        List<Object> mocks = Collections.singletonList((Object) mockValue);
+
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, allFields, target);
+
+        assertNotNull(injecter);
+        Object result = injecter.thenInject();
+        assertEquals(mockValue, result);
+        assertEquals(mockValue, target.valueNoSetter);
+    }
+
+    // Tests single mock injected via setter method when available
+    @Test
+    public void testFilterCandidate_singleMockPropertySetter_injectsViaSetterAndReturnsMock() throws Exception {
+        Field field = SampleTarget.class.getDeclaredField("valueWithSetter");
+        String mockValue = "injectedViaSetter";
+        List<Object> mocks = Collections.singletonList((Object) mockValue);
+
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, allFields, target);
+
+        assertNotNull(injecter);
+        Object result = injecter.thenInject();
+        assertEquals(mockValue, result);
+        assertEquals(mockValue, target.getValueWithSetter());
+        assertTrue(target.setterCalled);
+    }
+
+    // Tests single mock injected into primitive field
+    @Test
+    public void testFilterCandidate_singleMockPrimitiveField_injectsCorrectly() throws Exception {
+        Field field = SampleTarget.class.getDeclaredField("primitiveInt");
+        Integer mockValue = 42;
+        List<Object> mocks = Collections.singletonList((Object) mockValue);
+
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, allFields, target);
+
+        assertNotNull(injecter);
+        Object result = injecter.thenInject();
+        assertEquals(mockValue, result);
+        assertEquals(42, target.primitiveInt);
+    }
+
+    // Tests single null element in mock collection
+    @Test
+    public void testFilterCandidate_singleNullMock_injectsNullAndReturnsNull() throws Exception {
+        Field field = SampleTarget.class.getDeclaredField("valueNoSetter");
+        target.valueNoSetter = "initialValue";
         List<Object> mocks = Collections.singletonList(null);
 
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, allFields, target);
+
+        assertNotNull(injecter);
         Object result = injecter.thenInject();
-
         assertNull(result);
-        assertNull(target.getValue());
+        assertNull(target.valueNoSetter);
     }
 
-    // Helper classes for testing reflection injection
+    // Tests single mock injected into final field
+    @Test
+    public void testFilterCandidate_singleMockFinalField_injectsSuccessfully() throws Exception {
+        Field field = SampleTarget.class.getDeclaredField("finalField");
+        String mockValue = "overriddenFinal";
+        List<Object> mocks = Collections.singletonList((Object) mockValue);
 
-    static class SampleTargetFieldOnly {
-        private String value;
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, allFields, target);
 
-        public String getValue() {
-            return value;
-        }
+        assertNotNull(injecter);
+        Object result = injecter.thenInject();
+        assertEquals(mockValue, result);
+        assertEquals(mockValue, target.finalField);
     }
 
-    static class SampleTargetWithSetter {
-        private String value;
-        private boolean setterCalled = false;
+    // Tests type mismatch during injection throws MockitoException
+    @Test(expected = MockitoException.class)
+    public void testFilterCandidate_typeMismatch_throwsMockitoException() throws Exception {
+        Field field = SampleTarget.class.getDeclaredField("valueNoSetter");
+        Integer incompatibleMock = 12345;
+        List<Object> mocks = Collections.singletonList((Object) incompatibleMock);
 
-        public void setValue(String value) {
-            this.value = value;
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, allFields, target);
+        assertNotNull(injecter);
+        injecter.thenInject();
+    }
+
+    // Tests setter throwing runtime exception triggers Reporter and throws MockitoException
+    @Test(expected = MockitoException.class)
+    public void testFilterCandidate_setterThrowsException_throwsMockitoException() throws Exception {
+        Field field = SampleTarget.class.getDeclaredField("valueThrowingSetter");
+        String mockValue = "testValue";
+        List<Object> mocks = Collections.singletonList((Object) mockValue);
+
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, allFields, target);
+        assertNotNull(injecter);
+        injecter.thenInject();
+    }
+
+    static class SampleTarget {
+        private String valueNoSetter;
+        private String valueWithSetter;
+        private boolean setterCalled;
+        private int primitiveInt;
+        private final String finalField = "initial";
+        private String valueThrowingSetter;
+
+        public void setValueWithSetter(String valueWithSetter) {
+            this.valueWithSetter = valueWithSetter;
             this.setterCalled = true;
         }
 
-        public String getValue() {
-            return value;
+        public String getValueWithSetter() {
+            return valueWithSetter;
         }
 
-        public boolean isSetterCalled() {
-            return setterCalled;
-        }
-    }
-
-    static class SampleTargetWithThrowingSetter {
-        private String value;
-
-        public void setValue(String value) {
-            throw new RuntimeException("Setter failure");
+        public void setValueThrowingSetter(String val) {
+            throw new RuntimeException("Setter invocation failed");
         }
 
-        public String getValue() {
-            return value;
+        public String getValueThrowingSetter() {
+            return valueThrowingSetter;
         }
     }
 }

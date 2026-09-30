@@ -1,6 +1,7 @@
 package com.fasterxml.jackson.databind.node;
 
 import java.io.IOException;
+import java.io.StringWriter;
 
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -17,242 +18,246 @@ public class POJONodeTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    // Tests getNodeType returns JsonNodeType.POJO
+    // Tests node type and token representation
     @Test
-    public void testGetNodeType_always_returnsPojo() {
+    public void testNodeTypeAndToken_standardValues_returnsCorrectEnumConstants() {
         POJONode node = new POJONode("test");
         assertEquals(JsonNodeType.POJO, node.getNodeType());
-    }
-
-    // Tests asToken returns JsonToken.VALUE_EMBEDDED_OBJECT
-    @Test
-    public void testAsToken_always_returnsValueEmbeddedObject() {
-        POJONode node = new POJONode("test");
         assertEquals(JsonToken.VALUE_EMBEDDED_OBJECT, node.asToken());
     }
 
-    // Tests binaryValue when wrapped value is byte array
+    // Tests binaryValue with byte array payload
     @Test
-    public void testBinaryValue_withByteArray_returnsByteArray() throws IOException {
-        byte[] data = new byte[]{1, 2, 3};
+    public void testBinaryValue_byteArrayValue_returnsSameByteArray() throws IOException {
+        byte[] data = new byte[] { 1, 2, 3, 4 };
         POJONode node = new POJONode(data);
         assertArrayEquals(data, node.binaryValue());
     }
 
-    // Tests binaryValue when wrapped value is not byte array
+    // Tests binaryValue fallback with non-byte array payload
     @Test
-    public void testBinaryValue_withNonByteArray_returnsNull() throws IOException {
-        POJONode node = new POJONode("not-bytes");
+    public void testBinaryValue_nonByteArrayValue_returnsNull() throws IOException {
+        POJONode node = new POJONode("not a byte array");
         assertNull(node.binaryValue());
     }
 
-    // Tests binaryValue when wrapped value is RawValue containing byte array
+    // Tests asText with both null and non-null values
     @Test
-    public void testBinaryValue_withRawValueByteArray_returnsByteArray() throws IOException {
-        byte[] data = new byte[]{4, 5, 6};
-        POJONode node = new POJONode(new RawValue(data));
-        assertArrayEquals(data, node.binaryValue());
+    public void testAsText_nullAndNonNullValue_returnsExpectedString() {
+        POJONode nullNode = new POJONode(null);
+        assertEquals("null", nullNode.asText());
+
+        POJONode textNode = new POJONode("hello");
+        assertEquals("hello", textNode.asText());
+
+        POJONode intNode = new POJONode(123);
+        assertEquals("123", intNode.asText());
     }
 
-    // Tests binaryValue when wrapped value is RawValue containing non-byte array
+    // Tests asText(defaultValue) with null and non-null values
     @Test
-    public void testBinaryValue_withRawValueNonByteArray_returnsNull() throws IOException {
-        POJONode node = new POJONode(new RawValue("non-bytes"));
-        assertNull(node.binaryValue());
+    public void testAsTextWithDefault_nullAndNonNullValue_returnsExpectedString() {
+        POJONode nullNode = new POJONode(null);
+        assertEquals("defaultVal", nullNode.asText("defaultVal"));
+
+        POJONode textNode = new POJONode("custom");
+        assertEquals("custom", textNode.asText("defaultVal"));
     }
 
-    // Tests asText when wrapped value is null
+    // Tests asBoolean coercion with Boolean, non-Boolean, and null
     @Test
-    public void testAsText_nullValue_returnsNullString() {
-        POJONode node = new POJONode(null);
-        assertEquals("null", node.asText());
-    }
-
-    // Tests asText when wrapped value is non-null
-    @Test
-    public void testAsText_nonNullValue_returnsToString() {
-        POJONode node = new POJONode(12345);
-        assertEquals("12345", node.asText());
-    }
-
-    // Tests asText(defaultValue) when wrapped value is null
-    @Test
-    public void testAsTextWithDefault_nullValue_returnsDefault() {
-        POJONode node = new POJONode(null);
-        assertEquals("fallback", node.asText("fallback"));
-    }
-
-    // Tests asText(defaultValue) when wrapped value is non-null
-    @Test
-    public void testAsTextWithDefault_nonNullValue_returnsToString() {
-        POJONode node = new POJONode("hello");
-        assertEquals("hello", node.asText("fallback"));
-    }
-
-    // Tests asBoolean when wrapped value is Boolean
-    @Test
-    public void testAsBoolean_booleanValue_returnsBoolean() {
+    public void testAsBoolean_variousInputs_returnsExpectedCoercion() {
         POJONode trueNode = new POJONode(Boolean.TRUE);
         assertTrue(trueNode.asBoolean(false));
 
         POJONode falseNode = new POJONode(Boolean.FALSE);
         assertFalse(falseNode.asBoolean(true));
-    }
 
-    // Tests asBoolean when wrapped value is not Boolean or is null
-    @Test
-    public void testAsBoolean_nonBooleanValue_returnsDefault() {
-        POJONode stringNode = new POJONode("true");
-        assertFalse(stringNode.asBoolean(false));
-        assertTrue(stringNode.asBoolean(true));
+        POJONode nonBoolNode = new POJONode("true");
+        assertTrue(nonBoolNode.asBoolean(true));
+        assertFalse(nonBoolNode.asBoolean(false));
 
         POJONode nullNode = new POJONode(null);
         assertTrue(nullNode.asBoolean(true));
+        assertFalse(nullNode.asBoolean(false));
     }
 
-    // Tests asInt when wrapped value is Number
+    // Tests asInt coercion with Number, non-Number, and null
     @Test
-    public void testAsInt_numberValue_returnsIntValue() {
-        POJONode node = new POJONode(Integer.valueOf(42));
-        assertEquals(42, node.asInt(0));
+    public void testAsInt_variousInputs_returnsExpectedCoercion() {
+        POJONode intNode = new POJONode(Integer.valueOf(42));
+        assertEquals(42, intNode.asInt(0));
 
         POJONode doubleNode = new POJONode(Double.valueOf(42.9));
         assertEquals(42, doubleNode.asInt(0));
-    }
 
-    // Tests asInt when wrapped value is not Number
-    @Test
-    public void testAsInt_nonNumberValue_returnsDefault() {
-        POJONode node = new POJONode("42");
-        assertEquals(99, node.asInt(99));
+        POJONode textNode = new POJONode("42");
+        assertEquals(99, textNode.asInt(99));
 
         POJONode nullNode = new POJONode(null);
         assertEquals(99, nullNode.asInt(99));
     }
 
-    // Tests asLong when wrapped value is Number
+    // Tests asLong coercion with Number, non-Number, and null
     @Test
-    public void testAsLong_numberValue_returnsLongValue() {
-        POJONode node = new POJONode(Long.valueOf(1234567890123L));
-        assertEquals(1234567890123L, node.asLong(0L));
+    public void testAsLong_variousInputs_returnsExpectedCoercion() {
+        POJONode longNode = new POJONode(Long.valueOf(1234567890123L));
+        assertEquals(1234567890123L, longNode.asLong(0L));
+
+        POJONode textNode = new POJONode("not-a-number");
+        assertEquals(55L, textNode.asLong(55L));
+
+        POJONode nullNode = new POJONode(null);
+        assertEquals(55L, nullNode.asLong(55L));
     }
 
-    // Tests asLong when wrapped value is not Number
+    // Tests asDouble coercion with Number, non-Number, and null
     @Test
-    public void testAsLong_nonNumberValue_returnsDefault() {
-        POJONode node = new POJONode("123");
-        assertEquals(999L, node.asLong(999L));
+    public void testAsDouble_variousInputs_returnsExpectedCoercion() {
+        POJONode doubleNode = new POJONode(Double.valueOf(3.14159));
+        assertEquals(3.14159, doubleNode.asDouble(0.0), 0.000001);
+
+        POJONode textNode = new POJONode("pi");
+        assertEquals(1.23, textNode.asDouble(1.23), 0.000001);
+
+        POJONode nullNode = new POJONode(null);
+        assertEquals(1.23, nullNode.asDouble(1.23), 0.000001);
     }
 
-    // Tests asDouble when wrapped value is Number
+    // Tests getPojo accessor method
     @Test
-    public void testAsDouble_numberValue_returnsDoubleValue() {
-        POJONode node = new POJONode(Double.valueOf(3.14159));
-        assertEquals(3.14159, node.asDouble(0.0), 0.00001);
-    }
-
-    // Tests asDouble when wrapped value is not Number
-    @Test
-    public void testAsDouble_nonNumberValue_returnsDefault() {
-        POJONode node = new POJONode("3.14");
-        assertEquals(1.23, node.asDouble(1.23), 0.00001);
-    }
-
-    // Tests getPojo returns wrapped instance
-    @Test
-    public void testGetPojo_returnsWrappedValue() {
+    public void testGetPojo_returnsWrappedObject() {
         Object obj = new Object();
         POJONode node = new POJONode(obj);
         assertSame(obj, node.getPojo());
+
+        POJONode nullNode = new POJONode(null);
+        assertNull(nullNode.getPojo());
     }
 
-    // Tests equals and hashCode across identical, equal, different, and null values
+    // Tests equals and hashCode methods
     @Test
-    public void testEqualsAndHashCode_variousScenarios_returnsExpected() {
-        POJONode node1 = new POJONode("value");
-        POJONode node2 = new POJONode("value");
+    public void testEqualsAndHashCode_variousCases_returnsExpectedResults() {
+        POJONode node1 = new POJONode("test");
+        POJONode node2 = new POJONode("test");
         POJONode node3 = new POJONode("other");
         POJONode nullNode1 = new POJONode(null);
         POJONode nullNode2 = new POJONode(null);
 
         assertTrue(node1.equals(node1));
         assertTrue(node1.equals(node2));
+        assertTrue(node2.equals(node1));
         assertEquals(node1.hashCode(), node2.hashCode());
 
         assertFalse(node1.equals(node3));
-        assertFalse(node1.equals(nullNode1));
         assertFalse(node1.equals(null));
-        assertFalse(node1.equals("value"));
+        assertFalse(node1.equals("test"));
+        assertFalse(node1.equals(nullNode1));
+        assertFalse(nullNode1.equals(node1));
 
         assertTrue(nullNode1.equals(nullNode2));
-        assertFalse(nullNode1.equals(node1));
     }
 
     // Tests toString with byte array
     @Test
-    public void testToString_byteArray_formatsCorrectly() {
-        POJONode node = new POJONode(new byte[5]);
-        assertEquals("(binary value of 5 bytes)", node.toString());
+    public void testToString_byteArray_formatsWithByteCount() {
+        byte[] data = new byte[] { 1, 2, 3 };
+        POJONode node = new POJONode(data);
+        assertEquals("(binary value of 3 bytes)", node.toString());
     }
 
     // Tests toString with RawValue
     @Test
-    public void testToString_rawValue_formatsCorrectly() {
-        POJONode node = new POJONode(new RawValue("{\"k\":\"v\"}"));
+    public void testToString_rawValue_formatsWithRawString() {
+        RawValue raw = new RawValue("{\"k\":\"v\"}");
+        POJONode node = new POJONode(raw);
         assertEquals("(raw value '{\"k\":\"v\"}')", node.toString());
     }
 
-    // Tests toString with standard object and null
+    // Tests toString with general object and null
     @Test
-    public void testToString_standardObject_returnsStringValueOf() {
-        POJONode node = new POJONode("hello");
-        assertEquals("hello", node.toString());
+    public void testToString_generalObjectAndNull_returnsStringValue() {
+        POJONode textNode = new POJONode("simple string");
+        assertEquals("simple string", textNode.toString());
 
         POJONode nullNode = new POJONode(null);
         assertEquals("null", nullNode.toString());
     }
 
-    // Tests serialize with null value
+    // Tests serialize method with null value
     @Test
-    public void testSerialize_nullValue_serializesNull() throws IOException {
+    public void testSerialize_nullValue_serializesAsJsonNull() throws IOException {
         POJONode node = new POJONode(null);
         String json = mapper.writeValueAsString(node);
         assertEquals("null", json);
     }
 
-    // Tests serialize with JsonSerializable instance
+    // Tests serialize method with JsonSerializable instance
     @Test
-    public void testSerialize_jsonSerializable_callsSerialize() throws IOException {
+    public void testSerialize_jsonSerializableValue_invokesCustomSerialization() throws IOException {
         JsonSerializable customSerializable = new JsonSerializable() {
             @Override
             public void serialize(JsonGenerator gen, SerializerProvider serializers) throws IOException {
-                gen.writeString("custom-serialized");
+                gen.writeString("serialized_custom");
             }
 
             @Override
-            public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer) throws IOException {
+            public void serializeWithType(JsonGenerator gen, SerializerProvider serializers, TypeSerializer typeSer)
+                    throws IOException {
                 serialize(gen, serializers);
             }
         };
 
         POJONode node = new POJONode(customSerializable);
         String json = mapper.writeValueAsString(node);
-        assertEquals("\"custom-serialized\"", json);
+        assertEquals("\"serialized_custom\"", json);
     }
 
-    // Tests serialize with RawValue
+    // Tests serialize method with regular POJO
+    @Test
+    public void testSerialize_regularObject_serializesCorrectly() throws IOException {
+        POJONode node = new POJONode("hello world");
+        String json = mapper.writeValueAsString(node);
+        assertEquals("\"hello world\"", json);
+    }
+
+    // Tests binaryValue with null payload
+    @Test
+    public void testBinaryValue_nullValue_returnsNull() throws IOException {
+        POJONode nullNode = new POJONode(null);
+        assertNull(nullNode.binaryValue());
+    }
+
+    // Tests serialize method with RawValue instance
     @Test
     public void testSerialize_rawValue_serializesRawContent() throws IOException {
-        POJONode node = new POJONode(new RawValue("{\"key\":123}"));
+        RawValue raw = new RawValue("{\"key\":123}");
+        POJONode node = new POJONode(raw);
         String json = mapper.writeValueAsString(node);
         assertEquals("{\"key\":123}", json);
     }
 
-    // Tests serialize with standard object
+    // Tests no-arg coercion methods (asBoolean, asInt, asLong, asDouble)
     @Test
-    public void testSerialize_standardObject_serializesCorrectly() throws IOException {
-        POJONode node = new POJONode("test-string");
-        String json = mapper.writeValueAsString(node);
-        assertEquals("\"test-string\"", json);
+    public void testNoArgCoercions_returnsDefaultCoercedValues() {
+        POJONode boolNode = new POJONode(Boolean.TRUE);
+        assertTrue(boolNode.asBoolean());
+
+        POJONode intNode = new POJONode(Integer.valueOf(100));
+        assertEquals(100, intNode.asInt());
+
+        POJONode longNode = new POJONode(Long.valueOf(200L));
+        assertEquals(200L, longNode.asLong());
+
+        POJONode doubleNode = new POJONode(Double.valueOf(3.5));
+        assertEquals(3.5, doubleNode.asDouble(), 0.00001);
+    }
+
+    // Tests equality when comparing against a non-POJONode instance
+    @Test
+    public void testEquals_differentNodeType_returnsFalse() {
+        POJONode node = new POJONode("value");
+        TextNode textNode = new TextNode("value");
+        assertFalse(node.equals(textNode));
     }
 }

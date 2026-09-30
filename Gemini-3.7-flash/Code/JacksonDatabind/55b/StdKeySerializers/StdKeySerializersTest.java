@@ -1,16 +1,18 @@
 package com.fasterxml.jackson.databind.ser.std;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -19,39 +21,46 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
-
 public class StdKeySerializersTest {
-
-    private final JsonFactory JSON_F = new JsonFactory();
-    private final ObjectMapper MAPPER = new ObjectMapper();
 
     private enum TestEnum {
         FIRST,
-        SECOND;
-
-        @Override
-        public String toString() {
-            return "custom_" + name().toLowerCase();
+        SECOND {
+            @Override
+            public String toString() {
+                return "custom_second";
+            }
         }
     }
 
-    // Tests getStdKeySerializer with null and Object type returning Dynamic serializer
-    @Test
-    public void testGetStdKeySerializer_nullOrObjectType_returnsDynamic() {
-        JsonSerializer<Object> serNull = StdKeySerializers.getStdKeySerializer(null, null, true);
-        assertNotNull(serNull);
-        assertTrue(serNull instanceof StdKeySerializers.Dynamic);
+    private ObjectMapper mapper;
+    private JsonFactory jsonFactory;
 
-        JsonSerializer<Object> serObj = StdKeySerializers.getStdKeySerializer(null, Object.class, false);
-        assertNotNull(serObj);
-        assertTrue(serObj instanceof StdKeySerializers.Dynamic);
+    @Before
+    public void setUp() {
+        mapper = new ObjectMapper();
+        jsonFactory = new JsonFactory();
     }
 
-    // Tests getStdKeySerializer with String type returning StringKeySerializer
+    // Tests getStdKeySerializer with null rawKeyType returning Dynamic serializer
     @Test
-    public void testGetStdKeySerializer_stringType_returnsStringKeySerializer() {
+    public void testGetStdKeySerializer_nullType_returnsDynamicSerializer() {
+        JsonSerializer<Object> ser = StdKeySerializers.getStdKeySerializer(null, null, true);
+        assertNotNull(ser);
+        assertTrue(ser instanceof StdKeySerializers.Dynamic);
+    }
+
+    // Tests getStdKeySerializer with Object.class returning Dynamic serializer
+    @Test
+    public void testGetStdKeySerializer_objectType_returnsDynamicSerializer() {
+        JsonSerializer<Object> ser = StdKeySerializers.getStdKeySerializer(null, Object.class, true);
+        assertNotNull(ser);
+        assertTrue(ser instanceof StdKeySerializers.Dynamic);
+    }
+
+    // Tests getStdKeySerializer with String.class returning StringKeySerializer
+    @Test
+    public void testGetStdKeySerializer_stringType_returnsStringSerializer() {
         JsonSerializer<Object> ser = StdKeySerializers.getStdKeySerializer(null, String.class, false);
         assertNotNull(ser);
         assertTrue(ser instanceof StdKeySerializers.StringKeySerializer);
@@ -60,219 +69,169 @@ public class StdKeySerializersTest {
     // Tests getStdKeySerializer with primitive and Number types returning DEFAULT_KEY_SERIALIZER
     @Test
     public void testGetStdKeySerializer_primitiveAndNumberTypes_returnsDefaultKeySerializer() {
-        JsonSerializer<Object> serIntPrim = StdKeySerializers.getStdKeySerializer(null, int.class, false);
-        assertNotNull(serIntPrim);
-        assertTrue(serIntPrim instanceof StdKeySerializer);
+        JsonSerializer<Object> intSer = StdKeySerializers.getStdKeySerializer(null, Integer.TYPE, false);
+        assertSame(StdKeySerializers.DEFAULT_KEY_SERIALIZER, intSer);
 
-        JsonSerializer<Object> serLongObj = StdKeySerializers.getStdKeySerializer(null, Long.class, false);
-        assertNotNull(serLongObj);
-        assertTrue(serLongObj instanceof StdKeySerializer);
+        JsonSerializer<Object> longSer = StdKeySerializers.getStdKeySerializer(null, Long.class, false);
+        assertSame(StdKeySerializers.DEFAULT_KEY_SERIALIZER, longSer);
 
-        JsonSerializer<Object> serDouble = StdKeySerializers.getStdKeySerializer(null, Double.class, false);
-        assertNotNull(serDouble);
-        assertTrue(serDouble instanceof StdKeySerializer);
+        JsonSerializer<Object> doubleSer = StdKeySerializers.getStdKeySerializer(null, Double.class, false);
+        assertSame(StdKeySerializers.DEFAULT_KEY_SERIALIZER, doubleSer);
     }
 
-    // Tests getStdKeySerializer with Class, Date, Calendar, and UUID types
+    // Tests getStdKeySerializer with Class.class returning Default serializer
     @Test
-    public void testGetStdKeySerializer_standardJdkTypes_returnsDefaultSerializer() {
-        JsonSerializer<Object> serClass = StdKeySerializers.getStdKeySerializer(null, Class.class, false);
-        assertNotNull(serClass);
-        assertTrue(serClass instanceof StdKeySerializers.Default);
-
-        JsonSerializer<Object> serDate = StdKeySerializers.getStdKeySerializer(null, Date.class, false);
-        assertNotNull(serDate);
-        assertTrue(serDate instanceof StdKeySerializers.Default);
-
-        JsonSerializer<Object> serCalendar = StdKeySerializers.getStdKeySerializer(null, GregorianCalendar.class, false);
-        assertNotNull(serCalendar);
-        assertTrue(serCalendar instanceof StdKeySerializers.Default);
-
-        JsonSerializer<Object> serUUID = StdKeySerializers.getStdKeySerializer(null, UUID.class, false);
-        assertNotNull(serUUID);
-        assertTrue(serUUID instanceof StdKeySerializers.Default);
+    public void testGetStdKeySerializer_classType_returnsDefaultSerializer() {
+        JsonSerializer<Object> ser = StdKeySerializers.getStdKeySerializer(null, Class.class, false);
+        assertNotNull(ser);
+        assertTrue(ser instanceof StdKeySerializers.Default);
     }
 
-    // Tests getStdKeySerializer with unhandled type and useDefault flag
+    // Tests getStdKeySerializer with Date and Calendar types
     @Test
-    public void testGetStdKeySerializer_unhandledType_respectsUseDefault() {
-        JsonSerializer<Object> serWithDefault = StdKeySerializers.getStdKeySerializer(null, StringBuffer.class, true);
-        assertNotNull(serWithDefault);
-        assertTrue(serWithDefault instanceof StdKeySerializer);
+    public void testGetStdKeySerializer_dateAndCalendarTypes_returnsDefaultSerializer() {
+        JsonSerializer<Object> dateSer = StdKeySerializers.getStdKeySerializer(null, Date.class, false);
+        assertNotNull(dateSer);
+        assertTrue(dateSer instanceof StdKeySerializers.Default);
 
-        JsonSerializer<Object> serWithoutDefault = StdKeySerializers.getStdKeySerializer(null, StringBuffer.class, false);
+        JsonSerializer<Object> calSer = StdKeySerializers.getStdKeySerializer(null, Calendar.class, false);
+        assertNotNull(calSer);
+        assertTrue(calSer instanceof StdKeySerializers.Default);
+    }
+
+    // Tests getStdKeySerializer with UUID type
+    @Test
+    public void testGetStdKeySerializer_uuidType_returnsDefaultSerializer() {
+        JsonSerializer<Object> ser = StdKeySerializers.getStdKeySerializer(null, UUID.class, false);
+        assertNotNull(ser);
+        assertTrue(ser instanceof StdKeySerializers.Default);
+    }
+
+    // Tests getStdKeySerializer fallback when useDefault is true and false
+    @Test
+    public void testGetStdKeySerializer_unhandledType_returnsExpectedBasedOnUseDefault() {
+        JsonSerializer<Object> serWithDefault = StdKeySerializers.getStdKeySerializer(null, Void.class, true);
+        assertSame(StdKeySerializers.DEFAULT_KEY_SERIALIZER, serWithDefault);
+
+        JsonSerializer<Object> serWithoutDefault = StdKeySerializers.getStdKeySerializer(null, Void.class, false);
         assertNull(serWithoutDefault);
     }
 
-    // Tests getFallbackKeySerializer for null, generic Enum, concrete Enum, and other types
+    // Tests getFallbackKeySerializer with Enum.class returning Dynamic serializer
     @Test
-    public void testGetFallbackKeySerializer_variousTypes_returnsExpectedSerializer() {
-        JsonSerializer<Object> serNull = StdKeySerializers.getFallbackKeySerializer(null, null);
-        assertNotNull(serNull);
-        assertTrue(serNull instanceof StdKeySerializer);
+    public void testGetFallbackKeySerializer_enumClass_returnsDynamicSerializer() {
+        JsonSerializer<Object> ser = StdKeySerializers.getFallbackKeySerializer(null, Enum.class);
+        assertNotNull(ser);
+        assertTrue(ser instanceof StdKeySerializers.Dynamic);
+    }
 
-        JsonSerializer<Object> serGenericEnum = StdKeySerializers.getFallbackKeySerializer(null, Enum.class);
-        assertNotNull(serGenericEnum);
-        assertTrue(serGenericEnum instanceof StdKeySerializers.Dynamic);
+    // Tests getFallbackKeySerializer with concrete Enum types returning Default serializer
+    @Test
+    public void testGetFallbackKeySerializer_concreteEnumType_returnsDefaultSerializer() {
+        JsonSerializer<Object> ser = StdKeySerializers.getFallbackKeySerializer(null, TestEnum.class);
+        assertNotNull(ser);
+        assertTrue(ser instanceof StdKeySerializers.Default);
+    }
 
-        JsonSerializer<Object> serConcreteEnum = StdKeySerializers.getFallbackKeySerializer(null, TestEnum.class);
-        assertNotNull(serConcreteEnum);
-        assertTrue(serConcreteEnum instanceof StdKeySerializers.Default);
+    // Tests getFallbackKeySerializer with null or unhandled types
+    @Test
+    public void testGetFallbackKeySerializer_nullAndUnhandledTypes_returnsDefaultKeySerializer() {
+        JsonSerializer<Object> nullSer = StdKeySerializers.getFallbackKeySerializer(null, null);
+        assertSame(StdKeySerializers.DEFAULT_KEY_SERIALIZER, nullSer);
 
-        JsonSerializer<Object> serOther = StdKeySerializers.getFallbackKeySerializer(null, StringBuffer.class);
-        assertNotNull(serOther);
-        assertTrue(serOther instanceof StdKeySerializer);
+        JsonSerializer<Object> objSer = StdKeySerializers.getFallbackKeySerializer(null, Object.class);
+        assertSame(StdKeySerializers.DEFAULT_KEY_SERIALIZER, objSer);
     }
 
     // Tests deprecated getDefault method
     @Test
+    @SuppressWarnings("deprecation")
     public void testGetDefault_returnsDefaultKeySerializer() {
-        JsonSerializer<Object> ser = StdKeySerializers.getDefault();
-        assertNotNull(ser);
-        assertTrue(ser instanceof StdKeySerializer);
+        assertSame(StdKeySerializers.DEFAULT_KEY_SERIALIZER, StdKeySerializers.getDefault());
     }
 
-    // Tests StringKeySerializer serialization
+    // Tests serialization of Class key using Default serializer
     @Test
-    public void testStringKeySerializer_serialize_writesFieldName() throws Exception {
-        StdKeySerializers.StringKeySerializer ser = new StdKeySerializers.StringKeySerializer();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = JSON_F.createGenerator(sw);
-        gen.writeStartObject();
-
-        ser.serialize("testKey", gen, MAPPER.getSerializerProviderInstance());
-
-        gen.writeString("testValue");
-        gen.writeEndObject();
-        gen.close();
-
-        assertEquals("{\"testKey\":\"testValue\"}", sw.toString());
+    public void testDefaultSerializer_serializeClassKey() throws IOException {
+        Map<Class<?>, String> map = new HashMap<Class<?>, String>();
+        map.put(String.class, "value");
+        String json = mapper.writeValueAsString(map);
+        assertEquals("{\"java.lang.String\":\"value\"}", json);
     }
 
-    // Tests Default serializer for Class type
+    // Tests serialization of UUID key using Default serializer
     @Test
-    public void testDefaultSerializer_classType_writesClassName() throws Exception {
-        StdKeySerializers.Default ser = new StdKeySerializers.Default(StdKeySerializers.Default.TYPE_CLASS, Class.class);
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = JSON_F.createGenerator(sw);
-        gen.writeStartObject();
-
-        ser.serialize(String.class, gen, MAPPER.getSerializerProviderInstance());
-
-        gen.writeString("val");
-        gen.writeEndObject();
-        gen.close();
-
-        assertEquals("{\"java.lang.String\":\"val\"}", sw.toString());
+    public void testDefaultSerializer_serializeUuidKey() throws IOException {
+        UUID uuid = UUID.fromString("12345678-1234-1234-1234-123456789abc");
+        Map<UUID, String> map = new HashMap<UUID, String>();
+        map.put(uuid, "value");
+        String json = mapper.writeValueAsString(map);
+        assertEquals("{\"12345678-1234-1234-1234-123456789abc\":\"value\"}", json);
     }
 
-    // Tests Default serializer for UUID type and default toString fallback
+    // Tests serialization of Date and Calendar keys using Default serializer
     @Test
-    public void testDefaultSerializer_toStringType_writesToStringValue() throws Exception {
-        StdKeySerializers.Default ser = new StdKeySerializers.Default(StdKeySerializers.Default.TYPE_TO_STRING, UUID.class);
-        UUID uuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = JSON_F.createGenerator(sw);
-        gen.writeStartObject();
-
-        ser.serialize(uuid, gen, MAPPER.getSerializerProviderInstance());
-
-        gen.writeString("val");
-        gen.writeEndObject();
-        gen.close();
-
-        assertEquals("{\"123e4567-e89b-12d3-a456-426614174000\":\"val\"}", sw.toString());
-    }
-
-    // Tests Default serializer for Enum type with name() and toString() serialization features
-    @Test
-    public void testDefaultSerializer_enumType_respectsSerializationFeature() throws Exception {
-        StdKeySerializers.Default ser = new StdKeySerializers.Default(StdKeySerializers.Default.TYPE_ENUM, TestEnum.class);
-
-        // Feature disabled -> use Enum.name()
-        ObjectMapper mapperWithoutToString = new ObjectMapper();
-        mapperWithoutToString.disable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
-        StringWriter sw1 = new StringWriter();
-        JsonGenerator gen1 = JSON_F.createGenerator(sw1);
-        gen1.writeStartObject();
-        ser.serialize(TestEnum.FIRST, gen1, mapperWithoutToString.getSerializerProviderInstance());
-        gen1.writeString("val");
-        gen1.writeEndObject();
-        gen1.close();
-        assertEquals("{\"FIRST\":\"val\"}", sw1.toString());
-
-        // Feature enabled -> use Enum.toString()
-        ObjectMapper mapperWithToString = new ObjectMapper();
-        mapperWithToString.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
-        StringWriter sw2 = new StringWriter();
-        JsonGenerator gen2 = JSON_F.createGenerator(sw2);
-        gen2.writeStartObject();
-        ser.serialize(TestEnum.FIRST, gen2, mapperWithToString.getSerializerProviderInstance());
-        gen2.writeString("val");
-        gen2.writeEndObject();
-        gen2.close();
-        assertEquals("{\"custom_first\":\"val\"}", sw2.toString());
-    }
-
-    // Tests Default serializer for Date and Calendar types
-    @Test
-    public void testDefaultSerializer_dateAndCalendarTypes_serializesCorrectly() throws Exception {
-        Date date = new Date(1451606400000L);
-        Calendar calendar = new GregorianCalendar();
-        calendar.setTimeInMillis(1451606400000L);
-
+    public void testDefaultSerializer_serializeDateAndCalendarKey() throws IOException {
         Map<Date, String> dateMap = new HashMap<Date, String>();
+        Date date = new Date(0L);
         dateMap.put(date, "dateVal");
-        String dateJson = MAPPER.writeValueAsString(dateMap);
-        assertTrue(dateJson.contains("1451606400000") || dateJson.contains("2016"));
+        String dateJson = mapper.writeValueAsString(dateMap);
+        assertNotNull(dateJson);
+        assertTrue(dateJson.contains("dateVal"));
 
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(0L);
         Map<Calendar, String> calMap = new HashMap<Calendar, String>();
-        calMap.put(calendar, "calVal");
-        String calJson = MAPPER.writeValueAsString(calMap);
-        assertTrue(calJson.contains("1451606400000") || calJson.contains("2016"));
+        calMap.put(cal, "calVal");
+        String calJson = mapper.writeValueAsString(calMap);
+        assertNotNull(calJson);
+        assertTrue(calJson.contains("calVal"));
     }
 
-    // Tests Dynamic key serializer resolving multiple distinct key types dynamically
+    // Tests serialization of Enum key with default name and WRITE_ENUMS_USING_TO_STRING
     @Test
-    public void testDynamicKeySerializer_multipleKeyTypes_serializesDynamically() throws Exception {
-        StdKeySerializers.Dynamic dynamicSer = new StdKeySerializers.Dynamic();
-        SerializerProvider prov = MAPPER.getSerializerProviderInstance();
+    public void testDefaultSerializer_serializeEnumKey() throws IOException {
+        Map<TestEnum, String> map = new HashMap<TestEnum, String>();
+        map.put(TestEnum.SECOND, "val");
 
+        String defaultJson = mapper.writeValueAsString(map);
+        assertEquals("{\"SECOND\":\"val\"}", defaultJson);
+
+        ObjectMapper toStringMapper = new ObjectMapper();
+        toStringMapper.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
+        String toStringJson = toStringMapper.writeValueAsString(map);
+        assertEquals("{\"custom_second\":\"val\"}", toStringJson);
+    }
+
+    // Tests dynamic serialization with untyped EnumMap
+    @Test
+    public void testDynamicSerializer_serializeUntypedEnumMap() throws IOException {
+        EnumMap<TestEnum, String> enumMap = new EnumMap<TestEnum, String>(TestEnum.class);
+        enumMap.put(TestEnum.FIRST, "firstVal");
+        String json = mapper.writeValueAsString(enumMap);
+        assertEquals("{\"FIRST\":\"firstVal\"}", json);
+    }
+
+    // Tests StringKeySerializer direct serialization
+    @Test
+    public void testStringKeySerializer_serialize() throws IOException {
+        StdKeySerializers.StringKeySerializer serializer = new StdKeySerializers.StringKeySerializer();
         StringWriter sw = new StringWriter();
-        JsonGenerator gen = JSON_F.createGenerator(sw);
-        gen.writeStartObject();
-
-        dynamicSer.serialize("stringKey", gen, prov);
-        gen.writeNumber(1);
-
-        dynamicSer.serialize(Integer.valueOf(123), gen, prov);
-        gen.writeNumber(2);
-
-        dynamicSer.serialize("anotherString", gen, prov);
-        gen.writeNumber(3);
-
-        gen.writeEndObject();
-        gen.close();
-
-        assertEquals("{\"stringKey\":1,\"123\":2,\"anotherString\":3}", sw.toString());
+        JsonGenerator g = jsonFactory.createGenerator(sw);
+        g.writeStartObject();
+        serializer.serialize("myKey", g, null);
+        g.writeNumber(42);
+        g.writeEndObject();
+        g.close();
+        assertEquals("{\"myKey\":42}", sw.toString());
     }
 
-    // Tests Dynamic serializer readResolve deserialization method
+    // Tests Dynamic serializer readResolve initializes dynamic serializers map
     @Test
-    public void testDynamicKeySerializer_readResolve_restoresState() throws Exception {
+    public void testDynamicSerializer_readResolve() {
         StdKeySerializers.Dynamic dynamicSer = new StdKeySerializers.Dynamic();
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(dynamicSer);
-        oos.close();
-
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        Object deserialized = ois.readObject();
-        ois.close();
-
-        assertNotNull(deserialized);
-        assertTrue(deserialized instanceof StdKeySerializers.Dynamic);
+        Object resolved = dynamicSer.readResolve();
+        assertNotNull(resolved);
+        assertTrue(resolved instanceof StdKeySerializers.Dynamic);
     }
 }

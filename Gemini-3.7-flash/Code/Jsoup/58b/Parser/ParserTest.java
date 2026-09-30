@@ -3,6 +3,7 @@ package org.jsoup.parser;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
+import org.jsoup.nodes.TextNode;
 import org.junit.Test;
 
 import java.util.List;
@@ -11,177 +12,191 @@ import static org.junit.Assert.*;
 
 public class ParserTest {
 
-    // Tests static htmlParser factory method
+    // Tests static htmlParser factory method creates instance with HtmlTreeBuilder
     @Test
-    public void testHtmlParser_createsInstanceWithHtmlTreeBuilder() {
+    public void testHtmlParser_creation_returnsHtmlParserInstance() {
         Parser parser = Parser.htmlParser();
         assertNotNull(parser);
         assertTrue(parser.getTreeBuilder() instanceof HtmlTreeBuilder);
         assertFalse(parser.isTrackErrors());
+        assertEquals(ParseSettings.htmlDefault, parser.settings());
     }
 
-    // Tests static xmlParser factory method
+    // Tests static xmlParser factory method creates instance with XmlTreeBuilder
     @Test
-    public void testXmlParser_createsInstanceWithXmlTreeBuilder() {
+    public void testXmlParser_creation_returnsXmlParserInstance() {
         Parser parser = Parser.xmlParser();
         assertNotNull(parser);
         assertTrue(parser.getTreeBuilder() instanceof XmlTreeBuilder);
         assertFalse(parser.isTrackErrors());
+        assertEquals(ParseSettings.preserveCase, parser.settings());
     }
 
-    // Tests static parse method for HTML
+    // Tests direct Parser constructor
     @Test
-    public void testParse_validHtml_returnsParsedDocument() {
-        String html = "<html><head><title>Test</title></head><body><p>Hello</p></body></html>";
-        Document doc = Parser.parse(html, "http://example.com/");
-        assertNotNull(doc);
-        assertEquals("Test", doc.title());
-        assertEquals("Hello", doc.select("p").first().text());
-        assertEquals("http://example.com/", doc.baseUri());
+    public void testParserConstructor_withTreeBuilder_initializesProperly() {
+        TreeBuilder treeBuilder = new HtmlTreeBuilder();
+        Parser parser = new Parser(treeBuilder);
+        assertSame(treeBuilder, parser.getTreeBuilder());
+        assertFalse(parser.isTrackErrors());
+        assertEquals(ParseSettings.htmlDefault, parser.settings());
     }
 
-    // Tests parseInput with error tracking disabled (default)
+    // Tests parseInput with error tracking disabled (default false branch of isTrackErrors)
     @Test
-    public void testParseInput_errorTrackingDisabled_noErrorsRecorded() {
+    public void testParseInput_errorTrackingDisabled_parsesSuccessfullyWithoutErrors() {
         Parser parser = Parser.htmlParser();
+        Document doc = parser.parseInput("<p>Hello</p>", "http://example.com");
+        assertNotNull(doc);
+        assertEquals("Hello", doc.select("p").text());
+        assertNotNull(parser.getErrors());
+        assertEquals(0, parser.getErrors().size());
+    }
+
+    // Tests parseInput with error tracking enabled (true branch of isTrackErrors)
+    @Test
+    public void testParseInput_errorTrackingEnabled_tracksParseErrors() {
+        Parser parser = Parser.htmlParser().setTrackErrors(10);
+        assertTrue(parser.isTrackErrors());
+        Document doc = parser.parseInput("<p>One<p>Two", "http://example.com");
+        assertNotNull(doc);
+        assertNotNull(parser.getErrors());
+        assertFalse(parser.getErrors().isEmpty());
+    }
+
+    // Tests instance parseFragmentInput method with error tracking disabled
+    @Test
+    public void testParseFragmentInput_errorTrackingDisabled_returnsNodes() {
+        Parser parser = Parser.htmlParser();
+        Element context = new Element("div");
+        List<Node> nodes = parser.parseFragmentInput("<p>Fragment Text</p>", context, "http://example.com/");
+        assertEquals(1, nodes.size());
+        assertTrue(nodes.get(0) instanceof Element);
+        assertEquals("Fragment Text", ((Element) nodes.get(0)).text());
+        assertNotNull(parser.getErrors());
+        assertEquals(0, parser.getErrors().size());
+    }
+
+    // Tests instance parseFragmentInput method with error tracking enabled
+    @Test
+    public void testParseFragmentInput_errorTrackingEnabled_tracksErrors() {
+        Parser parser = Parser.htmlParser().setTrackErrors(10);
+        Element context = new Element("div");
+        List<Node> nodes = parser.parseFragmentInput("<p>One<p>Two", context, "http://example.com/");
+        assertFalse(nodes.isEmpty());
+        assertNotNull(parser.getErrors());
+        assertFalse(parser.getErrors().isEmpty());
+    }
+
+    // Tests setTrackErrors boundary condition when set to 0
+    @Test
+    public void testSetTrackErrors_zero_disablesTracking() {
+        Parser parser = Parser.htmlParser();
+        parser.setTrackErrors(5);
+        assertTrue(parser.isTrackErrors());
         parser.setTrackErrors(0);
         assertFalse(parser.isTrackErrors());
-
-        Document doc = parser.parseInput("<html><p>Foo</b>", "http://example.com/");
-        assertNotNull(doc);
-        assertNull(parser.getErrors());
     }
 
-    // Tests parseInput with error tracking enabled
+    // Tests setTrackErrors boundary condition when set to negative value
     @Test
-    public void testParseInput_errorTrackingEnabled_recordsErrors() {
+    public void testSetTrackErrors_negative_disablesTracking() {
         Parser parser = Parser.htmlParser();
-        parser.setTrackErrors(10);
-        assertTrue(parser.isTrackErrors());
-
-        Document doc = parser.parseInput("<html><p>Foo</b>", "http://example.com/");
-        assertNotNull(doc);
-        List<ParseError> errors = parser.getErrors();
-        assertNotNull(errors);
-        assertFalse(errors.isEmpty());
-    }
-
-    // Tests isTrackErrors boundary with negative, zero, and positive values
-    @Test
-    public void testSetTrackErrors_variousLimits_correctTrackErrorsState() {
-        Parser parser = Parser.htmlParser();
-        
         parser.setTrackErrors(-1);
         assertFalse(parser.isTrackErrors());
-
-        parser.setTrackErrors(0);
-        assertFalse(parser.isTrackErrors());
-
-        parser.setTrackErrors(1);
-        assertTrue(parser.isTrackErrors());
-
-        parser.setTrackErrors(100);
-        assertTrue(parser.isTrackErrors());
     }
 
-    // Tests getter and setter for TreeBuilder
+    // Tests treeBuilder getter and setter
     @Test
-    public void testSetTreeBuilder_customTreeBuilder_updatesSuccessfully() {
-        Parser parser = new Parser(new HtmlTreeBuilder());
-        XmlTreeBuilder xmlTreeBuilder = new XmlTreeBuilder();
+    public void testSetTreeBuilder_customTreeBuilder_updatesTreeBuilder() {
+        Parser parser = Parser.htmlParser();
+        TreeBuilder xmlTreeBuilder = new XmlTreeBuilder();
         Parser returnedParser = parser.setTreeBuilder(xmlTreeBuilder);
-
         assertSame(parser, returnedParser);
         assertSame(xmlTreeBuilder, parser.getTreeBuilder());
     }
 
     // Tests settings getter and setter
     @Test
-    public void testSettings_customSettings_updatesAndReturnsCorrectly() {
+    public void testSettings_customSettings_updatesSettings() {
         Parser parser = Parser.htmlParser();
         ParseSettings customSettings = new ParseSettings(true, true);
-        Parser returned = parser.settings(customSettings);
-
-        assertSame(parser, returned);
+        Parser returnedParser = parser.settings(customSettings);
+        assertSame(parser, returnedParser);
         assertSame(customSettings, parser.settings());
     }
 
-    // Tests parseFragment with HTML context
+    // Tests static parse method with valid HTML
     @Test
-    public void testParseFragment_htmlContext_returnsParsedNodes() {
-        Element context = new Element(Tag.valueOf("div"), "");
-        List<Node> nodes = Parser.parseFragment("<p>One</p><p>Two</p>", context, "http://example.com/");
-
-        assertNotNull(nodes);
-        assertEquals(2, nodes.size());
-        assertTrue(nodes.get(0) instanceof Element);
-        assertEquals("p", ((Element) nodes.get(0)).tagName());
-        assertEquals("One", ((Element) nodes.get(0)).text());
-        assertEquals("Two", ((Element) nodes.get(1)).text());
+    public void testParse_validHtml_returnsParsedDocument() {
+        Document doc = Parser.parse("<div id='test'>Content</div>", "http://example.com/");
+        assertNotNull(doc);
+        assertEquals("Content", doc.getElementById("test").text());
+        assertEquals("http://example.com/", doc.baseUri());
     }
 
-    // Tests parseXmlFragment
+    // Tests static parseFragment method with context element
+    @Test
+    public void testParseFragment_htmlWithContext_returnsNodesList() {
+        Element context = new Element("div");
+        List<Node> nodes = Parser.parseFragment("<span>Span1</span><span>Span2</span>", context, "http://example.com/");
+        assertEquals(2, nodes.size());
+        assertTrue(nodes.get(0) instanceof Element);
+        assertEquals("span", ((Element) nodes.get(0)).tagName());
+        assertEquals("Span1", ((Element) nodes.get(0)).text());
+    }
+
+    // Tests static parseXmlFragment method
     @Test
     public void testParseXmlFragment_validXml_returnsXmlNodes() {
-        String xml = "<item id=\"1\">Value</item><item id=\"2\">Value 2</item>";
-        List<Node> nodes = Parser.parseXmlFragment(xml, "http://example.com/");
-
-        assertNotNull(nodes);
+        List<Node> nodes = Parser.parseXmlFragment("<custom id='1'>Text</custom><custom id='2'/>", "http://example.com/");
         assertEquals(2, nodes.size());
         assertTrue(nodes.get(0) instanceof Element);
-        Element item1 = (Element) nodes.get(0);
-        assertEquals("item", item1.tagName());
-        assertEquals("1", item1.attr("id"));
-        assertEquals("Value", item1.text());
+        Element el = (Element) nodes.get(0);
+        assertEquals("custom", el.tagName());
+        assertEquals("1", el.attr("id"));
+        assertEquals("Text", el.text());
     }
 
-    // Tests parseBodyFragment with single node
+    // Tests static parseBodyFragment method with multiple elements
     @Test
-    public void testParseBodyFragment_singleElement_attachedToBody() {
-        Document doc = Parser.parseBodyFragment("<p>Single Element</p>", "http://example.com/");
-        assertNotNull(doc);
+    public void testParseBodyFragment_multipleNodes_parsedIntoBody() {
+        Document doc = Parser.parseBodyFragment("<p>Paragraph 1</p><p>Paragraph 2</p>", "http://example.com/");
         assertNotNull(doc.body());
-        assertEquals(1, doc.body().children().size());
-        assertEquals("Single Element", doc.body().select("p").text());
+        assertEquals(2, doc.body().children().size());
+        assertEquals("Paragraph 1", doc.body().child(0).text());
+        assertEquals("Paragraph 2", doc.body().child(1).text());
     }
 
-    // Tests parseBodyFragment with multiple sibling elements
+    // Tests static parseBodyFragment method with single text node
     @Test
-    public void testParseBodyFragment_multipleElements_retainsAllInBody() {
-        String html = "<div>First</div><p>Second</p><span>Third</span>";
-        Document doc = Parser.parseBodyFragment(html, "http://example.com/");
-
-        assertNotNull(doc);
-        assertEquals(3, doc.body().children().size());
-        assertEquals("First", doc.body().child(0).text());
-        assertEquals("Second", doc.body().child(1).text());
-        assertEquals("Third", doc.body().child(2).text());
+    public void testParseBodyFragment_singleTextNode_parsedIntoBody() {
+        Document doc = Parser.parseBodyFragment("Just text", "http://example.com/");
+        assertNotNull(doc.body());
+        assertEquals(1, doc.body().childNodeSize());
+        assertTrue(doc.body().childNode(0) instanceof TextNode);
+        assertEquals("Just text", ((TextNode) doc.body().childNode(0)).text());
     }
 
-    // Tests parseBodyFragmentRelaxed deprecated method
+    // Tests static parseBodyFragmentRelaxed deprecated method
     @Test
-    @SuppressWarnings("deprecation")
     public void testParseBodyFragmentRelaxed_validHtml_returnsDocument() {
-        String html = "<div><p>Relaxed Test</p></div>";
-        Document doc = Parser.parseBodyFragmentRelaxed(html, "http://example.com/");
-
+        Document doc = Parser.parseBodyFragmentRelaxed("<div>Relaxed</div>", "http://example.com/");
         assertNotNull(doc);
-        assertEquals("Relaxed Test", doc.select("p").text());
+        assertEquals("Relaxed", doc.select("div").text());
     }
 
-    // Tests unescapeEntities with inAttribute = false
+    // Tests static unescapeEntities outside attribute mode
     @Test
-    public void testUnescapeEntities_notInAttribute_unescapesHtmlEntities() {
-        String escaped = "&lt;div class=&quot;test&quot;&gt;&amp;&lt;/div&gt;";
-        String unescaped = Parser.unescapeEntities(escaped, false);
-        assertEquals("<div class=\"test\">&</div>", unescaped);
+    public void testUnescapeEntities_notInAttribute_unescapesCorrectly() {
+        String unescaped = Parser.unescapeEntities("&lt;tag&gt; &amp; &quot;", false);
+        assertEquals("<tag> & \"", unescaped);
     }
 
-    // Tests unescapeEntities with inAttribute = true
+    // Tests static unescapeEntities in attribute mode
     @Test
-    public void testUnescapeEntities_inAttribute_unescapesAttributeEntities() {
-        String escaped = "foo &amp; bar &quot; &lt;";
-        String unescaped = Parser.unescapeEntities(escaped, true);
-        assertEquals("foo & bar \" <", unescaped);
+    public void testUnescapeEntities_inAttribute_unescapesCorrectly() {
+        String unescaped = Parser.unescapeEntities("&quot;test&amp;&quot;", true);
+        assertEquals("\"test&\"", unescaped);
     }
 }

@@ -7,11 +7,13 @@ import com.google.javascript.rhino.Node;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class CompilerTest {
 
@@ -22,68 +24,80 @@ public class CompilerTest {
   public void setUp() {
     compiler = new Compiler();
     options = new CompilerOptions();
+    options.initConverter();
   }
 
-  // Tests basic compilation of valid JS source code
+  // Tests basic compilation of a simple script
   @Test
-  public void testCompile_validCode_returnsSuccessResult() {
-    SourceFile extern = SourceFile.fromCode("externs.js", "var window;");
-    SourceFile input = SourceFile.fromCode("input.js", "var x = 1 + 1;");
-
+  public void testCompile_simpleInput_success() {
+    SourceFile extern = SourceFile.fromCode("externs.js", "");
+    SourceFile input = SourceFile.fromCode("input.js", "var a = 1;");
     Result result = compiler.compile(extern, input, options);
 
     assertTrue(result.success);
     assertEquals(0, compiler.getErrorCount());
-    assertEquals(0, compiler.getWarningCount());
-    assertNotNull(compiler.toSource());
   }
 
-  // Tests compilation with dependency management enabled (bug 18 regression check)
+  // Tests dependency management and dependency sorting with closure pass (Bug 18 target)
   @Test
-  public void testCompile_manageDependenciesWithoutClosurePass_reordersInputsCorrectly() {
-    options.setDependencyOptions(new DependencyOptions()
-        .setDependencySorting(true)
-        .setDependencyPruning(true)
-        .setEntryPoints(ImmutableList.of("entry")));
+  public void testCompile_dependencySorting_reordersInputs() {
+    options.setClosurePass(true);
+    options.setManageDependencies(true);
 
     SourceFile extern = SourceFile.fromCode("externs.js", "");
-    SourceFile dep = SourceFile.fromCode("dep.js", "goog.provide('dep'); var d = 1;");
-    SourceFile entry = SourceFile.fromCode("entry.js", "goog.provide('entry'); goog.require('dep'); var e = d;");
+    SourceFile fileB = SourceFile.fromCode("b.js", "goog.provide('b'); var b = 1;");
+    SourceFile fileA = SourceFile.fromCode("a.js", "goog.require('b'); var a = b;");
 
-    Result result = compiler.compile(Lists.newArrayList(extern), Lists.newArrayList(entry, dep), options);
+    List<SourceFile> inputs = Lists.newArrayList(fileA, fileB);
+    Result result = compiler.compile(Lists.newArrayList(extern), inputs, options);
 
     assertTrue(result.success);
     assertEquals(0, compiler.getErrorCount());
+    List<CompilerInput> order = compiler.getInputsInOrder();
+    assertEquals(2, order.size());
+    assertEquals("b.js", order.get(0).getName());
+    assertEquals("a.js", order.get(1).getName());
   }
 
-  // Tests compilation with multiple modules
+  // Tests dependency management reporting missing entry point error
   @Test
-  public void testCompile_modules_buildsSourcePerModule() {
+  public void testCompile_missingEntryPoint_reportsError() {
+    options.setClosurePass(true);
+    options.setManageDependencies(ImmutableList.of("non.existent.entry"));
+
     SourceFile extern = SourceFile.fromCode("externs.js", "");
-    JSModule m1 = new JSModule("m1");
-    m1.add(SourceFile.fromCode("m1.js", "var a = 1;"));
+    SourceFile input = SourceFile.fromCode("input.js", "goog.provide('foo');");
 
-    JSModule m2 = new JSModule("m2");
-    m2.add(SourceFile.fromCode("m2.js", "var b = 2;"));
-    m2.addDependency(m1);
+    Result result = compiler.compile(extern, input, options);
+    assertFalse(result.success);
+    assertTrue(compiler.getErrorCount() > 0);
+  }
 
-    Result result = compiler.compileModules(
+  // Tests circular dependency error reporting
+  @Test
+  public void testCompile_circularDependency_reportsError() {
+    options.setClosurePass(true);
+    options.setManageDependencies(true);
+
+    SourceFile extern = SourceFile.fromCode("externs.js", "");
+    SourceFile fileA = SourceFile.fromCode("a.js", "goog.provide('a'); goog.require('b');");
+    SourceFile fileB = SourceFile.fromCode("b.js", "goog.provide('b'); goog.require('a');");
+
+    Result result = compiler.compile(
         Lists.newArrayList(extern),
-        Lists.newArrayList(m1, m2),
+        Lists.newArrayList(fileA, fileB),
         options);
 
-    assertTrue(result.success);
-    assertEquals(2, compiler.getModuleGraph().getModuleCount());
-    assertNotNull(compiler.toSource(m1));
-    assertNotNull(compiler.toSource(m2));
+    assertFalse(result.success);
+    assertTrue(compiler.getErrorCount() > 0);
   }
 
-  // Tests compilation reporting error for duplicate input names
+  // Tests duplicate input error detection in initInputsByIdMap
   @Test
-  public void testInitInputsByIdMap_duplicateInputs_reportsError() {
+  public void testInit_duplicateInputs_reportsError() {
     SourceFile extern = SourceFile.fromCode("externs.js", "");
-    SourceFile input1 = SourceFile.fromCode("same.js", "var a = 1;");
-    SourceFile input2 = SourceFile.fromCode("same.js", "var b = 2;");
+    SourceFile input1 = SourceFile.fromCode("input.js", "var a = 1;");
+    SourceFile input2 = SourceFile.fromCode("input.js", "var b = 2;");
 
     compiler.init(
         Lists.newArrayList(extern),
@@ -92,196 +106,194 @@ public class CompilerTest {
 
     assertTrue(compiler.hasErrors());
     assertEquals(1, compiler.getErrorCount());
-    assertEquals(Compiler.DUPLICATE_INPUT.key, compiler.getErrors()[0].getType().key);
   }
 
-  // Tests compilation with empty root module when multiple modules are provided
+  // Tests hoisting inputs with @externs annotation into externs list
   @Test
-  public void testInitModules_emptyRootModule_reportsError() {
+  public void testParseInputs_hoistExterns_movesToExterns() {
     SourceFile extern = SourceFile.fromCode("externs.js", "");
-    JSModule m1 = new JSModule("root");
-    JSModule m2 = new JSModule("child");
-    m2.add(SourceFile.fromCode("child.js", "var x = 1;"));
-    m2.addDependency(m1);
+    SourceFile annotatedExtern = SourceFile.fromCode("ext.js", "/** @externs */ var extVar;");
+    SourceFile input = SourceFile.fromCode("input.js", "var a = extVar;");
 
-    compiler.initModules(
+    compiler.init(
         Lists.newArrayList(extern),
-        Lists.newArrayList(m1, m2),
+        Lists.newArrayList(annotatedExtern, input),
         options);
+    compiler.parseInputs();
 
-    assertTrue(compiler.hasErrors());
-    assertEquals(1, compiler.getErrorCount());
+    assertEquals(2, compiler.getExternsInOrder().size());
+    assertEquals(1, compiler.getInputsInOrder().size());
+    assertEquals("input.js", compiler.getInputsInOrder().get(0).getName());
   }
 
-  // Tests parsing test code and synthetic code directly
+  // Tests hoisting inputs with @nocompile annotation out of input list
   @Test
-  public void testParseTestCode_validJs_returnsAstNode() {
-    Node root = compiler.parseTestCode("var a = 10;");
-
-    assertNotNull(root);
-    assertTrue(root.isScript());
-    assertNotNull(compiler.getInput(new InputId("[testcode]")));
-  }
-
-  // Tests parse synthetic code generates unique synthetic inputs
-  @Test
-  public void testParseSyntheticCode_validJs_returnsScriptNode() {
-    Node node1 = compiler.parseSyntheticCode("var x = 1;");
-    Node node2 = compiler.parseSyntheticCode("var y = 2;");
-
-    assertNotNull(node1);
-    assertNotNull(node2);
-    assertFalse(node1.getInputId().equals(node2.getInputId()));
-  }
-
-  // Tests toSource output formatting with single input
-  @Test
-  public void testToSourceArray_multipleInputs_returnsArrayOfSources() {
+  public void testParseInputs_hoistNoCompile_removesInput() {
     SourceFile extern = SourceFile.fromCode("externs.js", "");
-    SourceFile in1 = SourceFile.fromCode("in1.js", "var a = 1;");
-    SourceFile in2 = SourceFile.fromCode("in2.js", "var b = 2;");
-
-    compiler.compile(Lists.newArrayList(extern), Lists.newArrayList(in1, in2), options);
-    String[] sources = compiler.toSourceArray();
-
-    assertNotNull(sources);
-    assertEquals(2, sources.length);
-    assertTrue(sources[0].contains("var a=1"));
-    assertTrue(sources[1].contains("var b=2"));
-  }
-
-  // Tests CodeBuilder helper functionality
-  @Test
-  public void testCodeBuilder_appendAndMetrics_tracksLineAndColumn() {
-    Compiler.CodeBuilder cb = new Compiler.CodeBuilder();
-    cb.append("var x = 1;\nvar y = 2;\n");
-
-    assertEquals(2, cb.getLineIndex());
-    assertEquals(0, cb.getColumnIndex());
-    assertTrue(cb.endsWith("\n"));
-    assertTrue(cb.getLength() > 0);
-
-    cb.reset();
-    assertEquals(0, cb.getLength());
-    assertEquals(2, cb.getLineIndex());
-  }
-
-  // Tests progress boundary values
-  @Test
-  public void testSetProgress_valuesWithinAndOutsideRange_clampsCorrectly() {
-    compiler.setProgress(0.5);
-    assertEquals(0.5, compiler.getProgress(), 0.001);
-
-    compiler.setProgress(1.5);
-    assertEquals(1.0, compiler.getProgress(), 0.001);
-
-    compiler.setProgress(-0.5);
-    assertEquals(0.0, compiler.getProgress(), 0.001);
-  }
-
-  // Tests State saving and restoring for intermediate compile states
-  @Test
-  public void testGetAndSetState_restoresCompilerState() {
-    SourceFile extern = SourceFile.fromCode("externs.js", "var ext;");
+    SourceFile noCompile = SourceFile.fromCode("ignore.js", "/** @nocompile */ var ignore = 1;");
     SourceFile input = SourceFile.fromCode("input.js", "var a = 1;");
 
-    compiler.init(Lists.newArrayList(extern), Lists.newArrayList(input), options);
+    compiler.init(
+        Lists.newArrayList(extern),
+        Lists.newArrayList(noCompile, input),
+        options);
+    compiler.parseInputs();
+
+    assertEquals(1, compiler.getInputsInOrder().size());
+    assertEquals("input.js", compiler.getInputsInOrder().get(0).getName());
+  }
+
+  // Tests progress boundary clamping
+  @Test
+  public void testSetProgress_boundaryValues_clampsCorrectly() {
+    compiler.setProgress(-0.5);
+    assertEquals(0.0, compiler.getProgress(), 0.0001);
+
+    compiler.setProgress(1.5);
+    assertEquals(1.0, compiler.getProgress(), 0.0001);
+
+    compiler.setProgress(0.42);
+    assertEquals(0.42, compiler.getProgress(), 0.0001);
+  }
+
+  // Tests adding and getting new extern input dynamically
+  @Test
+  public void testNewExternInput_validName_addsSuccessfully() {
+    compiler.init(
+        Lists.newArrayList(SourceFile.fromCode("externs.js", "")),
+        Lists.newArrayList(SourceFile.fromCode("input.js", "var a = 1;")),
+        options);
+    compiler.parseInputs();
+
+    CompilerInput created = compiler.newExternInput("custom_extern.js");
+    assertNotNull(created);
+    assertNotNull(compiler.getInput(new InputId("custom_extern.js")));
+  }
+
+  // Tests adding duplicate extern input throws IllegalArgumentException
+  @Test(expected = IllegalArgumentException.class)
+  public void testNewExternInput_duplicateName_throwsException() {
+    compiler.init(
+        Lists.newArrayList(SourceFile.fromCode("externs.js", "")),
+        Lists.newArrayList(SourceFile.fromCode("input.js", "var a = 1;")),
+        options);
+    compiler.parseInputs();
+
+    compiler.newExternInput("custom.js");
+    compiler.newExternInput("custom.js");
+  }
+
+  // Tests adding new source ast incrementally
+  @Test
+  public void testAddNewSourceAst_newAst_returnsTrue() {
+    compiler.init(
+        Lists.newArrayList(SourceFile.fromCode("externs.js", "")),
+        Lists.newArrayList(SourceFile.fromCode("input.js", "var a = 1;")),
+        options);
+    compiler.parseInputs();
+
+    JsAst newAst = new JsAst(SourceFile.fromCode("added.js", "var b = 2;"));
+    boolean added = compiler.addNewSourceAst(newAst);
+    assertTrue(added);
+    assertNotNull(compiler.getInput(new InputId("added.js")));
+  }
+
+  // Tests adding duplicate source ast throws IllegalStateException
+  @Test(expected = IllegalStateException.class)
+  public void testAddNewSourceAst_duplicateInput_throwsException() {
+    compiler.init(
+        Lists.newArrayList(SourceFile.fromCode("externs.js", "")),
+        Lists.newArrayList(SourceFile.fromCode("input.js", "var a = 1;")),
+        options);
+    compiler.parseInputs();
+
+    JsAst duplicateAst = new JsAst(SourceFile.fromCode("input.js", "var a = 2;"));
+    compiler.addNewSourceAst(duplicateAst);
+  }
+
+  // Tests parsing test code string directly
+  @Test
+  public void testParseTestCode_validString_returnsNode() {
+    Node root = compiler.parseTestCode("function test() { return 10; }");
+    assertNotNull(root);
+    assertTrue(root.isScript());
+  }
+
+  // Tests parseSyntheticCode with file name
+  @Test
+  public void testParseSyntheticCode_withFileName_returnsNode() {
+    Node root = compiler.parseSyntheticCode("synthetic.js", "var x = 123;");
+    assertNotNull(root);
+    assertEquals("synthetic.js", root.getSourceFileName());
+  }
+
+  // Tests toSource serialization with CodeBuilder
+  @Test
+  public void testToSource_compiledCode_outputsJsString() {
+    SourceFile extern = SourceFile.fromCode("externs.js", "");
+    SourceFile input = SourceFile.fromCode("input.js", "var x = 10;");
+    compiler.compile(extern, input, options);
+
+    String source = compiler.toSource();
+    assertNotNull(source);
+    assertTrue(source.contains("var x=10"));
+  }
+
+  // Tests module source output toSource(JSModule)
+  @Test
+  public void testToSource_module_returnsCombinedSource() {
+    JSModule module = new JSModule("mod1");
+    module.add(SourceFile.fromCode("m1.js", "var x = 1;"));
+    module.add(SourceFile.fromCode("m2.js", "var y = 2;"));
+
+    SourceFile extern = SourceFile.fromCode("externs.js", "");
+    compiler.compileModules(
+        Lists.newArrayList(extern),
+        Lists.newArrayList(module),
+        options);
+
+    String source = compiler.toSource(module);
+    assertNotNull(source);
+    assertTrue(source.contains("var x=1"));
+    assertTrue(source.contains("var y=2"));
+  }
+
+  // Tests disableThreads setting
+  @Test
+  public void testDisableThreads_runsExecutionWithoutThread() {
+    compiler.disableThreads();
+    SourceFile extern = SourceFile.fromCode("externs.js", "");
+    SourceFile input = SourceFile.fromCode("input.js", "var z = 3;");
+    Result result = compiler.compile(extern, input, options);
+
+    assertTrue(result.success);
+    assertEquals("var z=3;", compiler.toSource().trim());
+  }
+
+  // Tests saving and restoring intermediate compiler state
+  @Test
+  public void testGetAndSetState_restoresState() {
+    SourceFile extern = SourceFile.fromCode("externs.js", "");
+    SourceFile input = SourceFile.fromCode("input.js", "var a = 1;");
+    compiler.init(
+        Lists.newArrayList(extern),
+        Lists.newArrayList(input),
+        options);
     compiler.parseInputs();
 
     Compiler.IntermediateState state = compiler.getState();
     assertNotNull(state);
 
-    Compiler newCompiler = new Compiler();
-    newCompiler.init(Lists.newArrayList(extern), Lists.newArrayList(input), options);
-    newCompiler.setState(state);
-
-    assertNotNull(newCompiler.getRoot());
-    assertEquals(compiler.getRoot().getChildCount(), newCompiler.getRoot().getChildCount());
+    compiler.setState(state);
+    assertEquals(1, compiler.getInputsInOrder().size());
   }
 
-  // Tests dynamic creation and removal of extern inputs
+  // Tests getReleaseVersion and getReleaseDate return non-null values
   @Test
-  public void testNewExternInputAndRemoveExternInput_modifiesExternsList() {
-    compiler.init(
-        Lists.newArrayList(SourceFile.fromCode("externs.js", "")),
-        Lists.newArrayList(SourceFile.fromCode("input.js", "var x = 1;")),
-        options);
-    compiler.parseInputs();
-
-    int initialExternsCount = compiler.getExternsInOrder().size();
-    CompilerInput createdExtern = compiler.newExternInput("custom_extern.js");
-
-    assertNotNull(createdExtern);
-    assertEquals(initialExternsCount + 1, compiler.getExternsInOrder().size());
-    assertNotNull(compiler.getInput(createdExtern.getInputId()));
-
-    compiler.removeExternInput(createdExtern.getInputId());
-    assertEquals(initialExternsCount, compiler.getExternsInOrder().size());
-    assertNull(compiler.getInput(createdExtern.getInputId()));
-  }
-
-  // Tests custom PrintStream constructor and ErrorManager setup
-  @Test
-  public void testConstructor_withPrintStream_initializesErrorManager() {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    PrintStream ps = new PrintStream(out);
-    Compiler customCompiler = new Compiler(ps);
-    customCompiler.initOptions(options);
-
-    assertNotNull(customCompiler.getErrorManager());
-    assertEquals(0, customCompiler.getErrorCount());
-  }
-
-  // Tests unique name ID generation and reset
-  @Test
-  public void testUniqueNameIdSupplier_generatesSequentialIdsAndResets() {
-    com.google.common.base.Supplier<String> supplier = compiler.getUniqueNameIdSupplier();
-
-    assertEquals("0", supplier.get());
-    assertEquals("1", supplier.get());
-    assertEquals("2", supplier.get());
-
-    compiler.resetUniqueNameId();
-    assertEquals("0", supplier.get());
-  }
-
-  // Tests compiler release version and release date bundle metadata
-  @Test
-  public void testGetReleaseVersionAndDate_returnsNonEmptyStrings() {
+  public void testGetReleaseVersionAndDate_returnsValue() {
     String version = Compiler.getReleaseVersion();
     String date = Compiler.getReleaseDate();
-
     assertNotNull(version);
-    assertFalse(version.isEmpty());
     assertNotNull(date);
-    assertFalse(date.isEmpty());
-  }
-
-  // Tests disableThreads flag
-  @Test
-  public void testDisableThreads_compilesSuccessfullyInCurrentThread() {
-    compiler.disableThreads();
-    SourceFile extern = SourceFile.fromCode("externs.js", "");
-    SourceFile input = SourceFile.fromCode("input.js", "var x = 42;");
-
-    Result result = compiler.compile(extern, input, options);
-
-    assertTrue(result.success);
-    assertEquals(0, compiler.getErrorCount());
-  }
-
-  // Tests source line retrieval for parsed source files
-  @Test
-  public void testGetSourceLine_validAndInvalidLineNumbers_returnsExpectedLineOrNull() {
-    SourceFile extern = SourceFile.fromCode("externs.js", "");
-    SourceFile input = SourceFile.fromCode("input.js", "var line1 = 1;\nvar line2 = 2;");
-
-    compiler.init(Lists.newArrayList(extern), Lists.newArrayList(input), options);
-
-    assertEquals("var line1 = 1;", compiler.getSourceLine("input.js", 1));
-    assertEquals("var line2 = 2;", compiler.getSourceLine("input.js", 2));
-    assertNull(compiler.getSourceLine("input.js", 0));
-    assertNull(compiler.getSourceLine("input.js", -1));
-    assertNull(compiler.getSourceLine("nonexistent.js", 1));
   }
 }

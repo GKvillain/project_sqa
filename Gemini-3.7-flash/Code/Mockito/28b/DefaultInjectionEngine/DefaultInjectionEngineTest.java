@@ -5,14 +5,12 @@ import org.junit.Test;
 import org.mockito.exceptions.base.MockitoException;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.*;
 
 public class DefaultInjectionEngineTest {
 
@@ -23,227 +21,261 @@ public class DefaultInjectionEngineTest {
         injectionEngine = new DefaultInjectionEngine();
     }
 
-    // Helper classes for testing injection
-    static class ServiceA {}
-    static class ServiceB {}
-
-    static class ParentService {}
-    static class ChildService extends ParentService {}
-
-    static class TargetWithSingleField {
-        ServiceA serviceA;
-    }
-
-    static class TargetWithMultipleFields {
-        ServiceA serviceA;
-        ServiceB serviceB;
-    }
-
-    static class TargetWithSameTypeFields {
-        ServiceA serviceA1;
-        ServiceA serviceA2;
-    }
-
-    static class TargetWithHierarchyFields {
-        ParentService parentService;
-        ChildService childService;
-    }
-
-    static class BaseTarget {
-        ServiceA baseServiceA;
-    }
-
-    static class SubTarget extends BaseTarget {
-        ServiceB subServiceB;
-    }
-
-    abstract static class AbstractTarget {
-        ServiceA serviceA;
-    }
-
-    static class TestClassWithTarget {
-        TargetWithSingleField target = new TargetWithSingleField();
-    }
-
-    static class TestClassWithUninitializedTarget {
-        TargetWithSingleField target;
-    }
-
-    static class TestClassWithMultipleFieldsTarget {
-        TargetWithMultipleFields target = new TargetWithMultipleFields();
-    }
-
-    static class TestClassWithSameTypeFieldsTarget {
-        TargetWithSameTypeFields target = new TargetWithSameTypeFields();
-    }
-
-    static class TestClassWithHierarchyFieldsTarget {
-        TargetWithHierarchyFields target = new TargetWithHierarchyFields();
-    }
-
-    static class TestClassWithSubTarget {
-        SubTarget target = new SubTarget();
-    }
-
-    static class TestClassWithAbstractTarget {
-        AbstractTarget target;
-    }
-
-    // Tests injection of a single mock into a matching field
+    // Tests normal case: injecting a matching mock into an initialized field
     @Test
-    public void testInjectMocksOnFields_singleMatchingMock_injectsMock() throws Exception {
+    public void testInjectMocksOnFields_matchingMock_injectsSuccessfully() throws Exception {
         TestClassWithTarget testInstance = new TestClassWithTarget();
-        Field targetField = TestClassWithTarget.class.getDeclaredField("target");
-
-        ServiceA mockServiceA = new ServiceA();
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add(mockServiceA);
-
-        Set<Field> injectMocksFields = new HashSet<Field>();
-        injectMocksFields.add(targetField);
-
-        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
-
-        assertSame(mockServiceA, testInstance.target.serviceA);
-    }
-
-    // Tests injection of multiple mocks matching different field types
-    @Test
-    public void testInjectMocksOnFields_multipleMatchingMocks_injectsAllMocks() throws Exception {
-        TestClassWithMultipleFieldsTarget testInstance = new TestClassWithMultipleFieldsTarget();
-        Field targetField = TestClassWithMultipleFieldsTarget.class.getDeclaredField("target");
-
-        ServiceA mockServiceA = new ServiceA();
-        ServiceB mockServiceB = new ServiceB();
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add(mockServiceA);
-        mocks.add(mockServiceB);
-
-        Set<Field> injectMocksFields = new HashSet<Field>();
-        injectMocksFields.add(targetField);
-
-        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
-
-        assertSame(mockServiceA, testInstance.target.serviceA);
-        assertSame(mockServiceB, testInstance.target.serviceB);
-    }
-
-    // Tests initialization and injection when target field is initially null
-    @Test
-    public void testInjectMocksOnFields_uninitializedTarget_initializesAndInjectsMock() throws Exception {
-        TestClassWithUninitializedTarget testInstance = new TestClassWithUninitializedTarget();
-        Field targetField = TestClassWithUninitializedTarget.class.getDeclaredField("target");
-
-        ServiceA mockServiceA = new ServiceA();
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add(mockServiceA);
-
-        Set<Field> injectMocksFields = new HashSet<Field>();
-        injectMocksFields.add(targetField);
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithTarget.class, "target"));
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList("injectedString"));
 
         injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
 
         assertNotNull(testInstance.target);
-        assertSame(mockServiceA, testInstance.target.serviceA);
+        assertEquals("injectedString", testInstance.target.message);
     }
 
-    // Tests injection across superclass and subclass hierarchy
+    // Tests normal case: multiple mocks injected into fields of matching types
     @Test
-    public void testInjectMocksOnFields_classHierarchyTarget_injectsSuperAndSubFields() throws Exception {
-        TestClassWithSubTarget testInstance = new TestClassWithSubTarget();
-        Field targetField = TestClassWithSubTarget.class.getDeclaredField("target");
-
-        ServiceA mockServiceA = new ServiceA();
-        ServiceB mockServiceB = new ServiceB();
+    public void testInjectMocksOnFields_multipleMocks_injectsMatchingTypes() throws Exception {
+        TestClassWithTarget testInstance = new TestClassWithTarget();
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithTarget.class, "target"));
         Set<Object> mocks = new HashSet<Object>();
-        mocks.add(mockServiceA);
-        mocks.add(mockServiceB);
-
-        Set<Field> injectMocksFields = new HashSet<Field>();
-        injectMocksFields.add(targetField);
+        mocks.add("hello");
+        mocks.add(Integer.valueOf(100));
 
         injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
 
-        assertSame(mockServiceA, testInstance.target.baseServiceA);
-        assertSame(mockServiceB, testInstance.target.subServiceB);
+        assertEquals("hello", testInstance.target.message);
+        assertEquals(Integer.valueOf(100), testInstance.target.number);
     }
 
-    // Tests ordered field injection when target has both supertype and subtype fields
-    @Test
-    public void testInjectMocksOnFields_parentAndChildFields_injectsSubtypeFirst() throws Exception {
-        TestClassWithHierarchyFieldsTarget testInstance = new TestClassWithHierarchyFieldsTarget();
-        Field targetField = TestClassWithHierarchyFieldsTarget.class.getDeclaredField("target");
-
-        ChildService mockChild = new ChildService();
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add(mockChild);
-
-        Set<Field> injectMocksFields = new HashSet<Field>();
-        injectMocksFields.add(targetField);
-
-        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
-
-        assertSame(mockChild, testInstance.target.childService);
-        assertNull(testInstance.target.parentService);
-    }
-
-    // Tests injection when target has multiple fields of the same type
-    @Test
-    public void testInjectMocksOnFields_sameTypeFields_sortsAndInjects() throws Exception {
-        TestClassWithSameTypeFieldsTarget testInstance = new TestClassWithSameTypeFieldsTarget();
-        Field targetField = TestClassWithSameTypeFieldsTarget.class.getDeclaredField("target");
-
-        ServiceA mockServiceA = new ServiceA();
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add(mockServiceA);
-
-        Set<Field> injectMocksFields = new HashSet<Field>();
-        injectMocksFields.add(targetField);
-
-        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
-
-        boolean injectedInA1 = testInstance.target.serviceA1 != null;
-        boolean injectedInA2 = testInstance.target.serviceA2 != null;
-        assertEquals(true, injectedInA1 ^ injectedInA2);
-    }
-
-    // Tests empty injectMocksFields set does nothing
+    // Tests edge case: empty injectMocksFields set does nothing
     @Test
     public void testInjectMocksOnFields_emptyInjectMocksFields_doesNothing() {
-        Set<Field> emptyInjectMocksFields = Collections.emptySet();
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add(new ServiceA());
+        TestClassWithTarget testInstance = new TestClassWithTarget();
+        Set<Field> emptyFields = Collections.emptySet();
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList("value"));
 
-        injectionEngine.injectMocksOnFields(emptyInjectMocksFields, mocks, new Object());
+        injectionEngine.injectMocksOnFields(emptyFields, mocks, testInstance);
+
+        assertNull(testInstance.target.message);
     }
 
-    // Tests empty mocks set does not inject anything
+    // Tests edge case: empty mocks set leaves fields as null
     @Test
-    public void testInjectMocksOnFields_emptyMocksSet_targetFieldRemainsNull() throws Exception {
+    public void testInjectMocksOnFields_emptyMocks_leavesFieldsNull() throws Exception {
         TestClassWithTarget testInstance = new TestClassWithTarget();
-        Field targetField = TestClassWithTarget.class.getDeclaredField("target");
-
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithTarget.class, "target"));
         Set<Object> emptyMocks = Collections.emptySet();
-        Set<Field> injectMocksFields = new HashSet<Field>();
-        injectMocksFields.add(targetField);
 
         injectionEngine.injectMocksOnFields(injectMocksFields, emptyMocks, testInstance);
 
-        assertNull(testInstance.target.serviceA);
+        assertNull(testInstance.target.message);
+        assertNull(testInstance.target.number);
     }
 
-    // Tests exception handling when target instance cannot be instantiated
-    @Test(expected = MockitoException.class)
-    public void testInjectMocksOnFields_uninstantiableTarget_throwsMockitoException() throws Exception {
-        TestClassWithAbstractTarget testInstance = new TestClassWithAbstractTarget();
-        Field targetField = TestClassWithAbstractTarget.class.getDeclaredField("target");
-
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add(new ServiceA());
-
-        Set<Field> injectMocksFields = new HashSet<Field>();
-        injectMocksFields.add(targetField);
+    // Tests normal case: uninitialized target field is instantiated and injected
+    @Test
+    public void testInjectMocksOnFields_uninitializedField_initializesAndInjects() throws Exception {
+        TestClassWithUninitializedTarget testInstance = new TestClassWithUninitializedTarget();
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithUninitializedTarget.class, "target"));
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList("initializedAndInjected"));
 
         injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
+
+        assertNotNull(testInstance.target);
+        assertEquals("initializedAndInjected", testInstance.target.message);
+    }
+
+    // Tests branch coverage: class hierarchy with fields in both superclass and subclass
+    @Test
+    public void testInjectMocksOnFields_classHierarchy_injectsSuperAndSubclassFields() throws Exception {
+        TestClassWithSubTarget testInstance = new TestClassWithSubTarget();
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithSubTarget.class, "target"));
+        Set<Object> mocks = new HashSet<Object>();
+        mocks.add("childValue");
+        mocks.add(Integer.valueOf(200));
+
+        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
+
+        assertEquals("childValue", testInstance.target.childField);
+        assertEquals(Integer.valueOf(200), testInstance.target.parentField);
+    }
+
+    // Tests regression/branch case: fields with type hierarchy (subtype before supertype ordering)
+    @Test
+    public void testInjectMocksOnFields_typeHierarchyFields_ordersSubtypesFirst() throws Exception {
+        TestClassWithHierarchyTypes testInstance = new TestClassWithHierarchyTypes();
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithHierarchyTypes.class, "target"));
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList("stringValue"));
+
+        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
+
+        assertEquals("stringValue", testInstance.target.specificString);
+        assertNull(testInstance.target.generalObject);
+    }
+
+    // Tests branch case: multiple fields of the same type in the target class
+    @Test
+    public void testInjectMocksOnFields_sameTypeFields_injectsWithoutComparatorError() throws Exception {
+        TestClassWithSameTypeFields testInstance = new TestClassWithSameTypeFields();
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithSameTypeFields.class, "target"));
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList("onlyOneMock"));
+
+        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
+
+        assertTrue(testInstance.target.first != null || testInstance.target.second != null);
+    }
+
+    // Tests edge case: mock type does not match any field type
+    @Test
+    public void testInjectMocksOnFields_noMatchingTypeMock_leavesFieldNull() throws Exception {
+        TestClassWithTarget testInstance = new TestClassWithTarget();
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithTarget.class, "target"));
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList(Double.valueOf(3.14)));
+
+        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
+
+        assertNull(testInstance.target.message);
+        assertNull(testInstance.target.number);
+    }
+
+    // Tests exception path: target field is an interface/abstract class that cannot be instantiated
+    @Test(expected = MockitoException.class)
+    public void testInjectMocksOnFields_abstractFieldCannotInitialize_throwsMockitoException() throws Exception {
+        TestClassWithAbstractTarget testInstance = new TestClassWithAbstractTarget();
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithAbstractTarget.class, "target"));
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList("someValue"));
+
+        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
+    }
+
+    // Tests normal case: multiple injectMocks target fields injected in a single execution
+    @Test
+    public void testInjectMocksOnFields_multipleTargetFields_injectsBoth() throws Exception {
+        TestClassWithMultipleTargets testInstance = new TestClassWithMultipleTargets();
+        Set<Field> injectMocksFields = new HashSet<Field>(Arrays.asList(
+                getField(TestClassWithMultipleTargets.class, "target1"),
+                getField(TestClassWithMultipleTargets.class, "target2")
+        ));
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList("sharedMock"));
+
+        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
+
+        assertNotNull(testInstance.target1);
+        assertNotNull(testInstance.target2);
+        assertEquals("sharedMock", testInstance.target1.message);
+        assertEquals("sharedMock", testInstance.target2.message);
+    }
+
+    // Tests branch coverage: target class with static and final fields ignores non-injectable fields
+    @Test
+    public void testInjectMocksOnFields_targetWithStaticAndFinalFields_onlyInjectsInstanceField() throws Exception {
+        TestClassWithStaticAndFinalTarget testInstance = new TestClassWithStaticAndFinalTarget();
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithStaticAndFinalTarget.class, "target"));
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList("injectedValue"));
+
+        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
+
+        assertEquals("injectedValue", testInstance.target.normalField);
+        assertEquals("constantFinal", testInstance.target.finalField);
+        assertEquals("constantStatic", StaticAndFinalTarget.staticField);
+    }
+
+    // Tests constructor injection: uninitialized target with parameter constructor is instantiated with mock
+    @Test
+    public void testInjectMocksOnFields_uninitializedTargetWithConstructor_injectsViaConstructor() throws Exception {
+        TestClassWithConstructorTarget testInstance = new TestClassWithConstructorTarget();
+        Set<Field> injectMocksFields = Collections.singleton(getField(TestClassWithConstructorTarget.class, "target"));
+        Set<Object> mocks = new HashSet<Object>(Collections.singletonList("constructorValue"));
+
+        injectionEngine.injectMocksOnFields(injectMocksFields, mocks, testInstance);
+
+        assertNotNull(testInstance.target);
+        assertEquals("constructorValue", testInstance.target.message);
+    }
+
+    private Field getField(Class<?> clazz, String fieldName) throws NoSuchFieldException {
+        Field field = clazz.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field;
+    }
+
+    public static class SimpleTarget {
+        public String message;
+        public Integer number;
+    }
+
+    public static class SuperTarget {
+        public Integer parentField;
+    }
+
+    public static class SubTarget extends SuperTarget {
+        public String childField;
+    }
+
+    public static class HierarchyTypeTarget {
+        public Object generalObject;
+        public String specificString;
+    }
+
+    public static class SameTypeFieldsTarget {
+        public String first;
+        public String second;
+    }
+
+    public static abstract class AbstractTarget {
+        public String field;
+    }
+
+    public static class StaticAndFinalTarget {
+        public static String staticField = "constantStatic";
+        public final String finalField = "constantFinal";
+        public String normalField;
+    }
+
+    public static class ConstructorTarget {
+        public String message;
+
+        public ConstructorTarget(String message) {
+            this.message = message;
+        }
+    }
+
+    public static class TestClassWithTarget {
+        public SimpleTarget target = new SimpleTarget();
+    }
+
+    public static class TestClassWithUninitializedTarget {
+        public SimpleTarget target;
+    }
+
+    public static class TestClassWithSubTarget {
+        public SubTarget target = new SubTarget();
+    }
+
+    public static class TestClassWithHierarchyTypes {
+        public HierarchyTypeTarget target = new HierarchyTypeTarget();
+    }
+
+    public static class TestClassWithSameTypeFields {
+        public SameTypeFieldsTarget target = new SameTypeFieldsTarget();
+    }
+
+    public static class TestClassWithAbstractTarget {
+        public AbstractTarget target;
+    }
+
+    public static class TestClassWithMultipleTargets {
+        public SimpleTarget target1 = new SimpleTarget();
+        public SimpleTarget target2 = new SimpleTarget();
+    }
+
+    public static class TestClassWithStaticAndFinalTarget {
+        public StaticAndFinalTarget target = new StaticAndFinalTarget();
+    }
+
+    public static class TestClassWithConstructorTarget {
+        public ConstructorTarget target;
     }
 }

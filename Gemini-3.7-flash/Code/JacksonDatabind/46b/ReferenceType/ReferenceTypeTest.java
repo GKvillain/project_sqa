@@ -10,204 +10,221 @@ import static org.junit.Assert.*;
 
 public class ReferenceTypeTest {
 
-    private JavaType stringType;
-    private JavaType intType;
-    private ReferenceType refType;
+    private JavaType refTargetType;
+    private ReferenceType referenceType;
 
     @Before
     public void setUp() {
-        stringType = SimpleType.constructUnsafe(String.class);
-        intType = SimpleType.constructUnsafe(Integer.class);
-        refType = ReferenceType.construct(AtomicReference.class, stringType, null, null);
+        refTargetType = SimpleType.construct(String.class);
+        referenceType = ReferenceType.construct(AtomicReference.class, refTargetType, null, null);
     }
 
-    // Tests getGenericSignature format to detect defect in closing bracket/semicolon
+    // Tests construction and basic properties
     @Test
-    public void testGetGenericSignature_validReferenceType_returnsCorrectGenericSignature() {
+    public void testConstruct_validArguments_createsReferenceType() {
+        assertNotNull(referenceType);
+        assertEquals(AtomicReference.class, referenceType.getRawClass());
+        assertEquals(refTargetType, referenceType.getReferencedType());
+        assertTrue(referenceType.isReferenceType());
+        assertFalse(referenceType.useStaticType());
+        assertNull(referenceType.getValueHandler());
+        assertNull(referenceType.getTypeHandler());
+    }
+
+    // Tests contained type count is always 1
+    @Test
+    public void testContainedTypeCount_returnsOne() {
+        assertEquals(1, referenceType.containedTypeCount());
+    }
+
+    // Tests contained type by index (valid index 0 and invalid indices)
+    @Test
+    public void testContainedType_variousIndices_returnsExpectedTypeOrNull() {
+        assertEquals(refTargetType, referenceType.containedType(0));
+        assertNull(referenceType.containedType(1));
+        assertNull(referenceType.containedType(-1));
+    }
+
+    // Tests contained type name by index
+    @Test
+    public void testContainedTypeName_variousIndices_returnsTOrNull() {
+        assertEquals("T", referenceType.containedTypeName(0));
+        assertNull(referenceType.containedTypeName(1));
+        assertNull(referenceType.containedTypeName(-1));
+    }
+
+    // Tests getParameterSource returns raw class
+    @Test
+    public void testGetParameterSource_returnsRawClass() {
+        assertEquals(AtomicReference.class, referenceType.getParameterSource());
+    }
+
+    // Tests withTypeHandler when handler is identical vs different
+    @Test
+    public void testWithTypeHandler_sameAndDifferentHandler_returnsExpectedInstance() {
+        Object handler = "customTypeHandler";
+        ReferenceType updated = referenceType.withTypeHandler(handler);
+        assertNotSame(referenceType, updated);
+        assertEquals(handler, updated.getTypeHandler());
+
+        ReferenceType sameHandler = updated.withTypeHandler(handler);
+        assertSame(updated, sameHandler);
+    }
+
+    // Tests withValueHandler when handler is identical vs different
+    @Test
+    public void testWithValueHandler_sameAndDifferentHandler_returnsExpectedInstance() {
+        Object handler = "customValueHandler";
+        ReferenceType updated = referenceType.withValueHandler(handler);
+        assertNotSame(referenceType, updated);
+        assertEquals(handler, updated.getValueHandler());
+
+        ReferenceType sameHandler = updated.withValueHandler(handler);
+        assertSame(updated, sameHandler);
+    }
+
+    // Tests withContentTypeHandler when handler is identical vs different
+    @Test
+    public void testWithContentTypeHandler_sameAndDifferentHandler_returnsExpectedInstance() {
+        Object handler = "contentTypeHandler";
+        ReferenceType updated = referenceType.withContentTypeHandler(handler);
+        assertNotSame(referenceType, updated);
+        assertEquals(handler, updated.getReferencedType().getTypeHandler());
+
+        ReferenceType sameHandler = updated.withContentTypeHandler(handler);
+        assertSame(updated, sameHandler);
+    }
+
+    // Tests withContentValueHandler when handler is identical vs different
+    @Test
+    public void testWithContentValueHandler_sameAndDifferentHandler_returnsExpectedInstance() {
+        Object handler = "contentValueHandler";
+        ReferenceType updated = referenceType.withContentValueHandler(handler);
+        assertNotSame(referenceType, updated);
+        assertEquals(handler, updated.getReferencedType().getValueHandler());
+
+        ReferenceType sameHandler = updated.withContentValueHandler(handler);
+        assertSame(updated, sameHandler);
+    }
+
+    // Tests withStaticTyping when already static vs non-static
+    @Test
+    public void testWithStaticTyping_nonStaticAndStatic_returnsExpectedInstance() {
+        ReferenceType staticRefType = referenceType.withStaticTyping();
+        assertNotSame(referenceType, staticRefType);
+        assertTrue(staticRefType.useStaticType());
+
+        ReferenceType sameStatic = staticRefType.withStaticTyping();
+        assertSame(staticRefType, sameStatic);
+    }
+
+    // Tests narrowing of raw class
+    @Test
+    public void testNarrow_subclass_returnsNarrowedReferenceType() {
+        class CustomAtomicReference<T> extends AtomicReference<T> {
+            private static final long serialVersionUID = 1L;
+        }
+        JavaType narrowed = referenceType._narrow(CustomAtomicReference.class);
+        assertNotNull(narrowed);
+        assertEquals(CustomAtomicReference.class, narrowed.getRawClass());
+        assertEquals(refTargetType, ((ReferenceType) narrowed).getReferencedType());
+    }
+
+    // Tests generic signature formatting
+    @Test
+    public void testGetGenericSignature_validType_appendsCorrectSignature() {
         StringBuilder sb = new StringBuilder();
-        StringBuilder result = refType.getGenericSignature(sb);
+        StringBuilder result = referenceType.getGenericSignature(sb);
         assertEquals("Ljava/util/concurrent/atomic/AtomicReference<Ljava/lang/String;>;", result.toString());
     }
 
-    // Tests getErasedSignature
+    // Tests erased signature formatting
     @Test
-    public void testGetErasedSignature_validReferenceType_returnsErasedSignature() {
+    public void testGetErasedSignature_validType_appendsCorrectSignature() {
         StringBuilder sb = new StringBuilder();
-        StringBuilder result = refType.getErasedSignature(sb);
+        StringBuilder result = referenceType.getErasedSignature(sb);
         assertEquals("Ljava/util/concurrent/atomic/AtomicReference;", result.toString());
     }
 
-    // Tests isReferenceType returns true
+    // Tests buildCanonicalName and toString methods
     @Test
-    public void testIsReferenceType_always_returnsTrue() {
-        assertTrue(refType.isReferenceType());
-    }
+    public void testToStringAndCanonicalName_validType_returnsFormattedString() {
+        String canonicalName = referenceType.buildCanonicalName();
+        assertEquals("java.util.concurrent.atomic.AtomicReference<java.lang.String>", canonicalName);
 
-    // Tests getReferencedType returns correct inner JavaType
-    @Test
-    public void testGetReferencedType_initializedType_returnsReferencedType() {
-        assertSame(stringType, refType.getReferencedType());
-    }
-
-    // Tests containedTypeCount returns 1
-    @Test
-    public void testContainedTypeCount_always_returnsOne() {
-        assertEquals(1, refType.containedTypeCount());
-    }
-
-    // Tests containedType with valid and invalid indices
-    @Test
-    public void testContainedType_boundaryIndices_returnsExpectedTypeOrNull() {
-        assertSame(stringType, refType.containedType(0));
-        assertNull(refType.containedType(1));
-        assertNull(refType.containedType(-1));
-    }
-
-    // Tests containedTypeName with valid and invalid indices
-    @Test
-    public void testContainedTypeName_boundaryIndices_returnsExpectedNameOrNull() {
-        assertEquals("T", refType.containedTypeName(0));
-        assertNull(refType.containedTypeName(1));
-        assertNull(refType.containedTypeName(-1));
-    }
-
-    // Tests getParameterSource returns the raw class
-    @Test
-    public void testGetParameterSource_always_returnsRawClass() {
-        assertEquals(AtomicReference.class, refType.getParameterSource());
-    }
-
-    // Tests buildCanonicalName and toCanonical format
-    @Test
-    public void testBuildCanonicalName_validType_returnsCanonicalName() {
-        String canonical = refType.toCanonical();
-        assertEquals("java.util.concurrent.atomic.AtomicReference<java.lang.String>", canonical);
-    }
-
-    // Tests toString format
-    @Test
-    public void testToString_validType_returnsFormattedString() {
-        String str = refType.toString();
+        String str = referenceType.toString();
         assertTrue(str.startsWith("[reference type, class "));
-        assertTrue(str.contains("java.util.concurrent.atomic.AtomicReference<java.lang.String>"));
+        assertTrue(str.contains(canonicalName));
     }
 
-    // Tests withTypeHandler with same and different handler
+    // Tests equals and identity comparisons
     @Test
-    public void testWithTypeHandler_sameAndDifferentHandler_behavesCorrectly() {
-        Object handler = "customTypeHandler";
-        ReferenceType updated = refType.withTypeHandler(handler);
-        assertNotSame(refType, updated);
-        assertSame(handler, updated.getTypeHandler());
+    public void testEquals_variousObjects_returnsCorrectBoolean() {
+        assertTrue(referenceType.equals(referenceType));
+        assertFalse(referenceType.equals(null));
+        assertFalse(referenceType.equals("not-a-type"));
 
-        ReferenceType same = updated.withTypeHandler(handler);
-        assertSame(updated, same);
+        ReferenceType same = ReferenceType.construct(AtomicReference.class, refTargetType, null, null);
+        assertTrue(referenceType.equals(same));
+
+        JavaType intTargetType = SimpleType.construct(Integer.class);
+        ReferenceType diffTarget = ReferenceType.construct(AtomicReference.class, intTargetType, null, null);
+        assertFalse(referenceType.equals(diffTarget));
+
+        ReferenceType diffClass = ReferenceType.construct(Object.class, refTargetType, null, null);
+        assertFalse(referenceType.equals(diffClass));
     }
 
-    // Tests withContentTypeHandler with same and different handler
+    // Tests construct overload with 2 arguments
     @Test
-    public void testWithContentTypeHandler_sameAndDifferentHandler_behavesCorrectly() {
-        Object handler = "contentTypeHandler";
-        ReferenceType updated = refType.withContentTypeHandler(handler);
-        assertNotSame(refType, updated);
-        assertSame(handler, updated.getReferencedType().getTypeHandler());
-
-        ReferenceType same = updated.withContentTypeHandler(handler);
-        assertSame(updated, same);
-    }
-
-    // Tests withValueHandler with same and different handler
-    @Test
-    public void testWithValueHandler_sameAndDifferentHandler_behavesCorrectly() {
-        Object handler = "customValueHandler";
-        ReferenceType updated = refType.withValueHandler(handler);
-        assertNotSame(refType, updated);
-        assertSame(handler, updated.getValueHandler());
-
-        ReferenceType same = updated.withValueHandler(handler);
-        assertSame(updated, same);
-    }
-
-    // Tests withContentValueHandler with same and different handler
-    @Test
-    public void testWithContentValueHandler_sameAndDifferentHandler_behavesCorrectly() {
-        Object handler = "contentValueHandler";
-        ReferenceType updated = refType.withContentValueHandler(handler);
-        assertNotSame(refType, updated);
-        assertSame(handler, updated.getReferencedType().getValueHandler());
-
-        ReferenceType same = updated.withContentValueHandler(handler);
-        assertSame(updated, same);
-    }
-
-    // Tests withStaticTyping when already static and when not static
-    @Test
-    public void testWithStaticTyping_asStaticFalseAndTrue_behavesCorrectly() {
-        assertFalse(refType.useStaticType());
-        ReferenceType staticRef = refType.withStaticTyping();
-        assertNotSame(refType, staticRef);
-        assertTrue(staticRef.useStaticType());
-
-        ReferenceType same = staticRef.withStaticTyping();
-        assertSame(staticRef, same);
-    }
-
-    // Tests _narrow method with subclass
-    @Test
-    public void testNarrow_subclass_returnsNewReferenceTypeWithSubclass() {
-        JavaType narrowed = refType._narrow(AtomicReference.class);
-        assertNotNull(narrowed);
-        assertTrue(narrowed.isReferenceType());
-        assertEquals(AtomicReference.class, narrowed.getRawClass());
-        assertEquals(stringType, ((ReferenceType) narrowed).getReferencedType());
-    }
-
-    // Tests equals and hashCode
-    @Test
-    public void testEquals_variousScenarios_returnsExpectedResults() {
-        assertTrue(refType.equals(refType));
-        assertFalse(refType.equals(null));
-        assertFalse(refType.equals("some string"));
-
-        ReferenceType sameType = ReferenceType.construct(AtomicReference.class, stringType, null, null);
-        assertTrue(refType.equals(sameType));
-        assertEquals(refType.hashCode(), sameType.hashCode());
-
-        ReferenceType diffRefType = ReferenceType.construct(AtomicReference.class, intType, null, null);
-        assertFalse(refType.equals(diffRefType));
-
-        ReferenceType diffClass = ReferenceType.construct(Object.class, stringType, null, null);
-        assertFalse(refType.equals(diffClass));
-    }
-
-    // Tests getContentType method
-    @Test
-    public void testGetContentType_initializedType_returnsReferencedType() {
-        assertSame(stringType, refType.getContentType());
-    }
-
-    // Tests construct helper methods
-    @Test
-    public void testConstruct_twoParameters_constructsCorrectly() {
-        ReferenceType constructed = ReferenceType.construct(AtomicReference.class, stringType);
-        assertNotNull(constructed);
-        assertSame(stringType, constructed.getReferencedType());
-        assertEquals(AtomicReference.class, constructed.getRawClass());
+    public void testConstruct_twoArguments_createsReferenceType() {
+        ReferenceType twoArgRefType = ReferenceType.construct(AtomicReference.class, refTargetType);
+        assertNotNull(twoArgRefType);
+        assertEquals(AtomicReference.class, twoArgRefType.getRawClass());
+        assertEquals(refTargetType, twoArgRefType.getReferencedType());
     }
 
     // Tests upgradeFrom method
     @Test
-    public void testUpgradeFrom_baseTypeAndReferencedType_upgradesSuccessfully() {
-        JavaType baseType = SimpleType.constructUnsafe(AtomicReference.class);
-        ReferenceType upgraded = ReferenceType.upgradeFrom(baseType, stringType);
+    public void testUpgradeFrom_validBaseType_createsReferenceType() {
+        JavaType baseType = SimpleType.construct(AtomicReference.class);
+        ReferenceType upgraded = ReferenceType.upgradeFrom(baseType, refTargetType);
         assertNotNull(upgraded);
         assertEquals(AtomicReference.class, upgraded.getRawClass());
-        assertSame(stringType, upgraded.getReferencedType());
+        assertEquals(refTargetType, upgraded.getReferencedType());
     }
 
-    // Tests isAnchorType method
+    // Tests getContentType and hasContentType methods
     @Test
-    public void testIsAnchorType_always_returnsFalse() {
-        assertFalse(refType.isAnchorType());
+    public void testGetContentTypeAndHasContentType() {
+        assertTrue(referenceType.hasContentType());
+        assertEquals(refTargetType, referenceType.getContentType());
+    }
+
+    // Tests withContentType method
+    @Test
+    public void testWithContentType_sameAndDifferentContentType() {
+        assertSame(referenceType, referenceType.withContentType(refTargetType));
+
+        JavaType intType = SimpleType.construct(Integer.class);
+        ReferenceType updated = referenceType.withContentType(intType);
+        assertNotSame(referenceType, updated);
+        assertEquals(intType, updated.getContentType());
+        assertEquals(intType, updated.getReferencedType());
+    }
+
+    // Tests isAnchorType and getAnchorType methods
+    @Test
+    public void testAnchorType() {
+        assertTrue(referenceType.isAnchorType());
+        assertNotNull(referenceType.getAnchorType());
+        assertEquals(referenceType.getRawClass(), referenceType.getAnchorType().getRawClass());
+    }
+
+    // Tests hashCode consistency
+    @Test
+    public void testHashCode_consistentWithEquals() {
+        ReferenceType same = ReferenceType.construct(AtomicReference.class, refTargetType, null, null);
+        assertEquals(referenceType.hashCode(), same.hashCode());
     }
 }

@@ -1,31 +1,17 @@
 package com.fasterxml.jackson.databind.deser;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.util.InternString;
-import com.fasterxml.jackson.databind.DeserializationConfig;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyName;
-import com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.deser.impl.ObjectIdReader;
+import com.fasterxml.jackson.databind.deser.std.StdValueInstantiator;
 import com.fasterxml.jackson.databind.exc.IgnoredPropertyException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.databind.util.NameTransformer;
@@ -33,79 +19,67 @@ import com.fasterxml.jackson.databind.util.NameTransformer;
 public class BeanDeserializerBaseTest {
 
     static class SimpleBean {
-        public int id;
         public String name;
+        public int age;
 
         public SimpleBean() {}
-
-        public SimpleBean(int id, String name) {
-            this.id = id;
+        public SimpleBean(String name, int age) {
             this.name = name;
-        }
-    }
-
-    static class CreatorBean {
-        final int x;
-        final int y;
-
-        @JsonCreator
-        public CreatorBean(@JsonProperty("x") int x, @JsonProperty("y") int y) {
-            this.x = x;
-            this.y = y;
+            this.age = age;
         }
     }
 
     @JsonIgnoreProperties({"ignoredField"})
-    static class IgnoredPropBean {
-        public int a;
+    static class IgnoredPropsBean {
+        public String name;
         public String ignoredField;
     }
 
     @JsonFormat(shape = JsonFormat.Shape.ARRAY)
-    static class ArrayShapeBean {
-        public int a;
-        public String b;
+    static class ArrayFormatBean {
+        public String a;
+        public int b;
     }
 
-    static class ParentRef {
-        public int id;
-        @JsonManagedReference
-        public ChildRef child;
-    }
-
-    static class ChildRef {
-        public String value;
-        @JsonBackReference
-        public ParentRef parent;
-    }
-
-    static class OuterBean {
-        public InnerBean inner;
-
-        public class InnerBean {
-            public int val;
-
-            public InnerBean(int val) {
-                this.val = val;
-            }
+    static class StringCtorBean {
+        String value;
+        public StringCtorBean(String v) {
+            this.value = v;
         }
     }
 
-    static class UnwrappedWrapper {
-        public String name;
-        @JsonUnwrapped
-        public UnwrappedChild child;
+    static class DoubleCtorBean {
+        double value;
+        public DoubleCtorBean(double v) {
+            this.value = v;
+        }
     }
 
-    static class UnwrappedChild {
-        public int age;
-        public String city;
+    static class BooleanCtorBean {
+        boolean value;
+        public BooleanCtorBean(boolean v) {
+            this.value = v;
+        }
     }
 
-    static class CustomDeserializerBase extends BeanDeserializerBase {
+    static class IntCtorBean {
+        int value;
+        public IntCtorBean(int v) {
+            this.value = v;
+        }
+    }
+
+    static class LongCtorBean {
+        long value;
+        public LongCtorBean(long v) {
+            this.value = v;
+        }
+    }
+
+    static class DummyDeserializer extends BeanDeserializerBase {
         private static final long serialVersionUID = 1L;
 
-        public CustomDeserializerBase(BeanDeserializerBase src) {
+        protected DummyDeserializer(BeanDeserializerBase src) {
             super(src);
         }
 
@@ -115,7 +89,7 @@ public class BeanDeserializerBaseTest {
         }
 
         @Override
-        public BeanDeserializerBase withObjectIdReader(com.fasterxml.jackson.databind.deser.impl.ObjectIdReader oir) {
+        public BeanDeserializerBase withObjectIdReader(ObjectIdReader oir) {
             return this;
         }
 
@@ -130,260 +104,275 @@ public class BeanDeserializerBaseTest {
         }
 
         @Override
-        public Object deserializeFromObject(JsonParser p, DeserializationContext ctxt) throws IOException {
+        public Object deserializeFromObject(JsonParser p, DeserializationContext ctxt) {
             return null;
         }
 
         @Override
-        protected Object _deserializeUsingPropertyBased(JsonParser p, DeserializationContext ctxt) throws IOException {
+        protected Object _deserializeUsingPropertyBased(JsonParser p, DeserializationContext ctxt) {
             return null;
         }
     }
 
-    // Tests accessor methods on standard BeanDeserializerBase instance
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    private BeanDeserializerBase getBeanDeserializer(Class<?> cls) throws IOException {
+        JavaType type = mapper.constructType(cls);
+        DefaultDeserializationContext ctxt = ((DefaultDeserializationContext) mapper.getDeserializationContext())
+                .createInstance(mapper.getDeserializationConfig(), mapper.getFactory().createParser("{}"), null);
+        JsonDeserializer<?> deser = ctxt.findRootValueDeserializer(type);
+        if (deser instanceof BeanDeserializerBase) {
+            return (BeanDeserializerBase) deser;
+        }
+        fail("Expected BeanDeserializerBase, got: " + deser);
+        return null;
+    }
+
+    // Tests metadata and accessor methods on standard BeanDeserializerBase
     @Test
-    public void testAccessors_standardBean_returnsExpectedMetadata() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-        JavaType type = mapper.constructType(SimpleBean.class);
-        JsonDeserializer<?> deser = mapper.findRootValueDeserializer(type);
+    public void testHandledTypeAndAccessors_validBean_returnsCorrectMetadata() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
 
-        assertTrue(deser instanceof BeanDeserializerBase);
-        BeanDeserializerBase beanDeser = (BeanDeserializerBase) deser;
+        assertEquals(SimpleBean.class, deser.handledType());
+        assertEquals(SimpleBean.class, deser.getBeanClass());
+        assertEquals(mapper.constructType(SimpleBean.class), deser.getValueType());
+        assertTrue(deser.isCachable());
+        assertFalse(deser.hasViews());
+        assertEquals(2, deser.getPropertyCount());
+        assertNotNull(deser.getValueInstantiator());
 
-        assertEquals(SimpleBean.class, beanDeser.handledType());
-        assertEquals(SimpleBean.class, beanDeser.getBeanClass());
-        assertEquals(type, beanDeser.getValueType());
-        assertTrue(beanDeser.isCachable());
-        assertFalse(beanDeser.hasViews());
-        assertNull(beanDeser.getObjectIdReader());
+        Collection<Object> names = deser.getKnownPropertyNames();
+        assertTrue(names.contains("name"));
+        assertTrue(names.contains("age"));
+    }
 
-        assertEquals(2, beanDeser.getPropertyCount());
-        assertTrue(beanDeser.hasProperty("id"));
-        assertTrue(beanDeser.hasProperty("name"));
-        assertFalse(beanDeser.hasProperty("unknown"));
+    // Tests findProperty by name, PropertyName, and index
+    @Test
+    public void testFindProperty_existingAndNonExisting_returnsPropertyOrNull() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
 
-        assertNotNull(beanDeser.findProperty("id"));
-        assertNotNull(beanDeser.findProperty(new PropertyName("id")));
-        assertNotNull(beanDeser.findProperty(0));
-        assertNull(beanDeser.findProperty("nonExistent"));
+        assertTrue(deser.hasProperty("name"));
+        assertTrue(deser.hasProperty("age"));
+        assertFalse(deser.hasProperty("nonExisting"));
 
-        Collection<Object> knownProps = beanDeser.getKnownPropertyNames();
-        assertEquals(2, knownProps.size());
-        assertTrue(knownProps.contains("id"));
-        assertTrue(knownProps.contains("name"));
+        assertNotNull(deser.findProperty("name"));
+        assertNotNull(deser.findProperty(new PropertyName("age")));
+        assertNull(deser.findProperty("nonExisting"));
+        assertNull(deser.findProperty(new PropertyName("nonExisting")));
 
-        Iterator<SettableBeanProperty> it = beanDeser.properties();
+        SettableBeanProperty prop0 = deser.findProperty(0);
+        SettableBeanProperty prop1 = deser.findProperty(1);
+        assertNotNull(prop0);
+        assertNotNull(prop1);
+        assertNull(deser.findProperty(999));
+    }
+
+    // Tests creator properties and back references when empty/none
+    @Test
+    public void testCreatorPropertiesAndBackReference_emptyOrNone_returnsEmptyOrNull() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
+
+        Iterator<SettableBeanProperty> creatorProps = deser.creatorProperties();
+        assertNotNull(creatorProps);
+        assertFalse(creatorProps.hasNext());
+
+        assertNull(deser.findBackReference("dummyRef"));
+    }
+
+    // Tests properties iterator
+    @Test
+    public void testProperties_standardBean_iteratesAllProperties() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
+
+        Iterator<SettableBeanProperty> it = deser.properties();
+        assertNotNull(it);
         int count = 0;
         while (it.hasNext()) {
-            assertNotNull(it.next());
+            SettableBeanProperty prop = it.next();
+            assertNotNull(prop);
             count++;
         }
         assertEquals(2, count);
     }
 
-    // Tests creatorProperties iteration when creator is present
-    @Test
-    public void testCreatorProperties_withCreatorBean_returnsCreatorProps() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaType type = mapper.constructType(CreatorBean.class);
-        BeanDeserializerBase beanDeser = (BeanDeserializerBase) mapper.findRootValueDeserializer(type);
-
-        Iterator<SettableBeanProperty> creatorIt = beanDeser.creatorProperties();
-        List<String> creatorNames = new ArrayList<String>();
-        while (creatorIt.hasNext()) {
-            creatorNames.add(creatorIt.next().getName());
-        }
-        assertEquals(2, creatorNames.size());
-        assertTrue(creatorNames.contains("x"));
-        assertTrue(creatorNames.contains("y"));
-
-        assertNotNull(beanDeser.findProperty("x"));
-        assertNotNull(beanDeser.findProperty("y"));
+    // Tests default implementation of withBeanProperties throwing UnsupportedOperationException
+    @Test(expected = UnsupportedOperationException.class)
+    public void testWithBeanProperties_baseImplementation_throwsUnsupportedOperationException() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
+        DummyDeserializer dummy = new DummyDeserializer(deser);
+        dummy.withBeanProperties(null);
     }
 
-    // Tests creatorProperties on bean without property-based creator
+    // Tests deserializeFromString using string-based creator
     @Test
-    public void testCreatorProperties_withoutCreator_returnsEmptyIterator() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDeserializerBase beanDeser = (BeanDeserializerBase) mapper.findRootValueDeserializer(type);
-
-        Iterator<SettableBeanProperty> creatorIt = beanDeser.creatorProperties();
-        assertFalse(creatorIt.hasNext());
-    }
-
-    // Tests findBackReference returns null when no back refs exist
-    @Test
-    public void testFindBackReference_noBackRefs_returnsNull() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDeserializerBase beanDeser = (BeanDeserializerBase) mapper.findRootValueDeserializer(type);
-
-        assertNull(beanDeser.findBackReference("dummyRef"));
-    }
-
-    // Tests managed and back reference resolution
-    @Test
-    public void testManagedAndBackReference_validStructure_resolvesAndDeserializes() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        String json = "{\"id\":10,\"child\":{\"value\":\"abc\"}}";
-        ParentRef parent = mapper.readValue(json, ParentRef.class);
-
-        assertNotNull(parent);
-        assertEquals(10, parent.id);
-        assertNotNull(parent.child);
-        assertEquals("abc", parent.child.value);
-        assertSame(parent, parent.child.parent);
-    }
-
-    // Tests Shape.ARRAY deserialization
-    @Test
-    public void testShapeArray_validInput_deserializesCorrectly() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        String json = "[42, \"foo\"]";
-        ArrayShapeBean bean = mapper.readValue(json, ArrayShapeBean.class);
-
-        assertNotNull(bean);
-        assertEquals(42, bean.a);
-        assertEquals("foo", bean.b);
-    }
-
-    // Tests unwrapped property deserialization
-    @Test
-    public void testUnwrappedProperties_validInput_deserializesFields() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        String json = "{\"name\":\"John\",\"age\":30,\"city\":\"NYC\"}";
-        UnwrappedWrapper result = mapper.readValue(json, UnwrappedWrapper.class);
-
+    public void testDeserializeFromString_stringCreatorBean_constructsObject() throws Exception {
+        String json = "\"hello\"";
+        StringCtorBean result = mapper.readValue(json, StringCtorBean.class);
         assertNotNull(result);
-        assertEquals("John", result.name);
-        assertNotNull(result.child);
-        assertEquals(30, result.child.age);
-        assertEquals("NYC", result.child.city);
+        assertEquals("hello", result.value);
     }
 
-    // Tests unknown property with default config throws exception
+    // Tests deserializeFromDouble using double-based creator
+    @Test
+    public void testDeserializeFromDouble_doubleCreatorBean_constructsObject() throws Exception {
+        String json = "3.1415";
+        DoubleCtorBean result = mapper.readValue(json, DoubleCtorBean.class);
+        assertNotNull(result);
+        assertEquals(3.1415, result.value, 0.0001);
+    }
+
+    // Tests deserializeFromBoolean using boolean-based creator
+    @Test
+    public void testDeserializeFromBoolean_booleanCreatorBean_constructsObject() throws Exception {
+        String json = "true";
+        BooleanCtorBean result = mapper.readValue(json, BooleanCtorBean.class);
+        assertNotNull(result);
+        assertTrue(result.value);
+    }
+
+    // Tests deserializeFromNumber using int and long creators
+    @Test
+    public void testDeserializeFromNumber_intAndLongCreatorBean_constructsObject() throws Exception {
+        IntCtorBean intResult = mapper.readValue("42", IntCtorBean.class);
+        assertNotNull(intResult);
+        assertEquals(42, intResult.value);
+
+        LongCtorBean longResult = mapper.readValue("1234567890123", LongCtorBean.class);
+        assertNotNull(longResult);
+        assertEquals(1234567890123L, longResult.value);
+    }
+
+    // Tests deserializeFromArray when UNWRAP_SINGLE_VALUE_ARRAYS feature is enabled
+    @Test
+    public void testDeserializeFromArray_unwrapSingleValueArrays_deserializesBean() throws Exception {
+        ObjectMapper unwrapMapper = new ObjectMapper();
+        unwrapMapper.enable(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS);
+
+        String json = "[{\"name\":\"Alice\",\"age\":30}]";
+        SimpleBean result = unwrapMapper.readValue(json, SimpleBean.class);
+        assertNotNull(result);
+        assertEquals("Alice", result.name);
+        assertEquals(30, result.age);
+    }
+
+    // Tests deserializeFromArray when ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT is enabled
+    @Test
+    public void testDeserializeFromArray_acceptEmptyArrayAsNull_returnsNull() throws Exception {
+        ObjectMapper emptyArrayMapper = new ObjectMapper();
+        emptyArrayMapper.enable(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT);
+
+        String json = "[]";
+        SimpleBean result = emptyArrayMapper.readValue(json, SimpleBean.class);
+        assertNull(result);
+    }
+
+    // Tests handleIgnoredProperty when FAIL_ON_IGNORED_PROPERTIES is enabled
+    @Test(expected = IgnoredPropertyException.class)
+    public void testHandleIgnoredProperty_failOnIgnoredEnabled_throwsIgnoredPropertyException() throws Exception {
+        ObjectMapper failOnIgnoredMapper = new ObjectMapper();
+        failOnIgnoredMapper.enable(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES);
+
+        String json = "{\"name\":\"Alice\",\"ignoredField\":\"secret\"}";
+        failOnIgnoredMapper.readValue(json, IgnoredPropsBean.class);
+    }
+
+    // Tests handleIgnoredProperty when FAIL_ON_IGNORED_PROPERTIES is disabled
+    @Test
+    public void testHandleIgnoredProperty_failOnIgnoredDisabled_skipsIgnoredProperty() throws Exception {
+        String json = "{\"name\":\"Bob\",\"ignoredField\":\"secret\"}";
+        IgnoredPropsBean result = mapper.readValue(json, IgnoredPropsBean.class);
+        assertNotNull(result);
+        assertEquals("Bob", result.name);
+        assertNull(result.ignoredField);
+    }
+
+    // Tests handleUnknownProperty when FAIL_ON_UNKNOWN_PROPERTIES is enabled
     @Test(expected = UnrecognizedPropertyException.class)
-    public void testHandleUnknownProperty_defaultConfig_throwsException() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        String json = "{\"id\":1,\"unknownProp\":\"value\"}";
+    public void testHandleUnknownProperty_failOnUnknownEnabled_throwsUnrecognizedPropertyException() throws Exception {
+        String json = "{\"name\":\"Bob\",\"unknownField\":\"value\"}";
         mapper.readValue(json, SimpleBean.class);
     }
 
-    // Tests unknown property ignored when FAIL_ON_UNKNOWN_PROPERTIES is false
+    // Tests handleUnknownProperty when FAIL_ON_UNKNOWN_PROPERTIES is disabled
     @Test
-    public void testHandleUnknownProperty_featureDisabled_skipsUnknown() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-        String json = "{\"id\":1,\"unknownProp\":\"value\",\"name\":\"test\"}";
-        SimpleBean bean = mapper.readValue(json, SimpleBean.class);
+    public void testHandleUnknownProperty_failOnUnknownDisabled_ignoresProperty() throws Exception {
+        ObjectMapper ignoreUnknownMapper = new ObjectMapper();
+        ignoreUnknownMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-        assertNotNull(bean);
-        assertEquals(1, bean.id);
-        assertEquals("test", bean.name);
+        String json = "{\"name\":\"Bob\",\"unknownField\":\"value\",\"age\":25}";
+        SimpleBean result = ignoreUnknownMapper.readValue(json, SimpleBean.class);
+        assertNotNull(result);
+        assertEquals("Bob", result.name);
+        assertEquals(25, result.age);
     }
 
-    // Tests ignored property with FAIL_ON_IGNORED_PROPERTIES enabled
-    @Test(expected = IgnoredPropertyException.class)
-    public void testHandleIgnoredProperty_failOnIgnoredEnabled_throwsException() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES);
-        String json = "{\"a\":1,\"ignoredField\":\"skip\"}";
-        mapper.readValue(json, IgnoredPropBean.class);
-    }
-
-    // Tests ignored property skipped with default config
+    // Tests wrapAndThrow wrapping RuntimeException with path reference
     @Test
-    public void testHandleIgnoredProperty_defaultConfig_skipsProperty() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        String json = "{\"a\":5,\"ignoredField\":\"skip\"}";
-        IgnoredPropBean bean = mapper.readValue(json, IgnoredPropBean.class);
-
-        assertNotNull(bean);
-        assertEquals(5, bean.a);
-        assertNull(bean.ignoredField);
-    }
-
-    // Tests UNWRAP_SINGLE_VALUE_ARRAYS feature on BeanDeserializerBase
-    @Test
-    public void testDeserializeFromArray_unwrapSingleValueArrayEnabled_returnsBean() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS);
-        String json = "[{\"id\":7,\"name\":\"unwrapped\"}]";
-        SimpleBean bean = mapper.readValue(json, SimpleBean.class);
-
-        assertNotNull(bean);
-        assertEquals(7, bean.id);
-        assertEquals("unwrapped", bean.name);
-    }
-
-    // Tests ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT feature on BeanDeserializerBase
-    @Test
-    public void testDeserializeFromArray_emptyArrayAsNull_returnsNull() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(DeserializationFeature.ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT);
-        String json = "[]";
-        SimpleBean bean = mapper.readValue(json, SimpleBean.class);
-
-        assertNull(bean);
-    }
-
-    // Tests withBeanProperties default implementation throws UnsupportedOperationException
-    @Test(expected = UnsupportedOperationException.class)
-    public void testWithBeanProperties_defaultMethod_throwsUnsupportedOperationException() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDeserializerBase beanDeser = (BeanDeserializerBase) mapper.findRootValueDeserializer(type);
-
-        CustomDeserializerBase custom = new CustomDeserializerBase(beanDeser);
-        custom.withBeanProperties(BeanPropertyMap.construct(Collections.<SettableBeanProperty>emptyList(), false));
-    }
-
-    // Tests wrapAndThrow unwraps InvocationTargetException and wraps into JsonMappingException
-    @Test
-    public void testWrapAndThrow_invocationTargetException_wrapsCorrectly() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDeserializerBase beanDeser = (BeanDeserializerBase) mapper.findRootValueDeserializer(type);
-
-        IllegalStateException cause = new IllegalStateException("Inner failure");
-        InvocationTargetException ite = new InvocationTargetException(cause);
+    public void testWrapAndThrow_runtimeException_wrapsInJsonMappingException() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
+        DefaultDeserializationContext ctxt = ((DefaultDeserializationContext) mapper.getDeserializationContext())
+                .createInstance(mapper.getDeserializationConfig(), mapper.getFactory().createParser("{}"), null);
+        SimpleBean bean = new SimpleBean();
 
         try {
-            beanDeser.wrapAndThrow(ite, new SimpleBean(), "testField", mapper.getDeserializationContext());
+            deser.wrapAndThrow(new IllegalArgumentException("test error"), bean, "name", ctxt);
             fail("Expected JsonMappingException");
         } catch (JsonMappingException e) {
-            assertSame(cause, e.getCause());
-            assertTrue(e.getMessage().contains("Inner failure"));
-            assertTrue(e.getPathReference().contains("testField"));
+            assertTrue(e.getMessage().contains("test error"));
+            assertEquals(1, e.getPath().size());
+            assertEquals("name", e.getPath().get(0).getFieldName());
         }
     }
 
-    // Tests wrapAndThrow with an Error rethrows the error directly
+    // Tests wrapAndThrow passing through Error directly
     @Test(expected = OutOfMemoryError.class)
-    public void testWrapAndThrow_errorThrown_rethrowsErrorDirectly() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDeserializerBase beanDeser = (BeanDeserializerBase) mapper.findRootValueDeserializer(type);
-
-        beanDeser.wrapAndThrow(new OutOfMemoryError("OOM test"), new SimpleBean(), "field", mapper.getDeserializationContext());
+    public void testWrapAndThrow_error_rethrowsDirectly() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
+        DefaultDeserializationContext ctxt = ((DefaultDeserializationContext) mapper.getDeserializationContext())
+                .createInstance(mapper.getDeserializationConfig(), mapper.getFactory().createParser("{}"), null);
+        deser.wrapAndThrow(new OutOfMemoryError("OOM"), new SimpleBean(), "age", ctxt);
     }
 
-    // Tests replaceProperty functionality on BeanDeserializerBase
+    // Tests createContextual adapting deserializer for Shape.ARRAY format
     @Test
-    public void testReplaceProperty_validReplacement_updatesPropertyMap() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDeserializerBase beanDeser = (BeanDeserializerBase) mapper.findRootValueDeserializer(type);
+    public void testCreateContextual_arrayShapeFormat_deserializesFromArray() throws Exception {
+        String json = "[\"testString\", 100]";
+        ArrayFormatBean result = mapper.readValue(json, ArrayFormatBean.class);
+        assertNotNull(result);
+        assertEquals("testString", result.a);
+        assertEquals(100, result.b);
+    }
 
-        SettableBeanProperty origProp = beanDeser.findProperty("id");
-        assertNotNull(origProp);
+    // Tests replaceProperty functionality
+    @Test
+    public void testReplaceProperty_existingProperty_replacesInMap() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
+        SettableBeanProperty orig = deser.findProperty("name");
+        assertNotNull(orig);
 
-        SettableBeanProperty renamedProp = origProp.withSimpleName("id");
-        beanDeser.replaceProperty(origProp, renamedProp);
+        SettableBeanProperty replacement = orig.withSimpleName("name");
+        deser.replaceProperty(orig, replacement);
+        assertEquals(replacement, deser.findProperty("name"));
+    }
 
-        SettableBeanProperty currentProp = beanDeser.findProperty("id");
-        assertSame(renamedProp, currentProp);
+    // Tests supportsUpdate and ObjectIdReader accessors
+    @Test
+    public void testSupportsUpdateAndObjectIdReader() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
+        assertTrue(deser.supportsUpdate(mapper.getDeserializationConfig()));
+        assertNull(deser.getObjectIdReader());
+    }
+
+    // Tests getEmptyValue and getNullValue delegates
+    @Test
+    public void testGetEmptyAndNullValue() throws Exception {
+        BeanDeserializerBase deser = getBeanDeserializer(SimpleBean.class);
+        DefaultDeserializationContext ctxt = ((DefaultDeserializationContext) mapper.getDeserializationContext())
+                .createInstance(mapper.getDeserializationConfig(), mapper.getFactory().createParser("{}"), null);
+
+        assertNull(deser.getNullValue(ctxt));
+        Object emptyVal = deser.getEmptyValue(ctxt);
+        assertNotNull(emptyVal);
+        assertTrue(emptyVal instanceof SimpleBean);
     }
 }

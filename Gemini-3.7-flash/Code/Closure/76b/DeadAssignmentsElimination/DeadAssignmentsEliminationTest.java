@@ -2,9 +2,6 @@ package com.google.javascript.jscomp;
 
 import org.junit.Test;
 
-/**
- * Unit tests for DeadAssignmentsElimination.
- */
 public class DeadAssignmentsEliminationTest extends CompilerTestCase {
 
   @Override
@@ -12,135 +9,160 @@ public class DeadAssignmentsEliminationTest extends CompilerTestCase {
     return new DeadAssignmentsElimination(compiler);
   }
 
-  @Override
-  protected int getNumRepetitions() {
-    return 1;
-  }
-
-  // Tests null input on process method throwing exception
-  @Test(expected = RuntimeException.class)
-  public void testProcess_nullExterns_throwsException() {
-    DeadAssignmentsElimination dae = new DeadAssignmentsElimination(new Compiler());
-    dae.process(null, new com.google.javascript.rhino.Node(0));
-  }
-
-  // Tests null root node on process method throwing exception
-  @Test(expected = RuntimeException.class)
-  public void testProcess_nullRoot_throwsException() {
-    DeadAssignmentsElimination dae = new DeadAssignmentsElimination(new Compiler());
-    dae.process(new com.google.javascript.rhino.Node(0), null);
-  }
-
-  // Tests that dead local assignment before reassignment is removed
+  // Tests basic dead assignment elimination in a local scope
   @Test
-  public void testProcess_simpleDeadAssign_removesAssign() {
-    test("function f() { var x; x = 1; x = 2; return x; }",
-         "function f() { var x; 1; x = 2; return x; }");
+  public void testDeadAssignment_unusedVariable_eliminatesAssignment() {
+    test("function f() { var a; a = 1; }",
+         "function f() { var a; 1; }");
   }
 
-  // Tests self-assignment elimination
+  // Tests sequential assignments where the first assignment is overwritten
   @Test
-  public void testProcess_selfAssignment_removesAssign() {
-    test("function f() { var x; x = x; return x; }",
-         "function f() { var x; x; return x; }");
+  public void testDeadAssignment_reassignedBeforeRead_eliminatesFirstAssignment() {
+    test("function f() { var a; a = 1; a = 2; return a; }",
+         "function f() { var a; 1; a = 2; return a; }");
   }
 
-  // Tests compound assignment replacement
+  // Tests identity assignment removal (e.g., a = a)
   @Test
-  public void testProcess_compoundAssign_replacesWithBinaryOp() {
-    test("function f() { var x = 1; x += 2; }",
-         "function f() { var x = 1; x + 2; }");
+  public void testIdentityAssignment_sameVariable_replacesWithRhs() {
+    test("function f() { var a; a = a; }",
+         "function f() { var a; a; }");
   }
 
-  // Tests increment replacement when dead
+  // Tests increment operator removal when the result is unused
   @Test
-  public void testProcess_incrementDead_replacesWithVoidZero() {
-    test("function f() { var x = 1; x++; }",
-         "function f() { var x = 1; void 0; }");
+  public void testIncrement_unused_replacesWithVoidZero() {
+    test("function f() { var a = 0; a++; }",
+         "function f() { var a = 0; void 0; }");
   }
 
-  // Tests decrement replacement when dead
+  // Tests decrement operator removal when the result is unused
   @Test
-  public void testProcess_decrementDead_replacesWithVoidZero() {
-    test("function f() { var x = 1; x--; }",
-         "function f() { var x = 1; void 0; }");
+  public void testDecrement_unused_replacesWithVoidZero() {
+    test("function f() { var a = 0; a--; }",
+         "function f() { var a = 0; void 0; }");
   }
 
-  // Tests global variables are not eliminated
+  // Tests compound assignment operators (e.g., +=)
   @Test
-  public void testProcess_globalScope_doesNotEliminate() {
-    testSame("var x = 1; x = 2;");
+  public void testCompoundAssignment_unused_replacesWithBinaryOp() {
+    test("function f() { var a = 0; a += 1; }",
+         "function f() { var a = 0; a + 1; }");
   }
 
-  // Tests scopes containing inner functions are preserved
+  // Tests global scope assignments are not eliminated
   @Test
-  public void testProcess_innerFunctionScope_doesNotEliminate() {
-    testSame("function f() { var x = 1; function g() { return x; } x = 2; }");
+  public void testGlobalScope_assignmentsNotEliminated() {
+    testSame("var a; a = 1;");
   }
 
-  // Tests if condition dead assignment elimination
+  // Tests that local variables escaping to inner functions are preserved
   @Test
-  public void testProcess_ifConditionDeadAssign_removesAssign() {
-    test("function f() { var x; if (x = 1) { return 2; } }",
-         "function f() { var x; if (1) { return 2; } }");
+  public void testEscapedLocals_innerFunction_preservesAssignment() {
+    testSame("function f() { var a; function g() { return a; } a = 1; }");
   }
 
-  // Tests while condition dead assignment elimination
+  // Tests logical OR expression where LHS assignment may be read on RHS or later (Defects4J Closure 76)
   @Test
-  public void testProcess_whileConditionDeadAssign_removesAssign() {
-    test("function f() { var x; while (x = 1) { return 2; } }",
-         "function f() { var x; while (1) { return 2; } }");
+  public void testLogicalOr_assignInLhs_variableReadLater_preservesAssign() {
+    testSame("function f(x) { var a; (a = x) || (a = 1); return a; }");
   }
 
-  // Tests do-while condition dead assignment elimination
+  // Tests logical AND expression where LHS assignment may be read on RHS or later (Defects4J Closure 76)
   @Test
-  public void testProcess_doWhileConditionDeadAssign_removesAssign() {
-    test("function f() { var x; do { return 2; } while (x = 1); }",
-         "function f() { var x; do { return 2; } while (1); }");
+  public void testLogicalAnd_assignInLhs_variableReadLater_preservesAssign() {
+    testSame("function f(x) { var a; (a = x) && (a = 1); return a; }");
   }
 
-  // Tests for loop condition dead assignment elimination
+  // Tests hook (ternary) expression where LHS assignment is read in condition/branches (Defects4J Closure 76)
   @Test
-  public void testProcess_forConditionDeadAssign_removesAssign() {
-    test("function f() { var x; for (; x = 1;) { return 2; } }",
-         "function f() { var x; for (; 1;) { return 2; } }");
+  public void testHook_assignInCondition_variableReadLater_preservesAssign() {
+    testSame("function f(x, y) { var a; (a = x) ? (a = y) : 0; return a; }");
   }
 
-  // Tests switch condition dead assignment elimination
+  // Tests return statement with logical OR condition (Defects4J Closure 76)
   @Test
-  public void testProcess_switchConditionDeadAssign_removesAssign() {
-    test("function f() { var x; switch (x = 1) { case 1: return 2; } }",
-         "function f() { var x; switch (1) { case 1: return 2; } }");
+  public void testReturn_logicalOr_preservesAssign() {
+    testSame("function f(x) { var a; return (a = x) || (a = 1); }");
   }
 
-  // Tests logical OR short-circuit assignment preservation
+  // Tests return statement with logical AND condition (Defects4J Closure 76)
   @Test
-  public void testProcess_shortCircuitOr_preservesAssign() {
-    testSame("function f(x, y) { var a; (a = x) || (a = y); return a; }");
+  public void testReturn_logicalAnd_preservesAssign() {
+    testSame("function f(x) { var a; return (a = x) && (a = 1); }");
   }
 
-  // Tests logical AND short-circuit assignment preservation
+  // Tests dead assignment inside hook expression condition
   @Test
-  public void testProcess_shortCircuitAnd_preservesAssign() {
-    testSame("function f(x, y) { var a; (a = x) && (a = y); return a; }");
+  public void testHook_deadAssignmentInCondition_eliminatesAssignment() {
+    test("function f() { var a; (a = 1) ? 0 : 0; }",
+         "function f() { var a; 1 ? 0 : 0; }");
   }
 
-  // Tests ternary hook branch assignment preservation
+  // Tests assignments in loop conditions
   @Test
-  public void testProcess_hookBranch_preservesAssign() {
-    testSame("function f(x, y) { var a; (a = x) ? (a = 1) : (a = 2); return a; }");
+  public void testWhileLoop_assignmentInCondition_preservesAssign() {
+    testSame("function f() { var a; while (a = 1) { return a; } }");
   }
 
-  // Tests ternary hook with one branch assignment preservation
+  // Tests assignments in switch statement condition
   @Test
-  public void testProcess_hookOneBranch_preservesAssign() {
-    testSame("function f(x) { var a; (a = x) ? 1 : (a = 2); return a; }");
+  public void testSwitch_assignmentInExpression_preservesAssign() {
+    testSame("function f() { var a; switch (a = 1) { case 1: return a; } }");
   }
 
-  // Tests chained assignments elimination
+  // Tests unused parameter assignments
   @Test
-  public void testProcess_chainedDeadAssigns_removesAssigns() {
-    test("function f() { var x, y; x = y = 1; return 2; }",
-         "function f() { var x, y; 1; return 2; }");
+  public void testParameterAssignment_unused_eliminatesAssignment() {
+    test("function f(x) { x = 1; }",
+         "function f(x) { 1; }");
+  }
+
+  // Tests assignment with side-effect RHS maintains the expression evaluation
+  @Test
+  public void testDeadAssignment_withSideEffects_preservesCall() {
+    test("function f() { var a; a = g(); }",
+         "function f() { var a; g(); }");
+  }
+
+  // Tests comma operator dead assignments
+  @Test
+  public void testCommaOperator_deadAssignment_eliminatesAssignment() {
+    test("function f() { var a; a = 1, a = 2; return a; }",
+         "function f() { var a; 1, a = 2; return a; }");
+  }
+
+  // Tests for-loop initializer and condition dead assignments
+  @Test
+  public void testForLoop_deadAssignmentInInit_eliminatesAssignment() {
+    test("function f() { var a; for (a = 1; false; ) {} }",
+         "function f() { var a; for (1; false; ) {} }");
+  }
+
+  // Tests do-while loop assignment preservation
+  @Test
+  public void testDoWhileLoop_assignmentInBodyReadInCondition() {
+    testSame("function f() { var a; do { a = 1; } while (a); }");
+  }
+
+  // Tests try-catch-finally block dead assignments
+  @Test
+  public void testTryCatchFinally_deadAssignmentInTry() {
+    test("function f() { var a; try { a = 1; } catch (e) { a = 2; } a = 3; return a; }",
+         "function f() { var a; try { 1; } catch (e) { 2; } a = 3; return a; }");
+  }
+
+  // Tests prefix increment/decrement removal when unused
+  @Test
+  public void testPrefixIncrementDecrement_unused_replacesWithVoidZero() {
+    test("function f() { var a = 0; ++a; --a; }",
+         "function f() { var a = 0; void 0; void 0; }");
+  }
+
+  // Tests conditional branches where only one path reassigns
+  @Test
+  public void testIfElse_assignmentUsedInOneBranch() {
+    testSame("function f(cond) { var a = 1; if (cond) { return a; } }");
   }
 }

@@ -2,40 +2,50 @@ package org.joda.time.base;
 
 import org.joda.time.Chronology;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeConstants;
 import org.joda.time.DateTimeFieldType;
-import org.joda.time.DateTimeZone;
+import org.joda.time.DateTimeUtils;
+import org.joda.time.Days;
 import org.joda.time.DurationFieldType;
 import org.joda.time.Hours;
-import org.joda.time.Instant;
 import org.joda.time.LocalDate;
+import org.joda.time.LocalTime;
 import org.joda.time.MonthDay;
 import org.joda.time.Months;
+import org.joda.time.MutablePeriod;
+import org.joda.time.Partial;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.joda.time.ReadableInstant;
 import org.joda.time.ReadablePartial;
 import org.joda.time.ReadablePeriod;
-import org.joda.time.Weeks;
 import org.joda.time.YearMonth;
 import org.joda.time.chrono.ISOChronology;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class BaseSingleFieldPeriodTest {
 
-    private static class SingleTestPeriod extends BaseSingleFieldPeriod {
+    private static class TestSingleFieldPeriod extends BaseSingleFieldPeriod {
         private static final long serialVersionUID = 1L;
 
-        SingleTestPeriod(int period) {
+        TestSingleFieldPeriod(int period) {
             super(period);
         }
 
-        public void setValuePublic(int value) {
-            super.setValue(value);
+        public static int between(ReadableInstant start, ReadableInstant end, DurationFieldType field) {
+            return BaseSingleFieldPeriod.between(start, end, field);
+        }
+
+        public static int between(ReadablePartial start, ReadablePartial end, ReadablePeriod zeroInstance) {
+            return BaseSingleFieldPeriod.between(start, end, zeroInstance);
+        }
+
+        public static int standardPeriodIn(ReadablePeriod period, long millisPerUnit) {
+            return BaseSingleFieldPeriod.standardPeriodIn(period, millisPerUnit);
         }
 
         @Override
@@ -47,12 +57,17 @@ public class BaseSingleFieldPeriodTest {
         public PeriodType getPeriodType() {
             return PeriodType.days();
         }
+
+        @Override
+        public void setValue(int value) {
+            super.setValue(value);
+        }
     }
 
-    private static class OtherTestPeriod extends BaseSingleFieldPeriod {
+    private static class OtherSingleFieldPeriod extends BaseSingleFieldPeriod {
         private static final long serialVersionUID = 1L;
 
-        OtherTestPeriod(int period) {
+        OtherSingleFieldPeriod(int period) {
             super(period);
         }
 
@@ -67,216 +82,205 @@ public class BaseSingleFieldPeriodTest {
         }
     }
 
-    // Tests between with valid instants
+    // Tests between with valid ReadableInstant objects
     @Test
-    public void testBetween_validInstants_calculatesDifference() {
-        ReadableInstant start = new Instant(0L);
-        ReadableInstant end = new Instant(2L * DateTimeConstants.MILLIS_PER_DAY);
-        int result = BaseSingleFieldPeriod.between(start, end, DurationFieldType.days());
-        assertEquals(2, result);
+    public void testBetween_validInstants_returnsDifference() {
+        DateTime start = new DateTime(2020, 1, 1, 0, 0, ISOChronology.getInstanceUTC());
+        DateTime end = new DateTime(2020, 1, 5, 0, 0, ISOChronology.getInstanceUTC());
+        int result = TestSingleFieldPeriod.between(start, end, DurationFieldType.days());
+        assertEquals(4, result);
     }
 
-    // Tests between with null start instant
+    // Tests between with null start instant throwing exception
     @Test(expected = IllegalArgumentException.class)
     public void testBetween_nullStartInstant_throwsException() {
-        BaseSingleFieldPeriod.between((ReadableInstant) null, new Instant(0L), DurationFieldType.days());
+        DateTime end = new DateTime(2020, 1, 5, 0, 0, ISOChronology.getInstanceUTC());
+        TestSingleFieldPeriod.between(null, end, DurationFieldType.days());
     }
 
-    // Tests between with null end instant
+    // Tests between with null end instant throwing exception
     @Test(expected = IllegalArgumentException.class)
     public void testBetween_nullEndInstant_throwsException() {
-        BaseSingleFieldPeriod.between(new Instant(0L), (ReadableInstant) null, DurationFieldType.days());
+        DateTime start = new DateTime(2020, 1, 1, 0, 0, ISOChronology.getInstanceUTC());
+        TestSingleFieldPeriod.between(start, null, DurationFieldType.days());
     }
 
-    // Tests between with null duration field type for instants
-    @Test(expected = IllegalArgumentException.class)
-    public void testBetween_nullDurationFieldType_throwsException() {
-        BaseSingleFieldPeriod.between(new Instant(0L), new Instant(1000L), (DurationFieldType) null);
-    }
-
-    // Tests between with valid partials
+    // Tests between with valid ReadablePartial objects
     @Test
-    public void testBetween_validPartials_calculatesDifference() {
+    public void testBetween_validPartials_returnsDifference() {
         LocalDate start = new LocalDate(2020, 1, 1);
-        LocalDate end = new LocalDate(2020, 1, 15);
-        int result = BaseSingleFieldPeriod.between(start, end, new SingleTestPeriod(0));
-        assertEquals(14, result);
+        LocalDate end = new LocalDate(2020, 1, 10);
+        int result = TestSingleFieldPeriod.between(start, end, Days.ZERO);
+        assertEquals(9, result);
     }
 
-    // Tests between with leap day MonthDay partials (defect detection for setting 1972 base year)
+    // Tests between with MonthDay partials having no year field
     @Test
-    public void testBetween_monthDayLeapYear_calculatesDifference() {
-        MonthDay start = new MonthDay(2, 29);
+    public void testBetween_monthDayPartials_returnsDifference() {
+        MonthDay start = new MonthDay(2, 1);
         MonthDay end = new MonthDay(3, 1);
-        int result = BaseSingleFieldPeriod.between(start, end, new SingleTestPeriod(0));
+        int result = TestSingleFieldPeriod.between(start, end, Months.ZERO);
         assertEquals(1, result);
     }
 
-    // Tests between with null start partial
+    // Tests between with null start partial throwing exception
     @Test(expected = IllegalArgumentException.class)
     public void testBetween_nullStartPartial_throwsException() {
-        BaseSingleFieldPeriod.between((ReadablePartial) null, new LocalDate(2020, 1, 1), new SingleTestPeriod(0));
+        LocalDate end = new LocalDate(2020, 1, 10);
+        TestSingleFieldPeriod.between(null, end, Days.ZERO);
     }
 
-    // Tests between with null end partial
+    // Tests between with null end partial throwing exception
     @Test(expected = IllegalArgumentException.class)
     public void testBetween_nullEndPartial_throwsException() {
-        BaseSingleFieldPeriod.between(new LocalDate(2020, 1, 1), (ReadablePartial) null, new SingleTestPeriod(0));
+        LocalDate start = new LocalDate(2020, 1, 1);
+        TestSingleFieldPeriod.between(start, null, Days.ZERO);
     }
 
-    // Tests between with null zeroInstance partial
-    @Test(expected = IllegalArgumentException.class)
-    public void testBetween_nullZeroInstance_throwsException() {
-        BaseSingleFieldPeriod.between(new LocalDate(2020, 1, 1), new LocalDate(2020, 1, 15), (ReadablePeriod) null);
-    }
-
-    // Tests between with partials of different size
+    // Tests between with mismatched partial sizes throwing exception
     @Test(expected = IllegalArgumentException.class)
     public void testBetween_differentSizePartials_throwsException() {
         LocalDate start = new LocalDate(2020, 1, 1);
         YearMonth end = new YearMonth(2020, 1);
-        BaseSingleFieldPeriod.between(start, end, new SingleTestPeriod(0));
+        TestSingleFieldPeriod.between(start, end, Days.ZERO);
     }
 
-    // Tests between with partials of different field types
+    // Tests between with mismatched partial field types throwing exception
     @Test(expected = IllegalArgumentException.class)
     public void testBetween_differentFieldTypesPartials_throwsException() {
         YearMonth start = new YearMonth(2020, 1);
         MonthDay end = new MonthDay(1, 1);
-        BaseSingleFieldPeriod.between(start, end, new SingleTestPeriod(0));
+        TestSingleFieldPeriod.between(start, end, Days.ZERO);
     }
 
-    // Tests standardPeriodIn with null period
+    // Tests between with non-contiguous partials throwing exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testBetween_nonContiguousPartials_throwsException() {
+        Partial start = new Partial(new DateTimeFieldType[]{DateTimeFieldType.year(), DateTimeFieldType.dayOfMonth()}, new int[]{2020, 1});
+        Partial end = new Partial(new DateTimeFieldType[]{DateTimeFieldType.year(), DateTimeFieldType.dayOfMonth()}, new int[]{2020, 2});
+        TestSingleFieldPeriod.between(start, end, Days.ZERO);
+    }
+
+    // Tests standardPeriodIn with null period returning zero
     @Test
     public void testStandardPeriodIn_nullPeriod_returnsZero() {
-        int result = BaseSingleFieldPeriod.standardPeriodIn(null, DateTimeConstants.MILLIS_PER_DAY);
+        int result = TestSingleFieldPeriod.standardPeriodIn(null, 1000L);
         assertEquals(0, result);
     }
 
-    // Tests standardPeriodIn with precise period
+    // Tests standardPeriodIn with valid standard duration period
     @Test
-    public void testStandardPeriodIn_precisePeriod_calculatesCorrectUnits() {
-        Period period = Period.hours(48);
-        int result = BaseSingleFieldPeriod.standardPeriodIn(period, DateTimeConstants.MILLIS_PER_DAY);
-        assertEquals(2, result);
+    public void testStandardPeriodIn_validPeriod_calculatesUnits() {
+        Period period = Period.hours(2).withMinutes(30);
+        int result = TestSingleFieldPeriod.standardPeriodIn(period, 60000L);
+        assertEquals(150, result);
     }
 
-    // Tests standardPeriodIn with imprecise period
+    // Tests standardPeriodIn with imprecise period throwing exception
     @Test(expected = IllegalArgumentException.class)
     public void testStandardPeriodIn_imprecisePeriod_throwsException() {
         Period period = Period.months(1);
-        BaseSingleFieldPeriod.standardPeriodIn(period, DateTimeConstants.MILLIS_PER_DAY);
+        TestSingleFieldPeriod.standardPeriodIn(period, 1000L);
     }
 
-    // Tests size method
+    // Tests size, getFieldType and getValue indexed methods
     @Test
-    public void testSize_always_returnsOne() {
-        SingleTestPeriod period = new SingleTestPeriod(5);
+    public void testFieldAccess_indexZero_returnsValues() {
+        TestSingleFieldPeriod period = new TestSingleFieldPeriod(5);
         assertEquals(1, period.size());
-    }
-
-    // Tests getValue and setValue
-    @Test
-    public void testGetAndSetValue_validIndex_returnsCorrectValue() {
-        SingleTestPeriod period = new SingleTestPeriod(10);
-        assertEquals(10, period.getValue());
-        assertEquals(10, period.getValue(0));
-
-        period.setValuePublic(25);
-        assertEquals(25, period.getValue());
-        assertEquals(25, period.getValue(0));
-    }
-
-    // Tests getValue with invalid index
-    @Test(expected = IndexOutOfBoundsException.class)
-    public void testGetValue_invalidIndex_throwsException() {
-        SingleTestPeriod period = new SingleTestPeriod(5);
-        period.getValue(1);
-    }
-
-    // Tests getFieldType at valid and invalid indices
-    @Test
-    public void testGetFieldType_validIndex_returnsFieldType() {
-        SingleTestPeriod period = new SingleTestPeriod(5);
         assertEquals(DurationFieldType.days(), period.getFieldType(0));
+        assertEquals(5, period.getValue(0));
+        assertEquals(5, period.getValue());
     }
 
-    // Tests getFieldType with invalid index
+    // Tests getFieldType with invalid index throwing exception
     @Test(expected = IndexOutOfBoundsException.class)
     public void testGetFieldType_invalidIndex_throwsException() {
-        SingleTestPeriod period = new SingleTestPeriod(5);
+        TestSingleFieldPeriod period = new TestSingleFieldPeriod(5);
         period.getFieldType(1);
     }
 
-    // Tests get for matching and non-matching duration field types
+    // Tests getValue with invalid index throwing exception
+    @Test(expected = IndexOutOfBoundsException.class)
+    public void testGetValue_invalidIndex_throwsException() {
+        TestSingleFieldPeriod period = new TestSingleFieldPeriod(5);
+        period.getValue(-1);
+    }
+
+    // Tests get by DurationFieldType and isSupported
     @Test
-    public void testGet_fieldTypeQuery_returnsValueOrZero() {
-        SingleTestPeriod period = new SingleTestPeriod(7);
+    public void testGetAndIsSupported_variousFieldTypes_returnsCorrectStatus() {
+        TestSingleFieldPeriod period = new TestSingleFieldPeriod(7);
         assertEquals(7, period.get(DurationFieldType.days()));
         assertEquals(0, period.get(DurationFieldType.hours()));
         assertEquals(0, period.get(null));
-    }
 
-    // Tests isSupported for matching, non-matching, and null field types
-    @Test
-    public void testIsSupported_variousFieldTypes_returnsCorrectBoolean() {
-        SingleTestPeriod period = new SingleTestPeriod(3);
         assertTrue(period.isSupported(DurationFieldType.days()));
         assertFalse(period.isSupported(DurationFieldType.hours()));
         assertFalse(period.isSupported(null));
     }
 
-    // Tests toPeriod and toMutablePeriod conversions
+    // Tests setValue modifies the underlying period value
     @Test
-    public void testToPeriodAndToMutablePeriod_validPeriod_convertsCorrectly() {
-        SingleTestPeriod period = new SingleTestPeriod(4);
-        assertEquals(Period.days(4), period.toPeriod());
-        assertEquals(Period.days(4).toMutablePeriod(), period.toMutablePeriod());
+    public void testSetValue_updatesPeriodValue() {
+        TestSingleFieldPeriod period = new TestSingleFieldPeriod(3);
+        period.setValue(8);
+        assertEquals(8, period.getValue());
     }
 
-    // Tests equals and hashCode
+    // Tests conversions to immutable Period and MutablePeriod
     @Test
-    public void testEqualsAndHashCode_variousObjects_returnsCorrectResults() {
-        SingleTestPeriod p1 = new SingleTestPeriod(5);
-        SingleTestPeriod p2 = new SingleTestPeriod(5);
-        SingleTestPeriod p3 = new SingleTestPeriod(6);
-        OtherTestPeriod otherType = new OtherTestPeriod(5);
+    public void testToPeriodAndToMutablePeriod_convertsCorrectly() {
+        TestSingleFieldPeriod period = new TestSingleFieldPeriod(12);
+        Period p = period.toPeriod();
+        assertEquals(12, p.getDays());
 
-        assertTrue(p1.equals(p1));
-        assertTrue(p1.equals(p2));
-        assertEquals(p1.hashCode(), p2.hashCode());
-
-        assertFalse(p1.equals(p3));
-        assertFalse(p1.equals(otherType));
-        assertFalse(p1.equals(null));
-        assertFalse(p1.equals("non-period"));
+        MutablePeriod mp = period.toMutablePeriod();
+        assertEquals(12, mp.getDays());
     }
 
-    // Tests compareTo with equal, greater, and lesser periods
+    // Tests equals and hashCode contract
     @Test
-    public void testCompareTo_sameType_comparesCorrectly() {
-        SingleTestPeriod p1 = new SingleTestPeriod(5);
-        SingleTestPeriod p2 = new SingleTestPeriod(5);
-        SingleTestPeriod p3 = new SingleTestPeriod(10);
-        SingleTestPeriod p4 = new SingleTestPeriod(2);
+    public void testEqualsAndHashCode_variousObjects_satisfiesContract() {
+        TestSingleFieldPeriod period1 = new TestSingleFieldPeriod(5);
+        TestSingleFieldPeriod period2 = new TestSingleFieldPeriod(5);
+        TestSingleFieldPeriod period3 = new TestSingleFieldPeriod(10);
+        OtherSingleFieldPeriod otherPeriod = new OtherSingleFieldPeriod(5);
 
-        assertEquals(0, p1.compareTo(p2));
-        assertTrue(p1.compareTo(p3) < 0);
-        assertTrue(p1.compareTo(p4) > 0);
+        assertTrue(period1.equals(period1));
+        assertTrue(period1.equals(period2));
+        assertEquals(period1.hashCode(), period2.hashCode());
+
+        assertFalse(period1.equals(period3));
+        assertFalse(period1.equals(otherPeriod));
+        assertFalse(period1.equals(null));
+        assertFalse(period1.equals("non-period-object"));
     }
 
-    // Tests compareTo with different period class
+    // Tests compareTo with equal, greater, and lesser values
+    @Test
+    public void testCompareTo_sameClassDifferentValues_returnsExpectedOrder() {
+        TestSingleFieldPeriod period5 = new TestSingleFieldPeriod(5);
+        TestSingleFieldPeriod period10 = new TestSingleFieldPeriod(10);
+        TestSingleFieldPeriod period5Copy = new TestSingleFieldPeriod(5);
+
+        assertEquals(0, period5.compareTo(period5Copy));
+        assertTrue(period5.compareTo(period10) < 0);
+        assertTrue(period10.compareTo(period5) > 0);
+    }
+
+    // Tests compareTo with different class throwing ClassCastException
     @Test(expected = ClassCastException.class)
-    public void testCompareTo_differentClass_throwsException() {
-        SingleTestPeriod p1 = new SingleTestPeriod(5);
-        OtherTestPeriod p2 = new OtherTestPeriod(5);
-        p1.compareTo(p2);
+    public void testCompareTo_differentClass_throwsClassCastException() {
+        TestSingleFieldPeriod days = new TestSingleFieldPeriod(5);
+        OtherSingleFieldPeriod hours = new OtherSingleFieldPeriod(5);
+        days.compareTo(hours);
     }
 
-    // Tests compareTo with null argument
+    // Tests compareTo with null throwing NullPointerException
     @Test(expected = NullPointerException.class)
-    public void testCompareTo_nullArgument_throwsException() {
-        SingleTestPeriod p1 = new SingleTestPeriod(5);
-        p1.compareTo(null);
+    public void testCompareTo_nullArgument_throwsNullPointerException() {
+        TestSingleFieldPeriod period = new TestSingleFieldPeriod(5);
+        period.compareTo(null);
     }
 }

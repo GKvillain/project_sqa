@@ -1,89 +1,103 @@
 package com.google.javascript.jscomp;
 
-import com.google.common.collect.Iterables;
+import static org.junit.Assert.*;
+
+import com.google.javascript.rhino.JSDocInfo;
+import com.google.javascript.rhino.JSDocInfoBuilder;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
 import com.google.javascript.rhino.jstype.ObjectType;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Iterator;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 public class ScopeTest {
 
-  // Tests global scope creation and its properties
-  @Test
-  public void testGlobalScope_creation_hasCorrectProperties() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
+  private Compiler compiler;
+  private Node globalRoot;
+  private Scope globalScope;
 
-    assertTrue(scope.isGlobal());
-    assertFalse(scope.isLocal());
-    assertTrue(scope.isBottom());
-    assertEquals(0, scope.getDepth());
-    assertSame(root, scope.getRootNode());
-    assertNull(scope.getParent());
-    assertSame(scope, scope.getGlobalScope());
-    assertEquals(0, scope.getVarCount());
+  @Before
+  public void setUp() {
+    compiler = new Compiler();
+    globalRoot = new Node(Token.BLOCK);
+    globalScope = new Scope(globalRoot, compiler);
   }
 
-  // Tests child scope creation and hierarchy
+  // Tests global scope creation and properties
   @Test
-  public void testChildScope_creation_linksToParent() {
-    Node globalRoot = new Node(Token.BLOCK);
-    Scope globalScope = new Scope(globalRoot, (ObjectType) null);
-
-    Node functionRoot = new Node(Token.FUNCTION);
-    Scope childScope = new Scope(globalScope, functionRoot);
-
-    assertFalse(childScope.isGlobal());
-    assertTrue(childScope.isLocal());
-    assertFalse(childScope.isBottom());
-    assertEquals(1, childScope.getDepth());
-    assertSame(globalScope, childScope.getParent());
-    assertSame(globalScope, childScope.getParentScope());
-    assertSame(globalScope, childScope.getGlobalScope());
-    assertSame(functionRoot, childScope.getRootNode());
+  public void testGlobalScope_initialState_propertiesMatch() {
+    assertTrue(globalScope.isGlobal());
+    assertFalse(globalScope.isLocal());
+    assertFalse(globalScope.isBottom());
+    assertEquals(0, globalScope.getDepth());
+    assertEquals(0, globalScope.getVarCount());
+    assertSame(globalRoot, globalScope.getRootNode());
+    assertNull(globalScope.getParent());
+    assertNull(globalScope.getParentScope());
+    assertSame(globalScope, globalScope.getGlobalScope());
   }
 
-  // Tests variable declaration and lookup in the same scope
+  // Tests bottom scope creation
   @Test
-  public void testDeclare_newVariable_retrievesSuccessfully() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
+  public void testBottomScope_creation_isBottomTrue() {
+    Node node = new Node(Token.BLOCK);
+    Scope bottomScope = new Scope(node, (ObjectType) null);
+    assertTrue(bottomScope.isBottom());
+    assertEquals(0, bottomScope.getDepth());
+    assertNull(bottomScope.getParent());
+  }
 
+  // Tests child scope hierarchy and depth
+  @Test
+  public void testChildScope_nesting_correctDepthAndParent() {
+    Node funcNode1 = new Node(Token.FUNCTION);
+    Scope childScope1 = new Scope(globalScope, funcNode1);
+
+    Node funcNode2 = new Node(Token.FUNCTION);
+    Scope childScope2 = new Scope(childScope1, funcNode2);
+
+    assertFalse(childScope1.isGlobal());
+    assertTrue(childScope1.isLocal());
+    assertEquals(1, childScope1.getDepth());
+    assertSame(globalScope, childScope1.getParent());
+    assertSame(globalScope, childScope1.getGlobalScope());
+
+    assertEquals(2, childScope2.getDepth());
+    assertSame(childScope1, childScope2.getParent());
+    assertSame(globalScope, childScope2.getGlobalScope());
+  }
+
+  // Tests declaring and retrieving variables in global scope
+  @Test
+  public void testDeclare_newVariable_canBeRetrieved() {
     Node nameNode = Node.newString(Token.NAME, "x");
-    Scope.Var var = scope.declare("x", nameNode, null, null);
+    Scope.Var var = globalScope.declare("x", nameNode, null, null);
 
     assertNotNull(var);
     assertEquals("x", var.getName());
     assertSame(nameNode, var.getNode());
     assertSame(nameNode, var.getNameNode());
-    assertSame(scope, var.getScope());
-    assertTrue(var.isTypeInferred());
-    assertEquals(1, scope.getVarCount());
-    assertSame(var, scope.getVar("x"));
-    assertSame(var, scope.getOwnSlot("x"));
-    assertSame(var, scope.getSlot("x"));
-    assertTrue(scope.isDeclared("x", false));
+    assertSame(var, var.getSymbol());
+    assertSame(var, var.getDeclaration());
+    assertSame(globalScope, var.getScope());
+    assertEquals(1, globalScope.getVarCount());
+
+    assertSame(var, globalScope.getVar("x"));
+    assertSame(var, globalScope.getSlot("x"));
+    assertSame(var, globalScope.getOwnSlot("x"));
+    assertTrue(globalScope.isDeclared("x", false));
   }
 
-  // Tests variable lookup in parent scopes
+  // Tests variable lookup traversing parent scopes
   @Test
-  public void testGetVar_inParentScope_resolvesRecursively() {
-    Node globalRoot = new Node(Token.BLOCK);
-    Scope globalScope = new Scope(globalRoot, (ObjectType) null);
+  public void testGetVar_inParentScope_foundViaRecursion() {
     Node nameNode = Node.newString(Token.NAME, "parentVar");
     Scope.Var var = globalScope.declare("parentVar", nameNode, null, null);
 
-    Node childRoot = new Node(Token.FUNCTION);
-    Scope childScope = new Scope(globalScope, childRoot);
+    Node funcNode = new Node(Token.FUNCTION);
+    Scope childScope = new Scope(globalScope, funcNode);
 
     assertSame(var, childScope.getVar("parentVar"));
     assertSame(var, childScope.getSlot("parentVar"));
@@ -92,170 +106,261 @@ public class ScopeTest {
     assertFalse(childScope.isDeclared("parentVar", false));
   }
 
-  // Tests duplicate declaration in same scope throws exception
+  // Tests declaring duplicate variable in same scope throws exception
   @Test(expected = IllegalStateException.class)
   public void testDeclare_duplicateName_throwsException() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
-
-    Node nameNode1 = Node.newString(Token.NAME, "x");
-    Node nameNode2 = Node.newString(Token.NAME, "x");
-
-    scope.declare("x", nameNode1, null, null);
-    scope.declare("x", nameNode2, null, null);
+    Node name1 = Node.newString(Token.NAME, "a");
+    Node name2 = Node.newString(Token.NAME, "a");
+    globalScope.declare("a", name1, null, null);
+    globalScope.declare("a", name2, null, null);
   }
 
-  // Tests declaration with empty name throws exception
+  // Tests declaring variable with empty name throws exception
   @Test(expected = IllegalStateException.class)
   public void testDeclare_emptyName_throwsException() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
     Node nameNode = Node.newString(Token.NAME, "");
-    scope.declare("", nameNode, null, null);
+    globalScope.declare("", nameNode, null, null);
   }
 
-  // Tests undeclaring a variable from scope
+  // Tests undeclaring a variable
   @Test
-  public void testUndeclare_existingVariable_removesFromScope() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
+  public void testUndeclare_existingVariable_removedFromScope() {
+    Node nameNode = Node.newString(Token.NAME, "y");
+    Scope.Var var = globalScope.declare("y", nameNode, null, null);
+    assertEquals(1, globalScope.getVarCount());
 
-    Node nameNode = Node.newString(Token.NAME, "x");
-    Scope.Var var = scope.declare("x", nameNode, null, null);
-
-    assertEquals(1, scope.getVarCount());
-    scope.undeclare(var);
-
-    assertEquals(0, scope.getVarCount());
-    assertNull(scope.getVar("x"));
-    assertFalse(scope.isDeclared("x", false));
+    globalScope.undeclare(var);
+    assertEquals(0, globalScope.getVarCount());
+    assertNull(globalScope.getVar("y"));
+    assertNull(globalScope.getOwnSlot("y"));
+    assertFalse(globalScope.isDeclared("y", false));
   }
 
   // Tests undeclaring a variable belonging to another scope throws exception
   @Test(expected = IllegalStateException.class)
   public void testUndeclare_varFromDifferentScope_throwsException() {
-    Node root1 = new Node(Token.BLOCK);
-    Scope scope1 = new Scope(root1, (ObjectType) null);
-    Node nameNode = Node.newString(Token.NAME, "x");
-    Scope.Var var = scope1.declare("x", nameNode, null, null);
+    Node funcNode = new Node(Token.FUNCTION);
+    Scope childScope = new Scope(globalScope, funcNode);
+    Node nameNode = Node.newString(Token.NAME, "z");
+    Scope.Var var = globalScope.declare("z", nameNode, null, null);
 
-    Node root2 = new Node(Token.BLOCK);
-    Scope scope2 = new Scope(root2, (ObjectType) null);
-    scope2.undeclare(var);
+    childScope.undeclare(var);
   }
 
-  // Tests getArgumentsVar lazy initialization and equality
+  // Tests getArgumentsVar creation and identity
   @Test
-  public void testGetArgumentsVar_returnsSingletonArgumentsVar() {
-    Node root = new Node(Token.FUNCTION);
-    Scope scope = new Scope(root, (ObjectType) null);
-
-    Scope.Var args1 = scope.getArgumentsVar();
-    Scope.Var args2 = scope.getArgumentsVar();
-
+  public void testGetArgumentsVar_returnsSameInstance() {
+    Scope.Var args1 = globalScope.getArgumentsVar();
+    Scope.Var args2 = globalScope.getArgumentsVar();
     assertNotNull(args1);
     assertSame(args1, args2);
     assertEquals("arguments", args1.getName());
     assertNull(args1.getNode());
     assertNull(args1.getDeclaration());
     assertNull(args1.getParentNode());
-    assertEquals(args1, args2);
-    assertEquals(args1.hashCode(), args1.hashCode());
   }
 
-  // Tests Scope.Var initial value resolution for VAR statement
+  // Tests Scope.Arguments equals and hashCode
   @Test
-  public void testVar_getInitialValue_fromVarNode() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
+  public void testArguments_equalsAndHashCode() {
+    Scope.Var args1 = globalScope.getArgumentsVar();
+    Node funcNode = new Node(Token.FUNCTION);
+    Scope childScope = new Scope(globalScope, funcNode);
+    Scope.Var args2 = childScope.getArgumentsVar();
 
-    Node initVal = Node.newString("init");
-    Node nameNode = Node.newString(Token.NAME, "a");
-    nameNode.addChildToFront(initVal);
-    Node varNode = new Node(Token.VAR, nameNode);
-
-    Scope.Var var = scope.declare("a", nameNode, null, null);
-    assertSame(varNode, var.getParentNode());
-    assertSame(initVal, var.getInitialValue());
+    assertEquals(args1, args1);
+    assertFalse(args1.equals(args2));
+    assertFalse(args1.equals(null));
+    assertFalse(args1.equals("arguments"));
   }
 
-  // Tests Scope.Var initial value resolution for ASSIGN expression
+  // Tests Var properties: isGlobal, isLocal, isExtern, getInputName
   @Test
-  public void testVar_getInitialValue_fromAssignNode() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
+  public void testVar_localityAndInputProperties() {
+    Node globalName = Node.newString(Token.NAME, "g");
+    Scope.Var globalVar = globalScope.declare("g", globalName, null, null);
+    assertTrue(globalVar.isGlobal());
+    assertFalse(globalVar.isLocal());
+    assertTrue(globalVar.isExtern());
+    assertEquals("<non-file>", globalVar.getInputName());
 
-    Node nameNode = Node.newString(Token.NAME, "b");
-    Node rightVal = Node.newString("val");
-    new Node(Token.ASSIGN, nameNode, rightVal);
-
-    Scope.Var var = scope.declare("b", nameNode, null, null);
-    assertSame(rightVal, var.getInitialValue());
+    Node funcNode = new Node(Token.FUNCTION);
+    Scope childScope = new Scope(globalScope, funcNode);
+    Node localName = Node.newString(Token.NAME, "l");
+    Scope.Var localVar = childScope.declare("l", localName, null, null);
+    assertFalse(localVar.isGlobal());
+    assertTrue(localVar.isLocal());
   }
 
-  // Tests Scope.Var equals, hashCode and toString
+  // Tests Var.getInitialValue under different AST parent configurations
   @Test
-  public void testVar_equalsAndHashCodeAndToString() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
+  public void testVar_getInitialValue_variousParentNodes() {
+    // Parent is VAR
+    Node varParent = new Node(Token.VAR);
+    Node nameNode1 = Node.newString(Token.NAME, "v");
+    Node valueNode = Node.newNumber(42);
+    nameNode1.addChildToFront(valueNode);
+    varParent.addChildToFront(nameNode1);
+    Scope.Var var1 = globalScope.declare("v", nameNode1, null, null);
+    assertSame(valueNode, var1.getInitialValue());
 
-    Node nameNode1 = Node.newString(Token.NAME, "x");
-    Scope.Var var1 = scope.declare("x", nameNode1, null, null);
+    // Parent is ASSIGN
+    Node assignParent = new Node(Token.ASSIGN);
+    Node nameNode2 = Node.newString(Token.NAME, "a");
+    Node assignVal = Node.newString("hello");
+    assignParent.addChildToFront(nameNode2);
+    assignParent.addChildToBack(assignVal);
+    Scope.Var var2 = globalScope.declare("a", nameNode2, null, null);
+    assertSame(assignVal, var2.getInitialValue());
+
+    // Parent is FUNCTION
+    Node funcParent = new Node(Token.FUNCTION);
+    Node nameNode3 = Node.newString(Token.NAME, "f");
+    funcParent.addChildToFront(nameNode3);
+    Scope.Var var3 = globalScope.declare("f", nameNode3, null, null);
+    assertSame(funcParent, var3.getInitialValue());
+
+    // Parent is EXPR_RESULT (unsupported for initial value)
+    Node exprParent = new Node(Token.EXPR_RESULT);
+    Node nameNode4 = Node.newString(Token.NAME, "e");
+    exprParent.addChildToFront(nameNode4);
+    Scope.Var var4 = globalScope.declare("e", nameNode4, null, null);
+    assertNull(var4.getInitialValue());
+  }
+
+  // Tests Var.setType on inferred vs non-inferred types
+  @Test
+  public void testVar_setType_inferredAllowedNonInferredThrows() {
+    Node nameNode1 = Node.newString(Token.NAME, "inferredVar");
+    Scope.Var inferredVar = globalScope.declare("inferredVar", nameNode1, null, null, true);
+    assertTrue(inferredVar.isTypeInferred());
+    inferredVar.setType(null);
+
+    Node nameNode2 = Node.newString(Token.NAME, "declaredVar");
+    Scope.Var declaredVar = globalScope.declare("declaredVar", nameNode2, null, null, false);
+    assertFalse(declaredVar.isTypeInferred());
+  }
+
+  // Tests Var.setType throwing exception when type is not inferred
+  @Test(expected = IllegalStateException.class)
+  public void testVar_setType_declaredVarThrowsException() {
+    Node nameNode = Node.newString(Token.NAME, "strictVar");
+    Scope.Var declaredVar = globalScope.declare("strictVar", nameNode, null, null, false);
+    declaredVar.setType(null);
+  }
+
+  // Tests Var equals, hashCode, and toString
+  @Test
+  public void testVar_equalsHashCodeToString() {
+    Node nameNode1 = Node.newString(Token.NAME, "v1");
+    Node nameNode2 = Node.newString(Token.NAME, "v2");
+    Scope.Var var1 = globalScope.declare("v1", nameNode1, null, null);
+    Scope.Var var2 = globalScope.declare("v2", nameNode2, null, null);
 
     assertEquals(var1, var1);
-    assertFalse(var1.equals("non-var-object"));
+    assertFalse(var1.equals(var2));
+    assertFalse(var1.equals(null));
+    assertFalse(var1.equals("string"));
     assertEquals(nameNode1.hashCode(), var1.hashCode());
-    assertTrue(var1.toString().contains("x"));
-    assertEquals("<non-file>", var1.getInputName());
-    assertFalse(var1.isNoShadow());
-    assertFalse(var1.isDefine());
-    assertFalse(var1.isConst());
-    assertSame(var1, var1.getSymbol());
-    assertSame(var1, var1.getDeclaration());
+    assertTrue(var1.toString().contains("v1"));
   }
 
-  // Tests getDeclarativelyUnboundVarsWithoutTypes filter
+  // Tests getDeclarativelyUnboundVarsWithoutTypes filtering
   @Test
   public void testGetDeclarativelyUnboundVarsWithoutTypes_filtersCorrectly() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
+    Node varNode = new Node(Token.VAR);
+    Node nameNode = Node.newString(Token.NAME, "unbound");
+    varNode.addChildToFront(nameNode);
+    globalScope.declare("unbound", nameNode, null, null);
 
-    Node nameNode1 = Node.newString(Token.NAME, "unbound");
-    new Node(Token.VAR, nameNode1);
-    scope.declare("unbound", nameNode1, null, null, false);
-
-    Node nameNode2 = Node.newString(Token.NAME, "other");
-    new Node(Token.EXPR_RESULT, nameNode2);
-    scope.declare("other", nameNode2, null, null, false);
-
-    Iterator<Scope.Var> unboundVars = scope.getDeclarativelyUnboundVarsWithoutTypes();
-    assertTrue(unboundVars.hasNext());
-    assertEquals("unbound", unboundVars.next().getName());
-    assertFalse(unboundVars.hasNext());
+    Iterator<Scope.Var> it = globalScope.getDeclarativelyUnboundVarsWithoutTypes();
+    assertTrue(it.hasNext());
+    Scope.Var found = it.next();
+    assertEquals("unbound", found.getName());
+    assertFalse(it.hasNext());
   }
 
-  // Tests getVars, getAllSymbols, and getReferences iteration
+  // Tests Scope helper methods: getAllSymbols, getVars, getReferences, getScope
   @Test
-  public void testScope_collectionsAndIterables() {
-    Node root = new Node(Token.BLOCK);
-    Scope scope = new Scope(root, (ObjectType) null);
+  public void testScope_iteratorsAndSymbolAccess() {
+    Node nameNode = Node.newString(Token.NAME, "item");
+    Scope.Var var = globalScope.declare("item", nameNode, null, null);
 
-    Node node1 = Node.newString(Token.NAME, "v1");
-    Node node2 = Node.newString(Token.NAME, "v2");
-    Scope.Var var1 = scope.declare("v1", node1, null, null);
-    Scope.Var var2 = scope.declare("v2", node2, null, null);
+    assertEquals(1, globalScope.getAllSymbols().size());
+    assertTrue(globalScope.getVars().hasNext());
+    assertEquals(1, globalScope.getReferences(var).iterator().next() == var ? 1 : 0);
+    assertSame(globalScope, globalScope.getScope(var));
+  }
 
-    assertEquals(2, Iterables.size(scope.getAllSymbols()));
-    Iterator<Scope.Var> it = scope.getVars();
-    assertTrue(it.hasNext());
-    assertSame(var1, it.next());
-    assertTrue(it.hasNext());
-    assertSame(var2, it.next());
-    assertFalse(it.hasNext());
+  // Tests child scope root node must differ from parent root node
+  @Test(expected = IllegalArgumentException.class)
+  public void testChildScope_sameRootAsParent_throwsException() {
+    new Scope(globalScope, globalRoot);
+  }
 
-    Iterable<Scope.Var> refs = scope.getReferences(var1);
-    assertTrue(refs.iterator().hasNext());
-    assertSame(var1, refs.iterator().next());
-    assertSame(scope, scope.getScope(var1));
+  // Tests createLatticeBottom factory method and type of this
+  @Test
+  public void testCreateLatticeBottom_createsBottomScope() {
+    Node node = new Node(Token.BLOCK);
+    Scope bottom = Scope.createLatticeBottom(node);
+    assertTrue(bottom.isBottom());
+    assertNull(bottom.getTypeOfThis());
+    assertNull(globalScope.getTypeOfThis());
+  }
+
+  // Tests Var with CompilerInput and SourceFile
+  @Test
+  public void testVar_withCompilerInput_returnsInputAndSourceFile() {
+    SourceFile sourceFile = SourceFile.fromCode("sample.js", "var test = 1;");
+    CompilerInput input = new CompilerInput(sourceFile);
+    Node nameNode = Node.newString(Token.NAME, "test");
+    Scope.Var var = globalScope.declare("test", nameNode, null, input);
+
+    assertSame(input, var.getInput());
+    assertSame(sourceFile, var.getSourceFile());
+    assertEquals("sample.js", var.getInputName());
+    assertFalse(var.isExtern());
+  }
+
+  // Tests Var with JSDocInfo for const, define, and noShadow
+  @Test
+  public void testVar_jsDocInfo_constDefineAndNoShadow() {
+    Node nameNode = Node.newString(Token.NAME, "docVar");
+    JSDocInfoBuilder builder = new JSDocInfoBuilder(true);
+    builder.recordConstancy();
+    builder.recordDefineType(null);
+    builder.recordNoShadow();
+    JSDocInfo info = builder.build(nameNode);
+    nameNode.setJSDocInfo(info);
+
+    Scope.Var var = globalScope.declare("docVar", nameNode, null, null);
+    assertSame(info, var.getJSDocInfo());
+    assertTrue(var.isConst());
+    assertTrue(var.isDefine());
+    assertTrue(var.isNoShadow());
+  }
+
+  // Tests bleeding function expression detection
+  @Test
+  public void testVar_isBleedingFunction_detectedCorrectly() {
+    Node fnNode = new Node(Token.FUNCTION);
+    Node fnName = Node.newString(Token.NAME, "bleedFn");
+    fnNode.addChildToFront(fnName);
+    Scope.Var bleedingVar = globalScope.declare("bleedFn", fnName, null, null);
+    assertTrue(bleedingVar.isBleedingFunction());
+
+    Node varNode = new Node(Token.VAR);
+    Node nonBleedName = Node.newString(Token.NAME, "normalVar");
+    varNode.addChildToFront(nonBleedName);
+    Scope.Var normalVar = globalScope.declare("normalVar", nonBleedName, null, null);
+    assertFalse(normalVar.isBleedingFunction());
+  }
+
+  // Tests Arguments toString
+  @Test
+  public void testArguments_toString() {
+    Scope.Var args = globalScope.getArgumentsVar();
+    assertNotNull(args.toString());
+    assertTrue(args.toString().contains("arguments"));
   }
 }

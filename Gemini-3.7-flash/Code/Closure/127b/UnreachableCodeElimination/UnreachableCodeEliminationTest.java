@@ -1,10 +1,15 @@
 package com.google.javascript.jscomp;
 
-import org.junit.Before;
 import org.junit.Test;
 
 public class UnreachableCodeEliminationTest extends CompilerTestCase {
   private boolean removeNoOpStatements = true;
+
+  @Override
+  protected void setUp() throws Exception {
+    super.setUp();
+    removeNoOpStatements = true;
+  }
 
   @Override
   protected CompilerPass getProcessor(Compiler compiler) {
@@ -12,112 +17,183 @@ public class UnreachableCodeEliminationTest extends CompilerTestCase {
   }
 
   @Override
-  @Before
-  public void setUp() throws Exception {
-    super.setUp();
-    removeNoOpStatements = true;
+  protected int getNumRepetitions() {
+    return 2;
   }
 
-  // Tests removal of code following a return statement
+  // Tests that empty function body is unchanged
   @Test
-  public void testProcess_unreachableAfterReturn_removesDeadCode() {
-    test("function foo() { return 1; var x = 2; }",
-         "function foo() { return 1; var x; }");
+  public void testProcess_emptyFunction_noChange() {
+    testSame("function f() {}");
   }
 
-  // Tests removal of side-effect-free expression statements when enabled
+  // Tests removal of dead code following return statement
   @Test
-  public void testProcess_noOpStatementsEnabled_removesStatements() {
-    test("var x = 1; x; true; 1 + 1;", "var x = 1;");
+  public void testProcess_codeAfterReturn_removesDeadCode() {
+    test("function f() { return; var x = 1; }", "function f() { return; }");
   }
 
-  // Tests preservation of side-effect-free expression statements when disabled
+  // Tests removal of unreachable branch in if statement
   @Test
-  public void testProcess_noOpStatementsDisabled_keepsStatements() {
-    removeNoOpStatements = false;
-    testSame("var x = 1; x; true; 1 + 1;");
+  public void testProcess_unreachableIfBranch_removesDeadCode() {
+    test("function f() { if (false) { var x = 1; } }", "function f() {}");
   }
 
-  // Tests removal of useless return without value at the end of a function
+  // Tests removal of useless return at the end of function
   @Test
   public void testProcess_uselessReturnAtEndOfFunction_removesReturn() {
-    test("function foo() { var x = 1; return; }",
-         "function foo() { var x = 1; }");
+    test("function f() { a(); return; }", "function f() { a(); }");
   }
 
-  // Tests that return with a return value is not removed
+  // Tests preserving return with return value at end of function
   @Test
-  public void testProcess_returnWithValue_keepsReturn() {
-    testSame("function foo() { return 1; }");
+  public void testProcess_returnWithValue_preservesReturn() {
+    testSame("function f() { return 1; }");
   }
 
-  // Tests that break inside try-finally is preserved to maintain control flow
+  // Tests removal of useless continue at end of loop body
   @Test
-  public void testProcess_breakInsideTryFinally_keepsBreak() {
-    testSame("while (x) { try { break; } finally { y(); } }");
+  public void testProcess_uselessContinueInLoop_removesContinue() {
+    test("while (x) { a(); continue; }", "while (x) { a(); }");
   }
 
-  // Tests that return inside try-finally is preserved
+  // Tests preserving necessary break in switch statement
   @Test
-  public void testProcess_returnInsideTryFinally_keepsReturn() {
-    testSame("function foo() { try { return; } finally { bar(); } }");
+  public void testProcess_breakInSwitch_preservesBreak() {
+    testSame("switch (x) { case 1: a(); break; default: b(); }");
   }
 
-  // Tests that continue inside try-finally is preserved
+  // Tests removal of no-op statements without side effects
   @Test
-  public void testProcess_continueInsideTryFinally_keepsContinue() {
-    testSame("while (x) { try { continue; } finally { y(); } }");
+  public void testProcess_noOpStatements_removesStatements() {
+    test("function f() { 1 + 1; true; }", "function f() {}");
   }
 
-  // Tests removal of useless break statement targeting the end of a loop
+  // Tests preserving statements with side effects
   @Test
-  public void testProcess_uselessBreak_removesBreak() {
-    test("while (x) { a(); break; }",
-         "while (x) { a(); }");
+  public void testProcess_sideEffectStatements_preservesStatements() {
+    testSame("function f() { a(); b = 1; }");
   }
 
-  // Tests removal of useless continue statement at the end of a loop body
+  // Tests break inside finally block in loop (regression test for Issue 127)
   @Test
-  public void testProcess_uselessContinue_removesContinue() {
-    test("while (x) { a(); continue; }",
-         "while (x) { a(); }");
+  public void testProcess_breakInTryFinallyInLoop_doesNotThrowException() {
+    testSame("while (x) { try { a(); } finally { break; } }");
   }
 
-  // Tests that do-while unreachable node is safely preserved
+  // Tests return in try and return in finally (regression test for Issue 127)
   @Test
-  public void testProcess_unreachableDoWhile_preservesDoStructure() {
-    testSame("function foo() { return; do { x(); } while (true); }");
+  public void testProcess_returnInTryFinally_doesNotThrowException() {
+    testSame("function f() { try { return 1; } finally { return 2; } }");
   }
 
-  // Tests that for-in headers are preserved even if expression appears side-effect free
+  // Tests return in try with side effect in finally
   @Test
-  public void testProcess_forInHeader_preservesHeader() {
-    testSame("for (var prop in obj) {}");
+  public void testProcess_tryFinallyWithSideEffect_preservesFinally() {
+    testSame("function f() { try { return; } finally { a(); } }");
   }
 
-  // Tests removal of unreachable catch block while preserving try structure
+  // Tests try catch block preservation
   @Test
-  public void testProcess_unreachableCatch_handlesFinally() {
-    test("try { return 1; } catch (e) { alert(e); }",
-         "try { return 1; } finally {}");
+  public void testProcess_tryCatchBlock_preservesCatch() {
+    testSame("try { a(); } catch (e) { b(); }");
   }
 
-  // Tests that dead variable declarations without initializers are safely ignored
+  // Tests unreachable do-while loop preservation
   @Test
-  public void testProcess_deadVarDeclarationWithoutInit_keepsDeclaration() {
-    testSame("function foo() { return; var x; }");
+  public void testProcess_unreachableDoWhile_preservesDoLoop() {
+    testSame("function f() { return; do { a(); } while (true); }");
   }
 
-  // Tests cascaded useless branching removal
+  // Tests dead var declaration without initial values
   @Test
-  public void testProcess_cascadedBranches_removesAllUselessBranches() {
-    test("switch (x) { case 1: break; default: break; }",
-         "switch (x) { case 1: default: }");
+  public void testProcess_deadVarWithoutInit_ignoresDeadVar() {
+    testSame("function f() { return; var x; }");
   }
 
-  // Tests empty block and statement handling
+  // Tests expressions inside for-in loop header
   @Test
-  public void testProcess_emptyBlock_preservesBlock() {
-    testSame("function foo() { ; {} }");
+  public void testProcess_forInHeader_preservesLoop() {
+    testSame("for (var x in y) { a(); }");
+  }
+
+  // Tests removeNoOpStatements disabled flag
+  @Test
+  public void testProcess_removeNoOpDisabled_preservesNoOp() {
+    removeNoOpStatements = false;
+    testSame("function f() { 1 + 1; }");
+  }
+
+  // Tests removal of dead code following throw statement
+  @Test
+  public void testProcess_codeAfterThrow_removesDeadCode() {
+    test("function f() { throw 'error'; var x = 1; a(); }", "function f() { throw 'error'; }");
+  }
+
+  // Tests removal of dead code following infinite loop
+  @Test
+  public void testProcess_codeAfterInfiniteLoop_removesDeadCode() {
+    test("function f() { while (true) { a(); } var x = 1; }", "function f() { while (true) { a(); } }");
+  }
+
+  // Tests removal of empty block statements
+  @Test
+  public void testProcess_emptyBlocks_removesEmptyBlocks() {
+    test("function f() { {} a(); {} }", "function f() { a(); }");
+  }
+
+  // Tests removal of redundant empty statements (semicolons)
+  @Test
+  public void testProcess_emptyStatements_removesSemicolons() {
+    test("function f() { ; a(); ; }", "function f() { a(); }");
+  }
+
+  // Tests removal of labeled blocks without breaks
+  @Test
+  public void testProcess_unusedLabel_removesLabel() {
+    test("function f() { L: { a(); } }", "function f() { a(); }");
+  }
+
+  // Tests labeled break statement
+  @Test
+  public void testProcess_labeledBreak_eliminatesDeadCodeAfterBreak() {
+    test("function f() { L: { a(); break L; b(); } }", "function f() { a(); }");
+  }
+
+  // Tests dead code following break in while loop
+  @Test
+  public void testProcess_codeAfterBreakInLoop_removesDeadCode() {
+    test("while (true) { break; a(); }", "while (true) { break; }");
+  }
+
+  // Tests dead code following continue in loop
+  @Test
+  public void testProcess_codeAfterContinueInLoop_removesDeadCode() {
+    test("while (x) { continue; a(); }", "while (x) { }");
+  }
+
+  // Tests dead code in switch cases after unconditional return
+  @Test
+  public void testProcess_switchCaseWithDeadCode_removesDeadCode() {
+    test("switch (x) { case 1: return; a(); case 2: b(); }", "switch (x) { case 1: return; case 2: b(); }");
+  }
+
+  // Tests removal of if-else when both branches return and following code is dead
+  @Test
+  public void testProcess_bothBranchesReturn_removesSubsequentCode() {
+    test("function f() { if (x) { return 1; } else { return 2; } a(); }",
+         "function f() { if (x) { return 1; } else { return 2; } }");
+  }
+
+  // Tests removal of empty try block with catch and finally
+  @Test
+  public void testProcess_emptyTryCatchFinally_removesNoOp() {
+    test("function f() { try {} catch (e) {} finally {} }", "function f() {}");
+  }
+
+  // Tests dead code inside for-loop update statement when unreachable
+  @Test
+  public void testProcess_forLoopWithUnreachableBody_removesDeadCode() {
+    test("for (var i = 0; false; i++) { a(); }", "var i = 0;");
   }
 }

@@ -5,9 +5,7 @@ import org.junit.Test;
 import org.mockito.exceptions.base.MockitoException;
 
 import java.lang.reflect.Field;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.*;
@@ -21,199 +19,424 @@ public class PropertyAndSetterInjectionTest {
         injection = new PropertyAndSetterInjection();
     }
 
-    // Helper classes for testing injection scenarios
-    public static class BaseTarget {
-        private String baseMessage;
+    // Tests successful field injection with a single matching mock candidate
+    @Test
+    public void testProcessInjection_singleMatchingCandidate_injectsFieldAndReturnsTrue() throws Exception {
+        UnderTestHolder holder = new UnderTestHolder();
+        holder.target = new Target();
+        Field injectMocksField = UnderTestHolder.class.getDeclaredField("target");
 
-        public String getBaseMessage() {
-            return baseMessage;
-        }
+        Set<Object> candidates = new HashSet<Object>();
+        Dependency dep = new Dependency();
+        candidates.add(dep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertTrue(result);
+        assertSame(dep, holder.target.dependency);
     }
 
-    public static class SubTarget extends BaseTarget {
-        private List<?> listField;
-        private final String finalField = "final";
-        private static String staticField = "static";
+    // Tests setter injection when a matching setter method exists
+    @Test
+    public void testProcessInjection_matchingSetter_injectsViaSetterAndReturnsTrue() throws Exception {
+        UnderTestHolderWithSetter holder = new UnderTestHolderWithSetter();
+        holder.target = new TargetWithSetter();
+        Field injectMocksField = UnderTestHolderWithSetter.class.getDeclaredField("target");
 
-        public List<?> getListField() {
-            return listField;
-        }
+        Set<Object> candidates = new HashSet<Object>();
+        Dependency dep = new Dependency();
+        candidates.add(dep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertTrue(result);
+        assertSame(dep, holder.target.getDependency());
+        assertTrue(holder.target.setterCalled);
     }
 
-    public static class SetterTarget {
-        private String value;
-        private boolean setterCalled = false;
+    // Tests behavior when candidate set is empty
+    @Test
+    public void testProcessInjection_emptyCandidates_returnsFalse() throws Exception {
+        UnderTestHolder holder = new UnderTestHolder();
+        holder.target = new Target();
+        Field injectMocksField = UnderTestHolder.class.getDeclaredField("target");
 
-        public void setValue(String value) {
-            this.value = value;
+        Set<Object> candidates = new HashSet<Object>();
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertFalse(result);
+        assertNull(holder.target.dependency);
+    }
+
+    // Tests behavior when no candidate matches the target field type
+    @Test
+    public void testProcessInjection_noMatchingType_returnsFalse() throws Exception {
+        UnderTestHolder holder = new UnderTestHolder();
+        holder.target = new Target();
+        Field injectMocksField = UnderTestHolder.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        candidates.add("nonMatchingString");
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertFalse(result);
+        assertNull(holder.target.dependency);
+    }
+
+    // Tests initialization of target instance when target field is null
+    @Test
+    public void testProcessInjection_nullTargetInstance_initializesInstanceAndInjects() throws Exception {
+        UnderTestHolder holder = new UnderTestHolder();
+        holder.target = null;
+        Field injectMocksField = UnderTestHolder.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        Dependency dep = new Dependency();
+        candidates.add(dep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertTrue(result);
+        assertNotNull(holder.target);
+        assertSame(dep, holder.target.dependency);
+    }
+
+    // Tests injection across class hierarchy (super class and sub class)
+    @Test
+    public void testProcessInjection_classHierarchy_injectsSubAndSuperClassFields() throws Exception {
+        UnderTestSubHolder holder = new UnderTestSubHolder();
+        holder.target = new SubTarget();
+        Field injectMocksField = UnderTestSubHolder.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        Dependency dep = new Dependency();
+        OtherDependency otherDep = new OtherDependency();
+        candidates.add(dep);
+        candidates.add(otherDep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertTrue(result);
+        assertSame(dep, holder.target.dependency);
+        assertSame(otherDep, holder.target.otherDependency);
+    }
+
+    // Tests filtering of static and final fields to ensure they are not injected
+    @Test
+    public void testProcessInjection_staticAndFinalFields_ignoresStaticAndFinal() throws Exception {
+        UnderTestStaticFinalHolder holder = new UnderTestStaticFinalHolder();
+        holder.target = new TargetWithStaticAndFinal();
+        Field injectMocksField = UnderTestStaticFinalHolder.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        Dependency dep = new Dependency();
+        candidates.add(dep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertFalse(result);
+        assertNull(holder.target.getFinalDependency());
+    }
+
+    // Tests name-based resolution when multiple candidates have the same type
+    @Test
+    public void testProcessInjection_multipleCandidatesSameType_injectsByName() throws Exception {
+        UnderTestNamedHolder holder = new UnderTestNamedHolder();
+        holder.target = new TargetWithNamedFields();
+        Field injectMocksField = UnderTestNamedHolder.class.getDeclaredField("target");
+
+        Dependency firstDep = new Dependency();
+        Dependency secondDep = new Dependency();
+
+        Set<Object> candidates = new HashSet<Object>();
+        candidates.add(firstDep);
+        candidates.add(secondDep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertTrue(result);
+    }
+
+    // Tests exception handling when target instantiation fails
+    @Test(expected = MockitoException.class)
+    public void testProcessInjection_instantiationFailsWithException_throwsMockitoException() throws Exception {
+        UnderTestThrowingHolder holder = new UnderTestThrowingHolder();
+        Field injectMocksField = UnderTestThrowingHolder.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        candidates.add(new Dependency());
+
+        injection.processInjection(injectMocksField, holder, candidates);
+    }
+
+    // Tests that an injected mock is not reused for another field in the same class
+    @Test
+    public void testProcessInjection_singleCandidateTwoFields_injectsOnlyOnce() throws Exception {
+        UnderTestTwoFieldsHolder holder = new UnderTestTwoFieldsHolder();
+        holder.target = new TargetWithTwoFieldsOfSameType();
+        Field injectMocksField = UnderTestTwoFieldsHolder.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        Dependency dep = new Dependency();
+        candidates.add(dep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertTrue(result);
+        assertTrue((holder.target.firstDep == dep && holder.target.secondDep == null)
+                || (holder.target.firstDep == null && holder.target.secondDep == dep));
+    }
+
+    // Tests failure when target is an interface and cannot be instantiated
+    @Test(expected = MockitoException.class)
+    public void testProcessInjection_nullTargetInterface_throwsMockitoException() throws Exception {
+        UnderTestInterfaceHolder holder = new UnderTestInterfaceHolder();
+        Field injectMocksField = UnderTestInterfaceHolder.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        candidates.add(new Dependency());
+
+        injection.processInjection(injectMocksField, holder, candidates);
+    }
+
+    // Tests failure when target is an abstract class and cannot be instantiated
+    @Test(expected = MockitoException.class)
+    public void testProcessInjection_nullTargetAbstractClass_throwsMockitoException() throws Exception {
+        UnderTestAbstractHolder holder = new UnderTestAbstractHolder();
+        Field injectMocksField = UnderTestAbstractHolder.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        candidates.add(new Dependency());
+
+        injection.processInjection(injectMocksField, holder, candidates);
+    }
+
+    // Tests exception propagation when setter throws an exception
+    @Test(expected = MockitoException.class)
+    public void testProcessInjection_setterThrowsException_throwsMockitoException() throws Exception {
+        UnderTestHolderWithThrowingSetter holder = new UnderTestHolderWithThrowingSetter();
+        holder.target = new TargetWithThrowingSetter();
+        Field injectMocksField = UnderTestHolderWithThrowingSetter.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        candidates.add(new Dependency());
+
+        injection.processInjection(injectMocksField, holder, candidates);
+    }
+
+    // Tests fallback to field injection when setter signature does not match
+    @Test
+    public void testProcessInjection_setterWithInvalidSignature_fallsBackToFieldInjection() throws Exception {
+        UnderTestHolderWithInvalidSetter holder = new UnderTestHolderWithInvalidSetter();
+        holder.target = new TargetWithInvalidSetter();
+        Field injectMocksField = UnderTestHolderWithInvalidSetter.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        Dependency dep = new Dependency();
+        candidates.add(dep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertTrue(result);
+        assertSame(dep, holder.target.dependency);
+    }
+
+    // Tests successful injection on an already-instantiated target without a default constructor
+    @Test
+    public void testProcessInjection_targetAlreadyInstantiatedWithoutDefaultConstructor_injectsSuccessfully() throws Exception {
+        UnderTestNoDefaultConstructorHolder holder = new UnderTestNoDefaultConstructorHolder();
+        holder.target = new TargetWithoutDefaultConstructor("preset");
+        Field injectMocksField = UnderTestNoDefaultConstructorHolder.class.getDeclaredField("target");
+
+        Set<Object> candidates = new HashSet<Object>();
+        Dependency dep = new Dependency();
+        candidates.add(dep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertTrue(result);
+        assertSame(dep, holder.target.dependency);
+    }
+
+    // Tests injection through a 3-level class hierarchy (Grandparent -> Parent -> Child)
+    @Test
+    public void testProcessInjection_threeLevelHierarchy_injectsAllLevels() throws Exception {
+        UnderThreeLevelHolder holder = new UnderThreeLevelHolder();
+        holder.target = new ChildTarget();
+        Field injectMocksField = UnderThreeLevelHolder.class.getDeclaredField("target");
+
+        Dependency dep = new Dependency();
+        OtherDependency otherDep = new OtherDependency();
+        ThirdDependency thirdDep = new ThirdDependency();
+
+        Set<Object> candidates = new HashSet<Object>();
+        candidates.add(dep);
+        candidates.add(otherDep);
+        candidates.add(thirdDep);
+
+        boolean result = injection.processInjection(injectMocksField, holder, candidates);
+
+        assertTrue(result);
+        assertSame(dep, holder.target.dependency);
+        assertSame(otherDep, holder.target.otherDependency);
+        assertSame(thirdDep, holder.target.thirdDependency);
+    }
+
+    // --- Helper classes for testing ---
+
+    public static class Dependency {}
+
+    public static class OtherDependency {}
+
+    public static class ThirdDependency {}
+
+    public static class Target {
+        Dependency dependency;
+    }
+
+    public static class UnderTestHolder {
+        Target target;
+    }
+
+    public static class TargetWithSetter {
+        private Dependency dependency;
+        boolean setterCalled = false;
+
+        public void setDependency(Dependency dependency) {
+            this.dependency = dependency;
             this.setterCalled = true;
         }
 
-        public String getValue() {
-            return value;
-        }
-
-        public boolean isSetterCalled() {
-            return setterCalled;
+        public Dependency getDependency() {
+            return dependency;
         }
     }
 
-    public static class MultiCandidateTarget {
-        private String candidateA;
-        private String candidateB;
+    public static class UnderTestHolderWithSetter {
+        TargetWithSetter target;
+    }
 
-        public String getCandidateA() {
-            return candidateA;
-        }
+    public static class SuperTarget {
+        Dependency dependency;
+    }
 
-        public String getCandidateB() {
-            return candidateB;
+    public static class SubTarget extends SuperTarget {
+        OtherDependency otherDependency;
+    }
+
+    public static class UnderTestSubHolder {
+        SubTarget target;
+    }
+
+    public static class TargetWithStaticAndFinal {
+        static Dependency staticDep;
+        final Dependency finalDep = null;
+
+        public Dependency getFinalDependency() {
+            return finalDep;
         }
     }
 
-    public static class ThrowingConstructorTarget {
-        public ThrowingConstructorTarget() {
+    public static class UnderTestStaticFinalHolder {
+        TargetWithStaticAndFinal target;
+    }
+
+    public static class TargetWithNamedFields {
+        Dependency first;
+        Dependency second;
+    }
+
+    public static class UnderTestNamedHolder {
+        TargetWithNamedFields target;
+    }
+
+    public static class TargetThrowingException {
+        public TargetThrowingException() {
             throw new RuntimeException("Constructor failure");
         }
     }
 
-    public static class Holder {
-        public SubTarget subTarget = new SubTarget();
-        public SubTarget uninitializedSubTarget;
-        public SetterTarget setterTarget = new SetterTarget();
-        public MultiCandidateTarget multiCandidateTarget = new MultiCandidateTarget();
-        public ThrowingConstructorTarget throwingTarget;
+    public static class UnderTestThrowingHolder {
+        TargetThrowingException target;
     }
 
-    // Tests field injection on simple matching field
-    @Test
-    public void testProcessInjection_matchingMockCandidate_injectsSuccessfully() throws Exception {
-        Holder holder = new Holder();
-        Field field = Holder.class.getDeclaredField("subTarget");
-        Set<Object> mocks = new HashSet<Object>();
-        List<String> mockList = Collections.singletonList("item");
-        mocks.add(mockList);
-
-        boolean injected = injection.processInjection(field, holder, mocks);
-
-        assertTrue(injected);
-        assertSame(mockList, holder.subTarget.getListField());
+    public static class TargetWithTwoFieldsOfSameType {
+        Dependency firstDep;
+        Dependency secondDep;
     }
 
-    // Tests setter injection when setter is available
-    @Test
-    public void testProcessInjection_setterAvailable_injectsViaSetter() throws Exception {
-        Holder holder = new Holder();
-        Field field = Holder.class.getDeclaredField("setterTarget");
-        Set<Object> mocks = new HashSet<Object>();
-        String mockValue = "injectedString";
-        mocks.add(mockValue);
-
-        boolean injected = injection.processInjection(field, holder, mocks);
-
-        assertTrue(injected);
-        assertTrue(holder.setterTarget.isSetterCalled());
-        assertEquals("injectedString", holder.setterTarget.getValue());
+    public static class UnderTestTwoFieldsHolder {
+        TargetWithTwoFieldsOfSameType target;
     }
 
-    // Tests injection into superclass fields
-    @Test
-    public void testProcessInjection_superClassFields_injectsHierarchy() throws Exception {
-        Holder holder = new Holder();
-        Field field = Holder.class.getDeclaredField("subTarget");
-        Set<Object> mocks = new HashSet<Object>();
-        String baseMock = "baseString";
-        mocks.add(baseMock);
+    public interface InterfaceTarget {}
 
-        boolean injected = injection.processInjection(field, holder, mocks);
-
-        assertTrue(injected);
-        assertEquals(baseMock, holder.subTarget.getBaseMessage());
+    public static class UnderTestInterfaceHolder {
+        InterfaceTarget target;
     }
 
-    // Tests automatic instantiation when target field is null
-    @Test
-    public void testProcessInjection_uninitializedField_instantiatesAndInjects() throws Exception {
-        Holder holder = new Holder();
-        Field field = Holder.class.getDeclaredField("uninitializedSubTarget");
-        Set<Object> mocks = new HashSet<Object>();
-        List<String> mockList = Collections.singletonList("item");
-        mocks.add(mockList);
-
-        boolean injected = injection.processInjection(field, holder, mocks);
-
-        assertTrue(injected);
-        assertNotNull(holder.uninitializedSubTarget);
-        assertSame(mockList, holder.uninitializedSubTarget.getListField());
+    public static abstract class AbstractTarget {
+        Dependency dependency;
     }
 
-    // Tests empty mock candidates set returns false
-    @Test
-    public void testProcessInjection_emptyMockCandidates_returnsFalse() throws Exception {
-        Holder holder = new Holder();
-        Field field = Holder.class.getDeclaredField("subTarget");
-        Set<Object> mocks = new HashSet<Object>();
-
-        boolean injected = injection.processInjection(field, holder, mocks);
-
-        assertFalse(injected);
-        assertNull(holder.subTarget.getListField());
+    public static class UnderTestAbstractHolder {
+        AbstractTarget target;
     }
 
-    // Tests when no mock candidates match target field types
-    @Test
-    public void testProcessInjection_noMatchingCandidates_returnsFalse() throws Exception {
-        Holder holder = new Holder();
-        Field field = Holder.class.getDeclaredField("subTarget");
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add(Integer.valueOf(123));
+    public static class TargetWithThrowingSetter {
+        Dependency dependency;
 
-        boolean injected = injection.processInjection(field, holder, mocks);
-
-        assertFalse(injected);
-        assertNull(holder.subTarget.getListField());
+        public void setDependency(Dependency dependency) {
+            throw new RuntimeException("Setter invocation failed");
+        }
     }
 
-    // Tests name-based injection when multiple candidates of same type exist
-    @Test
-    public void testProcessInjection_multipleCandidatesSameType_injectsByName() throws Exception {
-        Holder holder = new Holder();
-        Field field = Holder.class.getDeclaredField("multiCandidateTarget");
-        Set<Object> mocks = new HashSet<Object>();
-        String candidateA = "firstCandidate";
-        String candidateB = "secondCandidate";
-        mocks.add(candidateA);
-        mocks.add(candidateB);
-
-        boolean injected = injection.processInjection(field, holder, mocks);
-
-        assertTrue(injected);
-        assertNotNull(holder.multiCandidateTarget.getCandidateA());
-        assertNotNull(holder.multiCandidateTarget.getCandidateB());
+    public static class UnderTestHolderWithThrowingSetter {
+        TargetWithThrowingSetter target;
     }
 
-    // Tests final and static fields are ignored and not overwritten
-    @Test
-    public void testProcessInjection_finalAndStaticFields_areNotOverwritten() throws Exception {
-        Holder holder = new Holder();
-        Field field = Holder.class.getDeclaredField("subTarget");
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add("newString");
+    public static class TargetWithInvalidSetter {
+        Dependency dependency;
 
-        injection.processInjection(field, holder, mocks);
+        public void setDependency() {
+        }
 
-        assertEquals("final", holder.subTarget.finalField);
-        assertEquals("static", SubTarget.staticField);
+        public void setDependency(Dependency dep, String extra) {
+        }
     }
 
-    // Tests exception during target field instantiation
-    @Test(expected = MockitoException.class)
-    public void testProcessInjection_throwingConstructor_throwsMockitoException() throws Exception {
-        Holder holder = new Holder();
-        Field field = Holder.class.getDeclaredField("throwingTarget");
-        Set<Object> mocks = new HashSet<Object>();
-        mocks.add("someMock");
+    public static class UnderTestHolderWithInvalidSetter {
+        TargetWithInvalidSetter target;
+    }
 
-        injection.processInjection(field, holder, mocks);
+    public static class TargetWithoutDefaultConstructor {
+        Dependency dependency;
+        final String name;
+
+        public TargetWithoutDefaultConstructor(String name) {
+            this.name = name;
+        }
+    }
+
+    public static class UnderTestNoDefaultConstructorHolder {
+        TargetWithoutDefaultConstructor target;
+    }
+
+    public static class GrandparentTarget {
+        Dependency dependency;
+    }
+
+    public static class ParentTarget extends GrandparentTarget {
+        OtherDependency otherDependency;
+    }
+
+    public static class ChildTarget extends ParentTarget {
+        ThirdDependency thirdDependency;
+    }
+
+    public static class UnderThreeLevelHolder {
+        ChildTarget target;
     }
 }

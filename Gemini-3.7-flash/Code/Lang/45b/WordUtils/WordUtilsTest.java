@@ -3,125 +3,175 @@ package org.apache.commons.lang;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+/**
+ * Unit tests for {@link WordUtils}.
+ */
 public class WordUtilsTest {
 
-    // Tests constructor instantiation
+    // Tests constructor
     @Test
-    public void testConstructor_default_isNotNull() {
+    public void testConstructor_default_instanceCreated() {
         assertNotNull(new WordUtils());
     }
 
-    // Tests wrap with null and empty string input
+    // Tests wrap with null input
     @Test
-    public void testWrap_nullOrEmptyInput_returnsInput() {
+    public void testWrap_nullInput_returnsNull() {
         assertNull(WordUtils.wrap(null, 20));
         assertNull(WordUtils.wrap(null, 20, "\n", true));
+    }
+
+    // Tests wrap with empty string
+    @Test
+    public void testWrap_emptyString_returnsEmpty() {
         assertEquals("", WordUtils.wrap("", 20));
-        assertEquals("", WordUtils.wrap("", 20, "\n", true));
+        assertEquals("", WordUtils.wrap("", 20, "\n", false));
     }
 
-    // Tests normal wrapping with default and custom newline
+    // Tests wrap normal line length
     @Test
-    public void testWrap_normalCase_wrapsCorrectly() {
-        String input = "Here is one line of text that is going to be wrapped";
-        String expected = "Here is one\nline of text\nthat is going\nto be\nwrapped";
-        assertEquals(expected, WordUtils.wrap(input, 15, "\n", false));
-        assertNotNull(WordUtils.wrap(input, 15));
+    public void testWrap_normalText_wrapsCorrectly() {
+        String input = "Here is one line of text that is going to be wrapped but not too short.";
+        String expected = "Here is one line of\ntext that is going to\nbe wrapped but not\ntoo short.";
+        assertEquals(expected, WordUtils.wrap(input, 20, "\n", false));
     }
 
-    // Tests wrap with negative/zero wrapLength and long words wrapping
+    // Tests wrap with long words and wrapLongWords false/true
     @Test
-    public void testWrap_longWordsAndMinWrapLength_wrapsProperly() {
-        assertEquals("a\nb\nc", WordUtils.wrap("abc", 0, "\n", true));
-        assertEquals("abcdef", WordUtils.wrap("abcdef", 3, "\n", false));
-        assertEquals("abc\ndef", WordUtils.wrap("abcdef", 3, "\n", true));
-        assertEquals("abc\ndef gh", WordUtils.wrap("abcdef gh", 3, "\n", false));
+    public void testWrap_longWord_wrapsAccordingToFlag() {
+        String input = "Click here http://commons.apache.org/lang to download";
+        String expectedNoWrap = "Click here\nhttp://commons.apache.org/lang\nto download";
+        assertEquals(expectedNoWrap, WordUtils.wrap(input, 15, "\n", false));
+
+        String expectedWrap = "Click here\nhttp://commons.\napache.org/lang\nto download";
+        assertEquals(expectedWrap, WordUtils.wrap(input, 15, "\n", true));
     }
 
-    // Tests capitalize with default whitespace and custom delimiters
+    // Tests wrap with wrapLength less than 1
     @Test
-    public void testCapitalize_normalAndDelimiters_capitalizesFirstLetter() {
+    public void testWrap_wrapLengthLessThanOne_treatedAsOne() {
+        assertEquals("a\nb", WordUtils.wrap("a b", 0, "\n", false));
+    }
+
+    // Tests wrap with null newLineStr (uses default system line separator)
+    @Test
+    public void testWrap_nullNewLineStr_usesSystemSeparator() {
+        assertEquals("here is" + SystemUtils.LINE_SEPARATOR + "a line", WordUtils.wrap("here is a line", 7, null, false));
+    }
+
+    // Tests wrap overload with default newline and wrapLongWords
+    @Test
+    public void testWrap_overloadWithWrapLengthOnly_usesDefaults() {
+        assertEquals("here is" + SystemUtils.LINE_SEPARATOR + "a line", WordUtils.wrap("here is a line", 7));
+    }
+
+    // Tests capitalize with default whitespace and null/empty
+    @Test
+    public void testCapitalize_defaultDelimiters_capitalizesWords() {
         assertNull(WordUtils.capitalize(null));
         assertEquals("", WordUtils.capitalize(""));
+        assertEquals("I Am Fine", WordUtils.capitalize("i am fine"));
         assertEquals("I Am FINE", WordUtils.capitalize("i am FINE"));
-        assertEquals("i aM.fine", WordUtils.capitalize("i aM.fine", new char[0]));
-        assertEquals("I aM.Fine", WordUtils.capitalize("i aM.fine", new char[]{'.'}));
     }
 
-    // Tests capitalizeFully with default whitespace and custom delimiters
+    // Tests capitalize with custom delimiter array
     @Test
-    public void testCapitalizeFully_normalAndDelimiters_capitalizesAndLowercasesRest() {
+    public void testCapitalize_customDelimiters_capitalizesWords() {
+        char[] delimiters = new char[]{'.', '-'};
+        assertEquals("I aM.Fine-Day", WordUtils.capitalize("i aM.fine-day", delimiters));
+        assertEquals("i aM.fine-day", WordUtils.capitalize("i aM.fine-day", new char[0]));
+        assertEquals("I Am Fine", WordUtils.capitalize("i am fine", (char[]) null));
+    }
+
+    // Tests capitalizeFully with default and custom delimiters
+    @Test
+    public void testCapitalizeFully_variousInputs_capitalizesAndLowersRest() {
         assertNull(WordUtils.capitalizeFully(null));
         assertEquals("", WordUtils.capitalizeFully(""));
         assertEquals("I Am Fine", WordUtils.capitalizeFully("i am FINE"));
-        assertEquals("i aM.fine", WordUtils.capitalizeFully("i aM.fine", new char[0]));
         assertEquals("I am.Fine", WordUtils.capitalizeFully("i aM.fine", new char[]{'.'}));
+        assertEquals("i am.fine", WordUtils.capitalizeFully("i aM.fine", new char[0]));
+        assertEquals("I Am Fine", WordUtils.capitalizeFully("i aM.fine", (char[]) null));
     }
 
-    // Tests uncapitalize with default whitespace and custom delimiters
+    // Tests uncapitalize with default and custom delimiters
     @Test
-    public void testUncapitalize_normalAndDelimiters_uncapitalizesFirstLetter() {
+    public void testUncapitalize_variousInputs_uncapitalizesFirstLetter() {
         assertNull(WordUtils.uncapitalize(null));
         assertEquals("", WordUtils.uncapitalize(""));
         assertEquals("i am fINE", WordUtils.uncapitalize("I Am FINE"));
-        assertEquals("I AM.FINE", WordUtils.uncapitalize("I AM.FINE", new char[0]));
         assertEquals("i AM.fINE", WordUtils.uncapitalize("I AM.FINE", new char[]{'.'}));
+        assertEquals("I AM.FINE", WordUtils.uncapitalize("I AM.FINE", new char[0]));
+        assertEquals("i am fINE", WordUtils.uncapitalize("I Am FINE", (char[]) null));
     }
 
-    // Tests swapCase with various character cases
+    // Tests swapCase with mixed case inputs
     @Test
-    public void testSwapCase_variousCases_swapsCaseProperly() {
+    public void testSwapCase_mixedInputs_swapsCaseProperly() {
         assertNull(WordUtils.swapCase(null));
         assertEquals("", WordUtils.swapCase(""));
         assertEquals("tHE DOG HAS A bone", WordUtils.swapCase("The dog has a BONE"));
-        assertEquals("hELLO 123 wORLD", WordUtils.swapCase("Hello 123 World"));
+        assertEquals("hELLO wORLD", WordUtils.swapCase("Hello World"));
+        assertEquals("1234.!?abcABC", WordUtils.swapCase("1234.!?ABCabc"));
     }
 
-    // Tests initials with default whitespace and custom delimiters
+    // Tests initials with default whitespace
     @Test
-    public void testInitials_normalAndDelimiters_returnsInitials() {
+    public void testInitials_defaultDelimiters_extractsInitials() {
         assertNull(WordUtils.initials(null));
         assertEquals("", WordUtils.initials(""));
-        assertEquals("", WordUtils.initials("Ben John Lee", new char[0]));
         assertEquals("BJL", WordUtils.initials("Ben John Lee"));
         assertEquals("BJ", WordUtils.initials("Ben J.Lee"));
+    }
+
+    // Tests initials with custom delimiters and empty delimiters
+    @Test
+    public void testInitials_customDelimiters_extractsInitials() {
         assertEquals("BJL", WordUtils.initials("Ben J.Lee", new char[]{' ', '.'}));
+        assertEquals("", WordUtils.initials("Ben John Lee", new char[0]));
+        assertEquals("BJL", WordUtils.initials("Ben John Lee", (char[]) null));
     }
 
-    // Tests abbreviate with null and empty string input
+    // Tests abbreviate with null and empty string
     @Test
-    public void testAbbreviate_nullOrEmptyInput_returnsInput() {
-        assertNull(WordUtils.abbreviate(null, 0, 10, "..."));
-        assertEquals("", WordUtils.abbreviate("", 0, 10, "..."));
+    public void testAbbreviate_nullAndEmpty_returnsCorrectValue() {
+        assertNull(WordUtils.abbreviate(null, 1, -1, ""));
+        assertEquals("", WordUtils.abbreviate("", 0, 10, ""));
     }
 
-    // Tests abbreviate when no abbreviation is needed
+    // Tests abbreviate normal cases
     @Test
-    public void testAbbreviate_noAbbreviationNeeded_returnsOriginalString() {
-        assertEquals("Hello World", WordUtils.abbreviate("Hello World", -1, -1, "..."));
-        assertEquals("Hello World", WordUtils.abbreviate("Hello World", 0, 20, "..."));
-        assertEquals("Hello World", WordUtils.abbreviate("Hello World", 0, 11, "..."));
+    public void testAbbreviate_normalCase_abbreviatesAtSpace() {
+        assertEquals("01234 6", WordUtils.abbreviate("01234 6789", 0, 10, null));
+        assertEquals("01234", WordUtils.abbreviate("01234 6789", 0, 5, null));
+        assertEquals("01234...", WordUtils.abbreviate("01234 6789", 5, 10, "..."));
+        assertEquals("012", WordUtils.abbreviate("012 456", 2, 2, null));
     }
 
-    // Tests abbreviate when space is found between lower and upper
+    // Tests abbreviate upper limit greater than length and no space
     @Test
-    public void testAbbreviate_spaceWithinRange_abbreviatesAtSpace() {
-        assertEquals("Hello...", WordUtils.abbreviate("Hello World", 0, 10, "..."));
-        assertEquals("Hello", WordUtils.abbreviate("Hello World", 0, 10, null));
+    public void testAbbreviate_noSpaceAndUpperNoLimit_returnsSubstrings() {
+        assertEquals("0123456789", WordUtils.abbreviate("0123456789", 0, -1, null));
+        assertEquals("01234", WordUtils.abbreviate("0123456789", 0, 5, null));
+        assertEquals("01234...", WordUtils.abbreviate("0123456789", 0, 5, "..."));
     }
 
-    // Tests abbreviate when no space is found or space is beyond upper limit
+    // Tests abbreviate when lower limit exceeds string length (Lang-45 defect)
     @Test
-    public void testAbbreviate_noSpaceWithinRange_abbreviatesAtUpper() {
-        assertEquals("Hello...", WordUtils.abbreviate("HelloWorldLongString", 0, 5, "..."));
-        assertEquals("Hello Wor...", WordUtils.abbreviate("Hello World Again", 8, 9, "..."));
+    public void testAbbreviate_lowerGreaterThanLength_doesNotThrowIndexOutOfBoundsException() {
+        assertEquals("0123456789", WordUtils.abbreviate("0123456789", 15, -1, ""));
+        assertEquals("0123456789", WordUtils.abbreviate("0123456789", 15, 10, ""));
     }
 
-    // Tests abbreviate boundary conditions where lower > length or upper < lower (Defects4J Lang-45)
+    // Tests abbreviate when upper limit is lower than lower limit
     @Test
-    public void testAbbreviate_lowerGreaterThanLength_handlesOutOfBounds() {
-        assertEquals("0123456789", WordUtils.abbreviate("0123456789", 15, 20, null));
-        assertEquals("0123456789", WordUtils.abbreviate("0123456789", 15, -1, null));
-        assertEquals("01234...", WordUtils.abbreviate("0123456789", 5, 2, "..."));
+    public void testAbbreviate_upperLessThanLower_adjustsUpperToLower() {
+        assertEquals("01234", WordUtils.abbreviate("0123456789", 5, 2, null));
+    }
+
+    // Tests abbreviate when lower is negative
+    @Test
+    public void testAbbreviate_negativeLower_adjustedToZero() {
+        assertEquals("01234", WordUtils.abbreviate("01234 56789", -5, 5, null));
     }
 }

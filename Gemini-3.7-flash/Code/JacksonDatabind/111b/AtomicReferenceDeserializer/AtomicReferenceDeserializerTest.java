@@ -1,10 +1,8 @@
 package com.fasterxml.jackson.databind.deser.std;
 
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.junit.Before;
 import org.junit.Test;
-
 import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -13,219 +11,200 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.deser.ValueInstantiator;
+import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import com.fasterxml.jackson.databind.util.AccessPattern;
 
 public class AtomicReferenceDeserializerTest {
 
     private AtomicReferenceDeserializer deserializer;
-    private JavaType fullType;
-
-    static class Bean {
-        public AtomicReference<String> ref;
-    }
+    private JavaType javaType;
 
     @Before
     public void setUp() {
-        fullType = TypeFactory.defaultInstance().constructType(new TypeReference<AtomicReference<String>>() {});
-        deserializer = new AtomicReferenceDeserializer(fullType, null, null, null);
+        javaType = TypeFactory.defaultInstance().constructType(AtomicReference.class);
+        deserializer = new AtomicReferenceDeserializer(javaType, null, null, null);
     }
 
-    // Tests referenceValue with a non-null content
+    // Tests referenceValue with valid non-null contents
     @Test
-    public void testReferenceValue_nonNullContent_returnsAtomicReferenceContainingValue() {
-        String content = "testValue";
+    public void testReferenceValue_validObject_returnsAtomicReference() {
+        String content = "testString";
         AtomicReference<Object> ref = deserializer.referenceValue(content);
-
         assertNotNull(ref);
         assertEquals(content, ref.get());
     }
 
     // Tests referenceValue with null content
     @Test
-    public void testReferenceValue_nullContent_returnsAtomicReferenceContainingNull() {
+    public void testReferenceValue_nullObject_returnsAtomicReferenceWithNull() {
         AtomicReference<Object> ref = deserializer.referenceValue(null);
-
         assertNotNull(ref);
         assertNull(ref.get());
     }
 
-    // Tests getReferenced with a reference containing a non-null value
+    // Tests getReferenced with valid content inside AtomicReference
     @Test
-    public void testGetReferenced_nonNullValue_returnsContainedValue() {
-        AtomicReference<Object> ref = new AtomicReference<Object>("innerContent");
+    public void testGetReferenced_validReference_returnsContainedObject() {
+        Integer content = 12345;
+        AtomicReference<Object> ref = new AtomicReference<Object>(content);
         Object result = deserializer.getReferenced(ref);
-
-        assertEquals("innerContent", result);
+        assertEquals(content, result);
     }
 
-    // Tests getReferenced with a reference containing null
+    // Tests getReferenced when AtomicReference contains null
     @Test
-    public void testGetReferenced_nullValue_returnsNull() {
+    public void testGetReferenced_nullContainingReference_returnsNull() {
         AtomicReference<Object> ref = new AtomicReference<Object>(null);
         Object result = deserializer.getReferenced(ref);
-
         assertNull(result);
     }
 
-    // Tests updateReference with a non-null new content
+    // Tests updateReference updating the content of the reference and returning the same reference
     @Test
-    public void testUpdateReference_nonNullContent_updatesAndReturnsSameReference() {
-        AtomicReference<Object> ref = new AtomicReference<Object>("oldValue");
-        AtomicReference<Object> result = deserializer.updateReference(ref, "newValue");
+    public void testUpdateReference_validObject_updatesAndReturnsSameInstance() {
+        AtomicReference<Object> ref = new AtomicReference<Object>("initial");
+        String updatedContent = "updated";
+        AtomicReference<Object> result = deserializer.updateReference(ref, updatedContent);
 
         assertSame(ref, result);
-        assertEquals("newValue", result.get());
+        assertEquals(updatedContent, result.get());
     }
 
-    // Tests updateReference with null new content
+    // Tests updateReference with null content
     @Test
-    public void testUpdateReference_nullContent_updatesReferenceToNull() {
-        AtomicReference<Object> ref = new AtomicReference<Object>("oldValue");
+    public void testUpdateReference_nullContent_updatesToNullAndReturnsSameInstance() {
+        AtomicReference<Object> ref = new AtomicReference<Object>("initial");
         AtomicReference<Object> result = deserializer.updateReference(ref, null);
 
         assertSame(ref, result);
         assertNull(result.get());
     }
 
-    // Tests supportsUpdate with null config
+    // Tests supportsUpdate method returns Boolean.TRUE
     @Test
     public void testSupportsUpdate_nullConfig_returnsTrue() {
-        Boolean supported = deserializer.supportsUpdate((DeserializationConfig) null);
-
-        assertEquals(Boolean.TRUE, supported);
+        Boolean result = deserializer.supportsUpdate((DeserializationConfig) null);
+        assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests supportsUpdate with real DeserializationConfig
+    // Tests getNullValue with null context
     @Test
-    public void testSupportsUpdate_withConfig_returnsTrue() {
-        ObjectMapper mapper = new ObjectMapper();
-        Boolean supported = deserializer.supportsUpdate(mapper.getDeserializationConfig());
-
-        assertEquals(Boolean.TRUE, supported);
-    }
-
-    // Tests getNullValue returns an empty AtomicReference
-    @Test
-    public void testGetNullValue_returnsAtomicReference() throws Exception {
+    public void testGetNullValue_nullContext_returnsEmptyAtomicReference() throws Exception {
         AtomicReference<Object> nullValue = deserializer.getNullValue((DeserializationContext) null);
-
         assertNotNull(nullValue);
         assertNull(nullValue.get());
     }
 
-    // Tests getEmptyValue returns an empty AtomicReference
+    // Tests getNullValue with actual DeserializationContext
     @Test
-    public void testGetEmptyValue_returnsAtomicReference() throws Exception {
-        Object emptyValue = deserializer.getEmptyValue((DeserializationContext) null);
+    public void testGetNullValue_withContext_returnsEmptyAtomicReference() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+        AtomicReference<Object> nullValue = deserializer.getNullValue(ctxt);
+        assertNotNull(nullValue);
+        assertNull(nullValue.get());
+    }
 
+    // Tests getEmptyValue with null context
+    @Test
+    public void testGetEmptyValue_nullContext_returnsEmptyAtomicReference() {
+        Object emptyValue = deserializer.getEmptyValue((DeserializationContext) null);
         assertNotNull(emptyValue);
-        assertTrue(emptyValue instanceof AtomicReference);
+        assertTrue(emptyValue instanceof AtomicReference<?>);
         assertNull(((AtomicReference<?>) emptyValue).get());
     }
 
-    // Tests withResolved creates a new deserializer instance
+    // Tests getEmptyValue with actual DeserializationContext
     @Test
-    public void testWithResolved_validParameters_returnsNewInstance() {
-        AtomicReferenceDeserializer resolved = deserializer.withResolved(null, null);
-
-        assertNotNull(resolved);
-        assertNotSame(deserializer, resolved);
-    }
-
-    // Tests full deserialization with normal string content
-    @Test
-    public void testDeserialize_normalStringContent_deserializesCorrectly() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        AtomicReference<String> result = mapper.readValue("\"hello world\"", new TypeReference<AtomicReference<String>>() {});
-
-        assertNotNull(result);
-        assertEquals("hello world", result.get());
-    }
-
-    // Tests full deserialization with null JSON token
-    @Test
-    public void testDeserialize_nullJsonToken_deserializesToAtomicReference() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        AtomicReference<String> result = mapper.readValue("null", new TypeReference<AtomicReference<String>>() {});
-
-        assertNull(result);
-    }
-
-    // Tests full deserialization with null value in JSON string format
-    @Test
-    public void testDeserialize_wrappedNullString_deserializesCorrectly() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        AtomicReference<String> result = mapper.readValue("null", new TypeReference<AtomicReference<String>>() {});
-
-        assertNull(result);
-    }
-
-    // Tests getNullAccessPattern returns an AccessPattern instance
-    @Test
-    public void testGetNullAccessPattern() {
-        AccessPattern pattern = deserializer.getNullAccessPattern();
-
-        assertNotNull(pattern);
-    }
-
-    // Tests getEmptyAccessPattern returns an AccessPattern instance
-    @Test
-    public void testGetEmptyAccessPattern() {
-        AccessPattern pattern = deserializer.getEmptyAccessPattern();
-
-        assertNotNull(pattern);
-    }
-
-    // Tests getNullValue and getEmptyValue when resolved with a value deserializer
-    @Test
-    public void testGetNullAndEmptyValue_withValueDeserializer() throws Exception {
+    public void testGetEmptyValue_withContext_returnsEmptyAtomicReference() {
         ObjectMapper mapper = new ObjectMapper();
         DeserializationContext ctxt = mapper.getDeserializationContext();
-        JsonDeserializer<?> strDeser = mapper.deserializationConfig().findRootValueDeserializer(
-                TypeFactory.defaultInstance().constructType(String.class));
-
-        AtomicReferenceDeserializer resolved = deserializer.withResolved(null, strDeser);
-
-        AtomicReference<Object> nullVal = resolved.getNullValue(ctxt);
-        assertNotNull(nullVal);
-        assertNull(nullVal.get());
-
-        Object emptyVal = resolved.getEmptyValue(ctxt);
-        assertNotNull(emptyVal);
-        assertTrue(emptyVal instanceof AtomicReference);
-        assertNull(((AtomicReference<?>) emptyVal).get());
+        Object emptyValue = deserializer.getEmptyValue(ctxt);
+        assertNotNull(emptyValue);
+        assertTrue(emptyValue instanceof AtomicReference<?>);
+        assertNull(((AtomicReference<?>) emptyValue).get());
     }
 
-    // Tests deserialization inside a POJO bean
+    // Tests withResolved creating a new instance
     @Test
-    public void testDeserialize_inBean() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        Bean bean = mapper.readValue("{\"ref\":\"abc\"}", Bean.class);
-
-        assertNotNull(bean);
-        assertNotNull(bean.ref);
-        assertEquals("abc", bean.ref.get());
+    public void testWithResolved_nullParams_returnsNewInstance() {
+        AtomicReferenceDeserializer newDeser = deserializer.withResolved(null, null);
+        assertNotNull(newDeser);
+        assertNotSame(deserializer, newDeser);
     }
 
-    // Tests deserialization inside a POJO bean with null value
+    // Tests withResolved preserving type and behavior
     @Test
-    public void testDeserialize_inBean_nullValue() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        Bean bean = mapper.readValue("{\"ref\":null}", Bean.class);
-
-        assertNotNull(bean);
-        assertNull(bean.ref);
+    public void testWithResolved_customDeser_createsInstanceWithUpdatedBehavior() {
+        JsonDeserializer<?> mockDeser = new AtomicReferenceDeserializer(javaType, null, null, null);
+        AtomicReferenceDeserializer newDeser = deserializer.withResolved(null, mockDeser);
+        assertNotNull(newDeser);
+        
+        AtomicReference<Object> ref = newDeser.referenceValue("test");
+        assertNotNull(ref);
+        assertEquals("test", ref.get());
     }
 
-    // Tests deserialization via readerForUpdating
+    // Tests constructor with all null parameters
     @Test
-    public void testDeserialize_readerForUpdating() throws Exception {
+    public void testConstructor_allNullParams_initializesProperly() {
+        AtomicReferenceDeserializer deser = new AtomicReferenceDeserializer(null, null, null, null);
+        assertNotNull(deser);
+        assertNull(deser.getValueType());
+        
+        AtomicReference<Object> ref = deser.referenceValue(100);
+        assertEquals(100, ref.get());
+    }
+
+    // Tests getAbsentValue with null context
+    @Test
+    public void testGetAbsentValue_nullContext_returnsNull() {
+        Object absentValue = deserializer.getAbsentValue(null);
+        assertNull(absentValue);
+    }
+
+    // Tests getAbsentValue with DeserializationContext
+    @Test
+    public void testGetAbsentValue_withContext_returnsNull() {
         ObjectMapper mapper = new ObjectMapper();
-        AtomicReference<String> ref = new AtomicReference<String>("initial");
-        AtomicReference<String> result = mapper.readerForUpdating(ref).readValue("\"updated\"");
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+        Object absentValue = deserializer.getAbsentValue(ctxt);
+        assertNull(absentValue);
+    }
+
+    // Tests end-to-end deserialization from JSON string to AtomicReference
+    @Test
+    public void testEndToEndDeserialization_stringContent() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        AtomicReference<String> result = mapper.readValue(
+            "\"Hello World\"",
+            new TypeReference<AtomicReference<String>>() {}
+        );
+        assertNotNull(result);
+        assertEquals("Hello World", result.get());
+    }
+
+    // Tests end-to-end deserialization from JSON null to AtomicReference
+    @Test
+    public void testEndToEndDeserialization_nullContent() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        AtomicReference<String> result = mapper.readValue(
+            "null",
+            new TypeReference<AtomicReference<String>>() {}
+        );
+        assertNotNull(result);
+        assertNull(result.get());
+    }
+
+    // Tests end-to-end deserialization updating existing AtomicReference instance
+    @Test
+    public void testEndToEndDeserialization_updatingExistingInstance() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        AtomicReference<String> ref = new AtomicReference<String>("initialValue");
+        AtomicReference<String> result = mapper.readerForUpdating(ref).readValue("\"updatedValue\"");
 
         assertSame(ref, result);
-        assertEquals("updated", result.get());
+        assertEquals("updatedValue", result.get());
     }
 }

@@ -4,15 +4,11 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.Currency;
 import java.util.Locale;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -21,7 +17,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 
 public class JdkDeserializersTest {
 
-    // Tests instantiation of the container class
+    // Tests default constructor instantiation
     @Test
     public void testConstructor_default_instanceCreated() {
         JdkDeserializers deserializers = new JdkDeserializers();
@@ -30,10 +26,10 @@ public class JdkDeserializersTest {
 
     // Tests finding deserializer for UUID
     @Test
-    public void testFind_uuidType_returnsUuidDeserializer() {
+    public void testFind_uuidType_returnsUUIDDeserializer() {
         JsonDeserializer<?> deser = JdkDeserializers.find(UUID.class, UUID.class.getName());
         assertNotNull(deser);
-        assertTrue(deser instanceof UUIDDeserializer || deser instanceof FromStringDeserializer);
+        assertTrue(deser instanceof UUIDDeserializer);
     }
 
     // Tests finding deserializer for StackTraceElement
@@ -60,6 +56,14 @@ public class JdkDeserializersTest {
         assertTrue(deser instanceof ByteBufferDeserializer);
     }
 
+    // Tests finding deserializer for File (FromStringDeserializer type)
+    @Test
+    public void testFind_fileType_returnsFromStringDeserializer() {
+        JsonDeserializer<?> deser = JdkDeserializers.find(File.class, File.class.getName());
+        assertNotNull(deser);
+        assertTrue(deser instanceof FromStringDeserializer);
+    }
+
     // Tests finding deserializer for URL (FromStringDeserializer type)
     @Test
     public void testFind_urlType_returnsFromStringDeserializer() {
@@ -72,14 +76,6 @@ public class JdkDeserializersTest {
     @Test
     public void testFind_uriType_returnsFromStringDeserializer() {
         JsonDeserializer<?> deser = JdkDeserializers.find(URI.class, URI.class.getName());
-        assertNotNull(deser);
-        assertTrue(deser instanceof FromStringDeserializer);
-    }
-
-    // Tests finding deserializer for File (FromStringDeserializer type)
-    @Test
-    public void testFind_fileType_returnsFromStringDeserializer() {
-        JsonDeserializer<?> deser = JdkDeserializers.find(File.class, File.class.getName());
         assertNotNull(deser);
         assertTrue(deser instanceof FromStringDeserializer);
     }
@@ -108,60 +104,35 @@ public class JdkDeserializersTest {
         assertTrue(deser instanceof FromStringDeserializer);
     }
 
-    // Tests finding deserializer for InetAddress (FromStringDeserializer type)
+    // Tests finding deserializer for unsupported JDK type
     @Test
-    public void testFind_inetAddressType_returnsFromStringDeserializer() {
-        JsonDeserializer<?> deser = JdkDeserializers.find(InetAddress.class, InetAddress.class.getName());
-        assertNotNull(deser);
-        assertTrue(deser instanceof FromStringDeserializer);
-    }
-
-    // Tests finding deserializer for InetSocketAddress (FromStringDeserializer type)
-    @Test
-    public void testFind_inetSocketAddressType_returnsFromStringDeserializer() {
-        JsonDeserializer<?> deser = JdkDeserializers.find(InetSocketAddress.class, InetSocketAddress.class.getName());
-        assertNotNull(deser);
-        assertTrue(deser instanceof FromStringDeserializer);
-    }
-
-    // Tests finding deserializer for TimeZone (FromStringDeserializer type)
-    @Test
-    public void testFind_timeZoneType_returnsFromStringDeserializer() {
-        JsonDeserializer<?> deser = JdkDeserializers.find(TimeZone.class, TimeZone.class.getName());
-        assertNotNull(deser);
-        assertTrue(deser instanceof FromStringDeserializer);
-    }
-
-    // Tests finding deserializer for Charset (FromStringDeserializer type)
-    @Test
-    public void testFind_charsetType_returnsFromStringDeserializer() {
-        JsonDeserializer<?> deser = JdkDeserializers.find(Charset.class, Charset.class.getName());
-        assertNotNull(deser);
-        assertTrue(deser instanceof FromStringDeserializer);
-    }
-
-    // Tests non-JDK custom/unsupported class returns null
-    @Test
-    public void testFind_unsupportedClass_returnsNull() {
+    public void testFind_unsupportedType_returnsNull() {
         JsonDeserializer<?> deser = JdkDeserializers.find(String.class, String.class.getName());
         assertNull(deser);
     }
 
-    // Tests supported class name with unmatched rawType returns null
+    // Tests finding deserializer for arbitrary non-JDK class
     @Test
-    public void testFind_supportedNameWithMismatchedRawType_returnsNull() {
+    public void testFind_objectType_returnsNull() {
+        JsonDeserializer<?> deser = JdkDeserializers.find(Object.class, Object.class.getName());
+        assertNull(deser);
+    }
+
+    // Tests when class name is not in supported class names set
+    @Test
+    public void testFind_unknownClassName_returnsNull() {
+        JsonDeserializer<?> deser = JdkDeserializers.find(UUID.class, "com.unknown.ClassName");
+        assertNull(deser);
+    }
+
+    // Tests when class name is in supported set but rawType is mismatched
+    @Test
+    public void testFind_mismatchedRawTypeAndClassName_returnsNull() {
         JsonDeserializer<?> deser = JdkDeserializers.find(String.class, UUID.class.getName());
         assertNull(deser);
     }
 
-    // Tests unknown class name returns null
-    @Test
-    public void testFind_unknownClassName_returnsNull() {
-        JsonDeserializer<?> deser = JdkDeserializers.find(UUID.class, "com.example.UnknownClass");
-        assertNull(deser);
-    }
-
-    // Tests null class name returns null
+    // Tests null class name handling
     @Test
     public void testFind_nullClassName_returnsNull() {
         JsonDeserializer<?> deser = JdkDeserializers.find(UUID.class, null);

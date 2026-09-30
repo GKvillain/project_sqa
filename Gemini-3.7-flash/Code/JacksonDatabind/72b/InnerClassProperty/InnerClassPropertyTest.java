@@ -5,241 +5,373 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
-import java.util.List;
 
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyName;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
 import com.fasterxml.jackson.databind.introspect.AnnotatedConstructor;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
-import com.fasterxml.jackson.databind.introspect.AnnotatedParameter;
-import com.fasterxml.jackson.databind.introspect.AnnotationMap;
-import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
-import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.fasterxml.jackson.databind.introspect.TypeResolutionContext;
+import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 
 public class InnerClassPropertyTest {
 
+    // Helper classes for testing inner class construction
     static class Outer {
-        public Inner inner;
-
         public class Inner {
-            public int val;
+            public String value;
             public Inner() { }
         }
+    }
 
+    static class FailingOuter {
         public class FailingInner {
             public FailingInner() {
-                throw new RuntimeException("Instantiate failed");
+                throw new RuntimeException("Instantiation failed intentionally");
             }
         }
-        public FailingInner failingInner;
     }
 
-    // Tests constructor with null AnnotatedConstructor leading to IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_nullAnnotatedConstructor_throwsIllegalArgumentException() {
-        Outer outer = new Outer();
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        InnerClassProperty prop = new InnerClassProperty(createDummyProperty("inner", Outer.Inner.class), ctor);
-        new InnerClassProperty(prop, (AnnotatedConstructor) null);
+    // Dummy SettableBeanProperty for delegation testing
+    static class DummyProperty extends SettableBeanProperty {
+        private static final long serialVersionUID = 1L;
+        private int _index = -1;
+        private Object _assignedValue;
+
+        public DummyProperty(String name, JavaType type) {
+            super(new PropertyName(name), type, null, null);
+        }
+
+        public DummyProperty(DummyProperty src, PropertyName newName) {
+            super(src, newName);
+            this._index = src._index;
+        }
+
+        public DummyProperty(DummyProperty src, JsonDeserializer<?> deser) {
+            super(src, deser);
+            this._index = src._index;
+        }
+
+        @Override
+        public SettableBeanProperty withName(PropertyName newName) {
+            return new DummyProperty(this, newName);
+        }
+
+        @Override
+        public SettableBeanProperty withValueDeserializer(JsonDeserializer<?> deser) {
+            return new DummyProperty(this, deser);
+        }
+
+        @Override
+        public <A extends Annotation> A getAnnotation(Class<A> acls) {
+            return null;
+        }
+
+        @Override
+        public AnnotatedMember getMember() {
+            return null;
+        }
+
+        @Override
+        public void deserializeAndSet(JsonParser p, DeserializationContext ctxt, Object instance) { }
+
+        @Override
+        public Object deserializeSetAndReturn(JsonParser p, DeserializationContext ctxt, Object instance) {
+            return instance;
+        }
+
+        @Override
+        public void set(Object instance, Object value) {
+            this._assignedValue = value;
+        }
+
+        @Override
+        public Object setAndReturn(Object instance, Object value) {
+            this._assignedValue = value;
+            return instance;
+        }
+
+        @Override
+        public void assignIndex(int index) {
+            this._index = index;
+        }
+
+        @Override
+        public int getPropertyIndex() {
+            return this._index;
+        }
+
+        public Object getAssignedValue() {
+            return _assignedValue;
+        }
     }
 
-    // Tests withName method creating new instance with updated PropertyName
-    @Test
-    public void testWithName_validPropertyName_returnsNewInstanceWithName() {
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        SettableBeanProperty delegate = createDummyProperty("inner", Outer.Inner.class);
-        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+    // Dummy Deserializer to verify deserialize calls
+    static class DummyDeserializer extends JsonDeserializer<Object> {
+        private Object _nullValue;
+        private boolean _deserializeCalled = false;
+        private boolean _typeDeserializeCalled = false;
 
-        PropertyName newName = new PropertyName("renamedInner");
-        InnerClassProperty result = prop.withName(newName);
+        public DummyDeserializer(Object nullValue) {
+            this._nullValue = nullValue;
+        }
 
-        assertNotNull(result);
-        assertNotSame(prop, result);
-        assertEquals("renamedInner", result.getName());
-    }
+        @Override
+        public Object deserialize(JsonParser p, DeserializationContext ctxt) {
+            _deserializeCalled = true;
+            return "deserialized";
+        }
 
-    // Tests withValueDeserializer method creating new instance with updated deserializer
-    @Test
-    public void testWithValueDeserializer_validDeserializer_returnsNewInstanceWithDeserializer() {
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        SettableBeanProperty delegate = createDummyProperty("inner", Outer.Inner.class);
-        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
-
-        JsonDeserializer<Object> newDeser = new JsonDeserializer<Object>() {
-            @Override
-            public Object deserialize(JsonParser p, DeserializationContext ctxt) {
-                return null;
+        @Override
+        public Object deserialize(JsonParser p, DeserializationContext ctxt, Object intoValue) {
+            _deserializeCalled = true;
+            if (intoValue instanceof Outer.Inner) {
+                ((Outer.Inner) intoValue).value = "deserializedValue";
             }
-        };
+            return intoValue;
+        }
 
-        InnerClassProperty result = prop.withValueDeserializer(newDeser);
-        assertNotNull(result);
-        assertNotSame(prop, result);
-        assertSame(newDeser, result.getValueDeserializer());
+        @Override
+        public Object deserializeWithType(JsonParser p, DeserializationContext ctxt, TypeDeserializer typeDeserializer) {
+            _typeDeserializeCalled = true;
+            return "typedValue";
+        }
+
+        @Override
+        public Object getNullValue(DeserializationContext ctxt) {
+            return _nullValue;
+        }
     }
 
-    // Tests index assignment and retrieval delegation
+    // Tests construction and delegation of metadata methods
     @Test
-    public void testAssignIndex_validIndex_delegatesCorrectly() {
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        SettableBeanProperty delegate = createDummyProperty("inner", Outer.Inner.class);
+    public void testConstructor_validDelegate_initializesCorrectly() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
+
         InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
 
+        assertEquals("inner", prop.getName());
+        assertNull(prop.getAnnotation(Override.class));
+        assertNull(prop.getMember());
+    }
+
+    // Tests index assignment delegation
+    @Test
+    public void testAssignIndex_validIndex_delegatesToProperty() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
+
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
         prop.assignIndex(5);
+
         assertEquals(5, prop.getPropertyIndex());
     }
 
-    // Tests getAnnotation delegation to delegate property
+    // Tests withName copy method
     @Test
-    public void testGetAnnotation_nullAnnotation_returnsNull() {
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        SettableBeanProperty delegate = createDummyProperty("inner", Outer.Inner.class);
-        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+    public void testWithName_newName_createsCopyWithName() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
 
-        assertNull(prop.getAnnotation(Deprecated.class));
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+        InnerClassProperty renamedProp = prop.withName(new PropertyName("newInner"));
+
+        assertEquals("newInner", renamedProp.getName());
+        assertEquals("inner", prop.getName());
     }
 
-    // Tests getMember delegation to delegate property
+    // Tests withValueDeserializer copy method
     @Test
-    public void testGetMember_existingDelegate_returnsMember() {
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        SettableBeanProperty delegate = createDummyProperty("inner", Outer.Inner.class);
-        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+    public void testWithValueDeserializer_newDeserializer_createsCopy() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
 
-        AnnotatedMember member = prop.getMember();
-        assertNotNull(member);
-        assertEquals("inner", member.getName());
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+        DummyDeserializer deser = new DummyDeserializer("nullVal");
+        InnerClassProperty deserProp = prop.withValueDeserializer(deser);
+
+        assertNotNull(deserProp.getValueDeserializer());
+        assertEquals(deser, deserProp.getValueDeserializer());
     }
 
-    // Tests set and setAndReturn delegation
+    // Tests set and setAndReturn methods
     @Test
-    public void testSetAndReturn_validInstanceAndValue_setsAndReturnsInstance() throws IOException {
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        SettableBeanProperty delegate = createDummyProperty("inner", Outer.Inner.class);
+    public void testSetAndReturn_validInstance_delegatesCorrectly() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
+
         InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+        Outer outer = new Outer();
+        Object value = outer.new Inner();
+
+        prop.set(outer, value);
+        assertEquals(value, delegate.getAssignedValue());
+
+        Object returned = prop.setAndReturn(outer, value);
+        assertEquals(outer, returned);
+        assertEquals(value, delegate.getAssignedValue());
+    }
+
+    // Tests deserializeAndSet when token is VALUE_NULL
+    @Test
+    public void testDeserializeAndSet_tokenNull_setsNullValue() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
+
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+        DummyDeserializer deser = new DummyDeserializer("customNull");
+        prop = prop.withValueDeserializer(deser);
+
+        JsonParser parser = mapper.getFactory().createParser("null");
+        parser.nextToken(); // position to VALUE_NULL
+        DeserializationContext ctxt = mapper.getDeserializationContext();
 
         Outer outer = new Outer();
-        Outer.Inner innerVal = outer.new Inner();
-        innerVal.val = 42;
+        prop.deserializeAndSet(parser, ctxt, outer);
 
-        Object returned = prop.setAndReturn(outer, innerVal);
-        assertSame(outer, returned);
-        assertSame(innerVal, outer.inner);
+        assertEquals("customNull", delegate.getAssignedValue());
     }
 
-    // Tests writeReplace when _annotated is null creates new instance with AnnotatedConstructor
+    // Tests normal deserializeAndSet instantiating inner class
     @Test
-    public void testWriteReplace_annotatedIsNull_createsAnnotatedConstructorInstance() {
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        SettableBeanProperty delegate = createDummyProperty("inner", Outer.Inner.class);
-        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+    public void testDeserializeAndSet_normalCase_instantiatesInnerClass() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
 
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+        DummyDeserializer deser = new DummyDeserializer(null);
+        prop = prop.withValueDeserializer(deser);
+
+        JsonParser parser = mapper.getFactory().createParser("{}");
+        parser.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        Outer outer = new Outer();
+        prop.deserializeAndSet(parser, ctxt, outer);
+
+        assertTrue(deser._deserializeCalled);
+        assertNotNull(delegate.getAssignedValue());
+        assertTrue(delegate.getAssignedValue() instanceof Outer.Inner);
+        assertEquals("deserializedValue", ((Outer.Inner) delegate.getAssignedValue()).value);
+    }
+
+    // Tests deserializeAndSet exception handling during inner class creation
+    @Test(expected = IllegalArgumentException.class)
+    public void testDeserializeAndSet_instantiationThrows_unwrapsAndThrowsIAE() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(FailingOuter.FailingInner.class);
+        DummyProperty delegate = new DummyProperty("failingInner", type);
+        Constructor<?> ctor = FailingOuter.FailingInner.class.getConstructor(FailingOuter.class);
+
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+        DummyDeserializer deser = new DummyDeserializer(null);
+        prop = prop.withValueDeserializer(deser);
+
+        JsonParser parser = mapper.getFactory().createParser("{}");
+        parser.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        FailingOuter outer = new FailingOuter();
+        prop.deserializeAndSet(parser, ctxt, outer);
+    }
+
+    // Tests deserializeSetAndReturn
+    @Test
+    public void testDeserializeSetAndReturn_validInstance_deserializesAndReturns() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
+
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+        DummyDeserializer deser = new DummyDeserializer(null);
+        prop = prop.withValueDeserializer(deser);
+
+        JsonParser parser = mapper.getFactory().createParser("{}");
+        parser.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        Outer outer = new Outer();
+        Object result = prop.deserializeSetAndReturn(parser, ctxt, outer);
+
+        assertEquals(outer, result);
+        assertEquals("deserialized", delegate.getAssignedValue());
+    }
+
+    // Tests JDK serialization readResolve and writeReplace
+    @Test
+    public void testWriteReplaceAndReadResolve_serializationLifecycle() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
+
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
         Object replaced = prop.writeReplace();
-        assertNotNull(replaced);
         assertTrue(replaced instanceof InnerClassProperty);
-        assertNotSame(prop, replaced);
-    }
 
-    // Tests writeReplace when _annotated is already set returns self
-    @Test
-    public void testWriteReplace_annotatedIsNotNull_returnsSelf() {
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        SettableBeanProperty delegate = createDummyProperty("inner", Outer.Inner.class);
-        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+        // writeReplace again when _annotated is already set
+        InnerClassProperty replacedProp = (InnerClassProperty) replaced;
+        assertSame(replacedProp, replacedProp.writeReplace());
 
-        InnerClassProperty replaced = (InnerClassProperty) prop.writeReplace();
-        assertSame(replaced, replaced.writeReplace());
-    }
-
-    // Tests readResolve returns a new InnerClassProperty instance
-    @Test
-    public void testReadResolve_validAnnotated_returnsNewInstance() {
-        Constructor<?> ctor = Outer.Inner.class.getDeclaredConstructors()[0];
-        SettableBeanProperty delegate = createDummyProperty("inner", Outer.Inner.class);
-        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
-
-        InnerClassProperty prepProp = (InnerClassProperty) prop.writeReplace();
-        Object resolved = prepProp.readResolve();
-
-        assertNotNull(resolved);
+        Object resolved = replacedProp.readResolve();
         assertTrue(resolved instanceof InnerClassProperty);
     }
 
-    // Tests deserializeAndSet handles VALUE_NULL token branch
-    @Test
-    public void testDeserializeAndSet_nullToken_setsNullValue() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        Outer result = mapper.readValue("{\"inner\": null}", Outer.class);
-        assertNotNull(result);
-        assertNull(result.inner);
-    }
-
-    // Tests deserializeAndSet regular inner class instantiation and population
-    @Test
-    public void testDeserializeAndSet_validJson_instantiatesAndPopulatesInnerClass() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        Outer result = mapper.readValue("{\"inner\": {\"val\": 99}}", Outer.class);
-        assertNotNull(result);
-        assertNotNull(result.inner);
-        assertEquals(99, result.inner.val);
-    }
-
-    // Tests deserializeAndSet throws IllegalArgumentException on instantiation failure
+    // Tests serialization constructor with missing constructor throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testDeserializeAndSet_instantiationFails_throwsIllegalArgumentException() throws Exception {
+    public void testSerializationConstructor_missingConstructor_throwsException() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.readValue("{\"failingInner\": {}}", Outer.class);
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
+
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+        new InnerClassProperty(prop, (AnnotatedConstructor) null);
     }
 
-    // Helper method to create a delegate SettableBeanProperty using ObjectMapper
-    private SettableBeanProperty createDummyProperty(String propName, Class<?> propClass) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JavaType outerType = TypeFactory.defaultInstance().constructType(Outer.class);
-            List<BeanPropertyDefinition> props = mapper.deserializationConfig()
-                    .introspect(outerType)
-                    .findProperties();
-            for (BeanPropertyDefinition propDef : props) {
-                if (propDef.getName().equals(propName)) {
-                    JavaType propType = TypeFactory.defaultInstance().constructType(propClass);
-                    return MethodProperty.construct(
-                            mapper.getDeserializationContext(),
-                            propDef,
-                            propType,
-                            null,
-                            0
-                    );
-                }
-            }
-            JavaType propType = TypeFactory.defaultInstance().constructType(propClass);
-            return new MethodProperty(
-                    new PropertyName(propName),
-                    propType,
-                    null,
-                    null,
-                    new AnnotationMap(),
-                    null
-            );
-        } catch (Exception e) {
-            JavaType propType = TypeFactory.defaultInstance().constructType(propClass);
-            return new MethodProperty(
-                    new PropertyName(propName),
-                    propType,
-                    null,
-                    null,
-                    new AnnotationMap(),
-                    null
-            );
-        }
+    // Tests JDK serialization full round-trip
+    @Test
+    public void testJdkSerialization_fullRoundTrip_preservesProperty() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        JavaType type = mapper.constructType(Outer.Inner.class);
+        DummyProperty delegate = new DummyProperty("inner", type);
+        Constructor<?> ctor = Outer.Inner.class.getConstructor(Outer.class);
+
+        InnerClassProperty prop = new InnerClassProperty(delegate, ctor);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(prop);
+        oos.close();
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        Object deserialized = ois.readObject();
+
+        assertTrue(deserialized instanceof InnerClassProperty);
+        InnerClassProperty deserializedProp = (InnerClassProperty) deserialized;
+        assertEquals("inner", deserializedProp.getName());
     }
 }

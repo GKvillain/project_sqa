@@ -3,7 +3,7 @@ package com.fasterxml.jackson.databind.deser.impl;
 import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.reflect.Method;
+import java.util.Collections;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -20,281 +20,257 @@ import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 public class MethodPropertyTest {
 
     @Retention(RetentionPolicy.RUNTIME)
-    @interface CustomAnnotation {
-        String value() default "test";
+    @interface CustomAnno {
+        String value() default "";
     }
 
-    static class SimpleBean {
-        private String value;
-        private String returnValue;
+    static class TestBean {
+        private String text;
+        private String returnText;
 
-        @CustomAnnotation("custom")
-        public void setValue(String value) {
-            this.value = value;
+        @CustomAnno("custom")
+        public void setText(String text) {
+            this.text = text;
         }
 
-        public String getValue() {
-            return value;
+        public String getText() {
+            return text;
         }
 
-        public SimpleBean setAndReturnSelf(String value) {
-            this.returnValue = value;
+        public TestBean setReturnText(String returnText) {
+            this.returnText = returnText;
             return this;
         }
 
-        public void throwException(String value) {
-            throw new IllegalArgumentException("Forced error: " + value);
+        public String getReturnText() {
+            return returnText;
+        }
+
+        public void setFail(String val) {
+            throw new IllegalArgumentException("Simulated setter error: " + val);
+        }
+
+        public String getFail() {
+            return "";
         }
     }
 
-    private ObjectMapper mapper;
-    private MethodProperty methodProperty;
-    private BeanPropertyDefinition propDef;
-    private AnnotatedMethod annotatedMethod;
+    private ObjectMapper _mapper;
+    private DeserializationContext _context;
 
     @Before
     public void setUp() {
-        mapper = new ObjectMapper();
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDescription desc = mapper.getDeserializationConfig().introspect(type);
-        for (BeanPropertyDefinition prop : desc.findProperties()) {
-            if ("value".equals(prop.getName())) {
-                propDef = prop;
+        _mapper = new ObjectMapper();
+        _context = _mapper.getDeserializationContext();
+    }
+
+    private MethodProperty _createMethodProperty(String propName, Class<?> beanClass) throws Exception {
+        JavaType beanType = _mapper.constructType(beanClass);
+        BeanDescription beanDesc = _mapper.getDeserializationConfig().introspect(beanType);
+        BeanPropertyDefinition targetDef = null;
+        for (BeanPropertyDefinition prop : beanDesc.findProperties()) {
+            if (propName.equals(prop.getName())) {
+                targetDef = prop;
                 break;
             }
         }
-        annotatedMethod = propDef.getSetter();
-        methodProperty = new MethodProperty(propDef, propDef.getPrimaryType(), null,
-                desc.getClassAnnotations(), annotatedMethod);
+        assertNotNull("Property definition not found for: " + propName, targetDef);
+        AnnotatedMethod setter = targetDef.getSetter();
+        JavaType type = setter.getParameterType(0);
+        MethodProperty prop = new MethodProperty(targetDef, type, null, null, setter);
+        JsonDeserializer<Object> deser = _context.findRootValueDeserializer(type);
+        return (MethodProperty) prop.withValueDeserializer(deser);
     }
 
-    // Tests getter methods for member and annotations
+    // Tests constructor initialization and basic getter members
     @Test
-    public void testGetMemberAndAnnotation_existingAnnotation_returnsMemberAndAnnotation() {
-        assertEquals(annotatedMethod, methodProperty.getMember());
-        CustomAnnotation ann = methodProperty.getAnnotation(CustomAnnotation.class);
-        assertNotNull(ann);
-        assertEquals("custom", ann.value());
-        assertNull(methodProperty.getAnnotation(Override.class));
+    public void testConstructorAndGetters_validInputs_returnsCorrectMembers() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        assertNotNull(prop.getMember());
+        assertEquals("setText", prop.getMember().getName());
+        CustomAnno anno = prop.getAnnotation(CustomAnno.class);
+        assertNotNull(anno);
+        assertEquals("custom", anno.value());
     }
 
-    // Tests withName creates a new copy with the given PropertyName
+    // Tests withName method creating a copy with a new PropertyName
     @Test
-    public void testWithName_newPropertyName_returnsNewInstanceWithNewName() {
-        PropertyName newName = new PropertyName("renamedValue");
-        SettableBeanProperty renamed = methodProperty.withName(newName);
+    public void testWithName_differentName_returnsUpdatedProperty() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        PropertyName newName = new PropertyName("newText");
+        SettableBeanProperty renamed = prop.withName(newName);
 
-        assertNotSame(methodProperty, renamed);
-        assertEquals(newName.getSimpleName(), renamed.getName());
+        assertNotSame(prop, renamed);
+        assertEquals("newText", renamed.getName());
     }
 
-    // Tests withValueDeserializer returns same instance if deserializer is identical
+    // Tests withValueDeserializer identity check and replacement
     @Test
-    public void testWithValueDeserializer_sameDeserializer_returnsSameInstance() {
-        SettableBeanProperty result = methodProperty.withValueDeserializer(methodProperty.getValueDeserializer());
-        assertSame(methodProperty, result);
+    public void testWithValueDeserializer_sameAndDifferentDeser_handlesCorrectly() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        JsonDeserializer<?> currentDeser = prop.getValueDeserializer();
+
+        // Same deserializer should return this
+        SettableBeanProperty same = prop.withValueDeserializer(currentDeser);
+        assertSame(prop, same);
+
+        // Different deserializer returns new instance
+        JsonDeserializer<?> dummyDeser = _context.findRootValueDeserializer(_mapper.constructType(Integer.class));
+        SettableBeanProperty modified = prop.withValueDeserializer(dummyDeser);
+        assertNotSame(prop, modified);
+        assertSame(dummyDeser, modified.getValueDeserializer());
     }
 
-    // Tests withValueDeserializer returns new instance when deserializer changes
+    // Tests withNullProvider creating copy with given NullValueProvider
     @Test
-    public void testWithValueDeserializer_differentDeserializer_returnsNewInstance() throws Exception {
-        JsonDeserializer<?> deser = mapper.getDeserializationContext().findRootValueDeserializer(
-                mapper.constructType(String.class));
-        SettableBeanProperty result = methodProperty.withValueDeserializer(deser);
+    public void testWithNullProvider_customProvider_returnsUpdatedProperty() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        NullValueProvider nva = NullsConstantProvider.skipper();
+        SettableBeanProperty modified = prop.withNullProvider(nva);
 
-        assertNotSame(methodProperty, result);
-        assertSame(deser, result.getValueDeserializer());
+        assertNotSame(prop, modified);
+        assertSame(nva, modified.getNullValueProvider());
     }
 
-    // Tests withNullProvider creates a new copy with the given NullValueProvider
+    // Tests fixAccess without errors
     @Test
-    public void testWithNullProvider_customNullProvider_returnsNewInstance() {
-        NullValueProvider nva = NullsConstantProvider.nuller();
-        SettableBeanProperty result = methodProperty.withNullProvider(nva);
-
-        assertNotSame(methodProperty, result);
-        assertSame(nva, result.getNullValueProvider());
+    public void testFixAccess_validConfig_executesSuccessfully() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        prop.fixAccess(_mapper.getDeserializationConfig());
+        assertNotNull(prop.getMember());
     }
 
-    // Tests fixAccess executes without error
+    // Tests direct set method
     @Test
-    public void testFixAccess_normalConfig_fixesAccessSuccessfully() {
-        methodProperty.fixAccess(mapper.getDeserializationConfig());
-        assertNotNull(methodProperty.getMember());
+    public void testSet_validValue_setsPropertyOnInstance() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        TestBean bean = new TestBean();
+        prop.set(bean, "hello world");
+        assertEquals("hello world", bean.getText());
     }
 
-    // Tests set directly invokes the underlying setter method
-    @Test
-    public void testSet_validValue_updatesTargetInstance() throws Exception {
-        SimpleBean target = new SimpleBean();
-        methodProperty.set(target, "hello");
-        assertEquals("hello", target.getValue());
-    }
-
-    // Tests set handles invocation exception properly
+    // Tests direct set method when setter throws exception
     @Test(expected = JsonMappingException.class)
-    public void testSet_exceptionInSetter_throwsJsonMappingException() throws Exception {
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDescription desc = mapper.getDeserializationConfig().introspect(type);
-        BeanPropertyDefinition errProp = null;
-        for (BeanPropertyDefinition prop : desc.findProperties()) {
-            if ("throwException".equals(prop.getName())) {
-                errProp = prop;
-                break;
-            }
-        }
-        MethodProperty errMp = new MethodProperty(errProp, errProp.getPrimaryType(), null,
-                desc.getClassAnnotations(), errProp.getSetter());
-        SimpleBean target = new SimpleBean();
-        errMp.set(target, "fail");
+    public void testSet_throwingSetter_throwsJsonMappingException() throws Exception {
+        MethodProperty prop = _createMethodProperty("fail", TestBean.class);
+        TestBean bean = new TestBean();
+        prop.set(bean, "failure test");
     }
 
-    // Tests setAndReturn invokes setter and returns target instance
+    // Tests setAndReturn with void return type (returns input instance)
     @Test
-    public void testSetAndReturn_voidMethod_returnsInstance() throws Exception {
-        SimpleBean target = new SimpleBean();
-        Object result = methodProperty.setAndReturn(target, "world");
-        assertSame(target, result);
-        assertEquals("world", target.getValue());
+    public void testSetAndReturn_voidReturnType_returnsInstance() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        TestBean bean = new TestBean();
+        Object result = prop.setAndReturn(bean, "value123");
+        assertSame(bean, result);
+        assertEquals("value123", bean.getText());
     }
 
-    // Tests setAndReturn invokes setter that returns non-null result
+    // Tests setAndReturn with non-void return type (returns setter result)
     @Test
-    public void testSetAndReturn_methodReturningSelf_returnsResult() throws Exception {
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDescription desc = mapper.getDeserializationConfig().introspect(type);
-        BeanPropertyDefinition retProp = null;
-        for (BeanPropertyDefinition prop : desc.findProperties()) {
-            if ("setAndReturnSelf".equals(prop.getName())) {
-                retProp = prop;
-                break;
-            }
-        }
-        MethodProperty retMp = new MethodProperty(retProp, retProp.getPrimaryType(), null,
-                desc.getClassAnnotations(), retProp.getSetter());
-        SimpleBean target = new SimpleBean();
-        Object result = retMp.setAndReturn(target, "chained");
-        assertSame(target, result);
-        assertEquals("chained", target.returnValue);
+    public void testSetAndReturn_nonVoidReturnType_returnsResult() throws Exception {
+        MethodProperty prop = _createMethodProperty("returnText", TestBean.class);
+        TestBean bean = new TestBean();
+        Object result = prop.setAndReturn(bean, "customReturn");
+        assertSame(bean, result);
+        assertEquals("customReturn", bean.getReturnText());
     }
 
-    // Tests setAndReturn handles invocation exception properly
+    // Tests setAndReturn exception handling
     @Test(expected = JsonMappingException.class)
-    public void testSetAndReturn_exceptionInSetter_throwsJsonMappingException() throws Exception {
-        JavaType type = mapper.constructType(SimpleBean.class);
-        BeanDescription desc = mapper.getDeserializationConfig().introspect(type);
-        BeanPropertyDefinition errProp = null;
-        for (BeanPropertyDefinition prop : desc.findProperties()) {
-            if ("throwException".equals(prop.getName())) {
-                errProp = prop;
-                break;
-            }
-        }
-        MethodProperty errMp = new MethodProperty(errProp, errProp.getPrimaryType(), null,
-                desc.getClassAnnotations(), errProp.getSetter());
-        SimpleBean target = new SimpleBean();
-        errMp.setAndReturn(target, "fail");
+    public void testSetAndReturn_throwingSetter_throwsJsonMappingException() throws Exception {
+        MethodProperty prop = _createMethodProperty("fail", TestBean.class);
+        TestBean bean = new TestBean();
+        prop.setAndReturn(bean, "failure test");
     }
 
-    // Tests deserializeAndSet with a regular valid JSON string value
+    // Tests deserializeAndSet with normal token
     @Test
-    public void testDeserializeAndSet_validJsonToken_setsDeserializedValue() throws Exception {
-        JsonDeserializer<?> deser = mapper.getDeserializationContext().findRootValueDeserializer(
-                mapper.constructType(String.class));
-        SettableBeanProperty prop = methodProperty.withValueDeserializer(deser);
+    public void testDeserializeAndSet_normalValue_setsDeserializedValue() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        TestBean bean = new TestBean();
+        JsonParser p = _mapper.createParser("\"deserializedValue\"");
+        p.nextToken();
 
-        JsonParser parser = mapper.getFactory().createParser("\"deserializedValue\"");
-        parser.nextToken();
+        prop.deserializeAndSet(p, _context, bean);
+        p.close();
 
-        SimpleBean target = new SimpleBean();
-        prop.deserializeAndSet(parser, mapper.getDeserializationContext(), target);
-        parser.close();
-
-        assertEquals("deserializedValue", target.getValue());
+        assertEquals("deserializedValue", bean.getText());
     }
 
-    // Tests deserializeAndSet with null token when skipNulls is false
+    // Tests deserializeAndSet with VALUE_NULL token
     @Test
-    public void testDeserializeAndSet_nullTokenNotSkipping_setsNullValue() throws Exception {
-        JsonDeserializer<?> deser = mapper.getDeserializationContext().findRootValueDeserializer(
-                mapper.constructType(String.class));
-        SettableBeanProperty prop = methodProperty.withValueDeserializer(deser)
-                .withNullProvider(NullsConstantProvider.nuller());
+    public void testDeserializeAndSet_nullToken_setsNullValue() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        TestBean bean = new TestBean();
+        bean.setText("initial");
+        JsonParser p = _mapper.createParser("null");
+        p.nextToken();
 
-        JsonParser parser = mapper.getFactory().createParser("null");
-        parser.nextToken();
+        prop.deserializeAndSet(p, _context, bean);
+        p.close();
 
-        SimpleBean target = new SimpleBean();
-        target.setValue("before");
-        prop.deserializeAndSet(parser, mapper.getDeserializationContext(), target);
-        parser.close();
-
-        assertNull(target.getValue());
+        assertNull(bean.getText());
     }
 
-    // Tests deserializeAndSet with null token when skipNulls is true
+    // Tests deserializeAndSet with skipNulls enabled
     @Test
-    public void testDeserializeAndSet_nullTokenSkipping_doesNotModifyTarget() throws Exception {
-        JsonDeserializer<?> deser = mapper.getDeserializationContext().findRootValueDeserializer(
-                mapper.constructType(String.class));
-        SettableBeanProperty prop = methodProperty.withValueDeserializer(deser)
-                .withNullProvider(NullsConstantProvider.skipper());
+    public void testDeserializeAndSet_skipNulls_doesNotModifyValue() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        prop = (MethodProperty) prop.withNullProvider(NullsConstantProvider.skipper());
+        TestBean bean = new TestBean();
+        bean.setText("keepThis");
+        JsonParser p = _mapper.createParser("null");
+        p.nextToken();
 
-        JsonParser parser = mapper.getFactory().createParser("null");
-        parser.nextToken();
+        prop.deserializeAndSet(p, _context, bean);
+        p.close();
 
-        SimpleBean target = new SimpleBean();
-        target.setValue("preserved");
-        prop.deserializeAndSet(parser, mapper.getDeserializationContext(), target);
-        parser.close();
-
-        assertEquals("preserved", target.getValue());
+        assertEquals("keepThis", bean.getText());
     }
 
-    // Tests deserializeSetAndReturn with valid JSON token
+    // Tests deserializeSetAndReturn with normal value
     @Test
-    public void testDeserializeSetAndReturn_validJsonToken_returnsInstance() throws Exception {
-        JsonDeserializer<?> deser = mapper.getDeserializationContext().findRootValueDeserializer(
-                mapper.constructType(String.class));
-        SettableBeanProperty prop = methodProperty.withValueDeserializer(deser);
+    public void testDeserializeSetAndReturn_normalValue_returnsInstance() throws Exception {
+        MethodProperty prop = _createMethodProperty("returnText", TestBean.class);
+        TestBean bean = new TestBean();
+        JsonParser p = _mapper.createParser("\"returnValue\"");
+        p.nextToken();
 
-        JsonParser parser = mapper.getFactory().createParser("\"returnedValue\"");
-        parser.nextToken();
+        Object result = prop.deserializeSetAndReturn(p, _context, bean);
+        p.close();
 
-        SimpleBean target = new SimpleBean();
-        Object result = prop.deserializeSetAndReturn(parser, mapper.getDeserializationContext(), target);
-        parser.close();
-
-        assertSame(target, result);
-        assertEquals("returnedValue", target.getValue());
+        assertSame(bean, result);
+        assertEquals("returnValue", bean.getReturnText());
     }
 
-    // Tests deserializeSetAndReturn with null token when skipNulls is true
+    // Tests deserializeSetAndReturn with null value and skipNulls
     @Test
-    public void testDeserializeSetAndReturn_nullTokenSkipping_returnsInstanceDirectly() throws Exception {
-        JsonDeserializer<?> deser = mapper.getDeserializationContext().findRootValueDeserializer(
-                mapper.constructType(String.class));
-        SettableBeanProperty prop = methodProperty.withValueDeserializer(deser)
-                .withNullProvider(NullsConstantProvider.skipper());
+    public void testDeserializeSetAndReturn_nullValueSkipped_returnsInstanceWithoutSetting() throws Exception {
+        MethodProperty prop = _createMethodProperty("returnText", TestBean.class);
+        prop = (MethodProperty) prop.withNullProvider(NullsConstantProvider.skipper());
+        TestBean bean = new TestBean();
+        bean.setReturnText("preserve");
+        JsonParser p = _mapper.createParser("null");
+        p.nextToken();
 
-        JsonParser parser = mapper.getFactory().createParser("null");
-        parser.nextToken();
+        Object result = prop.deserializeSetAndReturn(p, _context, bean);
+        p.close();
 
-        SimpleBean target = new SimpleBean();
-        target.setValue("skipTest");
-        Object result = prop.deserializeSetAndReturn(parser, mapper.getDeserializationContext(), target);
-        parser.close();
-
-        assertSame(target, result);
-        assertEquals("skipTest", target.getValue());
+        assertSame(bean, result);
+        assertEquals("preserve", bean.getReturnText());
     }
 
-    // Tests readResolve JDK serialization support
+    // Tests readResolve for JDK serialization support
     @Test
-    public void testReadResolve_returnsReconstructedMethodProperty() {
-        Object resolved = methodProperty.readResolve();
+    public void testReadResolve_validProperty_reconstructsMethodProperty() throws Exception {
+        MethodProperty prop = _createMethodProperty("text", TestBean.class);
+        Object resolved = prop.readResolve();
+
         assertNotNull(resolved);
         assertTrue(resolved instanceof MethodProperty);
-        assertEquals(methodProperty.getName(), ((MethodProperty) resolved).getName());
+        MethodProperty resolvedProp = (MethodProperty) resolved;
+        assertEquals(prop.getName(), resolvedProp.getName());
     }
 }

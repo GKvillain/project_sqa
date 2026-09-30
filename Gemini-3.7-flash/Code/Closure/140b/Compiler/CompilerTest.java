@@ -1,20 +1,14 @@
 package com.google.javascript.jscomp;
 
+import com.google.javascript.rhino.Node;
+import com.google.javascript.rhino.Token;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.logging.Level;
 
-import com.google.javascript.rhino.Node;
-import com.google.javascript.rhino.Token;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class CompilerTest {
 
@@ -27,265 +21,299 @@ public class CompilerTest {
     options = new CompilerOptions();
   }
 
-  // Tests basic CodeBuilder append, lineCount, and endsWith functionality
+  // Tests default initialization and initial state
   @Test
-  public void testCodeBuilder_appendAndEndsWith_returnsExpectedResults() {
-    Compiler.CodeBuilder cb = new Compiler.CodeBuilder();
-    cb.append("var x = 1;\nvar y = 2;");
-
-    assertEquals("var x = 1;\nvar y = 2;", cb.toString());
-    assertEquals(21, cb.getLength());
-    assertEquals(1, cb.getLineIndex());
-    assertEquals(10, cb.getColumnIndex());
-    assertTrue(cb.endsWith(";"));
-    assertTrue(cb.endsWith("var y = 2;"));
-    assertFalse(cb.endsWith("x = 1;"));
-  }
-
-  // Tests CodeBuilder reset clearing string buffer but preserving line index
-  @Test
-  public void testCodeBuilder_reset_clearsBuffer() {
-    Compiler.CodeBuilder cb = new Compiler.CodeBuilder();
-    cb.append("line 1\nline 2\n");
-    assertEquals(2, cb.getLineIndex());
-
-    cb.reset();
-    assertEquals("", cb.toString());
-    assertEquals(0, cb.getLength());
-    assertEquals(2, cb.getLineIndex());
-  }
-
-  // Tests parsing test code into an AST node
-  @Test
-  public void testParseTestCode_validCode_returnsScriptNode() {
-    Node node = compiler.parseTestCode("var a = 10;");
-    assertNotNull(node);
-    assertEquals(Token.SCRIPT, node.getType());
+  public void testConstructor_default_initializesCorrectly() {
+    assertNotNull(compiler.getErrorManager());
     assertEquals(0, compiler.getErrorCount());
+    assertEquals(0, compiler.getWarningCount());
+    assertFalse(compiler.hasErrors());
   }
 
-  // Tests parsing synthetic code
+  // Tests custom PrintStream constructor and stream output
   @Test
-  public void testParseSyntheticCode_validCode_returnsAstNode() {
-    Node node = compiler.parseSyntheticCode("synthetic.js", "function foo() { return 1; }");
-    assertNotNull(node);
-    assertEquals(Token.SCRIPT, node.getType());
-    assertEquals(0, compiler.getErrorCount());
+  public void testConstructor_withPrintStream_createsStreamErrorManager() {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    PrintStream ps = new PrintStream(baos);
+    Compiler customCompiler = new Compiler(ps);
+    customCompiler.initOptions(options);
+
+    assertNotNull(customCompiler.getErrorManager());
+    assertEquals(0, customCompiler.getErrorCount());
   }
 
-  // Tests compilation with standard single source input
+  // Tests custom ErrorManager constructor
   @Test
-  public void testCompile_singleFile_successResult() {
+  public void testConstructor_withErrorManager_setsErrorManager() {
+    BasicErrorManager errorManager = new LoggerErrorManager(options.errorFormat.toFormatter(compiler, false), null);
+    Compiler customCompiler = new Compiler(errorManager);
+
+    assertSame(errorManager, customCompiler.getErrorManager());
+  }
+
+  // Tests setting null ErrorManager throws NullPointerException
+  @Test(expected = NullPointerException.class)
+  public void testSetErrorManager_null_throwsException() {
+    compiler.setErrorManager(null);
+  }
+
+  // Tests compiling simple valid JavaScript code
+  @Test
+  public void testCompile_simpleValidCode_returnsSuccessResult() {
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "function alert(x) {}");
     JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 1; alert(x);");
 
     Result result = compiler.compile(extern, input, options);
+
     assertTrue(result.success);
-    assertEquals(0, result.errors.length);
+    assertEquals(0, compiler.getErrorCount());
     assertNotNull(compiler.getRoot());
+    assertNotNull(compiler.jsRoot);
+    assertNotNull(compiler.externsRoot);
   }
 
-  // Tests compilation reporting syntax errors properly
+  // Tests compiling with syntax error in input
   @Test
-  public void testCompile_syntaxError_reportsErrors() {
+  public void testCompile_syntaxError_reportsError() {
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
     JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = ;");
 
     Result result = compiler.compile(extern, input, options);
+
     assertFalse(result.success);
-    assertTrue(result.errors.length > 0);
+    assertTrue(compiler.getErrorCount() > 0);
     assertTrue(compiler.hasErrors());
   }
 
-  // Tests duplicate JS source inputs detection during initialization
+  // Tests parseTestCode returns valid AST node
   @Test
-  public void testInit_duplicateInputs_reportsDuplicateInputError() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input1 = JSSourceFile.fromCode("test.js", "var a = 1;");
-    JSSourceFile input2 = JSSourceFile.fromCode("test.js", "var b = 2;");
+  public void testParseTestCode_validJs_returnsScriptNode() {
+    Node node = compiler.parseTestCode("var a = 10;");
 
-    compiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input1, input2}, options);
-    assertTrue(compiler.hasErrors());
-    assertEquals(1, compiler.getErrorCount());
-    assertEquals(Compiler.DUPLICATE_INPUT, compiler.getErrors()[0].getType());
+    assertNotNull(node);
+    assertEquals(Token.SCRIPT, node.getType());
+    assertEquals(1, node.getChildCount());
   }
 
-  // Tests duplicate externs inputs detection during initialization
+  // Tests parseSyntheticCode with explicit name
   @Test
-  public void testInit_duplicateExterns_reportsDuplicateExternError() {
-    JSSourceFile extern1 = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile extern2 = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("test.js", "var a = 1;");
+  public void testParseSyntheticCode_withName_createsInputAndNode() {
+    Node node = compiler.parseSyntheticCode("synthetic.js", "function foo() {}");
 
-    compiler.init(new JSSourceFile[]{extern1, extern2}, new JSSourceFile[]{input}, options);
-    assertTrue(compiler.hasErrors());
-    assertEquals(1, compiler.getErrorCount());
-    assertEquals(Compiler.DUPLICATE_EXTERN_INPUT, compiler.getErrors()[0].getType());
+    assertNotNull(node);
+    assertEquals(Token.SCRIPT, node.getType());
+    assertNotNull(compiler.getInput("synthetic.js"));
   }
 
-  // Tests modules initialization with an empty module list
+  // Tests disableThreads compiles on current thread
   @Test
-  public void testInit_emptyModules_reportsEmptyModuleListError() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSModule[] modules = new JSModule[0];
-
-    compiler.init(new JSSourceFile[]{extern}, modules, options);
-    assertTrue(compiler.hasErrors());
-    assertEquals(1, compiler.getErrorCount());
-    assertEquals("EMPTY_MODULE_LIST_ERROR", compiler.getErrors()[0].getType().key);
-  }
-
-  // Tests modules initialization when root module contains no inputs
-  @Test
-  public void testInit_emptyRootModule_reportsEmptyRootModuleError() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSModule root = new JSModule("root");
-    JSModule[] modules = new JSModule[]{root};
-
-    compiler.init(new JSSourceFile[]{extern}, modules, options);
-    assertTrue(compiler.hasErrors());
-    assertEquals(1, compiler.getErrorCount());
-    assertEquals("EMPTY_ROOT_MODULE_ERROR", compiler.getErrors()[0].getType().key);
-  }
-
-  // Tests modules initialization with duplicate inputs across modules
-  @Test
-  public void testInit_duplicateInputAcrossModules_reportsError() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile sharedInput = JSSourceFile.fromCode("shared.js", "var x = 1;");
-
-    JSModule mod1 = new JSModule("mod1");
-    mod1.add(sharedInput);
-    JSModule mod2 = new JSModule("mod2");
-    mod2.add(sharedInput);
-
-    compiler.init(new JSSourceFile[]{extern}, new JSModule[]{mod1, mod2}, options);
-    assertTrue(compiler.hasErrors());
-    assertEquals(Compiler.DUPLICATE_INPUT_IN_MODULES, compiler.getErrors()[0].getType());
-  }
-
-  // Tests disableThreads execution path
-  @Test
-  public void testDisableThreads_compileRunsCorrectly() {
+  public void testDisableThreads_compilesCorrectly() {
     compiler.disableThreads();
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var z = 3;");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
 
     Result result = compiler.compile(extern, input, options);
+
+    assertTrue(result.success);
+    assertEquals("var a=1", compiler.toSource().trim());
+  }
+
+  // Tests compiling modules with proper dependencies
+  @Test
+  public void testCompile_validModules_succeeds() {
+    JSModule m1 = new JSModule("m1");
+    m1.add(JSSourceFile.fromCode("m1.js", "var a = 1;"));
+
+    JSModule m2 = new JSModule("m2");
+    m2.add(JSSourceFile.fromCode("m2.js", "var b = a;"));
+    m2.addDependency(m1);
+
+    JSSourceFile[] externs = new JSSourceFile[] { JSSourceFile.fromCode("externs.js", "") };
+    JSModule[] modules = new JSModule[] { m1, m2 };
+
+    Result result = compiler.compile(externs, modules, options);
+
     assertTrue(result.success);
     assertEquals(0, compiler.getErrorCount());
+    assertNotNull(compiler.getModuleGraph());
   }
 
-  // Tests newExternInput functionality and duplicate extern check
+  // Tests module dependency error when modules are out of dependency order
   @Test
-  public void testNewExternInput_validName_addsExternSuccessfully() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
-    compiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input}, options);
-    compiler.parseInputs();
+  public void testInit_modulesOutOfOrder_reportsModuleDependencyError() {
+    JSModule m1 = new JSModule("m1");
+    m1.add(JSSourceFile.fromCode("m1.js", "var a = 1;"));
 
-    CompilerInput newExtern = compiler.newExternInput("custom_extern.js");
-    assertNotNull(newExtern);
-    assertEquals("custom_extern.js", newExtern.getName());
-    assertNotNull(compiler.getInput("custom_extern.js"));
+    JSModule m2 = new JSModule("m2");
+    m2.add(JSSourceFile.fromCode("m2.js", "var b = a;"));
+    m1.addDependency(m2);
+
+    JSSourceFile[] externs = new JSSourceFile[] { JSSourceFile.fromCode("externs.js", "") };
+    JSModule[] modules = new JSModule[] { m1, m2 };
+
+    compiler.init(externs, modules, options);
+
+    assertTrue(compiler.hasErrors());
+    assertEquals(1, compiler.getErrorCount());
   }
 
-  // Tests newExternInput with conflicting extern name throwing IllegalArgumentException
-  @Test(expected = IllegalArgumentException.class)
-  public void testNewExternInput_duplicateName_throwsIllegalArgumentException() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
-    compiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input}, options);
-    compiler.parseInputs();
+  // Tests duplicate input files across modules
+  @Test
+  public void testInit_duplicateInputsInModules_reportsError() {
+    JSSourceFile duplicateFile = JSSourceFile.fromCode("dup.js", "var a = 1;");
+    JSModule m1 = new JSModule("m1");
+    m1.add(duplicateFile);
 
-    compiler.newExternInput("externs.js");
+    JSModule m2 = new JSModule("m2");
+    m2.add(duplicateFile);
+
+    JSSourceFile[] externs = new JSSourceFile[] { JSSourceFile.fromCode("externs.js", "") };
+    JSModule[] modules = new JSModule[] { m1, m2 };
+
+    compiler.init(externs, modules, options);
+
+    assertTrue(compiler.hasErrors());
+    assertEquals(1, compiler.getErrorCount());
   }
 
-  // Tests getNodeForCodeInsertion with null module
+  // Tests duplicate input file names in inputs list
+  @Test
+  public void testInit_duplicateInputNames_reportsError() {
+    JSSourceFile[] externs = new JSSourceFile[] { JSSourceFile.fromCode("externs.js", "") };
+    JSSourceFile[] inputs = new JSSourceFile[] {
+        JSSourceFile.fromCode("test.js", "var a = 1;"),
+        JSSourceFile.fromCode("test.js", "var b = 2;")
+    };
+
+    compiler.init(externs, inputs, options);
+
+    assertTrue(compiler.hasErrors());
+    assertEquals(1, compiler.getErrorCount());
+  }
+
+  // Tests getNodeForCodeInsertion with root module
   @Test
   public void testGetNodeForCodeInsertion_nullModule_returnsFirstInputRoot() {
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
-    compiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input}, options);
-    compiler.parseInputs();
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 1;");
+    compiler.compile(extern, input, options);
 
-    Node insertionNode = compiler.getNodeForCodeInsertion(null);
-    assertNotNull(insertionNode);
-    assertEquals(Token.SCRIPT, insertionNode.getType());
+    Node node = compiler.getNodeForCodeInsertion(null);
+
+    assertNotNull(node);
+    assertEquals(Token.SCRIPT, node.getType());
   }
 
-  // Tests getNodeForCodeInsertion without inputs throwing IllegalStateException
-  @Test(expected = IllegalStateException.class)
-  public void testGetNodeForCodeInsertion_noInputs_throwsIllegalStateException() {
-    compiler.init(new JSSourceFile[]{}, new JSSourceFile[]{}, options);
-    compiler.getNodeForCodeInsertion(null);
-  }
-
-  // Tests getSourceLine and getSourceRegion retrieval
+  // Tests getNodeForCodeInsertion with dependent module containing inputs
   @Test
-  public void testGetSourceLineAndRegion_validInput_returnsSourceInfo() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;\nvar b = 2;\nvar c = 3;");
-    compiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input}, options);
+  public void testGetNodeForCodeInsertion_moduleWithInput_returnsModuleInputRoot() {
+    JSModule m1 = new JSModule("m1");
+    m1.add(JSSourceFile.fromCode("m1.js", "var a = 1;"));
 
-    assertEquals("var b = 2;", compiler.getSourceLine("input.js", 2));
-    assertNull(compiler.getSourceLine("input.js", 0));
-    assertNull(compiler.getSourceLine("nonexistent.js", 1));
+    JSModule m2 = new JSModule("m2");
+    m2.add(JSSourceFile.fromCode("m2.js", "var b = 2;"));
+    m2.addDependency(m1);
 
-    Region region = compiler.getSourceRegion("input.js", 2);
-    assertNotNull(region);
-    assertEquals("var b = 2;", region.getSourceExcerpt());
+    compiler.compile(new JSSourceFile[] { JSSourceFile.fromCode("externs.js", "") },
+        new JSModule[] { m1, m2 }, options);
+
+    Node node = compiler.getNodeForCodeInsertion(m2);
+
+    assertNotNull(node);
+    assertEquals(Token.SCRIPT, node.getType());
+    assertEquals("m2.js", node.getProp(Node.SOURCENAME_PROP));
   }
 
-  // Tests getState and setState for IntermediateState saving and restoring
+  // Tests saving and restoring compiler intermediate state
   @Test
-  public void testGetStateAndSetState_restoresCompilerState() {
+  public void testGetAndSetState_restoresState() {
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
     JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
-    compiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input}, options);
-    compiler.parseInputs();
+    compiler.compile(extern, input, options);
 
     Compiler.IntermediateState state = compiler.getState();
     assertNotNull(state);
 
     Compiler newCompiler = new Compiler();
-    newCompiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input}, options);
+    newCompiler.initOptions(options);
     newCompiler.setState(state);
 
+    assertNotNull(newCompiler.getRoot());
     assertEquals(compiler.getRoot(), newCompiler.getRoot());
   }
 
-  // Tests areNodesEqualForInlining equality check
+  // Tests newExternInput adds synthetic extern input correctly
   @Test
-  public void testAreNodesEqualForInlining_identicalNodes_returnsTrue() {
-    compiler.initCompilerOptionsIfTesting();
-    Node n1 = Node.newString("foo");
-    Node n2 = Node.newString("foo");
-    Node n3 = Node.newString("bar");
-
-    assertTrue(compiler.areNodesEqualForInlining(n1, n2));
-    assertFalse(compiler.areNodesEqualForInlining(n1, n3));
-  }
-
-  // Tests Compiler with custom PrintStream
-  @Test
-  public void testCompiler_withPrintStream_initializesProperly() {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    PrintStream ps = new PrintStream(baos);
-    Compiler customCompiler = new Compiler(ps);
-
+  public void testNewExternInput_addsSyntheticExtern() {
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
     JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
-    Result result = customCompiler.compile(extern, input, options);
+    compiler.compile(extern, input, options);
 
-    assertTrue(result.success);
-    assertNotNull(customCompiler.getErrorManager());
+    CompilerInput newExtern = compiler.newExternInput("custom_extern.js");
+
+    assertNotNull(newExtern);
+    assertTrue(newExtern.isExtern());
+    assertNotNull(compiler.getInput("custom_extern.js"));
   }
 
-  // Tests setLoggingLevel
+  // Tests newExternInput with conflicting name throws exception
+  @Test(expected = IllegalArgumentException.class)
+  public void testNewExternInput_conflictingName_throwsException() {
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
+    compiler.compile(extern, input, options);
+
+    compiler.newExternInput("externs.js");
+  }
+
+  // Tests getSourceLine and getSourceRegion for existing source
   @Test
-  public void testSetLoggingLevel_executesWithoutError() {
-    Compiler.setLoggingLevel(Level.WARNING);
-    Compiler.setLoggingLevel(Level.INFO);
+  public void testGetSourceLineAndRegion_validFile_returnsContent() {
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var line1 = 1;\nvar line2 = 2;\n");
+    compiler.compile(extern, input, options);
+
+    String line = compiler.getSourceLine("input.js", 2);
+    Region region = compiler.getSourceRegion("input.js", 2);
+
+    assertEquals("var line2 = 2;", line);
+    assertNotNull(region);
+  }
+
+  // Tests CodeBuilder helper functionality
+  @Test
+  public void testCodeBuilder_appendAndCountLines() {
+    Compiler.CodeBuilder cb = new Compiler.CodeBuilder();
+    cb.append("foo\nbar\nbaz");
+
+    assertEquals(2, cb.getLineIndex());
+    assertEquals(3, cb.getColumnIndex());
+    assertTrue(cb.endsWith("baz"));
+    assertFalse(cb.endsWith("foo"));
+
+    cb.reset();
+    assertEquals(0, cb.getLength());
+    assertEquals(2, cb.getLineIndex());
+  }
+
+  // Tests code change handler triggers
+  @Test
+  public void testReportCodeChange_callsRegisteredHandler() {
+    final boolean[] changed = new boolean[] { false };
+    CodeChangeHandler handler = new CodeChangeHandler() {
+      @Override
+      public void reportChange() {
+        changed[0] = true;
+      }
+    };
+
+    compiler.addChangeHandler(handler);
+    compiler.reportCodeChange();
+    assertTrue(changed[0]);
+
+    compiler.removeChangeHandler(handler);
+    changed[0] = false;
+    compiler.reportCodeChange();
+    assertFalse(changed[0]);
   }
 }

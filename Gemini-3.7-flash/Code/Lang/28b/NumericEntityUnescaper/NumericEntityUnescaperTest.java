@@ -1,85 +1,81 @@
 package org.apache.commons.lang3.text.translate;
 
-import org.junit.Test;
-import static org.junit.Assert.*;
-
 import java.io.IOException;
 import java.io.StringWriter;
+import org.junit.Before;
+import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
+/**
+ * Unit tests for {@link NumericEntityUnescaper}.
+ */
 public class NumericEntityUnescaperTest {
 
-    // Tests unescaping a valid decimal numeric entity
-    @Test
-    public void testTranslate_decimalEntity_returnsConsumedLengthAndWritesChar() throws IOException {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
-        StringWriter out = new StringWriter();
-        String input = "&#65;";
-        int consumed = unescaper.translate(input, 0, out);
+    private NumericEntityUnescaper unescaper;
 
+    @Before
+    public void setUp() {
+        unescaper = new NumericEntityUnescaper();
+    }
+
+    // Tests unescaping standard decimal entity
+    @Test
+    public void testTranslate_decimalEntity_unescapesCorrectly() throws IOException {
+        String input = "&#65;";
+        StringWriter out = new StringWriter();
+        int consumed = unescaper.translate(input, 0, out);
         assertEquals(5, consumed);
         assertEquals("A", out.toString());
     }
 
-    // Tests unescaping a valid hex numeric entity with lower-case 'x'
+    // Tests unescaping lowercase hex entity
     @Test
-    public void testTranslate_hexEntityLowerCase_returnsConsumedLengthAndWritesChar() throws IOException {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
-        StringWriter out = new StringWriter();
+    public void testTranslate_hexEntityLowerCase_unescapesCorrectly() throws IOException {
         String input = "&#x41;";
+        StringWriter out = new StringWriter();
         int consumed = unescaper.translate(input, 0, out);
-
         assertEquals(6, consumed);
         assertEquals("A", out.toString());
     }
 
-    // Tests unescaping a valid hex numeric entity with upper-case 'X'
+    // Tests unescaping uppercase hex entity
     @Test
-    public void testTranslate_hexEntityUpperCase_returnsConsumedLengthAndWritesChar() throws IOException {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
-        StringWriter out = new StringWriter();
+    public void testTranslate_hexEntityUpperCase_unescapesCorrectly() throws IOException {
         String input = "&#X41;";
+        StringWriter out = new StringWriter();
         int consumed = unescaper.translate(input, 0, out);
-
         assertEquals(6, consumed);
         assertEquals("A", out.toString());
     }
 
-    // Tests unescaping supplementary characters with decimal representation (> 0xFFFF)
+    // Tests unescaping supplementary characters in decimal format (Defects4J Lang-28)
     @Test
-    public void testTranslate_supplementaryCharacterDecimal_writesCorrectSurrogatePair() throws IOException {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+    public void testTranslate_supplementaryDecimalEntity_unescapesToSurrogatePair() throws IOException {
+        int codePoint = 0x10C48; // 68664 in decimal
+        String input = "&#68664;";
         StringWriter out = new StringWriter();
-        String input = "&#68642;";
         int consumed = unescaper.translate(input, 0, out);
-
         assertEquals(8, consumed);
-        int codePoint = 68642;
-        String expected = new String(Character.toChars(codePoint));
-        assertEquals(expected, out.toString());
+        assertEquals(new String(Character.toChars(codePoint)), out.toString());
     }
 
-    // Tests unescaping supplementary characters with hex representation (> 0xFFFF)
+    // Tests unescaping supplementary characters in hex format (Defects4J Lang-28)
     @Test
-    public void testTranslate_supplementaryCharacterHex_writesCorrectSurrogatePair() throws IOException {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
-        StringWriter out = new StringWriter();
-        String input = "&#x10000;";
-        int consumed = unescaper.translate(input, 0, out);
-
-        assertEquals(9, consumed);
+    public void testTranslate_supplementaryHexEntity_unescapesToSurrogatePair() throws IOException {
         int codePoint = 0x10000;
-        String expected = new String(Character.toChars(codePoint));
-        assertEquals(expected, out.toString());
+        String input = "&#x10000;";
+        StringWriter out = new StringWriter();
+        int consumed = unescaper.translate(input, 0, out);
+        assertEquals(9, consumed);
+        assertEquals(new String(Character.toChars(codePoint)), out.toString());
     }
 
-    // Tests input that does not start with entity prefix '&'
+    // Tests non-entity input starting with a character other than '&'
     @Test
-    public void testTranslate_notAnEntity_returnsZero() throws IOException {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
-        StringWriter out = new StringWriter();
+    public void testTranslate_notStartingWithAmpersand_returnsZero() throws IOException {
         String input = "Hello";
+        StringWriter out = new StringWriter();
         int consumed = unescaper.translate(input, 0, out);
-
         assertEquals(0, consumed);
         assertEquals("", out.toString());
     }
@@ -87,57 +83,47 @@ public class NumericEntityUnescaperTest {
     // Tests input starting with '&' but not followed by '#'
     @Test
     public void testTranslate_ampersandWithoutHash_returnsZero() throws IOException {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
-        StringWriter out = new StringWriter();
         String input = "&amp;";
+        StringWriter out = new StringWriter();
         int consumed = unescaper.translate(input, 0, out);
-
         assertEquals(0, consumed);
         assertEquals("", out.toString());
     }
 
-    // Tests input with non-numeric content causing NumberFormatException
+    // Tests invalid decimal number format inside entity
     @Test
-    public void testTranslate_invalidNumberFormat_returnsZero() throws IOException {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+    public void testTranslate_invalidDecimalFormat_returnsZero() throws IOException {
+        String input = "&#abc;";
         StringWriter out = new StringWriter();
-        String input = "&#invalid;";
         int consumed = unescaper.translate(input, 0, out);
-
         assertEquals(0, consumed);
         assertEquals("", out.toString());
     }
 
-    // Tests translating an entity starting at an offset index
+    // Tests invalid hex number format inside entity
     @Test
-    public void testTranslate_entityAtIndexOffset_returnsConsumedLengthAndWritesChar() throws IOException {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
+    public void testTranslate_invalidHexFormat_returnsZero() throws IOException {
+        String input = "&#xgh;";
         StringWriter out = new StringWriter();
-        String input = "Prefix &#66; Suffix";
-        int consumed = unescaper.translate(input, 7, out);
-
-        assertEquals(5, consumed);
-        assertEquals("B", out.toString());
+        int consumed = unescaper.translate(input, 0, out);
+        assertEquals(0, consumed);
+        assertEquals("", out.toString());
     }
 
     // Tests full string unescaping via CharSequenceTranslator translate method
     @Test
-    public void testTranslate_fullStringWithMultipleEntities_returnsUnescapedString() {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
-        String input = "Test &#65;&#x42;&#X43;!";
+    public void testTranslate_mixedString_unescapesAllEntities() {
+        String input = "Test &#65; and &#x42; and &#68664; end";
+        String expected = "Test A and B and " + new String(Character.toChars(0x10C48)) + " end";
         String result = unescaper.translate(input);
-
-        assertEquals("Test ABC!", result);
+        assertEquals(expected, result);
     }
 
-    // Tests full string unescaping with supplementary character
+    // Tests string without any entities
     @Test
-    public void testTranslate_fullStringWithSupplementaryEntity_returnsUnescapedString() {
-        NumericEntityUnescaper unescaper = new NumericEntityUnescaper();
-        String input = "&#x10000;";
+    public void testTranslate_stringWithoutEntities_returnsUnchanged() {
+        String input = "Plain text without entities.";
         String result = unescaper.translate(input);
-        String expected = new String(Character.toChars(0x10000));
-
-        assertEquals(expected, result);
+        assertEquals(input, result);
     }
 }

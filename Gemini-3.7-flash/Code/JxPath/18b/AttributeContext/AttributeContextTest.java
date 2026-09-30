@@ -2,14 +2,13 @@ package org.apache.commons.jxpath.ri.axes;
 
 import java.util.Locale;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.apache.commons.jxpath.JXPathContext;
 import org.apache.commons.jxpath.ri.Compiler;
-import org.apache.commons.jxpath.ri.EvalContext;
-import org.apache.commons.jxpath.ri.JXPathContextReferenceImpl;
 import org.apache.commons.jxpath.ri.QName;
 import org.apache.commons.jxpath.ri.compiler.NodeNameTest;
 import org.apache.commons.jxpath.ri.compiler.NodeTypeTest;
+import org.apache.commons.jxpath.ri.compiler.ProcessingInstructionTest;
 import org.apache.commons.jxpath.ri.model.NodePointer;
+import org.apache.commons.jxpath.ri.model.beans.NullPointer;
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
@@ -23,192 +22,214 @@ import static org.junit.Assert.assertTrue;
 
 public class AttributeContextTest {
 
-    private JXPathContextReferenceImpl context;
-    private InitialContext initialContext;
-    private Element rootElement;
+    private InitialContext parentContext;
+    private Element element;
 
     @Before
     public void setUp() throws Exception {
         Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
-        rootElement = doc.createElement("root");
-        rootElement.setAttribute("attr1", "value1");
-        rootElement.setAttribute("attr2", "value2");
-        doc.appendChild(rootElement);
+        element = doc.createElement("root");
+        element.setAttribute("attr1", "val1");
+        element.setAttribute("attr2", "val2");
+        doc.appendChild(element);
 
-        context = (JXPathContextReferenceImpl) JXPathContext.newContext(doc);
-        NodePointer rootPointer = NodePointer.newNodePointer(new QName("root"), rootElement, Locale.getDefault());
-        RootContext rootContext = new RootContext(context, rootPointer);
-        initialContext = new InitialContext(rootContext);
+        NodePointer pointer = NodePointer.newNodePointer(new QName("root"), element, Locale.getDefault());
+        RootContext rootContext = new RootContext(null, pointer);
+        parentContext = new InitialContext(rootContext);
     }
 
-    // Tests initial state of getCurrentNodePointer
+    // Tests initial state before iteration
     @Test
-    public void testGetCurrentNodePointer_initialState_returnsNull() {
-        NodeNameTest nodeTest = new NodeNameTest(new QName("attr1"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, nodeTest);
+    public void testGetCurrentNodePointer_initiallyNull() {
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName("attr1"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
 
-        assertNull(attributeContext.getCurrentNodePointer());
-        assertEquals(0, attributeContext.getPosition());
+        assertNull(context.getCurrentNodePointer());
+        assertEquals(0, context.getPosition());
     }
 
-    // Tests nextNode with matching attribute name
+    // Tests matching a specific attribute by name
     @Test
-    public void testNextNode_matchingAttribute_returnsTrueAndSetsPointer() {
-        NodeNameTest nodeTest = new NodeNameTest(new QName("attr1"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, nodeTest);
+    public void testNextNode_specificAttributeName_returnsTrue() {
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName("attr1"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
 
-        boolean result = attributeContext.nextNode();
+        assertTrue(context.nextNode());
+        assertNotNull(context.getCurrentNodePointer());
+        assertEquals(1, context.getPosition());
 
-        assertTrue(result);
-        assertNotNull(attributeContext.getCurrentNodePointer());
-        assertEquals("value1", attributeContext.getCurrentNodePointer().getValue());
-        assertEquals(1, attributeContext.getPosition());
+        assertFalse(context.nextNode());
     }
 
-    // Tests nextNode advancing past available attributes
-    @Test
-    public void testNextNode_afterLastAttribute_returnsFalse() {
-        NodeNameTest nodeTest = new NodeNameTest(new QName("attr1"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, nodeTest);
-
-        assertTrue(attributeContext.nextNode());
-        assertFalse(attributeContext.nextNode());
-        assertEquals(2, attributeContext.getPosition());
-    }
-
-    // Tests nextNode with non-existent attribute name
+    // Tests non-existent attribute name
     @Test
     public void testNextNode_nonExistentAttribute_returnsFalse() {
-        NodeNameTest nodeTest = new NodeNameTest(new QName("nonExistent"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, nodeTest);
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName("nonExistent"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
 
-        boolean result = attributeContext.nextNode();
-
-        assertFalse(result);
-        assertEquals(1, attributeContext.getPosition());
+        assertFalse(context.nextNode());
+        assertNull(context.getCurrentNodePointer());
     }
 
-    // Tests nextNode with null nodeTest
+    // Tests wildcard attribute name test matching all attributes
+    @Test
+    public void testNextNode_wildcardAttribute_matchesMultiple() {
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName(null, "*"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
+
+        assertTrue(context.nextNode());
+        assertEquals(1, context.getPosition());
+        assertNotNull(context.getCurrentNodePointer());
+
+        assertTrue(context.nextNode());
+        assertEquals(2, context.getPosition());
+        assertNotNull(context.getCurrentNodePointer());
+
+        assertFalse(context.nextNode());
+    }
+
+    // Tests node type test for node() type on attribute axis
+    @Test
+    public void testNextNode_nodeTypeTestNode_matchesAttributes() {
+        NodeTypeTest nodeTypeTest = new NodeTypeTest(Compiler.NODE_TYPE_NODE);
+        AttributeContext context = new AttributeContext(parentContext, nodeTypeTest);
+
+        assertTrue(context.nextNode());
+        assertNotNull(context.getCurrentNodePointer());
+    }
+
+    // Tests unsupported node type test returns false
+    @Test
+    public void testNextNode_unsupportedNodeTypeTest_returnsFalse() {
+        NodeTypeTest nodeTypeTest = new NodeTypeTest(Compiler.NODE_TYPE_TEXT);
+        AttributeContext context = new AttributeContext(parentContext, nodeTypeTest);
+
+        assertFalse(context.nextNode());
+        assertNull(context.getCurrentNodePointer());
+    }
+
+    // Tests null NodeTest handling
     @Test
     public void testNextNode_nullNodeTest_returnsFalse() {
-        AttributeContext attributeContext = new AttributeContext(initialContext, null);
+        AttributeContext context = new AttributeContext(parentContext, null);
 
-        boolean result = attributeContext.nextNode();
-
-        assertFalse(result);
-        assertEquals(1, attributeContext.getPosition());
+        assertFalse(context.nextNode());
+        assertNull(context.getCurrentNodePointer());
     }
 
-    // Tests nextNode when nodeTest is NodeTypeTest instead of NodeNameTest
+    // Tests parent context returning null pointer
     @Test
-    public void testNextNode_nodeTypeTest_returnsFalse() {
-        NodeTypeTest nodeTypeTest = new NodeTypeTest(Compiler.NODE_TYPE_NODE);
-        AttributeContext attributeContext = new AttributeContext(initialContext, nodeTypeTest);
+    public void testNextNode_nullParentPointer_returnsFalse() {
+        NullPointer nullPointer = new NullPointer(Locale.getDefault(), "id");
+        RootContext rootContext = new RootContext(null, nullPointer);
+        InitialContext parent = new InitialContext(rootContext);
 
-        boolean result = attributeContext.nextNode();
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName("attr1"));
+        AttributeContext context = new AttributeContext(parent, nodeNameTest);
 
-        assertFalse(result);
-        assertEquals(1, attributeContext.getPosition());
-    }
-
-    // Tests nextNode with wildcard node name
-    @Test
-    public void testNextNode_wildcardAttribute_iteratesMultipleAttributes() {
-        NodeNameTest wildcardTest = new NodeNameTest(new QName(null, "*"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, wildcardTest);
-
-        assertTrue(attributeContext.nextNode());
-        assertEquals(1, attributeContext.getPosition());
-
-        assertTrue(attributeContext.nextNode());
-        assertEquals(2, attributeContext.getPosition());
-
-        assertFalse(attributeContext.nextNode());
-    }
-
-    // Tests reset method resetting position and state
-    @Test
-    public void testReset_afterIteration_resetsPositionAndState() {
-        NodeNameTest nodeTest = new NodeNameTest(new QName("attr1"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, nodeTest);
-
-        assertTrue(attributeContext.nextNode());
-        assertEquals(1, attributeContext.getPosition());
-
-        attributeContext.reset();
-        assertEquals(0, attributeContext.getPosition());
-
-        assertTrue(attributeContext.nextNode());
-        assertEquals(1, attributeContext.getPosition());
+        assertFalse(context.nextNode());
+        assertNull(context.getCurrentNodePointer());
     }
 
     // Tests setPosition forward navigation
     @Test
-    public void testSetPosition_validPosition_returnsTrue() {
-        NodeNameTest wildcardTest = new NodeNameTest(new QName(null, "*"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, wildcardTest);
+    public void testSetPosition_forwardValid_returnsTrue() {
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName(null, "*"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
 
-        boolean result = attributeContext.setPosition(2);
-
-        assertTrue(result);
-        assertEquals(2, attributeContext.getPosition());
-        assertNotNull(attributeContext.getCurrentNodePointer());
+        assertTrue(context.setPosition(2));
+        assertEquals(2, context.getPosition());
+        assertNotNull(context.getCurrentNodePointer());
     }
 
-    // Tests setPosition beyond available count
+    // Tests setPosition out of bounds
     @Test
     public void testSetPosition_outOfBounds_returnsFalse() {
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName(null, "*"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
+
+        assertFalse(context.setPosition(5));
+        assertEquals(3, context.getPosition());
+    }
+
+    // Tests setPosition backwards navigation causing reset
+    @Test
+    public void testSetPosition_backwards_resetsAndPositionsCorrectly() {
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName(null, "*"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
+
+        assertTrue(context.setPosition(2));
+        assertEquals(2, context.getPosition());
+
+        assertTrue(context.setPosition(1));
+        assertEquals(1, context.getPosition());
+    }
+
+    // Tests setPosition to zero or negative position
+    @Test
+    public void testSetPosition_zeroOrNegative_resets() {
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName(null, "*"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
+
+        context.setPosition(1);
+        assertTrue(context.setPosition(0));
+        assertEquals(0, context.getPosition());
+    }
+
+    // Tests reset method resets state and position
+    @Test
+    public void testReset_clearsState() {
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName(null, "*"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
+
+        assertTrue(context.nextNode());
+        assertEquals(1, context.getPosition());
+
+        context.reset();
+        assertEquals(0, context.getPosition());
+
+        assertTrue(context.nextNode());
+        assertEquals(1, context.getPosition());
+    }
+
+    // Tests processing instruction test on attribute context returns false
+    @Test
+    public void testNextNode_processingInstructionTest_returnsFalse() {
+        ProcessingInstructionTest piTest = new ProcessingInstructionTest("target");
+        AttributeContext context = new AttributeContext(parentContext, piTest);
+
+        assertFalse(context.nextNode());
+        assertNull(context.getCurrentNodePointer());
+    }
+
+    // Tests element with no attributes using wildcard search
+    @Test
+    public void testNextNode_emptyAttributes_returnsFalse() throws Exception {
+        Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+        Element emptyElement = doc.createElement("empty");
+        doc.appendChild(emptyElement);
+
+        NodePointer pointer = NodePointer.newNodePointer(new QName("empty"), emptyElement, Locale.getDefault());
+        RootContext rootContext = new RootContext(null, pointer);
+        InitialContext emptyParentContext = new InitialContext(rootContext);
+
         NodeNameTest wildcardTest = new NodeNameTest(new QName(null, "*"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, wildcardTest);
+        AttributeContext context = new AttributeContext(emptyParentContext, wildcardTest);
 
-        boolean result = attributeContext.setPosition(5);
-
-        assertFalse(result);
-        assertEquals(3, attributeContext.getPosition());
+        assertFalse(context.nextNode());
+        assertNull(context.getCurrentNodePointer());
     }
 
-    // Tests setPosition backward navigation triggering reset
+    // Tests setPosition when target position is equal to current position
     @Test
-    public void testSetPosition_backtrackPosition_resetsAndNavigates() {
-        NodeNameTest wildcardTest = new NodeNameTest(new QName(null, "*"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, wildcardTest);
+    public void testSetPosition_samePosition_returnsTrue() {
+        NodeNameTest nodeNameTest = new NodeNameTest(new QName(null, "*"));
+        AttributeContext context = new AttributeContext(parentContext, nodeNameTest);
 
-        assertTrue(attributeContext.setPosition(2));
-        assertEquals(2, attributeContext.getPosition());
+        assertTrue(context.setPosition(1));
+        assertEquals(1, context.getPosition());
 
-        boolean result = attributeContext.setPosition(1);
-
-        assertTrue(result);
-        assertEquals(1, attributeContext.getPosition());
-    }
-
-    // Tests setPosition to zero
-    @Test
-    public void testSetPosition_zeroPosition_returnsTrueAndResets() {
-        NodeNameTest nodeTest = new NodeNameTest(new QName("attr1"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, nodeTest);
-
-        assertTrue(attributeContext.nextNode());
-        assertEquals(1, attributeContext.getPosition());
-
-        boolean result = attributeContext.setPosition(0);
-
-        assertTrue(result);
-        assertEquals(0, attributeContext.getPosition());
-    }
-
-    // Tests setPosition with negative value
-    @Test
-    public void testSetPosition_negativePosition_returnsTrueAndResetsToZero() {
-        NodeNameTest nodeTest = new NodeNameTest(new QName("attr1"));
-        AttributeContext attributeContext = new AttributeContext(initialContext, nodeTest);
-
-        assertTrue(attributeContext.nextNode());
-        assertEquals(1, attributeContext.getPosition());
-
-        boolean result = attributeContext.setPosition(-1);
-
-        assertTrue(result);
-        assertEquals(0, attributeContext.getPosition());
+        assertTrue(context.setPosition(1));
+        assertEquals(1, context.getPosition());
     }
 }

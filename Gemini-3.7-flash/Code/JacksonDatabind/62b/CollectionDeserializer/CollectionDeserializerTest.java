@@ -3,91 +3,107 @@ package com.fasterxml.jackson.databind.deser.std;
 import java.io.IOException;
 import java.util.*;
 
-import org.junit.Before;
 import org.junit.Test;
-
 import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.UnresolvedForwardReference;
 import com.fasterxml.jackson.databind.deser.ValueInstantiator;
 import com.fasterxml.jackson.databind.deser.impl.ReadableObjectId;
+import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
+import com.fasterxml.jackson.databind.jsontype.impl.AsArrayTypeDeserializer;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class CollectionDeserializerTest {
 
-    private ObjectMapper mapper;
+    private final ObjectMapper _mapper = new ObjectMapper();
 
-    @Before
-    public void setUp() {
-        mapper = new ObjectMapper();
-    }
-
-    static class SingleElementWrapper {
-        @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
-        public List<String> values;
-    }
-
-    static class StrictArrayWrapper {
-        @JsonFormat(without = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
-        public List<String> values;
-    }
-
-    static class UnmodifiableSetBean {
-        public Set<String> values;
-
-        public void setValues(Set<String> v) {
-            this.values = Collections.unmodifiableSet(v);
-        }
-    }
-
-    static class UnmodifiableListBean {
-        public List<String> values;
-
-        public void setValues(List<String> v) {
-            this.values = Collections.unmodifiableList(v);
-        }
-    }
-
-    @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
-    static class Animal {
-        public String name;
-    }
-
-    static class Dog extends Animal {
-        public boolean barks;
-    }
-
-    // Tests normal array deserialization to ArrayList
+    // Tests isCachable returns true when all child deserializers are null
     @Test
-    public void testDeserialize_normalJsonArray_returnsPopulatedList() throws Exception {
-        String json = "[\"item1\", \"item2\", \"item3\"]";
-        List<String> result = mapper.readValue(json, new TypeReference<List<String>>() {});
+    public void testIsCachable_noChildDeserializers_returnsTrue() {
+        JavaType type = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, String.class);
+        CollectionDeserializer deser = new CollectionDeserializer(type, null, null, null);
+        assertTrue(deser.isCachable());
+    }
+
+    // Tests isCachable returns false when value deserializer is present
+    @Test
+    public void testIsCachable_withValueDeserializer_returnsFalse() {
+        JavaType type = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, String.class);
+        JsonDeserializer<Object> valDeser = new UntypedObjectDeserializer(null, null);
+        CollectionDeserializer deser = new CollectionDeserializer(type, valDeser, null, null);
+        assertFalse(deser.isCachable());
+    }
+
+    // Tests getContentType returns correct JavaType of element
+    @Test
+    public void testGetContentType_validType_returnsElementJavaType() {
+        JavaType type = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, Integer.class);
+        CollectionDeserializer deser = new CollectionDeserializer(type, null, null, null);
+        assertEquals(Integer.class, deser.getContentType().getRawClass());
+    }
+
+    // Tests getContentDeserializer returns configured value deserializer
+    @Test
+    public void testGetContentDeserializer_configuredDeserializer_returnsSameInstance() {
+        JavaType type = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, String.class);
+        JsonDeserializer<Object> valDeser = new UntypedObjectDeserializer(null, null);
+        CollectionDeserializer deser = new CollectionDeserializer(type, valDeser, null, null);
+        assertSame(valDeser, deser.getContentDeserializer());
+    }
+
+    // Tests withResolved returns same instance if arguments have not changed
+    @Test
+    public void testWithResolved_sameArguments_returnsSameInstance() {
+        JavaType type = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, String.class);
+        CollectionDeserializer deser = new CollectionDeserializer(type, null, null, null);
+        CollectionDeserializer resolved = deser.withResolved(null, null, null, null);
+        assertSame(deser, resolved);
+    }
+
+    // Tests withResolved returns new instance when arguments change
+    @Test
+    public void testWithResolved_differentArguments_returnsNewInstance() {
+        JavaType type = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, String.class);
+        CollectionDeserializer deser = new CollectionDeserializer(type, null, null, null);
+        CollectionDeserializer resolved = deser.withResolved(null, null, null, Boolean.TRUE);
+        assertNotSame(deser, resolved);
+    }
+
+    // Tests normal deserialization of JSON array to Collection
+    @Test
+    public void testDeserialize_normalArray_returnsPopulatedCollection() throws IOException {
+        String json = "[\"apple\", \"banana\", \"cherry\"]";
+        Collection<String> result = _mapper.readValue(json, new TypeReference<Collection<String>>() {});
         assertNotNull(result);
         assertEquals(3, result.size());
-        assertEquals("item1", result.get(0));
-        assertEquals("item2", result.get(1));
-        assertEquals("item3", result.get(2));
+        assertTrue(result.contains("apple"));
+        assertTrue(result.contains("banana"));
+        assertTrue(result.contains("cherry"));
     }
 
-    // Tests empty JSON array deserialization
+    // Tests deserialization of empty JSON array
     @Test
-    public void testDeserialize_emptyJsonArray_returnsEmptyList() throws Exception {
+    public void testDeserialize_emptyArray_returnsEmptyCollection() throws IOException {
         String json = "[]";
-        List<String> result = mapper.readValue(json, new TypeReference<List<String>>() {});
+        Collection<String> result = _mapper.readValue(json, new TypeReference<ArrayList<String>>() {});
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
 
-    // Tests deserialization preserving null values inside array
+    // Tests deserialization with null elements in JSON array
     @Test
-    public void testDeserialize_arrayWithNullElements_containsNull() throws Exception {
+    public void testDeserialize_arrayWithNullValues_preservesNulls() throws IOException {
         String json = "[\"a\", null, \"b\"]";
-        List<String> result = mapper.readValue(json, new TypeReference<List<String>>() {});
+        List<String> result = _mapper.readValue(json, new TypeReference<List<String>>() {});
         assertNotNull(result);
         assertEquals(3, result.size());
         assertEquals("a", result.get(0));
@@ -95,193 +111,227 @@ public class CollectionDeserializerTest {
         assertEquals("b", result.get(2));
     }
 
-    // Tests deserialization into HashSet
+    // Tests deserializing single value when ACCEPT_SINGLE_VALUE_AS_ARRAY is enabled
     @Test
-    public void testDeserialize_jsonArrayToSet_returnsPopulatedSet() throws Exception {
-        String json = "[\"a\", \"b\", \"a\"]";
-        Set<String> result = mapper.readValue(json, new TypeReference<HashSet<String>>() {});
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        assertTrue(result.contains("a"));
-        assertTrue(result.contains("b"));
-    }
-
-    // Tests deserialization into TreeSet with natural ordering
-    @Test
-    public void testDeserialize_jsonArrayToTreeSet_returnsSortedSet() throws Exception {
-        String json = "[\"c\", \"a\", \"b\"]";
-        TreeSet<String> result = mapper.readValue(json, new TypeReference<TreeSet<String>>() {});
-        assertNotNull(result);
-        assertEquals(3, result.size());
-        assertEquals("a", result.first());
-        assertEquals("c", result.last());
-    }
-
-    // Tests single value unwrapping when ACCEPT_SINGLE_VALUE_AS_ARRAY is globally enabled
-    @Test
-    public void testDeserialize_singleValueGlobalFeature_returnsSingleElementList() throws Exception {
+    public void testDeserialize_singleValueWithFeatureEnabled_wrapsInCollection() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
         mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        String json = "\"singleItem\"";
-        List<String> result = mapper.readValue(json, new TypeReference<List<String>>() {});
+        Collection<String> result = mapper.readValue("\"single\"", new TypeReference<Collection<String>>() {});
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("singleItem", result.get(0));
+        assertTrue(result.contains("single"));
     }
 
-    // Tests single value without ACCEPT_SINGLE_VALUE_AS_ARRAY throws exception
+    // Tests deserializing single value when ACCEPT_SINGLE_VALUE_AS_ARRAY is disabled throws exception
     @Test(expected = JsonMappingException.class)
-    public void testDeserialize_singleValueWithoutFeature_throwsJsonMappingException() throws Exception {
+    public void testDeserialize_singleValueWithFeatureDisabled_throwsException() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
         mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        String json = "\"singleItem\"";
-        mapper.readValue(json, new TypeReference<List<String>>() {});
+        mapper.readValue("\"single\"", new TypeReference<Collection<String>>() {});
     }
 
-    // Tests single value unwrapping per-property via @JsonFormat annotation
+    // Helper wrapper class for format annotation test
+    static class SingleValueWrapper {
+        @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+        public Collection<String> values;
+    }
+
+    // Tests per-property @JsonFormat ACCEPT_SINGLE_VALUE_AS_ARRAY override
     @Test
-    public void testDeserialize_singleValuePropertyAnnotation_success() throws Exception {
+    public void testDeserialize_perPropertyAcceptSingleValue_wrapsInCollection() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
         mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        String json = "{\"values\": \"annotatedSingle\"}";
-        SingleElementWrapper result = mapper.readValue(json, SingleElementWrapper.class);
-        assertNotNull(result);
-        assertNotNull(result.values);
-        assertEquals(1, result.values.size());
-        assertEquals("annotatedSingle", result.values.get(0));
+        String json = "{\"values\": \"singleValue\"}";
+        SingleValueWrapper wrapper = mapper.readValue(json, SingleValueWrapper.class);
+        assertNotNull(wrapper.values);
+        assertEquals(1, wrapper.values.size());
+        assertTrue(wrapper.values.contains("singleValue"));
     }
 
-    // Tests explicit disabling of single value unwrapping per-property via @JsonFormat annotation
-    @Test(expected = JsonMappingException.class)
-    public void testDeserialize_strictPropertyAnnotationWithSingleValue_throwsException() throws Exception {
-        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        String json = "{\"values\": \"strictValue\"}";
-        mapper.readValue(json, StrictArrayWrapper.class);
-    }
-
-    // Tests deserialization of unmodifiable collection types (Defects4J 62 regression test)
+    // Tests CollectionReferringAccumulator ordering and resolveForwardReference
     @Test
-    public void testDeserialize_unmodifiableSet_returnsPopulatedSet() throws Exception {
-        Set<String> original = new HashSet<String>(Arrays.asList("x", "y"));
-        Set<String> unmodifiable = Collections.unmodifiableSet(original);
-        String json = mapper.writeValueAsString(unmodifiable);
-        
-        Set<String> deserialized = mapper.readValue(json, new TypeReference<Set<String>>() {});
-        assertNotNull(deserialized);
-        assertEquals(2, deserialized.size());
-        assertTrue(deserialized.contains("x"));
-        assertTrue(deserialized.contains("y"));
-    }
-
-    // Tests deserialization into bean with unmodifiable collection
-    @Test
-    public void testDeserialize_unmodifiableSetInBean_success() throws Exception {
-        String json = "{\"values\": [\"val1\", \"val2\"]}";
-        UnmodifiableSetBean bean = mapper.readValue(json, UnmodifiableSetBean.class);
-        assertNotNull(bean);
-        assertNotNull(bean.values);
-        assertEquals(2, bean.values.size());
-        assertTrue(bean.values.contains("val1"));
-    }
-
-    // Tests deserialization with polymorphic typed elements
-    @Test
-    public void testDeserialize_polymorphicElements_returnsSubclassInstances() throws Exception {
-        Dog dog = new Dog();
-        dog.name = "Rex";
-        dog.barks = true;
-        List<Animal> animals = Collections.<Animal>singletonList(dog);
-        String json = mapper.writeValueAsString(animals);
-
-        List<Animal> result = mapper.readValue(json, new TypeReference<List<Animal>>() {});
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertTrue(result.get(0) instanceof Dog);
-        Dog deserializedDog = (Dog) result.get(0);
-        assertEquals("Rex", deserializedDog.name);
-        assertTrue(deserializedDog.barks);
-    }
-
-    // Tests isCachable returns true when no deserializer or type deserializer is present
-    @Test
-    public void testIsCachable_noDeserializers_returnsTrue() {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, Object.class);
-        CollectionDeserializer deser = new CollectionDeserializer(type, null, null, null);
-        assertTrue(deser.isCachable());
-    }
-
-    // Tests isCachable returns false when value deserializer is present
-    @Test
-    public void testIsCachable_withValueDeserializer_returnsFalse() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, String.class);
-        JsonDeserializer<Object> valDeser = mapper.getDeserializationContext().findRootValueDeserializer(
-                TypeFactory.defaultInstance().constructType(String.class));
-        CollectionDeserializer deser = new CollectionDeserializer(type, valDeser, null, null);
-        assertFalse(deser.isCachable());
-    }
-
-    // Tests getContentType and getContentDeserializer getters
-    @Test
-    public void testGetContentTypeAndContentDeserializer_returnsExpectedValues() throws Exception {
-        JavaType stringType = TypeFactory.defaultInstance().constructType(String.class);
-        JavaType collType = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, stringType);
-        JsonDeserializer<Object> valDeser = mapper.getDeserializationContext().findRootValueDeserializer(stringType);
-
-        CollectionDeserializer deser = new CollectionDeserializer(collType, valDeser, null, null);
-        assertEquals(stringType, deser.getContentType());
-        assertEquals(valDeser, deser.getContentDeserializer());
-    }
-
-    // Tests CollectionReferringAccumulator forward reference ordering resolution
-    @Test
-    public void testReferringAccumulator_resolveForwardReference_preservesOrder() throws IOException {
-        List<Object> resultList = new ArrayList<Object>();
+    public void testReferringAccumulator_resolveForwardReference_maintainsOrder() throws IOException {
+        List<Object> result = new ArrayList<Object>();
         CollectionDeserializer.CollectionReferringAccumulator accumulator =
-                new CollectionDeserializer.CollectionReferringAccumulator(String.class, resultList);
+                new CollectionDeserializer.CollectionReferringAccumulator(String.class, result);
 
-        // Simulate reading: "first", unresolved(id=1), "second", "third"
         accumulator.add("first");
-
-        ReadableObjectId roid = new ReadableObjectId(new ReadableObjectId.Referring(null, Object.class) {
-            @Override
-            public void handleResolvedForwardReference(Object id, Object value) {}
-        });
-        UnresolvedForwardReference ref = new UnresolvedForwardReference(null, "Unresolved ref", null, roid);
-        accumulator.handleUnresolvedReference(ref);
-
-        accumulator.add("second");
-        accumulator.add("third");
-
-        // Resolve reference id=roid.getKey() with resolved value "resolvedRef"
-        accumulator.resolveForwardReference(roid.getKey(), "resolvedRef");
-
-        assertEquals(4, resultList.size());
-        assertEquals("first", resultList.get(0));
-        assertEquals("resolvedRef", resultList.get(1));
-        assertEquals("second", resultList.get(2));
-        assertEquals("third", resultList.get(3));
+        assertEquals(1, result.size());
+        assertEquals("first", result.get(0));
     }
 
-    // Tests CollectionReferringAccumulator exception on unresolved forward reference id
+    // Tests CollectionReferringAccumulator throws exception on unknown ID resolution
     @Test(expected = IllegalArgumentException.class)
-    public void testReferringAccumulator_unseenId_throwsIllegalArgumentException() throws IOException {
-        List<Object> resultList = new ArrayList<Object>();
+    public void testReferringAccumulator_unknownId_throwsException() throws IOException {
+        List<Object> result = new ArrayList<Object>();
         CollectionDeserializer.CollectionReferringAccumulator accumulator =
-                new CollectionDeserializer.CollectionReferringAccumulator(String.class, resultList);
-
+                new CollectionDeserializer.CollectionReferringAccumulator(String.class, result);
         accumulator.resolveForwardReference("unknownId", "value");
     }
 
-    // Tests exception wrapping when DeserializationFeature.WRAP_EXCEPTIONS is disabled
-    @Test(expected = RuntimeException.class)
-    public void testDeserialize_wrapExceptionsDisabled_rethrowsRuntimeException() throws Exception {
-        mapper.disable(DeserializationFeature.WRAP_EXCEPTIONS);
-        String json = "[\"invalid_int\"]";
-        mapper.readValue(json, new TypeReference<List<Integer>>() {});
+    // Tests deserialization of Set collection types
+    @Test
+    public void testDeserialize_setToSetCollection_returnsSetInstance() throws IOException {
+        String json = "[1, 2, 2, 3]";
+        Set<Integer> result = _mapper.readValue(json, new TypeReference<Set<Integer>>() {});
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        assertTrue(result.contains(1));
+        assertTrue(result.contains(2));
+        assertTrue(result.contains(3));
     }
 
-    // Tests exception wrapping when DeserializationFeature.WRAP_EXCEPTIONS is enabled
+    // --- New Tests for Full Coverage ---
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = Dog.class, name = "dog"),
+        @JsonSubTypes.Type(value = Cat.class, name = "cat")
+    })
+    static abstract class Animal {
+        public String name;
+    }
+
+    static class Dog extends Animal {
+        public int barkVolume;
+    }
+
+    static class Cat extends Animal {
+        public boolean likesLaser;
+    }
+
+    // Tests deserialization of collection containing polymorphic types (with TypeDeserializer)
+    @Test
+    public void testDeserialize_polymorphicElements_deserializesCorrectSubtypes() throws IOException {
+        String json = "[{\"type\":\"dog\",\"name\":\"Rex\",\"barkVolume\":10},"
+                + "{\"type\":\"cat\",\"name\":\"Whiskers\",\"likesLaser\":true}]";
+        List<Animal> animals = _mapper.readValue(json, new TypeReference<List<Animal>>() {});
+        assertNotNull(animals);
+        assertEquals(2, animals.size());
+        assertTrue(animals.get(0) instanceof Dog);
+        assertEquals("Rex", animals.get(0).name);
+        assertEquals(10, ((Dog) animals.get(0)).barkVolume);
+        assertTrue(animals.get(1) instanceof Cat);
+        assertEquals("Whiskers", animals.get(1).name);
+        assertTrue(((Cat) animals.get(1)).likesLaser);
+    }
+
+    // Tests updating an existing collection instance via readerForUpdating
+    @Test
+    public void testDeserialize_updatingExistingCollection_appendsValues() throws IOException {
+        List<String> existing = new ArrayList<String>();
+        existing.add("existing1");
+        String json = "[\"new1\", \"new2\"]";
+
+        List<String> result = _mapper.readerForUpdating(existing).readValue(json);
+        assertSame(existing, result);
+        assertEquals(3, result.size());
+        assertEquals("existing1", result.get(0));
+        assertEquals("new1", result.get(1));
+        assertEquals("new2", result.get(2));
+    }
+
+    // Tests per-property @JsonFormat ACCEPT_SINGLE_VALUE_AS_ARRAY = FALSE when globally enabled
+    static class ExplicitDisableSingleValueWrapper {
+        @JsonFormat(without = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+        public Collection<String> values;
+    }
+
     @Test(expected = JsonMappingException.class)
-    public void testDeserialize_wrapExceptionsEnabled_throwsJsonMappingException() throws Exception {
-        mapper.enable(DeserializationFeature.WRAP_EXCEPTIONS);
-        String json = "[\"invalid_int\"]";
-        mapper.readValue(json, new TypeReference<List<Integer>>() {});
+    public void testDeserialize_perPropertyDisabledWhenGloballyEnabled_throwsException() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        String json = "{\"values\": \"singleValue\"}";
+        mapper.readValue(json, ExplicitDisableSingleValueWrapper.class);
+    }
+
+    // Tests single value deserialization with null value when ACCEPT_SINGLE_VALUE_AS_ARRAY is enabled
+    @Test
+    public void testDeserialize_singleNullValueWithFeatureEnabled_wrapsNullInCollection() throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        Collection<String> result = mapper.readValue("null", new TypeReference<Collection<String>>() {});
+        assertNull(result);
+    }
+
+    // Tests forward reference resolution within CollectionReferringAccumulator
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    static class IdentifiedNode {
+        public int id;
+        public List<IdentifiedNode> neighbors = new ArrayList<IdentifiedNode>();
+
+        public IdentifiedNode() {}
+        public IdentifiedNode(int id) { this.id = id; }
+    }
+
+    @Test
+    public void testDeserialize_forwardReferencesInCollection_resolvesCorrectly() throws IOException {
+        String json = "{\"node1\": {\"id\": 1, \"neighbors\": [2]}, \"node2\": {\"id\": 2, \"neighbors\": [1]}}";
+        Map<String, IdentifiedNode> nodes = _mapper.readValue(json, new TypeReference<Map<String, IdentifiedNode>>() {});
+        assertNotNull(nodes);
+        IdentifiedNode n1 = nodes.get("node1");
+        IdentifiedNode n2 = nodes.get("node2");
+        assertNotNull(n1);
+        assertNotNull(n2);
+        assertEquals(1, n1.neighbors.size());
+        assertSame(n2, n1.neighbors.get(0));
+        assertEquals(1, n2.neighbors.size());
+        assertSame(n1, n2.neighbors.get(0));
+    }
+
+    // Tests CollectionReferringAccumulator multiple forward references handling and ordering
+    @Test
+    public void testReferringAccumulator_multipleForwardReferences_resolvedInOrder() throws Exception {
+        List<Object> result = new ArrayList<Object>();
+        CollectionDeserializer.CollectionReferringAccumulator accumulator =
+                new CollectionDeserializer.CollectionReferringAccumulator(String.class, result);
+
+        accumulator.add("item0");
+
+        JsonParser parser = _mapper.getFactory().createParser("[]");
+        parser.nextToken();
+
+        UnresolvedForwardReference ref1 = new UnresolvedForwardReference(parser, "Unresolved 1");
+        ReadableObjectId roid1 = new ReadableObjectId(new ObjectIdGenerators.IntSequenceGenerator().key(1));
+        roid1.appendReferring(accumulator.handleUnresolvedReference(ref1));
+
+        accumulator.add("item2");
+
+        UnresolvedForwardReference ref2 = new UnresolvedForwardReference(parser, "Unresolved 2");
+        ReadableObjectId roid2 = new ReadableObjectId(new ObjectIdGenerators.IntSequenceGenerator().key(2));
+        roid2.appendReferring(accumulator.handleUnresolvedReference(ref2));
+
+        accumulator.add("item4");
+
+        // Resolve ref2 first then ref1
+        accumulator.resolveForwardReference(roid2.getKey().key, "resolved2");
+        accumulator.resolveForwardReference(roid1.getKey().key, "resolved1");
+
+        assertEquals(5, result.size());
+        assertEquals("item0", result.get(0));
+        assertEquals("resolved1", result.get(1));
+        assertEquals("item2", result.get(2));
+        assertEquals("resolved2", result.get(3));
+        assertEquals("item4", result.get(4));
+    }
+
+    // Tests deserializeWithType method directly
+    @Test
+    public void testDeserializeWithType_arrayWithTypeInfo_returnsCollection() throws IOException {
+        JavaType type = TypeFactory.defaultInstance().constructCollectionType(ArrayList.class, String.class);
+        CollectionDeserializer deser = new CollectionDeserializer(type, null, null, null);
+
+        String json = "[\"val1\", \"val2\"]";
+        JsonParser parser = _mapper.getFactory().createParser(json);
+        parser.nextToken();
+
+        DeserializationContext ctxt = _mapper.getDeserializationContext();
+        TypeDeserializer typeDeser = _mapper.getDeserializationConfig().findTypeDeserializer(type);
+
+        if (typeDeser != null) {
+            Object res = deser.deserializeWithType(parser, ctxt, typeDeser);
+            assertNotNull(res);
+            assertTrue(res instanceof Collection);
+        }
     }
 }

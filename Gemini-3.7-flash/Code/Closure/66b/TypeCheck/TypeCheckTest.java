@@ -1,155 +1,266 @@
 package com.google.javascript.jscomp;
 
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.Before;
 import static org.junit.Assert.*;
+
+import com.google.javascript.rhino.Node;
+import com.google.javascript.rhino.Token;
+import com.google.javascript.rhino.jstype.JSTypeRegistry;
 
 public class TypeCheckTest {
 
   private Compiler compiler;
-  private CompilerOptions options;
 
   @Before
   public void setUp() {
     compiler = new Compiler();
-    options = new CompilerOptions();
-    options.checkTypes = true;
-    options.checkMissingGetCssNameLevel = CheckLevel.OFF;
   }
 
-  private void testTypes(String js, DiagnosticType expectedWarning) {
-    JSSourceFile[] externs = new JSSourceFile[] {
-        JSSourceFile.fromCode("externs.js", "var window; function alert(x) {}")
-    };
-    JSSourceFile[] inputs = new JSSourceFile[] {
-        JSSourceFile.fromCode("testcode.js", js)
-    };
-    compiler.compile(externs, inputs, options);
-
-    if (expectedWarning != null) {
-      boolean found = false;
-      for (JSError warning : compiler.getWarnings()) {
-        if (warning.getType() == expectedWarning) {
-          found = true;
-          break;
-        }
-      }
-      for (JSError error : compiler.getErrors()) {
-        if (error.getType() == expectedWarning) {
-          found = true;
-          break;
-        }
-      }
-      assertTrue("Expected warning/error: " + expectedWarning.key, found);
-    } else {
-      assertEquals("Expected 0 errors", 0, compiler.getErrorCount());
-      assertEquals("Expected 0 warnings", 0, compiler.getWarningCount());
-    }
+  private TypeCheck createTypeCheck() {
+    return new TypeCheck(compiler, compiler.getReverseAbstractInterpreter(), compiler.getTypeRegistry());
   }
 
-  private void testTypes(String js) {
-    testTypes(js, null);
+  private TypeCheck testAndCheck(String js) {
+    return testAndCheck("", js);
   }
 
-  // Tests object literal with numeric keys (regression for Defect 66)
+  private TypeCheck testAndCheck(String externsJs, String js) {
+    Node externsRoot = compiler.parseTestCode(externsJs);
+    Node jsRoot = compiler.parseTestCode(js);
+    Node parent = new Node(Token.BLOCK, externsRoot, jsRoot);
+    TypeCheck tc = createTypeCheck();
+    tc.processForTesting(externsRoot, jsRoot);
+    return tc;
+  }
+
+  // Tests that getTypedPercent returns 0.0 when no nodes have been typed
   @Test
-  public void testObjectLit_numericKeys_noErrors() {
-    testTypes("var a = {0: 1, 1: 'hello', 2: true};");
+  public void testGetTypedPercent_empty_returnsZero() {
+    TypeCheck tc = createTypeCheck();
+    assertEquals(0.0, tc.getTypedPercent(), 0.001);
   }
 
-  // Tests object literal with string keys
+  // Tests typing percentage for basic variable declarations and object literals
   @Test
-  public void testObjectLit_stringKeys_noErrors() {
-    testTypes("var a = {'foo': 1, 'bar': 2};");
+  public void testGetTypedPercent_simpleVariable_returnsExpectedPercentage() {
+    TypeCheck tc = testAndCheck("var x = 1;");
+    assertTrue(tc.getTypedPercent() > 0.0);
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
   }
 
-  // Tests function call with correct parameter types and counts
+  // Tests object literal with number, string, and identifier keys
   @Test
-  public void testFunctionCall_validArguments_noWarnings() {
-    testTypes("/** @param {number} x\n @return {number} */ function f(x) { return x + 1; } f(10);");
+  public void testVisit_objectLiteralKeys_typesCorrectly() {
+    TypeCheck tc = testAndCheck("var obj = {1: 'a', 'b': 2, c: 3};");
+    assertTrue(tc.getTypedPercent() > 0.0);
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
   }
 
-  // Tests function call with wrong argument count
+  // Tests getter and setter in object literal
   @Test
-  public void testFunctionCall_wrongArgumentCount_reportsWarning() {
-    testTypes("/** @param {number} x */ function f(x) {} f();", TypeCheck.WRONG_ARGUMENT_COUNT);
+  public void testVisit_objectLiteralGetterSetter_noErrors() {
+    TypeCheck tc = testAndCheck("var obj = { get a() { return 1; }, set a(val) {} };");
+    assertEquals(0, compiler.getErrorCount());
   }
 
-  // Tests calling a non-callable expression
+  // Tests bitwise operation on non-integer types triggers warning
   @Test
-  public void testCall_nonCallableType_reportsWarning() {
-    testTypes("var x = 123; x();", TypeCheck.NOT_CALLABLE);
+  public void testVisit_bitOperationInvalidType_reportsWarning() {
+    testAndCheck("var x = ~'hello';");
+    assertEquals(1, compiler.getWarningCount());
+    assertEquals(TypeCheck.BIT_OPERATION, compiler.getWarnings()[0].getType());
   }
 
-  // Tests calling constructor without 'new'
+  // Tests calling a non-callable value triggers warning
   @Test
-  public void testConstructorCall_withoutNew_reportsWarning() {
-    testTypes("/** @constructor */ function Foo() {} Foo();", TypeCheck.CONSTRUCTOR_NOT_CALLABLE);
+  public void testVisit_callingNonFunction_reportsWarning() {
+    testAndCheck("var x = 1; x();");
+    assertEquals(1, compiler.getWarningCount());
+    assertEquals(TypeCheck.NOT_CALLABLE, compiler.getWarnings()[0].getType());
   }
 
-  // Tests instantiation of non-constructor
+  // Tests delete operator on a non-reference triggers warning
   @Test
-  public void testNew_nonConstructor_reportsWarning() {
-    testTypes("var x = 123; new x();", TypeCheck.NOT_A_CONSTRUCTOR);
+  public void testVisit_badDelete_reportsWarning() {
+    testAndCheck("delete (1 + 2);");
+    assertEquals(1, compiler.getWarningCount());
+    assertEquals(TypeCheck.BAD_DELETE, compiler.getWarnings()[0].getType());
   }
 
-  // Tests deterministic comparison yielding constant result
+  // Tests deterministic comparison equality triggers warning
   @Test
-  public void testComparison_deterministicEquality_reportsWarning() {
-    testTypes("var x = 1 === '1';", TypeCheck.DETERMINISTIC_TEST_NO_RESULT);
+  public void testVisit_deterministicTest_reportsWarning() {
+    testAndCheck("var x = 1 === 'str';");
+    assertEquals(1, compiler.getWarningCount());
+    assertEquals(TypeCheck.DETERMINISTIC_TEST_NO_RESULT, compiler.getWarnings()[0].getType());
   }
 
-  // Tests bitwise operation on non-integer types
+  // Tests function call with too few arguments triggers warning
   @Test
-  public void testBitwiseOperation_invalidType_reportsWarning() {
-    testTypes("var x = 'abc' >> 1;", TypeCheck.BIT_OPERATION);
+  public void testVisit_wrongArgumentCount_reportsWarning() {
+    testAndCheck("/** @param {number} a \n @param {number} b */ function f(a, b) {} f(1);");
+    assertEquals(1, compiler.getWarningCount());
+    assertEquals(TypeCheck.WRONG_ARGUMENT_COUNT, compiler.getWarnings()[0].getType());
   }
 
-  // Tests delete operator on invalid operand
+  // Tests instanceof operator requires an object operand
   @Test
-  public void testDelete_invalidOperand_reportsWarning() {
-    testTypes("delete (1 + 2);", TypeCheck.BAD_DELETE);
+  public void testVisit_instanceofNonObject_reportsWarning() {
+    testAndCheck("var x = 1 instanceof 2;");
+    assertTrue(compiler.getWarningCount() > 0);
   }
 
-  // Tests access to inexistent enum element
+  // Tests 'in' operator requires object operand
   @Test
-  public void testEnum_inexistentElement_reportsWarning() {
-    testTypes("/** @enum {number} */ var MyEnum = { A: 1, B: 2 }; var x = MyEnum.C;", TypeCheck.INEXISTENT_ENUM_ELEMENT);
+  public void testVisit_inOperatorNonObject_reportsWarning() {
+    testAndCheck("var x = 'prop' in 123;");
+    assertTrue(compiler.getWarningCount() > 0);
   }
 
-  // Tests interface function having a non-empty body
+  // Tests calling constructor without 'new' keyword
   @Test
-  public void testInterface_nonEmptyFunction_reportsWarning() {
-    testTypes("/** @interface */ function Foo() {} Foo.prototype.bar = function() { return 1; };", TypeCheck.INTERFACE_FUNCTION_NOT_EMPTY);
+  public void testVisit_constructorNotCallable_reportsWarning() {
+    testAndCheck("/** @constructor */ function Foo() {} Foo();");
+    assertEquals(1, compiler.getWarningCount());
+    assertEquals(TypeCheck.CONSTRUCTOR_NOT_CALLABLE, compiler.getWarnings()[0].getType());
   }
 
-  // Tests constructor extending an interface directly
+  // Tests instantiating a non-constructor triggers warning
   @Test
-  public void testConstructor_extendingInterface_reportsWarning() {
-    testTypes("/** @interface */ function AnInterface() {} /** @constructor\n @extends {AnInterface} */ function Bar() {}", TypeCheck.CONFLICTING_EXTENDED_TYPE);
+  public void testVisit_notAConstructor_reportsWarning() {
+    testAndCheck("var x = 1; new x();");
+    assertEquals(1, compiler.getWarningCount());
+    assertEquals(TypeCheck.NOT_A_CONSTRUCTOR, compiler.getWarnings()[0].getType());
   }
 
-  // Tests implementing a non-interface type
+  // Tests function with inconsistent return type triggers warning
   @Test
-  public void testConstructor_implementingNonInterface_reportsWarning() {
-    testTypes("/** @constructor */ function NotAnInterface() {} /** @constructor\n @implements {NotAnInterface} */ function Bar() {}", TypeCheck.BAD_IMPLEMENTED_TYPE);
+  public void testVisit_inconsistentReturnType_reportsWarning() {
+    testAndCheck("/** @return {number} */ function f() { return 'hello'; }");
+    assertEquals(1, compiler.getWarningCount());
   }
 
-  // Tests @noTypeCheck annotation suppression
+  // Tests reportMissingProperties chaining method
   @Test
-  public void testNoTypeCheck_suppressesWarnings() {
-    testTypes("/** @noTypeCheck */ function f() { var x = 123; x(); }", null);
+  public void testReportMissingProperties_chaining_returnsSelf() {
+    TypeCheck tc = createTypeCheck();
+    TypeCheck result = tc.reportMissingProperties(false);
+    assertSame(tc, result);
   }
 
-  // Tests function expecting 'this' type invoked unbound
+  // Tests array and regexp literals are correctly typed
   @Test
-  public void testExpectedThisType_unboundCall_reportsWarning() {
-    testTypes("/** @this {{a: number}} */ function f() {} f();", TypeCheck.EXPECTED_THIS_TYPE);
+  public void testVisit_arrayAndRegExpLiterals_typedWithoutWarnings() {
+    TypeCheck tc = testAndCheck("var arr = [1, 2, 3]; var re = /abc/;");
+    assertTrue(tc.getTypedPercent() > 0.0);
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
   }
 
-  // Tests instanceof operator checks
+  // Tests unary increment and decrement type check
   @Test
-  public void testInstanceOf_validOperands_noErrors() {
-    testTypes("/** @constructor */ function Foo() {} var f = new Foo(); var isFoo = f instanceof Foo;");
+  public void testVisit_incrementDecrement_numericTypeChecked() {
+    testAndCheck("var x = 1; x++; ++x; x--; --x;");
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
+  }
+
+  // Tests typeof and void operators
+  @Test
+  public void testVisit_typeofAndVoid_typedWithoutWarnings() {
+    TypeCheck tc = testAndCheck("var s = typeof 1; var v = void 0;");
+    assertTrue(tc.getTypedPercent() > 0.0);
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
+  }
+
+  // Tests type mismatch on variable initialization
+  @Test
+  public void testVisit_typeMismatchAssignment_reportsWarning() {
+    testAndCheck("/** @type {number} */ var x = 'string';");
+    assertEquals(1, compiler.getWarningCount());
+  }
+
+  // Tests ternary hook operator correctly computes unified type
+  @Test
+  public void testVisit_ternaryHook_typesCorrectly() {
+    TypeCheck tc = testAndCheck("var x = true ? 1 : 2;");
+    assertTrue(tc.getTypedPercent() > 0.0);
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
+  }
+
+  // Tests invalid type cast warning
+  @Test
+  public void testVisit_invalidCast_reportsWarning() {
+    testAndCheck("var x = /** @type {boolean} */ (1);");
+    assertEquals(1, compiler.getWarningCount());
+    assertEquals(TypeValidator.INVALID_CAST, compiler.getWarnings()[0].getType());
+  }
+
+  // Tests interface method implementation requirement
+  @Test
+  public void testVisit_unimplementedInterfaceMethod_reportsWarning() {
+    testAndCheck(
+        "/** @interface */ function Foo() {}\n"
+            + "Foo.prototype.bar = function() {};\n"
+            + "/** @constructor @implements {Foo} */ function Bar() {}");
+    assertEquals(1, compiler.getWarningCount());
+  }
+
+  // Tests enum value element type mismatch
+  @Test
+  public void testVisit_enumElementTypeMismatch_reportsWarning() {
+    testAndCheck("/** @enum {number} */ var E = { A: 1, B: 'invalid' };");
+    assertEquals(1, compiler.getWarningCount());
+  }
+
+  // Tests suppression of type errors using @noTypeCheck
+  @Test
+  public void testVisit_noTypeCheckAnnotation_suppressesWarnings() {
+    testAndCheck("/** @noTypeCheck */ function f() { var x = 1; x(); }");
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
+  }
+
+  // Tests binary addition and logical operators
+  @Test
+  public void testVisit_binaryAdditionAndLogicalOperators_typesWithoutWarnings() {
+    TypeCheck tc = testAndCheck("var a = 'foo' + 1; var b = 2 + 3; var c = true && false; var d = null || 'str';");
+    assertTrue(tc.getTypedPercent() > 0.0);
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
+  }
+
+  // Tests method overriding with signature mismatch
+  @Test
+  public void testVisit_methodOverrideMismatch_reportsWarning() {
+    testAndCheck(
+        "/** @constructor */ function Super() {}\n"
+            + "Super.prototype.foo = function(/** number */ x) {};\n"
+            + "/** @constructor @extends {Super} */ function Sub() {}\n"
+            + "Sub.prototype.foo = function(/** string */ x) {};");
+    assertEquals(1, compiler.getWarningCount());
+  }
+
+  // Tests switch statement condition and case checking
+  @Test
+  public void testVisit_switchStatement_typesCorrectly() {
+    TypeCheck tc = testAndCheck("var x = 1; switch(x) { case 1: break; case 2: break; default: break; }");
+    assertTrue(tc.getTypedPercent() > 0.0);
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
+  }
+
+  // Tests loop conditions typing
+  @Test
+  public void testVisit_loopConditionStatements_typesCorrectly() {
+    TypeCheck tc = testAndCheck("var i = 0; while (i < 5) { i++; } do { i--; } while (i > 0); for (var j = 0; j < 5; j++) {}");
+    assertTrue(tc.getTypedPercent() > 0.0);
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
   }
 }

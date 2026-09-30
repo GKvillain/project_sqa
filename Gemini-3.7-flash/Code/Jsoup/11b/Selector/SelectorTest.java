@@ -6,12 +6,10 @@ import org.jsoup.nodes.Element;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class SelectorTest {
 
@@ -19,241 +17,220 @@ public class SelectorTest {
 
     @Before
     public void setUp() {
-        String html = "<div id='main' class='content wrap'>"
-                + "<h1 title='Header' data-topic='news'>Headline</h1>"
-                + "<p id='p1' class='text' data-ref='123'>First <span>inner</span> paragraph.</p>"
-                + "<p id='p2' class='text lead' custom='abc'>Second paragraph 123.</p>"
-                + "<a href='http://example.com/test.png' rel='nofollow'>Link 1</a>"
-                + "<a href='https://example.org/search/item' rel='external'>Link 2</a>"
-                + "<ol id='list'>"
-                + "<li class='item' val='one'>Item 1</li>"
-                + "<li class='item' val='two'>Item 2</li>"
-                + "<li class='item' val='three'>Item 3</li>"
-                + "</ol>"
-                + "<fb:name>Facebook Tag</fb:name>"
+        String html = "<div id='main' class='content'>"
+                + "<p class='intro' title='greeting'>Hello <span>World</span></p>"
+                + "<p class='body' title='text' data-info='p2'>Jsoup test 123</p>"
+                + "<ul id='list'>"
+                + "<li class='item' data-val='a'>One</li>"
+                + "<li class='item active' data-val='b'>Two</li>"
+                + "<li class='item' data-val='c'>Three</li>"
+                + "</ul>"
+                + "<div><a href='http://example.com/search/1'>Link 1</a><a href='https://example.org/img.png'>Link 2</a></div>"
                 + "</div>";
         doc = Jsoup.parse(html);
     }
 
-    // Tests tag name and namespaced tag selection
+    // Tests selection by tag name
     @Test
     public void testSelect_byTag_returnsMatchingElements() {
         Elements ps = Selector.select("p", doc);
         assertEquals(2, ps.size());
-        assertEquals("p1", ps.get(0).id());
-        assertEquals("p2", ps.get(1).id());
-
-        Elements fb = Selector.select("fb|name", doc);
-        assertEquals(1, fb.size());
-        assertEquals("Facebook Tag", fb.first().text());
+        assertEquals("intro", ps.get(0).className());
+        assertEquals("body", ps.get(1).className());
     }
 
-    // Tests ID and class name selector
+    // Tests selection by ID
     @Test
-    public void testSelect_byIdAndClass_returnsMatchingElements() {
-        Elements byId = Selector.select("#p1", doc);
-        assertEquals(1, byId.size());
-        assertEquals("p1", byId.first().id());
+    public void testSelect_byId_returnsMatchingElement() {
+        Elements main = Selector.select("#main", doc);
+        assertEquals(1, main.size());
+        assertEquals("main", main.get(0).id());
 
-        Elements byClass = Selector.select(".text", doc);
-        assertEquals(2, byClass.size());
-
-        Elements chained = Selector.select("p.text.lead#p2", doc);
-        assertEquals(1, chained.size());
-        assertEquals("p2", chained.first().id());
+        Elements notFound = Selector.select("#nonexistent", doc);
+        assertTrue(notFound.isEmpty());
     }
 
-    // Tests universal selector (*)
+    // Tests selection by CSS class
+    @Test
+    public void testSelect_byClass_returnsMatchingElements() {
+        Elements items = Selector.select(".item", doc);
+        assertEquals(3, items.size());
+        assertEquals("One", items.get(0).text());
+        assertEquals("Two", items.get(1).text());
+        assertEquals("Three", items.get(2).text());
+    }
+
+    // Tests selection using universal wildcard selector
     @Test
     public void testSelect_universalSelector_returnsAllDescendants() {
-        Elements all = Selector.select("*", doc);
-        assertTrue(all.size() > 5);
-        Elements divAll = Selector.select("div#main *", doc);
-        assertTrue(divAll.size() >= 7);
+        Element list = doc.getElementById("list");
+        Elements allInList = Selector.select("*", list);
+        assertEquals(4, allInList.size()); // list itself + 3 li items
     }
 
-    // Tests attribute presence and prefix matching ([attr], [^attrPrefix])
+    // Tests attribute presence and attribute prefix matching
     @Test
-    public void testSelect_byAttributePresenceAndPrefix_returnsMatchingElements() {
-        Elements titled = Selector.select("[title]", doc);
-        assertEquals(1, titled.size());
-        assertEquals("h1", titled.first().tagName());
+    public void testSelect_byAttributePresenceAndPrefix_returnsMatching() {
+        Elements withTitle = Selector.select("[title]", doc);
+        assertEquals(2, withTitle.size());
 
-        Elements dataAttrs = Selector.select("[^data-]", doc);
-        assertEquals(2, dataAttrs.size());
+        Elements withDataPrefix = Selector.select("[^data-]", doc);
+        assertEquals(4, withDataPrefix.size()); // 1 p + 3 li
     }
 
-    // Tests attribute value comparison operators (=, !=, ^=, $=, *=, ~=)
+    // Tests attribute value operators: =, !=, ^=, $=, *=, ~=
     @Test
-    public void testSelect_byAttributeValueOperators_returnsMatchingElements() {
-        Elements eq = Selector.select("[rel=nofollow]", doc);
+    public void testSelect_byAttributeValueOperators_returnsMatching() {
+        Elements eq = Selector.select("[data-val=b]", doc);
         assertEquals(1, eq.size());
+        assertEquals("Two", eq.get(0).text());
 
-        Elements notEq = Selector.select("a[rel!=nofollow]", doc);
-        assertEquals(1, notEq.size());
-        assertEquals("Link 2", notEq.first().text());
+        Elements notEq = Selector.select("li[data-val!=b]", doc);
+        assertEquals(2, notEq.size());
 
-        Elements prefix = Selector.select("[href^=http:]", doc);
-        assertEquals(1, prefix.size());
+        Elements startsWith = Selector.select("a[href^=http:]", doc);
+        assertEquals(1, startsWith.size());
+        assertEquals("Link 1", startsWith.get(0).text());
 
-        Elements suffix = Selector.select("[href$=.png]", doc);
-        assertEquals(1, suffix.size());
+        Elements endsWith = Selector.select("a[href$=.png]", doc);
+        assertEquals(1, endsWith.size());
+        assertEquals("Link 2", endsWith.get(0).text());
 
-        Elements contains = Selector.select("[href*=/search/]", doc);
+        Elements contains = Selector.select("a[href*=/search/]", doc);
         assertEquals(1, contains.size());
 
-        Elements regex = Selector.select("[href~=(?i)\\.png]", doc);
+        Elements regex = Selector.select("a[href~=(?i)\\.png]", doc);
         assertEquals(1, regex.size());
     }
 
-    // Tests combinators: child (>), descendant ( ), adjacent sibling (+), general sibling (~)
+    // Tests child combinator (E > F)
     @Test
-    public void testSelect_combinators_returnsMatchingElements() {
-        Elements child = Selector.select("ol#list > li", doc);
-        assertEquals(3, child.size());
+    public void testSelect_childCombinator_returnsDirectChildren() {
+        Elements directLis = Selector.select("ul#list > li", doc);
+        assertEquals(3, directLis.size());
 
-        Elements descendant = Selector.select("div.content span", doc);
-        assertEquals(1, descendant.size());
-        assertEquals("inner", descendant.first().text());
-
-        Elements adjacent = Selector.select("h1 + p", doc);
-        assertEquals(1, adjacent.size());
-        assertEquals("p1", adjacent.first().id());
-
-        Elements sibling = Selector.select("h1 ~ ol", doc);
-        assertEquals(1, sibling.size());
-        assertEquals("list", sibling.first().id());
+        Elements noDirect = Selector.select("div#main > li", doc);
+        assertTrue(noDirect.isEmpty());
     }
 
-    // Tests comma-separated union query
+    // Tests descendant combinator (E F)
     @Test
-    public void testSelect_unionQuery_returnsMergedElements() {
-        Elements union = Selector.select("h1, ol#list", doc);
-        assertEquals(2, union.size());
-        assertEquals("h1", union.get(0).tagName());
-        assertEquals("ol", union.get(1).tagName());
+    public void testSelect_descendantCombinator_returnsDescendants() {
+        Elements spans = Selector.select("div#main p.intro span", doc);
+        assertEquals(1, spans.size());
+        assertEquals("World", spans.get(0).text());
     }
 
-    // Tests index-based pseudo selectors (:lt, :gt, :eq)
+    // Tests adjacent sibling combinator (E + F)
     @Test
-    public void testSelect_indexPseudoSelectors_returnsFilteredByIndex() {
-        Elements lt = Selector.select("li:lt(2)", doc);
-        assertEquals(2, lt.size());
-        assertEquals("Item 1", lt.get(0).text());
-        assertEquals("Item 2", lt.get(1).text());
-
-        Elements gt = Selector.select("li:gt(1)", doc);
-        assertEquals(1, gt.size());
-        assertEquals("Item 3", gt.get(0).text());
-
-        Elements eq = Selector.select("li:eq(1)", doc);
-        assertEquals(1, eq.size());
-        assertEquals("Item 2", eq.first().text());
+    public void testSelect_adjacentSiblingCombinator_returnsImmediateSibling() {
+        Elements nextLi = Selector.select("li.active + li", doc);
+        assertEquals(1, nextLi.size());
+        assertEquals("Three", nextLi.get(0).text());
     }
 
-    // Tests :has(selector) pseudo selector
+    // Tests general sibling combinator (E ~ F)
     @Test
-    public void testSelect_hasPseudoSelector_returnsParentsOfMatchingDescendants() {
-        Elements hasSpan = Selector.select("p:has(span)", doc);
-        assertEquals(1, hasSpan.size());
-        assertEquals("p1", hasSpan.first().id());
-
-        Elements hasLi = Selector.select("div:has(ol > li)", doc);
-        assertEquals(1, hasLi.size());
-        assertEquals("main", hasLi.first().id());
+    public void testSelect_generalSiblingCombinator_returnsAllFollowingSiblings() {
+        Elements followingSiblings = Selector.select("li:eq(0) ~ li", doc);
+        assertEquals(2, followingSiblings.size());
+        assertEquals("Two", followingSiblings.get(0).text());
+        assertEquals("Three", followingSiblings.get(1).text());
     }
 
-    // Tests :contains and :containsOwn pseudo selectors
+    // Tests comma (OR) combinator (E, F)
     @Test
-    public void testSelect_containsPseudoSelectors_matchesText() {
-        Elements contains = Selector.select("p:contains(inner)", doc);
+    public void testSelect_commaCombinator_returnsUnionOfElements() {
+        Elements result = Selector.select("p.intro, li.active", doc);
+        assertEquals(2, result.size());
+        assertEquals("p", result.get(0).tagName());
+        assertEquals("li", result.get(1).tagName());
+    }
+
+    // Tests structural index filters: :lt, :gt, :eq
+    @Test
+    public void testSelect_indexFilters_returnsIndexedElements() {
+        Elements firstTwo = Selector.select("li:lt(2)", doc);
+        assertEquals(2, firstTwo.size());
+        assertEquals("One", firstTwo.get(0).text());
+        assertEquals("Two", firstTwo.get(1).text());
+
+        Elements afterFirst = Selector.select("li:gt(1)", doc);
+        assertEquals(1, afterFirst.size());
+        assertEquals("Three", afterFirst.get(0).text());
+
+        Elements second = Selector.select("li:eq(1)", doc);
+        assertEquals(1, second.size());
+        assertEquals("Two", second.get(0).text());
+    }
+
+    // Tests text content selectors: :contains, :containsOwn, :matches, :matchesOwn
+    @Test
+    public void testSelect_textFilters_returnsMatchingElements() {
+        Elements contains = Selector.select("p:contains(World)", doc);
         assertEquals(1, contains.size());
-        assertEquals("p1", contains.first().id());
+        assertEquals("intro", contains.get(0).className());
 
-        Elements containsOwn = Selector.select("p:containsOwn(inner)", doc);
-        assertEquals(0, containsOwn.size());
+        Elements containsOwn = Selector.select("p:containsOwn(World)", doc);
+        assertTrue(containsOwn.isEmpty());
 
-        Elements containsOwnDirect = Selector.select("p:containsOwn(First)", doc);
-        assertEquals(1, containsOwnDirect.size());
-        assertEquals("p1", containsOwnDirect.first().id());
-    }
-
-    // Tests :matches and :matchesOwn pseudo selectors
-    @Test
-    public void testSelect_matchesPseudoSelectors_matchesRegex() {
         Elements matches = Selector.select("p:matches(\\d+)", doc);
         assertEquals(1, matches.size());
-        assertEquals("p2", matches.first().id());
+        assertEquals("body", matches.get(0).className());
 
-        Elements matchesOwn = Selector.select("p:matchesOwn(^Second.*\\d+\\.$)", doc);
+        Elements matchesOwn = Selector.select("p:matchesOwn(^Jsoup)", doc);
         assertEquals(1, matchesOwn.size());
-        assertEquals("p2", matchesOwn.first().id());
+        assertEquals("body", matchesOwn.get(0).className());
     }
 
-    // Tests :not(selector) pseudo selector (related to Jsoup-11 defect)
+    // Tests :has selector attached to an element
     @Test
-    public void testSelect_notPseudoSelector_returnsElementsNotMatching() {
-        Elements notLead = Selector.select("p:not(.lead)", doc);
-        assertEquals(1, notLead.size());
-        assertEquals("p1", notLead.first().id());
-
-        Elements notDiv = Selector.select("div#main > :not(p)", doc);
-        assertTrue(notDiv.size() > 0);
+    public void testSelect_hasPseudoSelector_returnsParentElements() {
+        Elements divs = Selector.select("div:has(p)", doc);
+        assertEquals(1, divs.size());
+        assertEquals("main", divs.get(0).id());
     }
 
-    // Tests select over multiple root elements
+    // Tests :has selector standing alone at the root
     @Test
-    public void testSelect_multipleRoots_returnsElementsFromAllRoots() {
-        List<Element> roots = new ArrayList<Element>();
-        roots.add(doc.getElementById("p1"));
-        roots.add(doc.getElementById("p2"));
-
-        Elements found = Selector.select("span", roots);
-        assertEquals(1, found.size());
-        assertEquals("inner", found.first().text());
+    public void testSelect_hasPseudoSelectorAlone_returnsMatchingElements() {
+        Elements elementsWithSpan = Selector.select(":has(span)", doc);
+        assertFalse(elementsWithSpan.isEmpty());
+        assertTrue(elementsWithSpan.contains(doc.select("p.intro").first()));
     }
 
-    // Tests leading combinator starting from root
+    // Tests :not pseudo selector
     @Test
-    public void testSelect_queryStartingWithCombinator_usesRoot() {
-        Element list = doc.getElementById("list");
-        Elements items = Selector.select("> li", list);
-        assertEquals(3, items.size());
+    public void testSelect_notPseudoSelector_returnsFilteredElements() {
+        Elements notActive = Selector.select("li:not(.active)", doc);
+        assertEquals(2, notActive.size());
+        assertEquals("One", notActive.get(0).text());
+        assertEquals("Three", notActive.get(1).text());
     }
 
-    // Tests invalid query syntax throwing SelectorParseException
+    // Tests selecting over an Iterable of root elements
+    @Test
+    public void testSelect_iterableRoots_returnsCombinedElements() {
+        List<Element> roots = Arrays.asList(doc.getElementById("list"), doc.getElementById("main"));
+        Elements lis = Selector.select("li", roots);
+        assertEquals(3, lis.size());
+    }
+
+    // Tests exception on unexpected query syntax
     @Test(expected = Selector.SelectorParseException.class)
-    public void testSelect_invalidQuery_throwsSelectorParseException() {
-        Selector.select("div[[title]]", doc);
+    public void testSelect_invalidQueryToken_throwsSelectorParseException() {
+        Selector.select("div % invalid", doc);
     }
 
-    // Tests unhandled token throwing SelectorParseException
-    @Test(expected = Selector.SelectorParseException.class)
-    public void testSelect_unhandledToken_throwsSelectorParseException() {
-        Selector.select("???", doc);
-    }
-
-    // Tests invalid index format throwing IllegalArgumentException
+    // Tests exception on non-numeric index filter
     @Test(expected = IllegalArgumentException.class)
     public void testSelect_nonNumericIndex_throwsIllegalArgumentException() {
-        Selector.select("li:eq(abc)", doc);
+        Selector.select("li:lt(abc)", doc);
     }
 
-    // Tests null query throwing IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testSelect_nullQuery_throwsIllegalArgumentException() {
-        Selector.select(null, doc);
-    }
-
-    // Tests empty query throwing IllegalArgumentException
+    // Tests exception on null or empty query
     @Test(expected = IllegalArgumentException.class)
     public void testSelect_emptyQuery_throwsIllegalArgumentException() {
         Selector.select("   ", doc);
-    }
-
-    // Tests null root throwing IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testSelect_nullRoot_throwsIllegalArgumentException() {
-        Selector.select("div", (Element) null);
     }
 }

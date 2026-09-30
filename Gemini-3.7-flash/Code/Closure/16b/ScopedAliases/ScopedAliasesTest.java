@@ -1,38 +1,30 @@
 package com.google.javascript.jscomp;
 
-import com.google.javascript.jscomp.CompilerOptions.AliasTransformation;
-import com.google.javascript.jscomp.CompilerOptions.AliasTransformationHandler;
 import com.google.javascript.rhino.Node;
-import com.google.javascript.rhino.SourcePosition;
+import com.google.javascript.rhino.Token;
 import org.junit.Before;
 import org.junit.Test;
 
-/**
- * Tests for {@link ScopedAliases}.
- */
 public class ScopedAliasesTest extends CompilerTestCase {
 
-  private static final AliasTransformationHandler NULL_ALIAS_TRANSFORMATION_HANDLER =
-      new AliasTransformationHandler() {
-        @Override
-        public AliasTransformation logAliasTransformation(
-            String sourceFile, SourcePosition<AliasTransformation> position) {
-          return new AliasTransformation() {
-            @Override
-            public void addAlias(String alias, String qualifiedName) {}
-          };
-        }
-      };
+  private static final String EXTERNS = "var window; var goog = {}; goog.dom = {}; goog.events = {};";
+  private PreprocessorSymbolTable preprocessorSymbolTable;
+
+  public ScopedAliasesTest() {
+    super(EXTERNS);
+  }
 
   @Override
   @Before
   public void setUp() throws Exception {
     super.setUp();
+    this.preprocessorSymbolTable = null;
   }
 
   @Override
   protected CompilerPass getProcessor(Compiler compiler) {
-    return new ScopedAliases(compiler, null, NULL_ALIAS_TRANSFORMATION_HANDLER);
+    return new ScopedAliases(compiler, preprocessorSymbolTable,
+        CompilerOptions.NULL_ALIAS_TRANSFORMATION_HANDLER);
   }
 
   @Override
@@ -40,182 +32,220 @@ public class ScopedAliasesTest extends CompilerTestCase {
     return 1;
   }
 
-  // Tests basic alias expansion and scope unwrap
+  // Tests basic alias transformation
   @Test
-  public void testProcess_basicAlias_expandsQualifiedName() {
-    test(
-        "goog.scope(function() {\n"
-            + "  var dom = goog.dom;\n"
-            + "  var DIV = dom.TagName.DIV;\n"
-            + "  dom.createElement(DIV);\n"
-            + "});",
-        "goog.dom.createElement(goog.dom.TagName.DIV);");
+  public void testProcess_basicAlias_inlinesAlias() {
+    test("goog.scope(function() {" +
+         "  var dom = goog.dom;" +
+         "  dom.createElement('div');" +
+         "});",
+         "goog.dom.createElement('div');");
   }
 
-  // Tests transitive aliases across multiple declarations
+  // Tests multiple aliases in the same scope
   @Test
-  public void testProcess_transitiveAlias_expandsCorrectly() {
-    test(
-        "goog.scope(function() {\n"
-            + "  var g = goog;\n"
-            + "  var d = g.dom;\n"
-            + "  d.createElement('div');\n"
-            + "});",
-        "goog.dom.createElement('div');");
+  public void testProcess_multipleAliases_inlinesAllAliases() {
+    test("goog.scope(function() {" +
+         "  var dom = goog.dom;" +
+         "  var events = goog.events;" +
+         "  dom.createElement('div');" +
+         "  events.listen();" +
+         "});",
+         "goog.dom.createElement('div');" +
+         "goog.events.listen();");
   }
 
-  // Tests multiple aliases in single var statement
+  // Tests transitive alias resolution
   @Test
-  public void testProcess_multipleVarsInSingleStatement_removesCorrectly() {
-    test(
-        "goog.scope(function() {\n"
-            + "  var dom = goog.dom, events = goog.events;\n"
-            + "  dom.createElement('div');\n"
-            + "  events.listen();\n"
-            + "});",
-        "goog.dom.createElement('div');\n"
-            + "goog.events.listen();");
+  public void testProcess_transitiveAlias_inlinesCorrectly() {
+    test("goog.scope(function() {" +
+         "  var g = goog;" +
+         "  var d = g.dom;" +
+         "  d.createElement('div');" +
+         "});",
+         "goog.dom.createElement('div');");
   }
 
-  // Tests error when goog.scope is not in an expression statement
+  // Tests JSDoc type annotation aliasing
+  @Test
+  public void testProcess_jsdocTypeAnnotation_inlinesType() {
+    test("goog.scope(function() {" +
+         "  var dom = goog.dom;" +
+         "  /** @type {dom.Element} */ var x;" +
+         "});",
+         "/** @type {goog.dom.Element} */ var x;");
+  }
+
+  // Tests nested JSDoc type annotation aliasing
+  @Test
+  public void testProcess_nestedJsdocType_inlinesType() {
+    test("goog.scope(function() {" +
+         "  var dom = goog.dom;" +
+         "  /** @type {dom.Element.Sub} */ var x;" +
+         "});",
+         "/** @type {goog.dom.Element.Sub} */ var x;");
+  }
+
+  // Tests namespace shadow renaming inside inner scope
+  @Test
+  public void testProcess_namespaceShadow_renamesShadowedVariable() {
+    test("goog.scope(function() {" +
+         "  var dom = goog.dom;" +
+         "  function f() {" +
+         "    var goog = 1;" +
+         "    dom.createElement('div');" +
+         "  }" +
+         "});",
+         "function f() {" +
+         "  var goog$jscomp$1 = 1;" +
+         "  goog.dom.createElement('div');" +
+         "}");
+  }
+
+  // Tests reporting error when goog.scope is used improperly in expression
   @Test
   public void testValidateScopeCall_notExprResult_reportsError() {
-    testError(
-        "var x = goog.scope(function() {});",
+    testError("var x = goog.scope(function() {});",
         ScopedAliases.GOOG_SCOPE_USED_IMPROPERLY);
   }
 
-  // Tests error when goog.scope has no parameters
+  // Tests reporting error when goog.scope has no arguments
   @Test
-  public void testValidateScopeCall_noParams_reportsError() {
-    testError(
-        "goog.scope();",
+  public void testValidateScopeCall_noArguments_reportsError() {
+    testError("goog.scope();",
         ScopedAliases.GOOG_SCOPE_HAS_BAD_PARAMETERS);
   }
 
-  // Tests error when goog.scope receives a non-function parameter
+  // Tests reporting error when goog.scope has multiple arguments
   @Test
-  public void testValidateScopeCall_nonFunctionParam_reportsError() {
-    testError(
-        "goog.scope(42);",
+  public void testValidateScopeCall_multipleArguments_reportsError() {
+    testError("goog.scope(function() {}, 1);",
         ScopedAliases.GOOG_SCOPE_HAS_BAD_PARAMETERS);
   }
 
-  // Tests error when goog.scope function takes parameters
+  // Tests reporting error when goog.scope parameter is not a function
+  @Test
+  public void testValidateScopeCall_nonFunctionParameter_reportsError() {
+    testError("goog.scope(42);",
+        ScopedAliases.GOOG_SCOPE_HAS_BAD_PARAMETERS);
+  }
+
+  // Tests reporting error when goog.scope function has parameters
   @Test
   public void testValidateScopeCall_functionWithParams_reportsError() {
-    testError(
-        "goog.scope(function(a) {});",
+    testError("goog.scope(function(a) {});",
         ScopedAliases.GOOG_SCOPE_HAS_BAD_PARAMETERS);
   }
 
-  // Tests error when goog.scope function is named
+  // Tests reporting error when goog.scope function has a name
   @Test
   public void testValidateScopeCall_namedFunction_reportsError() {
-    testError(
-        "goog.scope(function foo() {});",
+    testError("goog.scope(function foo() {});",
         ScopedAliases.GOOG_SCOPE_HAS_BAD_PARAMETERS);
   }
 
-  // Tests error when body references this
+  // Tests reporting error when goog.scope body references 'this'
   @Test
   public void testVisit_referencesThis_reportsError() {
-    testError(
-        "goog.scope(function() {\n"
-            + "  this.foo = null;\n"
-            + "});",
+    testError("goog.scope(function() { this.x = 1; });",
         ScopedAliases.GOOG_SCOPE_REFERENCES_THIS);
   }
 
-  // Tests error when body uses return
+  // Tests reporting error when goog.scope body uses 'return'
   @Test
   public void testVisit_usesReturn_reportsError() {
-    testError(
-        "goog.scope(function() {\n"
-            + "  return;\n"
-            + "});",
+    testError("goog.scope(function() { return; });",
         ScopedAliases.GOOG_SCOPE_USES_RETURN);
   }
 
-  // Tests error when body uses throw
+  // Tests reporting error when goog.scope body uses 'throw'
   @Test
   public void testVisit_usesThrow_reportsError() {
-    testError(
-        "goog.scope(function() {\n"
-            + "  throw 'error';\n"
-            + "});",
+    testError("goog.scope(function() { throw 'error'; });",
         ScopedAliases.GOOG_SCOPE_USES_THROW);
   }
 
-  // Tests error when alias is reassigned
+  // Tests reporting error when alias is redefined
   @Test
-  public void testVisit_redefinedAlias_reportsError() {
-    testError(
-        "goog.scope(function() {\n"
-            + "  var d = goog.dom;\n"
-            + "  d = goog.events;\n"
-            + "});",
-        ScopedAliases.GOOG_SCOPE_ALIAS_REDEFINED);
+  public void testVisit_aliasRedefined_reportsError() {
+    testError("goog.scope(function() {" +
+              "  var dom = goog.dom;" +
+              "  dom = goog.events;" +
+              "});",
+              ScopedAliases.GOOG_SCOPE_ALIAS_REDEFINED);
   }
 
-  // Tests error when variable in scope is not an alias
+  // Tests reporting error when local variable is not an alias
   @Test
   public void testFindAliases_nonAliasLocal_reportsError() {
-    testError(
-        "goog.scope(function() {\n"
-            + "  var x = 1;\n"
-            + "});",
+    testError("goog.scope(function() { var x = 1; });",
         ScopedAliases.GOOG_SCOPE_NON_ALIAS_LOCAL);
   }
 
-  // Tests shadowing of namespace in inner function
+  // Tests that functions outside goog.scope are preserved
   @Test
-  public void testRenameNamespaceShadows_shadowsNamespace_renamesShadow() {
-    test(
-        "goog.scope(function() {\n"
-            + "  var dom = goog.dom;\n"
-            + "  function foo() {\n"
-            + "    var goog = 1;\n"
-            + "    return goog;\n"
-            + "  }\n"
-            + "  dom.createElement('div');\n"
-            + "});",
-        "function foo() {\n"
-            + "  var goog$$module$1 = 1;\n"
-            + "  return goog$$module$1;\n"
-            + "}\n"
-            + "goog.dom.createElement('div');");
+  public void testShouldTraverse_globalFunction_preserved() {
+    testSame("function globalFn() { var x = 1; }");
   }
 
-  // Tests JSDoc type transformation for aliased type names
+  // Tests with PreprocessorSymbolTable enabled
   @Test
-  public void testFixTypeNode_jsdocTypeReference_updatesTypeString() {
-    test(
-        "goog.scope(function() {\n"
-            + "  var Button = goog.ui.Button;\n"
-            + "  /** @type {Button} */\n"
-            + "  var b;\n"
-            + "});",
-        "/** @type {goog.ui.Button} */\n"
-            + "var b;");
+  public void testProcess_withPreprocessorSymbolTable_inlinesAlias() {
+    this.preprocessorSymbolTable = new PreprocessorSymbolTable(new Node(Token.SCRIPT));
+    test("goog.scope(function() {" +
+         "  var dom = goog.dom;" +
+         "  dom.createElement('div');" +
+         "});",
+         "goog.dom.createElement('div');");
   }
 
-  // Tests JSDoc type transformation for aliased subtype references
+  // Tests reporting error when alias definitions form a cycle
   @Test
-  public void testFixTypeNode_jsdocSubtypeReference_updatesTypeString() {
-    test(
-        "goog.scope(function() {\n"
-            + "  var ui = goog.ui;\n"
-            + "  /** @type {ui.Button} */\n"
-            + "  var b;\n"
-            + "});",
-        "/** @type {goog.ui.Button} */\n"
-            + "var b;");
+  public void testFindAliases_aliasCycle_reportsError() {
+    testError("goog.scope(function() {" +
+              "  var a = b;" +
+              "  var b = a;" +
+              "});",
+              ScopedAliases.GOOG_SCOPE_ALIAS_CYCLE);
   }
 
-  // Tests code without goog.scope is left unchanged
+  // Tests multiple alias declarations in a single var statement
   @Test
-  public void testProcess_noScope_noChange() {
-    testSame("var x = 10; function foo() { return x; }");
+  public void testProcess_multipleVarDeclarations_inlinesAll() {
+    test("goog.scope(function() {" +
+         "  var dom = goog.dom, events = goog.events;" +
+         "  dom.createElement('div');" +
+         "  events.listen();" +
+         "});",
+         "goog.dom.createElement('div');" +
+         "goog.events.listen();");
+  }
+
+  // Tests JSDoc @param and @return type aliasing
+  @Test
+  public void testProcess_jsdocParamAndReturn_inlinesTypes() {
+    test("goog.scope(function() {" +
+         "  var dom = goog.dom;" +
+         "  /**\n" +
+         "   * @param {dom.Element} elem\n" +
+         "   * @return {dom.Element}\n" +
+         "   */\n" +
+         "  goog.dom.find = function(elem) { return elem; };" +
+         "});",
+         "/**\n" +
+         " * @param {goog.dom.Element} elem\n" +
+         " * @return {goog.dom.Element}\n" +
+         " */\n" +
+         "goog.dom.find = function(elem) { return elem; };");
+  }
+
+  // Tests type cast expression aliasing
+  @Test
+  public void testProcess_typeCast_inlinesType() {
+    test("goog.scope(function() {" +
+         "  var dom = goog.dom;" +
+         "  goog.events.listen(/** @type {dom.Element} */ (x));" +
+         "});",
+         "goog.events.listen(/** @type {goog.dom.Element} */ (x));");
   }
 }

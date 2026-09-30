@@ -1,327 +1,484 @@
 package com.fasterxml.jackson.databind.type;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 
+import static org.junit.Assert.*;
+
 public class TypeFactoryTest {
 
-    private TypeFactory _typeFactory;
+    private TypeFactory _tf;
+
+    // Helper classes for testing
+    static class StringIntMap extends HashMap<String, Integer> {
+        private static final long serialVersionUID = 1L;
+    }
+
+    static class CustomMapLike<K, V> {
+        private K key;
+        private V value;
+    }
+
+    static class CustomCollectionLike<E> {
+        private E element;
+    }
+
+    static class GenericHolder<T> {
+        public T value;
+    }
+
+    static class MultiGenericHolder<A, B> {
+        public A first;
+        public B second;
+    }
+
+    static class CustomEntry<K, V> implements Map.Entry<K, V> {
+        private K k;
+        private V v;
+        @Override public K getKey() { return k; }
+        @Override public V getValue() { return v; }
+        @Override public V setValue(V value) { this.v = value; return v; }
+    }
+
+    static class WildcardHolder {
+        public List<?> wildcardList;
+        public List<? extends Number> upperBoundList;
+        public List<? super Integer> lowerBoundList;
+        public GenericHolder<String>[] genericArray;
+    }
+
+    static class SubGenericHolder extends GenericHolder<String> {
+    }
 
     @Before
     public void setUp() {
-        _typeFactory = TypeFactory.defaultInstance();
-        _typeFactory.clearCache();
+        _tf = TypeFactory.defaultInstance();
+        _tf.clearCache();
     }
 
-    // Tests defect in 19b: Properties class type resolution to Map<String, String>
+    // Tests defect in constructMapLikeType with Class arguments for non-Map class
     @Test
-    public void testConstructType_propertiesClass_returnsStringKeyAndValueMapType() {
-        JavaType type = _typeFactory.constructType(Properties.class);
-        assertTrue(type.isMapLikeType());
-        MapType mapType = (MapType) type;
-        assertEquals(String.class, mapType.getKeyType().getRawClass());
-        assertEquals(String.class, mapType.getContentType().getRawClass());
+    public void testConstructMapLikeType_withClasses_returnsMapLikeType() {
+        JavaType type = _tf.constructMapLikeType(CustomMapLike.class, String.class, Integer.class);
+        assertNotNull(type);
+        assertTrue(type instanceof MapLikeType);
+        assertEquals(CustomMapLike.class, type.getRawClass());
+        assertEquals(String.class, type.getKeyType().getRawClass());
+        assertEquals(Integer.class, type.getContentType().getRawClass());
     }
 
-    // Tests caching and pre-defined core types
+    // Tests constructMapLikeType with JavaType arguments
     @Test
-    public void testConstructType_coreTypes_returnsCoreInstances() {
-        JavaType stringType = _typeFactory.constructType(String.class);
+    public void testConstructMapLikeType_withJavaTypes_returnsMapLikeType() {
+        JavaType keyType = _tf.constructType(String.class);
+        JavaType valType = _tf.constructType(Long.class);
+        JavaType type = _tf.constructMapLikeType(CustomMapLike.class, keyType, valType);
+        assertNotNull(type);
+        assertTrue(type instanceof MapLikeType);
+        assertEquals(CustomMapLike.class, type.getRawClass());
+        assertEquals(String.class, type.getKeyType().getRawClass());
+        assertEquals(Long.class, type.getContentType().getRawClass());
+    }
+
+    // Tests core primitive and simple types caching
+    @Test
+    public void testConstructType_coreTypes_returnsCachedInstances() {
+        JavaType stringType = _tf.constructType(String.class);
         assertSame(TypeFactory.CORE_TYPE_STRING, stringType);
 
-        JavaType boolType = _typeFactory.constructType(Boolean.TYPE);
+        JavaType boolType = _tf.constructType(Boolean.TYPE);
         assertSame(TypeFactory.CORE_TYPE_BOOL, boolType);
 
-        JavaType intType = _typeFactory.constructType(Integer.TYPE);
+        JavaType intType = _tf.constructType(Integer.TYPE);
         assertSame(TypeFactory.CORE_TYPE_INT, intType);
 
-        JavaType longType = _typeFactory.constructType(Long.TYPE);
+        JavaType longType = _tf.constructType(Long.TYPE);
         assertSame(TypeFactory.CORE_TYPE_LONG, longType);
     }
 
-    // Tests array construction from Class and JavaType
+    // Tests constructArrayType with Class and JavaType
     @Test
-    public void testConstructArrayType_validClass_returnsArrayType() {
-        ArrayType arrayType = _typeFactory.constructArrayType(String.class);
-        assertNotNull(arrayType);
-        assertTrue(arrayType.isArrayType());
-        assertEquals(String[].class, arrayType.getRawClass());
-        assertEquals(String.class, arrayType.getContentType().getRawClass());
+    public void testConstructArrayType_validInputs_returnsArrayType() {
+        ArrayType fromClass = _tf.constructArrayType(String.class);
+        assertNotNull(fromClass);
+        assertTrue(fromClass.isArrayType());
+        assertEquals(String.class, fromClass.getContentType().getRawClass());
 
-        ArrayType nestedArray = _typeFactory.constructArrayType(arrayType);
-        assertEquals(String[][].class, nestedArray.getRawClass());
+        JavaType intType = _tf.constructType(Integer.class);
+        ArrayType fromJavaType = _tf.constructArrayType(intType);
+        assertNotNull(fromJavaType);
+        assertEquals(Integer.class, fromJavaType.getContentType().getRawClass());
     }
 
-    // Tests collection construction with Class and JavaType
+    // Tests constructCollectionType and raw collection construction
     @Test
-    public void testConstructCollectionType_validElementClass_returnsCollectionType() {
-        CollectionType listType = _typeFactory.constructCollectionType(ArrayList.class, String.class);
-        assertNotNull(listType);
-        assertTrue(listType.isCollectionLikeType());
-        assertEquals(ArrayList.class, listType.getRawClass());
-        assertEquals(String.class, listType.getContentType().getRawClass());
-    }
-
-    // Tests map construction with Class and JavaType
-    @Test
-    public void testConstructMapType_validKeyAndValueClasses_returnsMapType() {
-        MapType mapType = _typeFactory.constructMapType(HashMap.class, String.class, Integer.class);
-        assertNotNull(mapType);
-        assertTrue(mapType.isMapLikeType());
-        assertEquals(HashMap.class, mapType.getRawClass());
-        assertEquals(String.class, mapType.getKeyType().getRawClass());
-        assertEquals(Integer.class, mapType.getContentType().getRawClass());
-    }
-
-    // Tests constructType using TypeReference
-    @Test
-    public void testConstructType_typeReference_returnsResolvedGenericType() {
-        TypeReference<List<String>> ref = new TypeReference<List<String>>() {};
-        JavaType type = _typeFactory.constructType(ref);
-        assertTrue(type instanceof CollectionType);
-        assertEquals(List.class, type.getRawClass());
+    public void testConstructCollectionType_validInput_returnsCollectionType() {
+        CollectionType type = _tf.constructCollectionType(ArrayList.class, String.class);
+        assertNotNull(type);
+        assertEquals(ArrayList.class, type.getRawClass());
         assertEquals(String.class, type.getContentType().getRawClass());
+
+        CollectionType rawType = _tf.constructRawCollectionType(List.class);
+        assertNotNull(rawType);
+        assertEquals(Object.class, rawType.getContentType().getRawClass());
     }
 
-    // Tests constructParametrizedType with valid parameters
+    // Tests constructCollectionLikeType and raw collection-like type
     @Test
-    public void testConstructParametrizedType_listSubclass_returnsParametrizedType() {
-        JavaType stringType = _typeFactory.constructType(String.class);
-        JavaType paramType = _typeFactory.constructParametrizedType(ArrayList.class, List.class, stringType);
-        assertTrue(paramType.isCollectionLikeType());
-        assertEquals(ArrayList.class, paramType.getRawClass());
-        assertEquals(String.class, paramType.getContentType().getRawClass());
+    public void testConstructCollectionLikeType_validInput_returnsCollectionLikeType() {
+        CollectionLikeType type = _tf.constructCollectionLikeType(CustomCollectionLike.class, String.class);
+        assertNotNull(type);
+        assertEquals(CustomCollectionLike.class, type.getRawClass());
+        assertEquals(String.class, type.getContentType().getRawClass());
+
+        CollectionLikeType rawType = _tf.constructRawCollectionLikeType(CustomCollectionLike.class);
+        assertNotNull(rawType);
+        assertEquals(Object.class, rawType.getContentType().getRawClass());
     }
 
-    // Tests constructSpecializedType for narrowing base types
+    // Tests constructMapType and raw map construction
     @Test
-    public void testConstructSpecializedType_subclassOfMap_returnsSpecializedType() {
-        JavaType baseMap = _typeFactory.constructMapType(Map.class, String.class, Object.class);
-        JavaType specialized = _typeFactory.constructSpecializedType(baseMap, HashMap.class);
-        assertEquals(HashMap.class, specialized.getRawClass());
+    public void testConstructMapType_validInput_returnsMapType() {
+        MapType type = _tf.constructMapType(HashMap.class, String.class, Integer.class);
+        assertNotNull(type);
+        assertEquals(HashMap.class, type.getRawClass());
+        assertEquals(String.class, type.getKeyType().getRawClass());
+        assertEquals(Integer.class, type.getContentType().getRawClass());
+
+        MapType rawType = _tf.constructRawMapType(Map.class);
+        assertNotNull(rawType);
+        assertEquals(Object.class, rawType.getKeyType().getRawClass());
+        assertEquals(Object.class, rawType.getContentType().getRawClass());
+    }
+
+    // Tests constructSpecializedType for sub-classing Map
+    @Test
+    public void testConstructSpecializedType_mapSubclass_preservesGenericInfo() {
+        JavaType baseType = _tf.constructType(Map.class);
+        JavaType specialized = _tf.constructSpecializedType(baseType, StringIntMap.class);
+        assertEquals(StringIntMap.class, specialized.getRawClass());
         assertEquals(String.class, specialized.getKeyType().getRawClass());
+        assertEquals(Integer.class, specialized.getContentType().getRawClass());
     }
 
-    // Tests constructSpecializedType exception path on incompatible subtype
-    @Test(expected = IllegalArgumentException.class)
-    public void testConstructSpecializedType_incompatibleSubclass_throwsIllegalArgumentException() {
-        JavaType stringType = _typeFactory.constructType(String.class);
-        _typeFactory.constructSpecializedType(stringType, ArrayList.class);
-    }
-
-    // Tests canonical string parsing
+    // Tests constructSpecializedType when raw class is the same
     @Test
-    public void testConstructFromCanonical_validCanonicalName_returnsCorrespondingType() {
-        JavaType type = _typeFactory.constructFromCanonical("java.util.List<java.lang.String>");
+    public void testConstructSpecializedType_sameClass_returnsSameType() {
+        JavaType baseType = _tf.constructType(String.class);
+        JavaType specialized = _tf.constructSpecializedType(baseType, String.class);
+        assertSame(baseType, specialized);
+    }
+
+    // Tests constructSpecializedType with invalid sub-class hierarchy
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructSpecializedType_incompatibleSubclass_throwsException() {
+        JavaType baseType = _tf.constructType(List.class);
+        _tf.constructSpecializedType(baseType, Map.class);
+    }
+
+    // Tests constructFromCanonical with simple and nested types
+    @Test
+    public void testConstructFromCanonical_validString_returnsJavaType() {
+        JavaType type = _tf.constructFromCanonical("java.util.List<java.lang.String>");
         assertNotNull(type);
         assertEquals(List.class, type.getRawClass());
         assertEquals(String.class, type.getContentType().getRawClass());
     }
 
-    // Tests constructFromCanonical exception on invalid format
+    // Tests constructFromCanonical with invalid canonical name
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructFromCanonical_malformedString_throwsIllegalArgumentException() {
-        _typeFactory.constructFromCanonical("java.util.List<unknown_class_name>");
+    public void testConstructFromCanonical_unknownClass_throwsException() {
+        _tf.constructFromCanonical("com.nonexistent.FakeClass");
     }
 
-    // Tests findTypeParameters with generic inheritance chain
+    // Tests findTypeParameters for sub-types
     @Test
-    public void testFindTypeParameters_genericSubclass_findsTypeParameters() {
-        JavaType[] params = _typeFactory.findTypeParameters(ArrayList.class, List.class);
+    public void testFindTypeParameters_mapSubclass_returnsResolvedTypeParameters() {
+        JavaType[] params = _tf.findTypeParameters(StringIntMap.class, Map.class);
         assertNotNull(params);
-        assertEquals(1, params.length);
-        assertEquals(Object.class, params[0].getRawClass());
+        assertEquals(2, params.length);
+        assertEquals(String.class, params[0].getRawClass());
+        assertEquals(Integer.class, params[1].getRawClass());
     }
 
-    // Tests findTypeParameters exception when class is not a subtype
+    // Tests findTypeParameters with not-a-subtype exception
     @Test(expected = IllegalArgumentException.class)
-    public void testFindTypeParameters_notSubtype_throwsIllegalArgumentException() {
-        _typeFactory.findTypeParameters(String.class, List.class);
+    public void testFindTypeParameters_notSubtype_throwsException() {
+        _tf.findTypeParameters(String.class, List.class);
     }
 
-    // Tests moreSpecificType comparison logic
+    // Tests moreSpecificType comparison
     @Test
-    public void testMoreSpecificType_subAndSuperTypes_returnsMoreSpecific() {
-        JavaType objectType = _typeFactory.constructType(Object.class);
-        JavaType stringType = _typeFactory.constructType(String.class);
+    public void testMoreSpecificType_variousCases_returnsExpectedType() {
+        JavaType listType = _tf.constructType(List.class);
+        JavaType arrayListType = _tf.constructType(ArrayList.class);
+        JavaType stringType = _tf.constructType(String.class);
 
-        assertSame(stringType, _typeFactory.moreSpecificType(objectType, stringType));
-        assertSame(stringType, _typeFactory.moreSpecificType(stringType, objectType));
-        assertSame(stringType, _typeFactory.moreSpecificType(stringType, null));
-        assertSame(stringType, _typeFactory.moreSpecificType(null, stringType));
+        assertSame(arrayListType, _tf.moreSpecificType(listType, arrayListType));
+        assertSame(arrayListType, _tf.moreSpecificType(arrayListType, listType));
+        assertSame(listType, _tf.moreSpecificType(listType, stringType));
+        assertSame(listType, _tf.moreSpecificType(listType, null));
+        assertSame(listType, _tf.moreSpecificType(null, listType));
     }
 
-    // Tests raw container construction helpers
+    // Tests constructType with TypeReference
     @Test
-    public void testConstructRawContainers_validContainerClasses_returnsUnknownParameterizedContainers() {
-        CollectionType rawList = _typeFactory.constructRawCollectionType(ArrayList.class);
-        assertEquals(ArrayList.class, rawList.getRawClass());
-        assertEquals(Object.class, rawList.getContentType().getRawClass());
-
-        MapType rawMap = _typeFactory.constructRawMapType(HashMap.class);
-        assertEquals(HashMap.class, rawMap.getRawClass());
-        assertEquals(Object.class, rawMap.getKeyType().getRawClass());
-        assertEquals(Object.class, rawMap.getContentType().getRawClass());
-    }
-
-    // Tests ReferenceType construction (e.g. AtomicReference)
-    @Test
-    public void testConstructType_atomicReference_returnsReferenceType() {
-        JavaType type = _typeFactory.constructType(new TypeReference<AtomicReference<String>>() {});
-        assertTrue(type.isReferenceType());
-        assertEquals(AtomicReference.class, type.getRawClass());
+    public void testConstructType_typeReference_returnsResolvedType() {
+        TypeReference<List<String>> ref = new TypeReference<List<String>>() {};
+        JavaType type = _tf.constructType(ref);
+        assertNotNull(type);
+        assertEquals(List.class, type.getRawClass());
         assertEquals(String.class, type.getContentType().getRawClass());
     }
 
-    // Tests TypeModifier registration and clearCache functionality
+    // Tests constructParametrizedType with Class parameters
     @Test
-    public void testWithModifier_customModifier_modifiesConstructedType() {
-        TypeModifier mod = new TypeModifier() {
-            @Override
-            public JavaType modifyType(JavaType type, Type jdkType, TypeBindings context, TypeFactory typeFactory) {
-                if (type.getRawClass() == Integer.class) {
-                    return typeFactory.constructType(Long.class);
-                }
-                return type;
-            }
-        };
-
-        TypeFactory customFactory = _typeFactory.withModifier(mod);
-        JavaType modifiedType = customFactory.constructType(Integer.class);
-        assertEquals(Long.class, modifiedType.getRawClass());
-
-        customFactory.clearCache();
+    public void testConstructParametrizedType_validParameters_returnsConstructedType() {
+        JavaType type = _tf.constructParametrizedType(GenericHolder.class, GenericHolder.class, String.class);
+        assertNotNull(type);
+        assertEquals(GenericHolder.class, type.getRawClass());
+        assertEquals(1, type.containedTypeCount());
+        assertEquals(String.class, type.containedType(0).getRawClass());
     }
 
-    // Additional coverage tests
-
-    @Test
-    public void testConstructParametricType_withClassesAndJavaTypes() {
-        JavaType mapType = _typeFactory.constructParametricType(Map.class, String.class, Integer.class);
-        assertTrue(mapType.isMapLikeType());
-        assertEquals(Map.class, mapType.getRawClass());
-        assertEquals(String.class, mapType.getKeyType().getRawClass());
-        assertEquals(Integer.class, mapType.getContentType().getRawClass());
-
-        JavaType stringType = _typeFactory.constructType(String.class);
-        JavaType listType = _typeFactory.constructParametricType(List.class, new JavaType[] { stringType });
-        assertTrue(listType.isCollectionLikeType());
-        assertEquals(List.class, listType.getRawClass());
-        assertEquals(String.class, listType.getContentType().getRawClass());
-    }
-
-    @Test
-    public void testConstructCollectionLikeType_andMapLikeType() {
-        CollectionLikeType colLike = _typeFactory.constructCollectionLikeType(ArrayList.class, String.class);
-        assertNotNull(colLike);
-        assertEquals(ArrayList.class, colLike.getRawClass());
-        assertEquals(String.class, colLike.getContentType().getRawClass());
-
-        JavaType strType = _typeFactory.constructType(String.class);
-        JavaType intType = _typeFactory.constructType(Integer.class);
-        MapLikeType mapLike = _typeFactory.constructMapLikeType(HashMap.class, strType, intType);
-        assertNotNull(mapLike);
-        assertEquals(HashMap.class, mapLike.getRawClass());
-        assertEquals(String.class, mapLike.getKeyType().getRawClass());
-        assertEquals(Integer.class, mapLike.getContentType().getRawClass());
-    }
-
-    @Test
-    public void testConstructRawCollectionLikeType_andRawMapLikeType() {
-        CollectionLikeType rawColLike = _typeFactory.constructRawCollectionLikeType(ArrayList.class);
-        assertNotNull(rawColLike);
-        assertEquals(ArrayList.class, rawColLike.getRawClass());
-        assertEquals(Object.class, rawColLike.getContentType().getRawClass());
-
-        MapLikeType rawMapLike = _typeFactory.constructRawMapLikeType(HashMap.class);
-        assertNotNull(rawMapLike);
-        assertEquals(HashMap.class, rawMapLike.getRawClass());
-        assertEquals(Object.class, rawMapLike.getKeyType().getRawClass());
-        assertEquals(Object.class, rawMapLike.getContentType().getRawClass());
-    }
-
-    @Test
-    public void testConstructGeneralizedType_validSuperClass() {
-        JavaType arrayListType = _typeFactory.constructCollectionType(ArrayList.class, String.class);
-        JavaType generalized = _typeFactory.constructGeneralizedType(arrayListType, List.class);
-        assertEquals(List.class, generalized.getRawClass());
-        assertEquals(String.class, generalized.getContentType().getRawClass());
-
-        JavaType same = _typeFactory.constructGeneralizedType(arrayListType, ArrayList.class);
-        assertSame(arrayListType, same);
-    }
-
+    // Tests constructParametrizedType parameter count mismatch exception
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructGeneralizedType_incompatibleSuperClass_throwsIllegalArgumentException() {
-        JavaType stringType = _typeFactory.constructType(String.class);
-        _typeFactory.constructGeneralizedType(stringType, List.class);
+    public void testConstructParametrizedType_mismatchedParams_throwsException() {
+        _tf.constructParametrizedType(GenericHolder.class, GenericHolder.class, String.class, Integer.class);
     }
 
+    // Tests static helpers: rawClass and unknownType
     @Test
-    public void testUnknownType() {
+    public void testRawClassAndUnknownType() {
+        Class<?> raw = TypeFactory.rawClass(String.class);
+        assertEquals(String.class, raw);
+
         JavaType unknown = TypeFactory.unknownType();
         assertNotNull(unknown);
         assertEquals(Object.class, unknown.getRawClass());
     }
 
+    // Tests AtomicReference and Map.Entry resolution
     @Test
-    public void testConstructType_withContextClass_andContextType() {
-        JavaType listType = _typeFactory.constructType(List.class, String.class);
-        assertNotNull(listType);
-        assertEquals(List.class, listType.getRawClass());
+    public void testConstructType_specialReferentialTypes_returnsCorrectType() {
+        JavaType refType = _tf.constructType(new TypeReference<AtomicReference<String>>() {});
+        assertNotNull(refType);
+        assertEquals(AtomicReference.class, refType.getRawClass());
 
-        JavaType contextType = _typeFactory.constructType(String.class);
-        JavaType mapType = _typeFactory.constructType(Map.class, contextType);
-        assertNotNull(mapType);
-        assertEquals(Map.class, mapType.getRawClass());
+        JavaType entryType = _tf.constructType(new TypeReference<CustomEntry<String, Integer>>() {});
+        assertNotNull(entryType);
+        assertEquals(CustomEntry.class, entryType.getRawClass());
+    }
+
+    // Tests withModifier functionality
+    @Test
+    public void testWithModifier_nullModifier_returnsSameConfiguredInstance() {
+        TypeFactory modified = _tf.withModifier(null);
+        assertNotNull(modified);
+    }
+
+    // --- New Tests for Full Coverage ---
+
+    @Test
+    public void testConstructAllPrimitives() {
+        Class<?>[] primitives = new Class<?>[] {
+            byte.class, short.class, char.class, float.class, double.class, void.class
+        };
+        for (Class<?> prim : primitives) {
+            JavaType type = _tf.constructType(prim);
+            assertNotNull(type);
+            assertTrue(type.isPrimitive());
+            assertEquals(prim, type.getRawClass());
+        }
     }
 
     @Test
-    public void testConstructFromCanonical_nestedMapAndGenerics() {
-        JavaType type = _typeFactory.constructFromCanonical("java.util.Map<java.lang.String,java.util.List<java.lang.Integer>>");
+    public void testConstructGeneralizedType() {
+        JavaType subType = _tf.constructType(SubGenericHolder.class);
+        JavaType generalized = _tf.constructGeneralizedType(subType, GenericHolder.class);
+        assertNotNull(generalized);
+        assertEquals(GenericHolder.class, generalized.getRawClass());
+        assertEquals(String.class, generalized.containedType(0).getRawClass());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructGeneralizedType_notSuperClass_throwsException() {
+        JavaType stringType = _tf.constructType(String.class);
+        _tf.constructGeneralizedType(stringType, List.class);
+    }
+
+    @Test
+    public void testConstructParametricType_withJavaTypes() {
+        JavaType stringType = _tf.constructType(String.class);
+        JavaType integerType = _tf.constructType(Integer.class);
+        JavaType type = _tf.constructParametricType(MultiGenericHolder.class, stringType, integerType);
+        assertNotNull(type);
+        assertEquals(MultiGenericHolder.class, type.getRawClass());
+        assertEquals(2, type.containedTypeCount());
+        assertEquals(String.class, type.containedType(0).getRawClass());
+        assertEquals(Integer.class, type.containedType(1).getRawClass());
+    }
+
+    @Test
+    public void testConstructParametricType_collectionsAndMaps() {
+        JavaType listType = _tf.constructParametricType(ArrayList.class, String.class);
+        assertTrue(listType.isCollectionLikeType());
+        assertEquals(String.class, listType.getContentType().getRawClass());
+
+        JavaType mapType = _tf.constructParametricType(HashMap.class, String.class, Integer.class);
+        assertTrue(mapType.isMapLikeType());
+        assertEquals(String.class, mapType.getKeyType().getRawClass());
+        assertEquals(Integer.class, mapType.getContentType().getRawClass());
+    }
+
+    @Test
+    public void testConstructFromCanonical_arrayAndPrimitives() {
+        JavaType arrayType = _tf.constructFromCanonical("[Ljava.lang.String;");
+        assertTrue(arrayType.isArrayType());
+        assertEquals(String.class, arrayType.getContentType().getRawClass());
+
+        JavaType intType = _tf.constructFromCanonical("int");
+        assertEquals(int.class, intType.getRawClass());
+
+        JavaType boolType = _tf.constructFromCanonical("boolean");
+        assertEquals(boolean.class, boolType.getRawClass());
+    }
+
+    @Test
+    public void testConstructFromCanonical_nestedMapAndList() {
+        JavaType type = _tf.constructFromCanonical("java.util.HashMap<java.lang.String,java.util.ArrayList<java.lang.Integer>>");
         assertNotNull(type);
         assertTrue(type.isMapLikeType());
+        assertEquals(HashMap.class, type.getRawClass());
         assertEquals(String.class, type.getKeyType().getRawClass());
+
         JavaType valueType = type.getContentType();
         assertTrue(valueType.isCollectionLikeType());
-        assertEquals(List.class, valueType.getRawClass());
+        assertEquals(ArrayList.class, valueType.getRawClass());
         assertEquals(Integer.class, valueType.getContentType().getRawClass());
     }
 
-    @Test
-    public void testWithClassLoader_andFindClass() throws ClassNotFoundException {
-        ClassLoader cl = getClass().getClassLoader();
-        TypeFactory tf = _typeFactory.withClassLoader(cl);
-        assertNotNull(tf);
-        Class<?> foundClass = tf.findClass("java.lang.String");
-        assertEquals(String.class, foundClass);
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructFromCanonical_malformedSyntax_throwsException() {
+        _tf.constructFromCanonical("java.util.List<java.lang.String");
     }
 
-    @Test(expected = ClassNotFoundException.class)
-    public void testFindClass_notFound_throwsClassNotFound() throws ClassNotFoundException {
-        _typeFactory.findClass("com.non.existent.Class12345");
+    @Test
+    public void testConstructType_withContextClassAndBindings() throws Exception {
+        Field field = GenericHolder.class.getField("value");
+        Type genericFieldType = field.getGenericType(); // TypeVariable T
+
+        JavaType resolved = _tf.constructType(genericFieldType, SubGenericHolder.class);
+        assertNotNull(resolved);
+        assertEquals(String.class, resolved.getRawClass());
+
+        JavaType contextType = _tf.constructType(SubGenericHolder.class);
+        JavaType resolvedFromContextType = _tf.constructType(genericFieldType, contextType);
+        assertNotNull(resolvedFromContextType);
+        assertEquals(String.class, resolvedFromContextType.getRawClass());
+    }
+
+    @Test
+    public void testConstructType_wildcardsAndGenericArrays() throws Exception {
+        Field wildcardField = WildcardHolder.class.getField("wildcardList");
+        JavaType wcType = _tf.constructType(wildcardField.getGenericType());
+        assertEquals(Object.class, wcType.getContentType().getRawClass());
+
+        Field upperBoundField = WildcardHolder.class.getField("upperBoundList");
+        JavaType ubType = _tf.constructType(upperBoundField.getGenericType());
+        assertEquals(Number.class, ubType.getContentType().getRawClass());
+
+        Field lowerBoundField = WildcardHolder.class.getField("lowerBoundList");
+        JavaType lbType = _tf.constructType(lowerBoundField.getGenericType());
+        assertEquals(Integer.class, lbType.getContentType().getRawClass());
+
+        Field genArrayField = WildcardHolder.class.getField("genericArray");
+        JavaType arrayType = _tf.constructType(genArrayField.getGenericType());
+        assertTrue(arrayType.isArrayType());
+        assertEquals(GenericHolder.class, arrayType.getContentType().getRawClass());
+    }
+
+    @Test
+    public void testWithClassLoader() {
+        ClassLoader cl = getClass().getClassLoader();
+        TypeFactory customTf = _tf.withClassLoader(cl);
+        assertNotNull(customTf);
+        assertEquals(cl, customTf.getClassLoader());
+
+        TypeFactory sameTf = customTf.withClassLoader(cl);
+        assertSame(customTf, sameTf);
+    }
+
+    @Test
+    public void testWithModifier_customTypeModifier() {
+        TypeModifier modifier = new TypeModifier() {
+            @Override
+            public JavaType modifyType(JavaType type, Type jdkType, TypeBindings context, TypeFactory typeFactory) {
+                if (type.hasRawClass(ArrayList.class)) {
+                    return typeFactory.constructType(LinkedList.class);
+                }
+                return type;
+            }
+        };
+
+        TypeFactory modifiedTf = _tf.withModifier(modifier);
+        assertNotNull(modifiedTf);
+        JavaType type = modifiedTf.constructType(ArrayList.class);
+        assertEquals(LinkedList.class, type.getRawClass());
+    }
+
+    @Test
+    public void testConstructReferenceType() {
+        JavaType stringType = _tf.constructType(String.class);
+        JavaType refType = _tf.constructReferenceType(AtomicReference.class, stringType);
+        assertNotNull(refType);
+        assertTrue(refType.isReferenceType());
+        assertEquals(AtomicReference.class, refType.getRawClass());
+        assertEquals(String.class, refType.getContentType().getRawClass());
+    }
+
+    @Test
+    public void testConstructSimpleType() {
+        JavaType[] paramTypes = new JavaType[] { _tf.constructType(String.class) };
+        JavaType type = _tf.constructSimpleType(GenericHolder.class, paramTypes);
+        assertNotNull(type);
+        assertEquals(GenericHolder.class, type.getRawClass());
+        assertEquals(1, type.containedTypeCount());
+        assertEquals(String.class, type.containedType(0).getRawClass());
+    }
+
+    @Test
+    public void testConstructRawMapLikeType() {
+        JavaType type = _tf.constructRawMapLikeType(CustomMapLike.class);
+        assertNotNull(type);
+        assertTrue(type instanceof MapLikeType);
+        assertEquals(CustomMapLike.class, type.getRawClass());
+        assertEquals(Object.class, type.getKeyType().getRawClass());
+        assertEquals(Object.class, type.getContentType().getRawClass());
+    }
+
+    @Test
+    public void testFindTypeParameters_withJavaTypeContext() {
+        JavaType specialized = _tf.constructType(StringIntMap.class);
+        JavaType[] params = _tf.findTypeParameters(specialized, Map.class);
+        assertNotNull(params);
+        assertEquals(2, params.length);
+        assertEquals(String.class, params[0].getRawClass());
+        assertEquals(Integer.class, params[1].getRawClass());
     }
 
     @Test
     public void testUncheckedSimpleType() {
-        JavaType simple = TypeFactory.uncheckedSimpleType(String.class);
-        assertNotNull(simple);
-        assertEquals(String.class, simple.getRawClass());
-    }
-
-    @Test
-    public void testConstructSimpleType_withParameters() {
-        JavaType[] params = new JavaType[] { _typeFactory.constructType(String.class) };
-        JavaType simpleType = _typeFactory.constructSimpleType(ArrayList.class, params);
-        assertNotNull(simpleType);
-        assertEquals(ArrayList.class, simpleType.getRawClass());
+        JavaType type = _tf.uncheckedSimpleType(String.class);
+        assertNotNull(type);
+        assertEquals(String.class, type.getRawClass());
     }
 }

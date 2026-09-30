@@ -1,7 +1,7 @@
 package com.google.javascript.jscomp;
 
 import com.google.common.base.Supplier;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.javascript.jscomp.FunctionInjector.CanInlineResult;
 import com.google.javascript.jscomp.FunctionInjector.InliningMode;
@@ -10,9 +10,7 @@ import com.google.javascript.rhino.Node;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.*;
@@ -25,230 +23,275 @@ public class FunctionInjectorTest {
   @Before
   public void setUp() {
     compiler = new Compiler();
+    CompilerOptions options = new CompilerOptions();
+    compiler.initOptions(options);
     safeNameIdSupplier = new Supplier<String>() {
-      private int id = 0;
-
+      private int nextId = 0;
       @Override
       public String get() {
-        return "JSCompiler_temp_" + id++;
+        return "JSCompiler_temp_const" + (nextId++);
       }
     };
   }
 
-  private FunctionInjector createInjector(boolean allowDecomposition,
-                                          boolean assumeStrictThis,
-                                          boolean assumeMinimumCapture) {
+  private FunctionInjector createInjector(
+      boolean allowDecomposition, boolean assumeStrictThis, boolean assumeMinimumCapture) {
     return new FunctionInjector(
         compiler, safeNameIdSupplier, allowDecomposition, assumeStrictThis, assumeMinimumCapture);
   }
 
-  private Node parseCode(String js) {
-    Node root = compiler.parseSyntheticCode("test.js", js);
+  private Node parse(String js) {
+    Node root = compiler.parseTestCode(js);
     assertEquals(0, compiler.getErrorCount());
     return root;
   }
 
-  private Node findFunction(Node n, String name) {
-    if (n.isFunction()) {
-      Node nameNode = n.getFirstChild();
-      if (nameNode != null && name.equals(nameNode.getString())) {
-        return n;
+  private Node findFunction(Node root, final String name) {
+    final Node[] result = new Node[1];
+    NodeTraversal.traverse(compiler, root, new NodeTraversal.AbstractPostOrderCallback() {
+      @Override
+      public void visit(NodeTraversal t, Node n, Node parent) {
+        if (n.isFunction()) {
+          if (name == null) {
+            result[0] = n;
+          } else {
+            String fnName = NodeUtil.getNearestFunctionName(n);
+            if (name.equals(fnName)) {
+              result[0] = n;
+            }
+          }
+        }
       }
-    }
-    for (Node c = n.getFirstChild(); c != null; c = c.getNext()) {
-      Node result = findFunction(c, name);
-      if (result != null) {
-        return result;
-      }
-    }
-    return null;
+    });
+    return result[0];
   }
 
-  private Node findCall(Node n, String targetName) {
-    if (n.isCall()) {
-      Node first = n.getFirstChild();
-      if (first != null && first.isName() && targetName.equals(first.getString())) {
-        return n;
+  private Node findCall(Node root, final String targetName) {
+    final Node[] result = new Node[1];
+    NodeTraversal.traverse(compiler, root, new NodeTraversal.AbstractPostOrderCallback() {
+      @Override
+      public void visit(NodeTraversal t, Node n, Node parent) {
+        if (n.isCall()) {
+          Node callee = n.getFirstChild();
+          if (callee.isName() && callee.getString().equals(targetName)) {
+            result[0] = n;
+          }
+        }
       }
-    }
-    for (Node c = n.getFirstChild(); c != null; c = c.getNext()) {
-      Node result = findCall(c, targetName);
-      if (result != null) {
-        return result;
-      }
-    }
-    return null;
+    });
+    return result[0];
   }
 
-  // Tests that normal function meets minimum requirements for inlining
+  // Tests doesFunctionMeetMinimumRequirements with a standard valid function
   @Test
-  public void testDoesFunctionMeetMinimumRequirements_normalFunction_returnsTrue() {
+  public void testDoesFunctionMeetMinimumRequirements_validFunction_returnsTrue() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(a, b) { return a + b; }");
+    Node root = parse("function foo(a, b) { return a + b; }");
     Node fn = findFunction(root, "foo");
 
     assertTrue(injector.doesFunctionMeetMinimumRequirements("foo", fn));
   }
 
-  // Tests that function referencing "arguments" fails minimum requirements
+  // Tests doesFunctionMeetMinimumRequirements when function references 'arguments'
   @Test
   public void testDoesFunctionMeetMinimumRequirements_referencesArguments_returnsFalse() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo() { return arguments[0]; }");
+    Node root = parse("function foo(a) { return arguments[0]; }");
     Node fn = findFunction(root, "foo");
 
     assertFalse(injector.doesFunctionMeetMinimumRequirements("foo", fn));
   }
 
-  // Tests that function referencing "eval" fails minimum requirements
+  // Tests doesFunctionMeetMinimumRequirements when function references 'eval'
   @Test
   public void testDoesFunctionMeetMinimumRequirements_referencesEval_returnsFalse() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(str) { return eval(str); }");
+    Node root = parse("function foo(a) { return eval(a); }");
     Node fn = findFunction(root, "foo");
 
     assertFalse(injector.doesFunctionMeetMinimumRequirements("foo", fn));
   }
 
-  // Tests that recursive function referencing its own name fails minimum requirements
+  // Tests doesFunctionMeetMinimumRequirements when function is recursive to its name
   @Test
   public void testDoesFunctionMeetMinimumRequirements_recursiveFunction_returnsFalse() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(n) { if (n <= 1) return 1; return n * foo(n - 1); }");
+    Node root = parse("function foo(n) { return n > 0 ? foo(n - 1) : 0; }");
     Node fn = findFunction(root, "foo");
 
     assertFalse(injector.doesFunctionMeetMinimumRequirements("foo", fn));
   }
 
-  // Tests that empty function body is considered replaceable directly
+  // Tests isDirectCallNodeReplacementPossible for empty function
   @Test
-  public void testIsDirectCallNodeReplacementPossible_emptyBody_returnsTrue() {
+  public void testIsDirectCallNodeReplacementPossible_emptyFunction_returnsTrue() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo() {}");
+    Node root = parse("function foo() {}");
     Node fn = findFunction(root, "foo");
 
     assertTrue(injector.isDirectCallNodeReplacementPossible(fn));
   }
 
-  // Tests that single return statement with value is directly replaceable
+  // Tests isDirectCallNodeReplacementPossible for single return expression
   @Test
   public void testIsDirectCallNodeReplacementPossible_singleReturn_returnsTrue() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(x) { return x * 2; }");
+    Node root = parse("function foo(x) { return x + 1; }");
     Node fn = findFunction(root, "foo");
 
     assertTrue(injector.isDirectCallNodeReplacementPossible(fn));
   }
 
-  // Tests that multi-statement function cannot be directly replaced as expression
+  // Tests isDirectCallNodeReplacementPossible for multi-statement function
   @Test
-  public void testIsDirectCallNodeReplacementPossible_multipleStatements_returnsFalse() {
+  public void testIsDirectCallNodeReplacementPossible_multiStatement_returnsFalse() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(x) { var y = x; return y * 2; }");
+    Node root = parse("function foo(x) { var y = 1; return x + y; }");
     Node fn = findFunction(root, "foo");
 
     assertFalse(injector.isDirectCallNodeReplacementPossible(fn));
   }
 
-  // Tests direct inlining check for a simple function call
+  // Tests isDirectCallNodeReplacementPossible for return without expression
   @Test
-  public void testCanInlineReferenceToFunction_directCall_returnsYes() {
+  public void testIsDirectCallNodeReplacementPossible_emptyReturn_returnsFalse() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(x) { return x + 1; } var y = foo(5);");
+    Node root = parse("function foo() { return; }");
+    Node fn = findFunction(root, "foo");
+
+    assertFalse(injector.isDirectCallNodeReplacementPossible(fn));
+  }
+
+  // Tests canInlineReferenceToFunction for direct inlining with pure arguments
+  @Test
+  public void testCanInlineReferenceToFunction_directInliningPureArgs_returnsYes() {
+    FunctionInjector injector = createInjector(true, true, true);
+    Node root = parse("function foo(a, b) { return a + b; } var x = foo(1, 2);");
     Node fn = findFunction(root, "foo");
     Node call = findCall(root, "foo");
-
     NodeTraversal t = new NodeTraversal(compiler, null);
-    t.traverse(root);
 
     CanInlineResult result = injector.canInlineReferenceToFunction(
         t, call, fn, Collections.<String>emptySet(), InliningMode.DIRECT, false, false);
     assertEquals(CanInlineResult.YES, result);
   }
 
-  // Tests direct inlining with call argument having side effects and param referenced multiple times
+  // Tests canInlineReferenceToFunction for direct inlining when call argument has side effects
   @Test
-  public void testCanInlineReferenceToFunction_argumentWithSideEffects_returnsNo() {
+  public void testCanInlineReferenceToFunction_directInliningSideEffectArg_returnsNo() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(x) { return x + x; } var i = 0; var y = foo(i++);");
+    Node root = parse("function foo(a) { return a + a; } var i = 0; var x = foo(i++);");
     Node fn = findFunction(root, "foo");
     Node call = findCall(root, "foo");
-
     NodeTraversal t = new NodeTraversal(compiler, null);
-    t.traverse(root);
 
     CanInlineResult result = injector.canInlineReferenceToFunction(
         t, call, fn, Collections.<String>emptySet(), InliningMode.DIRECT, false, false);
     assertEquals(CanInlineResult.NO, result);
   }
 
-  // Tests unsupported function.apply call rejection
+  // Tests canInlineReferenceToFunction for block inlining of simple call
   @Test
-  public void testCanInlineReferenceToFunction_functionApplyCall_returnsNo() {
+  public void testCanInlineReferenceToFunction_blockInliningSimpleCall_returnsYes() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(x) { return x; } foo.apply(null, [1]);");
+    Node root = parse("function foo(a) { var b = a + 1; } foo(1);");
     Node fn = findFunction(root, "foo");
-    Node call = root.getFirstChild().getNext().getFirstChild();
-
+    Node call = findCall(root, "foo");
     NodeTraversal t = new NodeTraversal(compiler, null);
-    t.traverse(root);
 
     CanInlineResult result = injector.canInlineReferenceToFunction(
-        t, call, fn, Collections.<String>emptySet(), InliningMode.DIRECT, false, false);
+        t, call, fn, Collections.<String>emptySet(), InliningMode.BLOCK, false, false);
+    assertEquals(CanInlineResult.YES, result);
+  }
+
+  // Tests canInlineReferenceToFunction when referencesThis is true but not a function object call
+  @Test
+  public void testCanInlineReferenceToFunction_referencesThisNotMethodCall_returnsNo() {
+    FunctionInjector injector = createInjector(true, true, true);
+    Node root = parse("function foo() { return this.x; } foo();");
+    Node fn = findFunction(root, "foo");
+    Node call = findCall(root, "foo");
+    NodeTraversal t = new NodeTraversal(compiler, null);
+
+    CanInlineResult result = injector.canInlineReferenceToFunction(
+        t, call, fn, Collections.<String>emptySet(), InliningMode.DIRECT, true, false);
     assertEquals(CanInlineResult.NO, result);
   }
 
-  // Tests inlining cost calculation when reference list is empty
+  // Tests inliningLowersCost when there are no references
   @Test
-  public void testInliningLowersCost_emptyReferences_returnsTrue() {
+  public void testInliningLowersCost_noReferences_returnsTrue() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(a, b) { return a + b; }");
+    Node root = parse("function foo() { return 1; }");
     Node fn = findFunction(root, "foo");
 
-    List<Reference> refs = Collections.emptyList();
-    assertTrue(injector.inliningLowersCost(null, fn, refs, Collections.<String>emptySet(), true, false));
+    assertTrue(injector.inliningLowersCost(
+        null, fn, Collections.<Reference>emptyList(), Collections.<String>emptySet(), true, false));
   }
 
-  // Tests inlining cost calculation for single removable direct inline reference
+  // Tests inliningLowersCost for a single direct removable reference
   @Test
   public void testInliningLowersCost_singleDirectRemovableReference_returnsTrue() {
     FunctionInjector injector = createInjector(true, true, true);
-    Node root = parseCode("function foo(x) { return x; } foo(1);");
+    Node root = parse("function foo(x) { return x + 1; } foo(1);");
     Node fn = findFunction(root, "foo");
     Node call = findCall(root, "foo");
 
-    List<Reference> refs = new ArrayList<Reference>();
-    refs.add(new Reference(call, null, InliningMode.DIRECT));
-
-    assertTrue(injector.inliningLowersCost(null, fn, refs, Collections.<String>emptySet(), true, false));
+    Reference ref = new Reference(call, null, InliningMode.DIRECT);
+    assertTrue(injector.inliningLowersCost(
+        null, fn, ImmutableList.of(ref), Collections.<String>emptySet(), true, false));
   }
 
-  // Tests setting known constants once
-  @Test
-  public void testSetKnownConstants_validSet_success() {
-    FunctionInjector injector = createInjector(true, true, true);
-    Set<String> constants = ImmutableSet.of("CONST_A", "CONST_B");
-    injector.setKnownConstants(constants);
-  }
-
-  // Tests exception when setKnownConstants is called more than once
+  // Tests setKnownConstants and exception when setting twice
   @Test(expected = IllegalStateException.class)
-  public void testSetKnownConstants_calledTwice_throwsException() {
+  public void testSetKnownConstants_settingTwice_throwsException() {
     FunctionInjector injector = createInjector(true, true, true);
-    Set<String> constants = ImmutableSet.of("CONST_A");
-    injector.setKnownConstants(constants);
-    injector.setKnownConstants(constants);
+    Set<String> consts1 = Sets.newHashSet("CONST_A");
+    Set<String> consts2 = Sets.newHashSet("CONST_B");
+
+    injector.setKnownConstants(consts1);
+    injector.setKnownConstants(consts2);
   }
 
-  // Tests constructor null checks
-  @Test(expected = NullPointerException.class)
-  public void testConstructor_nullCompiler_throwsException() {
-    new FunctionInjector(null, safeNameIdSupplier, true, true, true);
+  // Tests inline DIRECT mode for a simple return function
+  @Test
+  public void testInline_directMode_replacesCallNode() {
+    FunctionInjector injector = createInjector(true, true, true);
+    Node root = parse("function foo(a, b) { return a + b; } var result = foo(1, 2);");
+    compiler.newLifeCycle();
+    Node fn = findFunction(root, "foo");
+    Node call = findCall(root, "foo");
+
+    Node inlined = injector.inline(call, "foo", fn, InliningMode.DIRECT);
+    assertNotNull(inlined);
+    assertTrue(inlined.isAdd());
   }
 
-  // Tests constructor null supplier check
-  @Test(expected = NullPointerException.class)
-  public void testConstructor_nullSupplier_throwsException() {
-    new FunctionInjector(compiler, null, true, true, true);
+  // Tests inline DIRECT mode for an empty function body resulting in undefined
+  @Test
+  public void testInline_directModeEmptyFunction_replacesWithUndefined() {
+    FunctionInjector injector = createInjector(true, true, true);
+    Node root = parse("function foo() {} var result = foo();");
+    compiler.newLifeCycle();
+    Node fn = findFunction(root, "foo");
+    Node call = findCall(root, "foo");
+
+    Node inlined = injector.inline(call, "foo", fn, InliningMode.DIRECT);
+    assertNotNull(inlined);
+    assertTrue(inlined.isVoid());
+  }
+
+  // Tests inline BLOCK mode for simple assignment
+  @Test
+  public void testInline_blockModeSimpleAssignment_replacesWithBlock() {
+    FunctionInjector injector = createInjector(true, true, true);
+    Node root = parse("function foo(a) { return a + 1; } var x; x = foo(2);");
+    compiler.newLifeCycle();
+    Node fn = findFunction(root, "foo");
+    Node call = findCall(root, "foo");
+
+    Node inlinedBlock = injector.inline(call, "foo", fn, InliningMode.BLOCK);
+    assertNotNull(inlinedBlock);
+    assertTrue(inlinedBlock.isBlock());
   }
 }

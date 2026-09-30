@@ -5,165 +5,199 @@ import java.util.*;
 
 import org.junit.Before;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class ClassNameIdResolverTest {
 
+    private ObjectMapper _mapper;
     private TypeFactory _typeFactory;
-    private DeserializationContext _context;
     private JavaType _baseType;
     private ClassNameIdResolver _resolver;
+    private SerializerProvider _serializerProvider;
+    private DeserializationContext _deserContext;
 
-    private enum SampleEnum {
-        A {
+    // Test enum for enum subtypes testing
+    private enum TestEnum {
+        VALUE_A {
             @Override
             public String toString() {
-                return "A_VAL";
+                return "A";
             }
         },
-        B
+        VALUE_B
     }
 
-    private class NonStaticInner {
+    // Non-static inner class for testing inner class handling
+    private class InnerNonStatic {
+    }
+
+    // Static nested class
+    private static class StaticNested {
     }
 
     @Before
     public void setUp() {
-        ObjectMapper mapper = new ObjectMapper();
-        _typeFactory = mapper.getTypeFactory();
-        _context = mapper.getDeserializationContext();
+        _mapper = new ObjectMapper();
+        _typeFactory = _mapper.getTypeFactory();
         _baseType = _typeFactory.constructType(Object.class);
-        _resolver = new ClassNameIdResolver(_baseType, _typeFactory);
+        _resolver = new ClassNameIdResolver(_baseType, _typeFactory, LaissezFaireSubTypeValidator.instance);
+        _serializerProvider = _mapper.getSerializerProviderInstance();
+        _deserContext = ((com.fasterxml.jackson.databind.deser.DefaultDeserializationContext) _mapper.getDeserializationContext())
+                .createInstance(_mapper.getDeserializationConfig(), null, null);
     }
 
-    // Tests mechanism returns CLASS
     @Test
-    public void testGetMechanism_returnsClassId() {
+    public void testConstruct_viaFactoryMethod() {
+        ClassNameIdResolver resolver = ClassNameIdResolver.construct(_baseType, _mapper.getDeserializationConfig(), LaissezFaireSubTypeValidator.instance);
+        assertNotNull(resolver);
+        assertEquals(JsonTypeInfo.Id.CLASS, resolver.getMechanism());
+    }
+
+    @Test
+    public void testGetMechanism_returnsClassMechanism() {
         assertEquals(JsonTypeInfo.Id.CLASS, _resolver.getMechanism());
     }
 
-    // Tests description for known type ids
     @Test
-    public void testGetDescForKnownTypeIds_returnsDescription() {
+    public void testGetDescForKnownTypeIds_returnsExpectedDescription() {
         assertEquals("class name used as type id", _resolver.getDescForKnownTypeIds());
     }
 
-    // Tests registerSubtype does not alter resolver state or fail
     @Test
-    public void testRegisterSubtype_doesNothing() {
-        _resolver.registerSubtype(String.class, "string");
-        assertEquals(JsonTypeInfo.Id.CLASS, _resolver.getMechanism());
+    public void testRegisterSubtype_doesNotThrow() {
+        _resolver.registerSubtype(String.class, "customName");
     }
 
-    // Tests standard object class id resolution
     @Test
-    public void testIdFromValue_standardObject_returnsClassName() {
-        String id = _resolver.idFromValue("Hello World");
-        assertEquals(String.class.getName(), id);
+    public void testIdFromBaseType_returnsBaseTypeCanonicalName() {
+        JavaType stringType = _typeFactory.constructType(String.class);
+        ClassNameIdResolver resolver = new ClassNameIdResolver(stringType, _typeFactory, LaissezFaireSubTypeValidator.instance);
+        assertEquals("java.lang.String", resolver.idFromBaseType());
     }
 
-    // Tests idFromValueAndType with explicit type
     @Test
-    public void testIdFromValueAndType_explicitType_returnsProvidedClassName() {
-        String id = _resolver.idFromValueAndType("Hello", Integer.class);
-        assertEquals(Integer.class.getName(), id);
+    public void testIdFromValue_plainObject_returnsCanonicalClassName() {
+        String id = _resolver.idFromValue("a simple string");
+        assertEquals("java.lang.String", id);
     }
 
-    // Tests enum constant with specialized class body
     @Test
-    public void testIdFromValue_enumWithSubclass_returnsEnumClassName() {
-        String id = _resolver.idFromValue(SampleEnum.A);
-        assertEquals(SampleEnum.class.getName(), id);
+    public void testIdFromValue_plainEnum_returnsEnumClassName() {
+        String id = _resolver.idFromValue(TestEnum.VALUE_B);
+        assertEquals(TestEnum.class.getName(), id);
     }
 
-    // Tests standard enum constant without specialized class body
     @Test
-    public void testIdFromValue_standardEnum_returnsEnumClassName() {
-        String id = _resolver.idFromValue(SampleEnum.B);
-        assertEquals(SampleEnum.class.getName(), id);
+    public void testIdFromValue_enumSubclass_returnsBaseEnumClassName() {
+        String id = _resolver.idFromValue(TestEnum.VALUE_A);
+        assertEquals(TestEnum.class.getName(), id);
     }
 
-    // Tests EnumSet handling in java.util package
     @Test
-    public void testIdFromValue_enumSet_returnsCanonicalType() {
-        EnumSet<SampleEnum> set = EnumSet.of(SampleEnum.B);
+    public void testIdFromValue_enumSet_returnsConstructedCollectionCanonicalType() {
+        EnumSet<TestEnum> set = EnumSet.of(TestEnum.VALUE_A, TestEnum.VALUE_B);
         String id = _resolver.idFromValue(set);
-        String expected = _typeFactory.constructCollectionType(EnumSet.class, SampleEnum.class).toCanonical();
+        String expected = _typeFactory.constructCollectionType(EnumSet.class, TestEnum.class).toCanonical();
         assertEquals(expected, id);
     }
 
-    // Tests EnumMap handling in java.util package
     @Test
-    public void testIdFromValue_enumMap_returnsCanonicalType() {
-        EnumMap<SampleEnum, String> map = new EnumMap<SampleEnum, String>(SampleEnum.class);
-        map.put(SampleEnum.B, "test");
+    public void testIdFromValue_emptyEnumSet_returnsDefaultEnumSetType() {
+        EnumSet<TestEnum> set = EnumSet.noneOf(TestEnum.class);
+        String id = _resolver.idFromValue(set);
+        assertNotNull(id);
+        assertTrue(id.contains("EnumSet"));
+    }
+
+    @Test
+    public void testIdFromValue_enumMap_returnsConstructedMapCanonicalType() {
+        EnumMap<TestEnum, String> map = new EnumMap<TestEnum, String>(TestEnum.class);
+        map.put(TestEnum.VALUE_A, "val");
         String id = _resolver.idFromValue(map);
-        String expected = _typeFactory.constructMapType(EnumMap.class, SampleEnum.class, Object.class).toCanonical();
+        String expected = _typeFactory.constructMapType(EnumMap.class, TestEnum.class, Object.class).toCanonical();
         assertEquals(expected, id);
     }
 
-    // Tests Arrays.asList wrapper mapped to java.util.ArrayList
     @Test
-    public void testIdFromValue_arraysAsList_returnsArrayList() {
-        List<String> list = Arrays.asList("a", "b");
+    public void testIdFromValue_emptyEnumMap_returnsDefaultEnumMapType() {
+        EnumMap<TestEnum, String> map = new EnumMap<TestEnum, String>(TestEnum.class);
+        String id = _resolver.idFromValue(map);
+        assertNotNull(id);
+        assertTrue(id.contains("EnumMap"));
+    }
+
+    @Test
+    public void testIdFromValue_arraysAsList_returnsArrayListClassName() {
+        List<String> list = Arrays.asList("one", "two");
         String id = _resolver.idFromValue(list);
         assertEquals("java.util.ArrayList", id);
     }
 
-    // Tests non-static inner class generalizing to base type
     @Test
-    public void testIdFromValue_nonStaticInnerClass_generalizesToBaseType() {
-        NonStaticInner inner = new NonStaticInner();
+    public void testIdFromValue_nonStaticInnerClass_revertsToBaseType() {
+        InnerNonStatic inner = new InnerNonStatic();
         String id = _resolver.idFromValue(inner);
         assertEquals(Object.class.getName(), id);
     }
 
-    // Tests type resolution from generic id
     @Test
-    public void testTypeFromId_genericId_returnsConstructedJavaType() throws IOException {
-        String id = "java.util.ArrayList<java.lang.String>";
-        JavaType resultType = _resolver.typeFromId(_context, id);
-        assertNotNull(resultType);
-        assertEquals(ArrayList.class, resultType.getRawClass());
-        assertEquals(String.class, resultType.getContentType().getRawClass());
+    public void testIdFromValue_staticNestedClass_returnsActualClassName() {
+        StaticNested nested = new StaticNested();
+        String id = _resolver.idFromValue(nested);
+        assertEquals(StaticNested.class.getName(), id);
     }
 
-    // Tests standard type resolution from non-generic class name
     @Test
-    public void testTypeFromId_standardClassName_returnsJavaType() throws IOException {
-        String id = String.class.getName();
-        JavaType resultType = _resolver.typeFromId(_context, id);
-        assertNotNull(resultType);
-        assertEquals(String.class, resultType.getRawClass());
+    public void testIdFromValueAndType_explicitType_returnsExplicitClassName() {
+        String id = _resolver.idFromValueAndType("test", Integer.class);
+        assertEquals("java.lang.Integer", id);
     }
 
-    // Tests subtype specialization when resolving from class id
     @Test
-    public void testTypeFromId_specializedSubtype_returnsSpecializedJavaType() throws IOException {
-        JavaType mapBaseType = _typeFactory.constructType(Map.class);
-        ClassNameIdResolver mapResolver = new ClassNameIdResolver(mapBaseType, _typeFactory);
-        JavaType resultType = mapResolver.typeFromId(_context, HashMap.class.getName());
-        assertNotNull(resultType);
-        assertEquals(HashMap.class, resultType.getRawClass());
-        assertTrue(Map.class.isAssignableFrom(resultType.getRawClass()));
+    public void testIdFromValueAndType_nullValueWithExplicitType() {
+        String id = _resolver.idFromValueAndType(null, Double.class);
+        assertEquals("java.lang.Double", id);
     }
 
-    // Tests unknown class name handling
     @Test
-    public void testTypeFromId_unknownClassName_returnsNullOrHandled() throws IOException {
-        JavaType resultType = _resolver.typeFromId(_context, "com.fasterxml.jackson.nonexistent.Class123");
-        assertNull(resultType);
+    public void testTypeFromId_basicClassName_returnsSpecializedJavaType() throws Exception {
+        JavaType type = _resolver.typeFromId(_serializerProvider, "java.lang.String");
+        assertNotNull(type);
+        assertEquals(String.class, type.getRawClass());
     }
 
-    // Tests invalid class name syntax throwing IllegalArgumentException
+    @Test
+    public void testTypeFromId_genericCanonicalString_returnsGenericJavaType() throws Exception {
+        String genericId = "java.util.ArrayList<java.lang.String>";
+        JavaType type = _resolver.typeFromId(_serializerProvider, genericId);
+        assertNotNull(type);
+        assertEquals(ArrayList.class, type.getRawClass());
+        assertEquals(1, type.containedTypeCount());
+        assertEquals(String.class, type.containedType(0).getRawClass());
+    }
+
+    @Test
+    public void testTypeFromId_nonExistentClass_returnsNullWhenNotDeserializationContext() throws Exception {
+        JavaType type = _resolver.typeFromId(_serializerProvider, "com.nonexistent.Class12345");
+        assertNull(type);
+    }
+
+    @Test(expected = InvalidTypeIdException.class)
+    public void testTypeFromId_nonExistentClass_throwsWhenDeserializationContext() throws Exception {
+        _resolver.typeFromId(_deserContext, "com.nonexistent.Class12345");
+    }
+
     @Test(expected = IllegalArgumentException.class)
-    public void testTypeFromId_invalidClassName_throwsIllegalArgumentException() throws IOException {
-        _resolver.typeFromId(_context, "invalid-class-name;;");
+    public void testTypeFromId_invalidTypeSyntax_throwsIllegalArgumentException() throws Exception {
+        _resolver.typeFromId(_serializerProvider, "java.lang.String<invalid syntax");
     }
 }

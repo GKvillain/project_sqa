@@ -1,26 +1,19 @@
 package org.mockito.internal.matchers;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class EqualityTest {
 
-    // Helper class with throwing equals to test identity short-circuit
     private static class BadEquals {
         @Override
         public boolean equals(Object obj) {
-            throw new RuntimeException("equals should not be called on same instance");
+            throw new RuntimeException("Bad equals method");
         }
     }
 
-    // Tests constructor invocation
-    @Test
-    public void testEquality_constructor_canBeInstantiated() {
-        Equality equality = new Equality();
-        assertNotNull(equality);
-    }
-
-    // Tests both null arguments
+    // Tests both arguments are null
     @Test
     public void testAreEqual_bothNull_returnsTrue() {
         assertTrue(Equality.areEqual(null, null));
@@ -38,87 +31,82 @@ public class EqualityTest {
         assertFalse(Equality.areEqual("test", null));
     }
 
-    // Tests identical object references that throw exception on equals
+    // Tests two equal non-array objects
     @Test
-    public void testAreEqual_sameInstanceWithThrowingEquals_returnsTrue() {
+    public void testAreEqual_equalObjects_returnsTrue() {
+        assertTrue(Equality.areEqual("hello", "hello"));
+    }
+
+    // Tests two different non-array objects
+    @Test
+    public void testAreEqual_differentObjects_returnsFalse() {
+        assertFalse(Equality.areEqual("hello", "world"));
+    }
+
+    // Tests same instance with an equals method that throws exception
+    @Test
+    public void testAreEqual_sameInstanceThrowingEquals_returnsTrue() {
         BadEquals bad = new BadEquals();
         assertTrue(Equality.areEqual(bad, bad));
     }
 
-    // Tests equal standard objects
+    // Tests equal primitive arrays
     @Test
-    public void testAreEqual_equalStrings_returnsTrue() {
-        assertTrue(Equality.areEqual(new String("hello"), new String("hello")));
-    }
-
-    // Tests non-equal standard objects
-    @Test
-    public void testAreEqual_differentStrings_returnsFalse() {
-        assertFalse(Equality.areEqual("hello", "world"));
-    }
-
-    // Tests equal primitive int arrays
-    @Test
-    public void testAreEqual_equalPrimitiveIntArrays_returnsTrue() {
-        int[] arr1 = new int[]{1, 2, 3};
-        int[] arr2 = new int[]{1, 2, 3};
-        assertTrue(Equality.areEqual(arr1, arr2));
+    public void testAreEqual_equalPrimitiveArrays_returnsTrue() {
+        assertTrue(Equality.areEqual(new int[]{1, 2, 3}, new int[]{1, 2, 3}));
     }
 
     // Tests primitive arrays with different lengths
     @Test
     public void testAreEqual_differentLengthPrimitiveArrays_returnsFalse() {
-        int[] arr1 = new int[]{1, 2};
-        int[] arr2 = new int[]{1, 2, 3};
-        assertFalse(Equality.areEqual(arr1, arr2));
+        assertFalse(Equality.areEqual(new int[]{1, 2}, new int[]{1, 2, 3}));
     }
 
     // Tests primitive arrays with same length but different elements
     @Test
-    public void testAreEqual_differentElementsPrimitiveArrays_returnsFalse() {
-        int[] arr1 = new int[]{1, 2, 3};
-        int[] arr2 = new int[]{1, 2, 4};
-        assertFalse(Equality.areEqual(arr1, arr2));
+    public void testAreEqual_differentContentPrimitiveArrays_returnsFalse() {
+        assertFalse(Equality.areEqual(new int[]{1, 2, 3}, new int[]{1, 2, 4}));
     }
 
-    // Tests first is array and second is non-array
-    @Test
-    public void testAreEqual_firstArraySecondNonArray_returnsFalse() {
-        assertFalse(Equality.areEqual(new int[]{1}, "not an array"));
-    }
-
-    // Tests first is non-array and second is array
-    @Test
-    public void testAreEqual_firstNonArraySecondArray_returnsFalse() {
-        assertFalse(Equality.areEqual("not an array", new int[]{1}));
-    }
-
-    // Tests equal Object arrays
+    // Tests equal object arrays
     @Test
     public void testAreEqual_equalObjectArrays_returnsTrue() {
-        Object[] arr1 = new Object[]{"a", "b"};
-        Object[] arr2 = new Object[]{"a", "b"};
-        assertTrue(Equality.areEqual(arr1, arr2));
+        assertTrue(Equality.areEqual(new String[]{"a", "b"}, new String[]{"a", "b"}));
     }
 
-    // Tests nested multi-dimensional arrays
+    // Tests object arrays with different elements
     @Test
-    public void testAreEqual_nestedMultiDimensionalArrays_returnsTrue() {
-        int[][] arr1 = new int[][]{{1, 2}, {3, 4}};
-        int[][] arr2 = new int[][]{{1, 2}, {3, 4}};
-        assertTrue(Equality.areEqual(arr1, arr2));
+    public void testAreEqual_differentContentObjectArrays_returnsFalse() {
+        assertFalse(Equality.areEqual(new String[]{"a", "b"}, new String[]{"a", "c"}));
     }
 
-    // Tests empty arrays of same type
+    // Tests equal multidimensional arrays
     @Test
-    public void testAreEqual_emptyArrays_returnsTrue() {
-        assertTrue(Equality.areEqual(new int[0], new int[0]));
+    public void testAreEqual_equalMultidimensionalArrays_returnsTrue() {
+        assertTrue(Equality.areEqual(new int[][]{{1, 2}, {3, 4}}, new int[][]{{1, 2}, {3, 4}}));
     }
 
-    // Tests isArray method directly for array and non-array
+    // Tests different multidimensional arrays
     @Test
-    public void testIsArray_arrayAndNonArray_returnsExpected() {
-        assertTrue(Equality.isArray(new int[]{1}));
-        assertFalse(Equality.isArray("string"));
+    public void testAreEqual_differentMultidimensionalArrays_returnsFalse() {
+        assertFalse(Equality.areEqual(new int[][]{{1, 2}}, new int[][]{{1, 3}}));
+    }
+
+    // Tests first argument array and second not array
+    @Test
+    public void testAreEqual_firstArraySecondNotArray_returnsFalse() {
+        assertFalse(Equality.areEqual(new int[]{1, 2}, "not an array"));
+    }
+
+    // Tests first argument not array and second array
+    @Test
+    public void testAreEqual_firstNotArraySecondArray_returnsFalse() {
+        assertFalse(Equality.areEqual("not an array", new int[]{1, 2}));
+    }
+
+    // Tests both empty arrays
+    @Test
+    public void testAreEqual_bothEmptyArrays_returnsTrue() {
+        assertTrue(Equality.areEqual(new int[]{}, new int[]{}));
     }
 }

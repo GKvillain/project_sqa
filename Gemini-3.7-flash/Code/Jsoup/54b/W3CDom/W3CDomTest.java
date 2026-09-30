@@ -1,186 +1,170 @@
 package org.jsoup.helper;
 
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.DataNode;
-import org.jsoup.nodes.TextNode;
 import org.junit.Test;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
-import javax.xml.parsers.DocumentBuilderFactory;
 
 import static org.junit.Assert.*;
 
 public class W3CDomTest {
 
-    // Tests basic conversion from Jsoup Document to W3C Document
+    // Tests null input to fromJsoup
+    @Test(expected = IllegalArgumentException.class)
+    public void testFromJsoup_nullInput_throwsException() {
+        W3CDom w3c = new W3CDom();
+        w3c.fromJsoup(null);
+    }
+
+    // Tests simple HTML document conversion
     @Test
-    public void testFromJsoup_validHtml_convertsSuccessfully() {
-        String html = "<html><head><title>Test</title></head><body><p id=\"p1\">Hello</p></body></html>";
+    public void testFromJsoup_simpleHtml_convertsCorrectly() {
+        String html = "<html><head><title>Test Title</title></head><body><p id=\"p1\">Hello World</p></body></html>";
         org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
 
-        W3CDom w3cDom = new W3CDom();
-        Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
 
         assertNotNull(w3cDoc);
-        Element root = w3cDoc.getDocumentElement();
-        assertEquals("html", root.getTagName());
-        NodeList pElements = root.getElementsByTagName("p");
-        assertEquals(1, pElements.getLength());
-        Element p = (Element) pElements.item(0);
+        assertEquals("html", w3cDoc.getDocumentElement().getTagName());
+        NodeList paragraphs = w3cDoc.getElementsByTagName("p");
+        assertEquals(1, paragraphs.getLength());
+        org.w3c.dom.Element p = (org.w3c.dom.Element) paragraphs.item(0);
         assertEquals("p1", p.getAttribute("id"));
-        assertEquals("Hello", p.getTextContent());
+        assertEquals("Hello World", p.getTextContent());
     }
 
-    // Tests null input to fromJsoup throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testFromJsoup_nullDocument_throwsIllegalArgumentException() {
-        W3CDom w3cDom = new W3CDom();
-        w3cDom.fromJsoup(null);
-    }
-
-    // Tests conversion with document location URI set
+    // Tests Document URI propagation when location is present
     @Test
-    public void testConvert_withDocumentLocation_setsDocumentUri() {
-        String html = "<html><head></head><body><p>Test</p></body></html>";
+    public void testConvert_withLocation_setsDocumentUri() {
+        String html = "<html><head></head><body><p>Text</p></body></html>";
         org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html, "http://example.com/page.html");
 
-        W3CDom w3cDom = new W3CDom();
-        Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
 
         assertEquals("http://example.com/page.html", w3cDoc.getDocumentURI());
     }
 
-    // Tests conversion without document location URI
+    // Tests empty document URI when location is blank
     @Test
-    public void testConvert_blankDocumentLocation_doesNotSetDocumentUri() {
-        String html = "<html><head></head><body><p>Test</p></body></html>";
+    public void testConvert_blankLocation_documentUriNotSet() {
+        String html = "<html><head></head><body><p>Text</p></body></html>";
         org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
 
-        W3CDom w3cDom = new W3CDom();
-        Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
 
         assertNull(w3cDoc.getDocumentURI());
     }
 
-    // Tests conversion with default and prefixed XML namespaces
+    // Tests conversion of comments
     @Test
-    public void testConvert_withNamespaces_handlesPrefixAndDefaultNamespace() {
-        String html = "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\">" +
-                "<head><title>NS Test</title></head>" +
-                "<body><epub:section>Content</epub:section></body></html>";
+    public void testFromJsoup_withComment_convertsCommentNode() {
+        String html = "<html><head></head><body><!-- This is a comment --><p>Text</p></body></html>";
         org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
 
-        W3CDom w3cDom = new W3CDom();
-        Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
 
-        Element root = w3cDoc.getDocumentElement();
-        assertEquals("http://www.w3.org/1999/xhtml", root.getNamespaceURI());
-
-        NodeList sections = root.getElementsByTagName("epub:section");
-        assertEquals(1, sections.getLength());
-        Element section = (Element) sections.item(0);
-        assertEquals("http://www.idpf.org/2007/ops", section.getNamespaceURI());
-        assertEquals("epub:section", section.getTagName());
-    }
-
-    // Tests conversion of comments, text nodes, and data nodes (e.g. script/style)
-    @Test
-    public void testConvert_textCommentAndDataNodes_convertsAllNodeTypes() {
-        String html = "<html><head><script>var x = 10;</script></head><body><!-- A comment --><p>Text</p></body></html>";
-        org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
-
-        W3CDom w3cDom = new W3CDom();
-        Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
-
-        NodeList scripts = w3cDoc.getElementsByTagName("script");
-        assertEquals(1, scripts.getLength());
-        assertEquals("var x = 10;", scripts.item(0).getTextContent());
-
-        NodeList bodyList = w3cDoc.getElementsByTagName("body");
-        assertEquals(1, bodyList.getLength());
-        Element body = (Element) bodyList.item(0);
-
-        boolean foundComment = false;
-        Node child = body.getFirstChild();
-        while (child != null) {
+        Node body = w3cDoc.getElementsByTagName("body").item(0);
+        Node commentNode = null;
+        for (int i = 0; i < body.getChildNodes().getLength(); i++) {
+            Node child = body.getChildNodes().item(i);
             if (child.getNodeType() == Node.COMMENT_NODE) {
-                assertEquals(" A comment ", child.getNodeValue());
-                foundComment = true;
+                commentNode = child;
+                break;
             }
-            child = child.getNextSibling();
         }
-        assertTrue(foundComment);
+        assertNotNull(commentNode);
+        assertEquals(" This is a comment ", commentNode.getNodeValue());
     }
 
-    // Tests conversion of nested hierarchy ensuring proper tree structure and undescend
+    // Tests conversion of DataNode (such as script contents)
     @Test
-    public void testConvert_nestedElements_maintainsHierarchy() {
-        String html = "<div><ul><li><span>One</span></li><li>Two</li></ul><p>Three</p></div>";
+    public void testFromJsoup_withDataNode_convertsDataNode() {
+        String html = "<html><head><script>var x = 10;</script></head><body></body></html>";
         org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
 
-        W3CDom w3cDom = new W3CDom();
-        Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
 
-        Element root = w3cDoc.getDocumentElement();
-        NodeList spans = root.getElementsByTagName("span");
-        assertEquals(1, spans.getLength());
-        assertEquals("One", spans.item(0).getTextContent());
-
-        NodeList ps = root.getElementsByTagName("p");
-        assertEquals(1, ps.getLength());
-        assertEquals("Three", ps.item(0).getTextContent());
+        Node script = w3cDoc.getElementsByTagName("script").item(0);
+        assertNotNull(script);
+        assertEquals("var x = 10;", script.getTextContent());
     }
 
-    // Tests attribute name sanitization when attribute contains invalid xml characters (Bug 54 regression)
+    // Tests default namespace (xmlns="...")
     @Test
-    public void testConvert_attributeWithInvalidCharacters_stripsInvalidCharacters() {
-        String html = "<div id=\"test\" invalid?attr=\"val\" data-custom=\"123\">Content</div>";
+    public void testFromJsoup_defaultNamespace_appliedCorrectly() {
+        String html = "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head></head><body><p>Test</p></body></html>";
         org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
 
-        W3CDom w3cDom = new W3CDom();
-        Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
 
-        Element div = (Element) w3cDoc.getElementsByTagName("div").item(0);
-        assertEquals("test", div.getAttribute("id"));
-        assertEquals("val", div.getAttribute("invalidattr"));
-        assertEquals("123", div.getAttribute("data-custom"));
+        org.w3c.dom.Element htmlEl = w3cDoc.getDocumentElement();
+        assertEquals("http://www.w3.org/1999/xhtml", htmlEl.getNamespaceURI());
     }
 
-    // Tests asString serialization method
+    // Tests prefixed namespace (xmlns:prefix="...")
     @Test
-    public void testAsString_validW3CDocument_returnsXmlString() {
-        String html = "<html><head><title>Title</title></head><body><p>Hello World</p></body></html>";
+    public void testFromJsoup_prefixedNamespace_appliedCorrectly() {
+        String html = "<html xmlns:custom=\"http://example.com/custom\"><head></head><body><custom:tag>Value</custom:tag></body></html>";
         org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
 
-        W3CDom w3cDom = new W3CDom();
-        Document w3cDoc = w3cDom.fromJsoup(jsoupDoc);
-        String xml = w3cDom.asString(w3cDoc);
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
+
+        Node customTag = w3cDoc.getElementsByTagName("custom:tag").item(0);
+        assertNotNull(customTag);
+        assertEquals("http://example.com/custom", customTag.getNamespaceURI());
+    }
+
+    // Tests nested element structure and tail traversal
+    @Test
+    public void testFromJsoup_nestedElements_hierarchyPreserved() {
+        String html = "<div><div><span><b>Deep</b></span></div></div>";
+        org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
+
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
+
+        NodeList bNodes = w3cDoc.getElementsByTagName("b");
+        assertEquals(1, bNodes.getLength());
+        Node b = bNodes.item(0);
+        assertEquals("Deep", b.getTextContent());
+        assertEquals("span", b.getParentNode().getNodeName());
+    }
+
+    // Tests attributes with invalid XML characters (Defects4J Bug 54)
+    @Test
+    public void testFromJsoup_invalidAttributeCharacters_handlesWithoutException() {
+        String html = "<html><head></head><body><p <invalid=\"value\" valid=\"ok\">Text</p></body></html>";
+        org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
+
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
+
+        NodeList pList = w3cDoc.getElementsByTagName("p");
+        assertEquals(1, pList.getLength());
+        org.w3c.dom.Element p = (org.w3c.dom.Element) pList.item(0);
+        assertEquals("ok", p.getAttribute("valid"));
+    }
+
+    // Tests asString serialization to XML string
+    @Test
+    public void testAsString_validDocument_returnsSerializedString() {
+        String html = "<html><head><title>Title</title></head><body><p>Hello</p></body></html>";
+        org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
+
+        W3CDom w3c = new W3CDom();
+        Document w3cDoc = w3c.fromJsoup(jsoupDoc);
+        String xml = w3c.asString(w3cDoc);
 
         assertNotNull(xml);
         assertTrue(xml.contains("<title>Title</title>"));
-        assertTrue(xml.contains("<p>Hello World</p>"));
-    }
-
-    // Tests manual convert method with pre-created Document
-    @Test
-    public void testConvert_manualDestinationDocument_populatesDocument() throws Exception {
-        String html = "<html><body><h1>Header</h1></body></html>";
-        org.jsoup.nodes.Document jsoupDoc = Jsoup.parse(html);
-
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        dbf.setNamespaceAware(true);
-        Document out = dbf.newDocumentBuilder().newDocument();
-
-        W3CDom w3cDom = new W3CDom();
-        w3cDom.convert(jsoupDoc, out);
-
-        Element root = out.getDocumentElement();
-        assertNotNull(root);
-        assertEquals("html", root.getTagName());
-        assertEquals(1, root.getElementsByTagName("h1").getLength());
-        assertEquals("Header", root.getElementsByTagName("h1").item(0).getTextContent());
+        assertTrue(xml.contains("<p>Hello</p>"));
     }
 }

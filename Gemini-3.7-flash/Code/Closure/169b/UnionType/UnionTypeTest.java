@@ -1,5 +1,18 @@
 package com.google.javascript.rhino.jstype;
 
+import static com.google.javascript.rhino.jstype.JSTypeNative.ALL_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.BOOLEAN_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NO_OBJECT_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NO_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NULL_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NUMBER_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.OBJECT_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.STRING_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.UNKNOWN_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.VOID_TYPE;
+import static com.google.javascript.rhino.jstype.TernaryValue.FALSE;
+import static com.google.javascript.rhino.jstype.TernaryValue.TRUE;
+import static com.google.javascript.rhino.jstype.TernaryValue.UNKNOWN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -12,241 +25,300 @@ import com.google.javascript.rhino.SimpleErrorReporter;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 public class UnionTypeTest {
-
   private JSTypeRegistry registry;
-  private JSType NUMBER_TYPE;
-  private JSType STRING_TYPE;
-  private JSType BOOLEAN_TYPE;
-  private JSType NULL_TYPE;
-  private JSType VOID_TYPE;
-  private JSType UNKNOWN_TYPE;
-  private JSType ALL_TYPE;
-  private JSType OBJECT_TYPE;
+  private JSType numberType;
+  private JSType stringType;
+  private JSType booleanType;
+  private JSType nullType;
+  private JSType voidType;
+  private JSType objectType;
+  private JSType unknownType;
+  private JSType allType;
 
   @Before
   public void setUp() {
     registry = new JSTypeRegistry(new SimpleErrorReporter());
-    NUMBER_TYPE = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
-    STRING_TYPE = registry.getNativeType(JSTypeNative.STRING_TYPE);
-    BOOLEAN_TYPE = registry.getNativeType(JSTypeNative.BOOLEAN_TYPE);
-    NULL_TYPE = registry.getNativeType(JSTypeNative.NULL_TYPE);
-    VOID_TYPE = registry.getNativeType(JSTypeNative.VOID_TYPE);
-    UNKNOWN_TYPE = registry.getNativeType(JSTypeNative.UNKNOWN_TYPE);
-    ALL_TYPE = registry.getNativeType(JSTypeNative.ALL_TYPE);
-    OBJECT_TYPE = registry.getNativeType(JSTypeNative.OBJECT_TYPE);
+    numberType = registry.getNativeType(NUMBER_TYPE);
+    stringType = registry.getNativeType(STRING_TYPE);
+    booleanType = registry.getNativeType(BOOLEAN_TYPE);
+    nullType = registry.getNativeType(NULL_TYPE);
+    voidType = registry.getNativeType(VOID_TYPE);
+    objectType = registry.getNativeType(OBJECT_TYPE);
+    unknownType = registry.getNativeType(UNKNOWN_TYPE);
+    allType = registry.getNativeType(ALL_TYPE);
   }
 
-  private UnionType createUnion(JSType... types) {
-    Collection<JSType> list = ImmutableList.copyOf(types);
-    return new UnionType(registry, list);
-  }
-
-  // Tests getAlternates and contains method
+  // Tests context matching for number, string, and object contexts
   @Test
-  public void testContains_matchingAndNonMatchingTypes_returnsExpected() {
-    UnionType union = createUnion(NUMBER_TYPE, STRING_TYPE);
-    assertTrue(union.contains(NUMBER_TYPE));
-    assertTrue(union.contains(STRING_TYPE));
-    assertFalse(union.contains(BOOLEAN_TYPE));
-    assertSame(union, union.toMaybeUnionType());
+  public void testMatchesContext_variousContexts_returnsExpected() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertTrue(union.matchesNumberContext());
+    assertTrue(union.matchesStringContext());
+    assertTrue(union.matchesObjectContext());
+
+    UnionType voidNullUnion = (UnionType) registry.createUnionType(voidType, nullType);
+    assertFalse(voidNullUnion.matchesObjectContext());
+    assertFalse(voidNullUnion.matchesNumberContext());
   }
 
-  // Tests matchesNumberContext across alternates
+  // Tests canAssignTo with standard types and unknown type
   @Test
-  public void testMatchesNumberContext_withNumericAndNonNumeric_returnsTrue() {
-    UnionType union1 = createUnion(NUMBER_TYPE, STRING_TYPE);
-    assertTrue(union1.matchesNumberContext());
+  public void testCanAssignTo_subtypesAndUnknown_returnsCorrectBoolean() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertTrue(union.canAssignTo(allType));
+    assertFalse(union.canAssignTo(numberType));
 
-    UnionType union2 = createUnion(VOID_TYPE, NULL_TYPE);
-    assertFalse(union2.matchesNumberContext());
+    UnionType withUnknown = (UnionType) registry.createUnionType(numberType, unknownType);
+    assertTrue(withUnknown.canAssignTo(stringType));
   }
 
-  // Tests matchesStringContext across alternates
+  // Tests canBeCalled method
   @Test
-  public void testMatchesStringContext_withStringAndNonString_returnsExpected() {
-    UnionType union1 = createUnion(STRING_TYPE, NUMBER_TYPE);
-    assertTrue(union1.matchesStringContext());
-
-    UnionType union2 = createUnion(VOID_TYPE);
-    assertFalse(union2.matchesStringContext());
-  }
-
-  // Tests matchesObjectContext across alternates
-  @Test
-  public void testMatchesObjectContext_withObjectAndPrimitive_returnsExpected() {
-    UnionType union1 = createUnion(OBJECT_TYPE, NUMBER_TYPE);
-    assertTrue(union1.matchesObjectContext());
-
-    UnionType union2 = createUnion(NULL_TYPE, VOID_TYPE);
-    assertFalse(union2.matchesObjectContext());
-  }
-
-  // Tests isNullable predicate
-  @Test
-  public void testIsNullable_withAndWithoutNull_returnsExpected() {
-    UnionType unionWithNull = createUnion(NUMBER_TYPE, NULL_TYPE);
-    assertTrue(unionWithNull.isNullable());
-
-    UnionType unionWithoutNull = createUnion(NUMBER_TYPE, BOOLEAN_TYPE);
-    assertFalse(unionWithoutNull.isNullable());
-  }
-
-  // Tests isUnknownType predicate
-  @Test
-  public void testIsUnknownType_withAndWithoutUnknown_returnsExpected() {
-    UnionType unionWithUnknown = createUnion(NUMBER_TYPE, UNKNOWN_TYPE);
-    assertTrue(unionWithUnknown.isUnknownType());
-
-    UnionType unionWithoutUnknown = createUnion(NUMBER_TYPE, STRING_TYPE);
-    assertFalse(unionWithoutUnknown.isUnknownType());
-  }
-
-  // Tests isObject predicate
-  @Test
-  public void testIsObject_withAllObjectsOrMixed_returnsExpected() {
-    UnionType objectUnion = createUnion(OBJECT_TYPE);
-    assertTrue(objectUnion.isObject());
-
-    UnionType mixedUnion = createUnion(OBJECT_TYPE, NUMBER_TYPE);
-    assertFalse(mixedUnion.isObject());
-  }
-
-  // Tests isSubtype against unknown, all type, and specific types
-  @Test
-  public void testIsSubtype_variousTargets_returnsExpected() {
-    UnionType numOrStr = createUnion(NUMBER_TYPE, STRING_TYPE);
-    assertTrue(numOrStr.isSubtype(UNKNOWN_TYPE));
-    assertTrue(numOrStr.isSubtype(ALL_TYPE));
-    assertFalse(numOrStr.isSubtype(NUMBER_TYPE));
-
-    JSType superUnion = registry.createUnionType(NUMBER_TYPE, STRING_TYPE, BOOLEAN_TYPE);
-    assertTrue(numOrStr.isSubtype(superUnion));
-  }
-
-  // Tests canAssignTo behavior
-  @Test
-  public void testCanAssignTo_assignableAndUnknown_returnsExpected() {
-    UnionType numOrStr = createUnion(NUMBER_TYPE, STRING_TYPE);
-    JSType superUnion = registry.createUnionType(NUMBER_TYPE, STRING_TYPE, BOOLEAN_TYPE);
-    assertTrue(numOrStr.canAssignTo(superUnion));
-    assertFalse(numOrStr.canAssignTo(NUMBER_TYPE));
-
-    UnionType withUnknown = createUnion(NUMBER_TYPE, UNKNOWN_TYPE);
-    assertTrue(withUnknown.canAssignTo(NUMBER_TYPE));
-  }
-
-  // Tests restrictByNotNullOrUndefined
-  @Test
-  public void testRestrictByNotNullOrUndefined_removesNullAndVoid() {
-    UnionType union = createUnion(NUMBER_TYPE, NULL_TYPE, VOID_TYPE);
-    JSType restricted = union.restrictByNotNullOrUndefined();
-    assertEquals(NUMBER_TYPE, restricted);
-  }
-
-  // Tests getRestrictedUnion by removing subtypes
-  @Test
-  public void testGetRestrictedUnion_removesSpecifiedSubtype() {
-    UnionType union = createUnion(NUMBER_TYPE, STRING_TYPE);
-    JSType restricted = union.getRestrictedUnion(NUMBER_TYPE);
-    assertEquals(STRING_TYPE, restricted);
-  }
-
-  // Tests testForEquality across union alternates
-  @Test
-  public void testTestForEquality_sameAndDifferentOutcomes_returnsExpected() {
-    UnionType numOrStr = createUnion(NUMBER_TYPE, STRING_TYPE);
-    assertEquals(TernaryValue.UNKNOWN, numOrStr.testForEquality(NUMBER_TYPE));
-    assertEquals(TernaryValue.FALSE, numOrStr.testForEquality(VOID_TYPE));
-  }
-
-  // Tests getLeastSupertype with union and non-union
-  @Test
-  public void testGetLeastSupertype_withSubtypeAlternate_returnsThis() {
-    UnionType numOrStr = createUnion(NUMBER_TYPE, STRING_TYPE);
-    JSType leastSuper = numOrStr.getLeastSupertype(NUMBER_TYPE);
-    assertEquals(numOrStr, leastSuper);
-  }
-
-  // Tests meet method on UnionType
-  @Test
-  public void testMeet_overlappingAndDisjointTypes_returnsExpected() {
-    UnionType numOrStr = createUnion(NUMBER_TYPE, STRING_TYPE);
-    JSType intersection = numOrStr.meet(NUMBER_TYPE);
-    assertEquals(NUMBER_TYPE, intersection);
-
-    UnionType strOrBool = createUnion(STRING_TYPE, BOOLEAN_TYPE);
-    JSType unionMeet = numOrStr.meet(strOrBool);
-    assertEquals(STRING_TYPE, unionMeet);
-  }
-
-  // Tests checkUnionEquivalenceHelper
-  @Test
-  public void testCheckUnionEquivalenceHelper_equalAndUnequalUnions() {
-    UnionType union1 = createUnion(NUMBER_TYPE, STRING_TYPE);
-    UnionType union2 = createUnion(STRING_TYPE, NUMBER_TYPE);
-    UnionType union3 = createUnion(NUMBER_TYPE, BOOLEAN_TYPE);
-
-    assertTrue(union1.checkUnionEquivalenceHelper(union2, false));
-    assertFalse(union1.checkUnionEquivalenceHelper(union3, false));
-  }
-
-  // Tests collapseUnion behavior
-  @Test
-  public void testCollapseUnion_mixedValuesAndObjects_returnsAllType() {
-    UnionType mixed = createUnion(NUMBER_TYPE, OBJECT_TYPE);
-    assertEquals(ALL_TYPE, mixed.collapseUnion());
-
-    UnionType withUnknown = createUnion(NUMBER_TYPE, UNKNOWN_TYPE);
-    assertEquals(UNKNOWN_TYPE, withUnknown.collapseUnion());
-  }
-
-  // Tests toStringHelper and toDebugHashCodeString
-  @Test
-  public void testToStringAndDebugString_formatsCorrectly() {
-    UnionType union = createUnion(NUMBER_TYPE, STRING_TYPE);
-    String str = union.toStringHelper(false);
-    assertTrue(str.startsWith("(") && str.endsWith(")"));
-    assertTrue(str.contains("number") && str.contains("string"));
-
-    String debugStr = union.toDebugHashCodeString();
-    assertTrue(debugStr.startsWith("{(") && debugStr.endsWith(")}"));
-  }
-
-  // Tests TypePair operations (getTypesUnderEquality, getTypesUnderInequality)
-  @Test
-  public void testGetTypesUnderEqualityAndInequality_returnsValidPairs() {
-    UnionType union = createUnion(NUMBER_TYPE, NULL_TYPE);
-    JSType.TypePair eqPair = union.getTypesUnderEquality(NULL_TYPE);
-    assertNotNull(eqPair.typeA);
-    assertNotNull(eqPair.typeB);
-
-    JSType.TypePair ineqPair = union.getTypesUnderInequality(NULL_TYPE);
-    assertNotNull(ineqPair.typeA);
-    assertNotNull(ineqPair.typeB);
+  public void testCanBeCalled_callableAndNonCallable_returnsFalseWhenNotAllCallable() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertFalse(union.canBeCalled());
   }
 
   // Tests autobox method
   @Test
-  public void testAutobox_primitiveUnion_returnsObjectUnion() {
-    UnionType union = createUnion(NUMBER_TYPE, STRING_TYPE);
+  public void testAutobox_primitiveUnion_autoboxesAlternates() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
     JSType autoboxed = union.autobox();
     assertTrue(autoboxed.isObject());
   }
 
-  // Tests findPropertyType when property exists or does not exist
+  // Tests restrictByNotNullOrUndefined
   @Test
-  public void testFindPropertyType_withNullAndObject_handlesFiltering() {
-    ObjectType objWithProp = registry.createAnonymousObjectType();
-    objWithProp.defineDeclaredProperty("foo", NUMBER_TYPE, null);
+  public void testRestrictByNotNullOrUndefined_withNullAndVoid_removesThem() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, nullType, voidType);
+    JSType restricted = union.restrictByNotNullOrUndefined();
+    assertTrue(restricted.isEquivalentTo(numberType));
+  }
 
-    UnionType union = createUnion(NULL_TYPE, objWithProp);
+  // Tests testForEquality across alternates
+  @Test
+  public void testTestForEquality_sameAndDifferentOutcomes_returnsExpectedTernary() {
+    UnionType numStrUnion = (UnionType) registry.createUnionType(numberType, stringType);
+    assertEquals(FALSE, numStrUnion.testForEquality(nullType));
+
+    UnionType numNullUnion = (UnionType) registry.createUnionType(numberType, nullType);
+    assertEquals(UNKNOWN, numNullUnion.testForEquality(nullType));
+  }
+
+  // Tests isNullable, isUnknownType, isObject
+  @Test
+  public void testTypePredicates_predicatesReflectAlternates() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, nullType);
+    assertTrue(union.isNullable());
+    assertFalse(union.isUnknownType());
+    assertFalse(union.isObject());
+
+    UnionType objUnion = (UnionType) registry.createUnionType(objectType, objectType);
+    assertTrue(objUnion.isObject());
+  }
+
+  // Tests isStruct and isDict
+  @Test
+  public void testIsStructAndIsDict_defaultAlternates_returnsFalse() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertFalse(union.isStruct());
+    assertFalse(union.isDict());
+  }
+
+  // Tests isSubtype
+  @Test
+  public void testIsSubtype_variousTypes_returnsExpectedBoolean() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertTrue(union.isSubtype(allType));
+    assertTrue(union.isSubtype(unknownType));
+    assertTrue(union.isSubtype(union));
+    assertFalse(union.isSubtype(numberType));
+  }
+
+  // Tests getLeastSupertype with alternate subtype
+  @Test
+  public void testGetLeastSupertype_subtypeOfAlternate_returnsThis() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    JSType result = union.getLeastSupertype(numberType);
+    assertSame(union, result);
+  }
+
+  // Tests meet operation with single type and union type
+  @Test
+  public void testMeet_variousTypes_returnsCorrectIntersection() {
+    UnionType union1 = (UnionType) registry.createUnionType(numberType, stringType);
+    JSType meetNumber = union1.meet(numberType);
+    assertTrue(meetNumber.isEquivalentTo(numberType));
+
+    UnionType union2 = (UnionType) registry.createUnionType(stringType, booleanType);
+    JSType meetUnion = union1.meet(union2);
+    assertTrue(meetUnion.isEquivalentTo(stringType));
+
+    JSType meetDisjoint = union1.meet(booleanType);
+    assertTrue(meetDisjoint.isNoType());
+  }
+
+  // Tests checkUnionEquivalenceHelper and contains
+  @Test
+  public void testCheckUnionEquivalenceHelper_sameAndDifferent_returnsExpected() {
+    UnionType u1 = (UnionType) registry.createUnionType(numberType, stringType);
+    UnionType u2 = (UnionType) registry.createUnionType(stringType, numberType);
+    UnionType u3 = (UnionType) registry.createUnionType(numberType, booleanType);
+
+    assertTrue(u1.checkUnionEquivalenceHelper(u2, false));
+    assertFalse(u1.checkUnionEquivalenceHelper(u3, false));
+    assertTrue(u1.contains(numberType));
+    assertFalse(u1.contains(booleanType));
+  }
+
+  // Tests getRestrictedUnion
+  @Test
+  public void testGetRestrictedUnion_removeAlternate_returnsRemaining() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    JSType restricted = union.getRestrictedUnion(numberType);
+    assertTrue(restricted.isEquivalentTo(stringType));
+  }
+
+  // Tests toStringHelper format
+  @Test
+  public void testToStringHelper_validUnion_formatsCorrectly() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertEquals("(number|string)", union.toStringHelper(false));
+  }
+
+  // Tests getRestrictedTypeGivenToBooleanOutcome
+  @Test
+  public void testGetRestrictedTypeGivenToBooleanOutcome_trueAndFalse_filtersCorrectly() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, nullType);
+    JSType trueRestricted = union.getRestrictedTypeGivenToBooleanOutcome(true);
+    assertTrue(trueRestricted.isEquivalentTo(numberType));
+    assertFalse(trueRestricted.isNullable());
+
+    JSType falseRestricted = union.getRestrictedTypeGivenToBooleanOutcome(false);
+    assertTrue(falseRestricted.isNullable());
+  }
+
+  // Tests getPossibleToBooleanOutcomes
+  @Test
+  public void testGetPossibleToBooleanOutcomes_numberAndString_returnsBoth() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertEquals(BooleanLiteralSet.BOTH, union.getPossibleToBooleanOutcomes());
+
+    UnionType nullUnion = (UnionType) registry.createUnionType(nullType, voidType);
+    assertEquals(BooleanLiteralSet.FALSE, nullUnion.getPossibleToBooleanOutcomes());
+  }
+
+  // Tests findPropertyType
+  @Test
+  public void testFindPropertyType_propertyOnAlternate_returnsPropertyType() {
+    ObjectType objTypeWithProp = registry.createAnonymousObjectType();
+    objTypeWithProp.defineDeclaredProperty("foo", numberType, null);
+
+    UnionType union = (UnionType) registry.createUnionType(objTypeWithProp, nullType);
     JSType propType = union.findPropertyType("foo");
-    assertEquals(NUMBER_TYPE, propType);
+    assertNotNull(propType);
+    assertTrue(propType.isEquivalentTo(numberType));
 
     assertNull(union.findPropertyType("nonExistent"));
+  }
+
+  // Tests collapseUnion
+  @Test
+  public void testCollapseUnion_multiplePrimitivesOrObjects_collapsesProperly() {
+    UnionType primitiveUnion = (UnionType) registry.createUnionType(numberType, stringType);
+    JSType collapsedPrimitive = primitiveUnion.collapseUnion();
+    assertTrue(collapsedPrimitive.isAllType());
+
+    UnionType withUnknown = (UnionType) registry.createUnionType(numberType, unknownType);
+    JSType collapsedUnknown = withUnknown.collapseUnion();
+    assertTrue(collapsedUnknown.isUnknownType());
+  }
+
+  // Tests getTypesUnderEquality and Inequality
+  @Test
+  public void testGetTypesUnderEqualityAndInequality_validUnion_returnsTypePairs() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    TypePair eqPair = union.getTypesUnderEquality(numberType);
+    assertNotNull(eqPair.typeA);
+    assertNotNull(eqPair.typeB);
+
+    TypePair ineqPair = union.getTypesUnderInequality(numberType);
+    assertNotNull(ineqPair.typeA);
+    assertNotNull(ineqPair.typeB);
+
+    TypePair shallowIneqPair = union.getTypesUnderShallowInequality(numberType);
+    assertNotNull(shallowIneqPair.typeA);
+    assertNotNull(shallowIneqPair.typeB);
+  }
+
+  // Tests toMaybeUnionType and visitor
+  @Test
+  public void testToMaybeUnionTypeAndVisit_returnsUnionInstance() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertSame(union, union.toMaybeUnionType());
+
+    Visitor<String> visitor = new Visitor<String>() {
+      @Override
+      public String caseNoType() { return null; }
+      @Override
+      public String caseEnumElementType(EnumElementType type) { return null; }
+      @Override
+      public String caseAllType() { return null; }
+      @Override
+      public String caseBooleanType() { return null; }
+      @Override
+      public String caseNoObjectType() { return null; }
+      @Override
+      public String caseFunctionType(FunctionType type) { return null; }
+      @Override
+      public String caseObjectType(ObjectType type) { return null; }
+      @Override
+      public String caseUnknownType() { return null; }
+      @Override
+      public String caseNullType() { return null; }
+      @Override
+      public String caseNamedType(NamedType type) { return null; }
+      @Override
+      public String caseNumberType() { return null; }
+      @Override
+      public String caseStringType() { return null; }
+      @Override
+      public String caseVoidType() { return null; }
+      @Override
+      public String caseUnionType(UnionType type) { return "union"; }
+      @Override
+      public String caseTemplatizedType(TemplatizedType type) { return null; }
+      @Override
+      public String caseTemplateType(TemplateType templateType) { return null; }
+    };
+    assertEquals("union", union.visit(visitor));
+  }
+
+  // Tests isUnionType and getAlternates
+  @Test
+  public void testIsUnionTypeAndGetAlternates() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertTrue(union.isUnionType());
+    assertEquals(2, union.getAlternates().size());
+    assertTrue(union.getAlternates().contains(numberType));
+    assertTrue(union.getAlternates().contains(stringType));
+  }
+
+  // Tests canTestForShallowEqualityWith and canTestForEqualityWith
+  @Test
+  public void testEqualityCheckingCapabilities() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    assertTrue(union.canTestForEqualityWith(numberType));
+    assertTrue(union.canTestForShallowEqualityWith(numberType));
+  }
+
+  // Tests getTypesUnderShallowEquality
+  @Test
+  public void testGetTypesUnderShallowEquality() {
+    UnionType union = (UnionType) registry.createUnionType(numberType, stringType);
+    TypePair shallowEqPair = union.getTypesUnderShallowEquality(numberType);
+    assertNotNull(shallowEqPair.typeA);
+    assertNotNull(shallowEqPair.typeB);
   }
 }

@@ -1,134 +1,142 @@
 package com.fasterxml.jackson.databind.ser;
 
-import java.io.IOException;
 import java.util.*;
-
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonFilter;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.cfg.SerializerFactoryConfig;
-import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
+import com.fasterxml.jackson.databind.introspect.AnnotatedField;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
-import com.fasterxml.jackson.databind.introspect.BasicBeanDescription;
-import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
-import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+import com.fasterxml.jackson.databind.ser.std.NullSerializer;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public class BeanSerializerFactoryTest {
 
     private BeanSerializerFactory factory;
     private ObjectMapper mapper;
-    private DefaultSerializerProvider provider;
+    private SerializerProvider serializerProvider;
 
-    // View markers for testing
-    interface Views {
-        interface ViewA {}
-        interface ViewB {}
-    }
-
-    // Test POJOs
-    static class SimpleBean {
-        public String name = "test";
-        public int value = 42;
+    // Helper classes for testing
+    public static class SimpleBean {
+        private String name = "test";
+        private int age = 30;
 
         public String getName() { return name; }
-        public int getValue() { return value; }
+        public void setName(String name) { this.name = name; }
+        public int getAge() { return age; }
+        public void setAge(int age) { this.age = age; }
     }
 
-    static class EmptyBean {
+    public static class CompletelyEmptyBean {
     }
 
-    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
-    static class PropertyIdBean {
-        public int id = 123;
-        public String name = "idBean";
+    @JsonFilter("testFilter")
+    public static class EmptyAnnotatedBean {
     }
 
-    @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "id")
-    static class SequenceIdBean {
-        public String name = "seqBean";
-    }
-
-    static class AnyGetterBean {
-        private Map<String, Object> extra = new HashMap<String, Object>();
+    public static class AnyGetterBean {
+        private Map<String, Object> map = new HashMap<String, Object>();
 
         public AnyGetterBean() {
-            extra.put("extraKey", "extraVal");
+            map.put("key1", "val1");
         }
 
         @JsonAnyGetter
-        public Map<String, Object> getExtra() {
-            return extra;
+        public Map<String, Object> any() {
+            return map;
         }
     }
 
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    public static class ObjectIdBean {
+        public String name = "name";
+        public int id = 123;
+    }
+
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "nonExistentId")
+    public static class InvalidObjectIdBean {
+        public String name = "name";
+    }
+
+    @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@id")
+    public static class IntSequenceIdBean {
+        public String value = "val";
+    }
+
+    public static class Views {
+        public interface ViewA {}
+        public interface ViewB {}
+    }
+
+    public static class ViewBean {
+        @JsonView(Views.ViewA.class)
+        public String fieldA = "A";
+
+        @JsonView(Views.ViewB.class)
+        public String fieldB = "B";
+
+        public String fieldDefault = "D";
+    }
+
     @JsonIgnoreProperties({"ignoredField"})
-    static class FilteredPropertiesBean {
-        public String visibleField = "visible";
+    public static class IgnoredPropsBean {
+        public String keptField = "kept";
         public String ignoredField = "ignored";
     }
 
     @JsonIgnoreType
-    static class IgnoredType {
-        public String secret = "hidden";
+    public static class IgnorableType {
+        public String data = "data";
     }
 
-    static class BeanWithIgnoredType {
-        public String normal = "normal";
-        public IgnoredType ignored = new IgnoredType();
+    public static class ContainerOfIgnorable {
+        public String title = "title";
+        public IgnorableType ignorable = new IgnorableType();
     }
 
-    static class SetterlessGetterBean {
-        private String field = "getterOnly";
+    public static class SetterlessBean {
+        private String setterless = "val";
+        private String normal = "norm";
 
-        public String getField() {
-            return field;
-        }
+        public String getSetterless() { return setterless; }
+        public String getNormal() { return normal; }
+        public void setNormal(String normal) { this.normal = normal; }
     }
 
-    static class ViewBean {
-        @JsonView(Views.ViewA.class)
-        public String viewA = "A";
+    public static class PolymorphicContainer {
+        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+        public Object polyProperty = new SimpleBean();
 
-        @JsonView(Views.ViewB.class)
-        public String viewB = "B";
-
-        public String general = "General";
+        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "elemType")
+        public List<Object> polyList = new ArrayList<Object>();
     }
 
-    @JsonFilter("customFilter")
-    static class FilteredBean {
-        public String propA = "valA";
-        public String propB = "valB";
+    public static class NonPolymorphicContainer {
+        public String plainProperty = "plain";
+        public List<String> plainList = new ArrayList<String>();
     }
 
-    @JsonPropertyOrder(alphabetic = true)
-    static class AlphabeticOrderBean {
-        public String z = "z";
-        public String a = "a";
-        public String m = "m";
+    public enum TestEnum {
+        VAL_A, VAL_B
     }
 
-    static class PolymorphicPropertyBean {
-        @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY)
-        public Object data = "someData";
-    }
-
-    static class CustomSubtypeFactory extends BeanSerializerFactory {
+    private static class CustomSubtypeFactory extends BeanSerializerFactory {
         public CustomSubtypeFactory(SerializerFactoryConfig config) {
             super(config);
         }
@@ -138,227 +146,338 @@ public class BeanSerializerFactoryTest {
     public void setUp() {
         factory = BeanSerializerFactory.instance;
         mapper = new ObjectMapper();
-        SerializationConfig config = mapper.getSerializationConfig();
-        provider = ((DefaultSerializerProvider) mapper.getSerializerProvider()).createInstance(config, factory);
+        serializerProvider = mapper.getSerializerProviderInstance();
     }
 
-    // Tests singleton instance and withConfig behavior with identical config
+    // Tests withConfig when passing identical config returns the same instance
     @Test
     public void testWithConfig_sameConfig_returnsSameInstance() {
-        SerializerFactoryConfig config = new SerializerFactoryConfig();
-        BeanSerializerFactory customFactory = new BeanSerializerFactory(config);
-        SerializerFactory result = customFactory.withConfig(config);
-        assertSame(customFactory, result);
+        SerializerFactoryConfig config = factory.getFactoryConfig();
+        SerializerFactory result = factory.withConfig(config);
+        assertSame(factory, result);
     }
 
-    // Tests withConfig when creating a new instance with a new config
+    // Tests withConfig when passing new config returns a new BeanSerializerFactory instance
     @Test
     public void testWithConfig_newConfig_returnsNewInstance() {
-        SerializerFactoryConfig config1 = new SerializerFactoryConfig();
-        SerializerFactoryConfig config2 = new SerializerFactoryConfig();
-        BeanSerializerFactory customFactory = new BeanSerializerFactory(config1);
-        SerializerFactory result = customFactory.withConfig(config2);
-        assertNotSame(customFactory, result);
-        assertTrue(result instanceof BeanSerializerFactory);
+        SerializerFactoryConfig newConfig = new SerializerFactoryConfig();
+        SerializerFactory result = factory.withConfig(newConfig);
+        assertNotNull(result);
+        assertNotSame(factory, result);
+        assertEquals(BeanSerializerFactory.class, result.getClass());
     }
 
-    // Tests withConfig when invoked on a subclass without overriding withConfig throws IllegalStateException
+    // Tests withConfig throws IllegalStateException when invoked on an improperly overridden subtype
     @Test(expected = IllegalStateException.class)
-    public void testWithConfig_unsupportedSubtype_throwsIllegalStateException() {
-        SerializerFactoryConfig config1 = new SerializerFactoryConfig();
-        SerializerFactoryConfig config2 = new SerializerFactoryConfig();
-        CustomSubtypeFactory customFactory = new CustomSubtypeFactory(config1);
-        customFactory.withConfig(config2);
+    public void testWithConfig_customSubtypeWithoutOverride_throwsIllegalStateException() {
+        CustomSubtypeFactory customFactory = new CustomSubtypeFactory(new SerializerFactoryConfig());
+        customFactory.withConfig(new SerializerFactoryConfig());
     }
 
-    // Tests standard POJO serialization creation
+    // Tests createSerializer for plain Object class returns unknown serializer
     @Test
-    public void testCreateSerializer_simpleBean_returnsNonNullSerializer() throws JsonMappingException {
-        JavaType type = mapper.constructType(SimpleBean.class);
-        JsonSerializer<Object> ser = factory.createSerializer(provider, type);
+    public void testCreateSerializer_plainObjectClass_returnsUnknownSerializer() throws Exception {
+        JavaType objectType = mapper.constructType(Object.class);
+        JsonSerializer<Object> ser = factory.createSerializer(serializerProvider, objectType);
         assertNotNull(ser);
     }
 
-    // Tests serialization creation for Object.class returns unknown type serializer
+    // Tests createSerializer for a regular Java bean constructs a BeanSerializer
     @Test
-    public void testCreateSerializer_objectClass_returnsUnknownSerializer() throws JsonMappingException {
-        JavaType type = mapper.constructType(Object.class);
-        JsonSerializer<Object> ser = factory.createSerializer(provider, type);
+    public void testCreateSerializer_simpleBean_returnsBeanSerializer() throws Exception {
+        JavaType beanType = mapper.constructType(SimpleBean.class);
+        JsonSerializer<Object> ser = factory.createSerializer(serializerProvider, beanType);
+        assertNotNull(ser);
+        assertEquals(BeanSerializer.class, ser.getClass());
+    }
+
+    // Tests createSerializer for an empty bean that has class annotations returns dummy serializer
+    @Test
+    public void testCreateSerializer_emptyBeanWithKnownAnnotations_returnsSerializer() throws Exception {
+        JavaType emptyType = mapper.constructType(EmptyAnnotatedBean.class);
+        JsonSerializer<Object> ser = factory.createSerializer(serializerProvider, emptyType);
         assertNotNull(ser);
     }
 
-    // Tests finding bean serializer for non-bean primitive types returns null
+    // Tests constructBeanSerializer handling of @JsonAnyGetter
     @Test
-    public void testFindBeanSerializer_primitiveType_returnsNull() throws JsonMappingException {
-        JavaType type = mapper.constructType(int.class);
-        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(type);
-        JsonSerializer<Object> ser = factory.findBeanSerializer(provider, type, beanDesc);
-        assertNull(ser);
+    public void testCreateSerializer_withAnyGetter_constructsSerializerSuccessfully() throws Exception {
+        JavaType anyGetterType = mapper.constructType(AnyGetterBean.class);
+        JsonSerializer<Object> ser = factory.createSerializer(serializerProvider, anyGetterType);
+        assertNotNull(ser);
+        assertEquals(BeanSerializer.class, ser.getClass());
     }
 
-    // Tests finding bean serializer for empty bean without properties returns null or dummy
+    // Tests constructObjectIdHandler with PropertyGenerator reordering id property to first position
     @Test
-    public void testFindBeanSerializer_emptyBean_returnsSerializerOrNull() throws JsonMappingException {
-        JavaType type = mapper.constructType(EmptyBean.class);
-        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(type);
-        JsonSerializer<Object> ser = factory.findBeanSerializer(provider, type, beanDesc);
-        assertNull(ser);
+    public void testCreateSerializer_withPropertyBasedObjectId_reordersIdProperty() throws Exception {
+        JavaType idBeanType = mapper.constructType(ObjectIdBean.class);
+        JsonSerializer<Object> ser = factory.createSerializer(serializerProvider, idBeanType);
+        assertNotNull(ser);
+        assertEquals(BeanSerializer.class, ser.getClass());
     }
 
-    // Tests isPotentialBeanType method with standard classes and primitive/array types
+    // Tests constructObjectIdHandler with Non-PropertyGenerator (e.g., IntSequenceGenerator)
     @Test
-    public void testIsPotentialBeanType_variousClasses_returnsExpectedBoolean() {
-        assertTrue(factory.isPotentialBeanType(SimpleBean.class));
-        assertFalse(factory.isPotentialBeanType(int.class));
-        assertFalse(factory.isPotentialBeanType(int[].class));
+    public void testCreateSerializer_withStandardObjectIdGenerator_constructsObjectIdWriter() throws Exception {
+        JavaType idBeanType = mapper.constructType(IntSequenceIdBean.class);
+        JsonSerializer<Object> ser = factory.createSerializer(serializerProvider, idBeanType);
+        assertNotNull(ser);
+        assertEquals(BeanSerializer.class, ser.getClass());
     }
 
-    // Tests handling of @JsonIdentityInfo with PropertyGenerator
+    // Tests filterBeanProperties via @JsonIgnoreProperties
     @Test
-    public void testConstructBeanSerializer_propertyBasedObjectId_constructsSerializer() throws IOException {
-        PropertyIdBean bean = new PropertyIdBean();
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"id\":123"));
-        assertTrue(json.contains("\"name\":\"idBean\""));
+    public void testCreateSerializer_withIgnoredProperties_filtersOutProperty() throws Exception {
+        JavaType ignoredType = mapper.constructType(IgnoredPropsBean.class);
+        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(ignoredType);
+        JsonSerializer<Object> ser = factory.findBeanSerializer(serializerProvider, ignoredType, beanDesc);
+        assertNotNull(ser);
+        assertTrue(ser instanceof BeanSerializer);
     }
 
-    // Tests handling of @JsonIdentityInfo with standard generator
+    // Tests removeIgnorableTypes removes property whose type has @JsonIgnoreType
     @Test
-    public void testConstructBeanSerializer_sequenceObjectId_constructsSerializer() throws IOException {
-        SequenceIdBean bean = new SequenceIdBean();
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"id\":1"));
-        assertTrue(json.contains("\"name\":\"seqBean\""));
-    }
-
-    // Tests serialization of bean containing @JsonAnyGetter
-    @Test
-    public void testConstructBeanSerializer_anyGetter_serializesAnyProperties() throws IOException {
-        AnyGetterBean bean = new AnyGetterBean();
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"extraKey\":\"extraVal\""));
-    }
-
-    // Tests filterBeanProperties suppresses ignored properties
-    @Test
-    public void testFilterBeanProperties_ignoredProperties_suppressesIgnoredField() throws IOException {
-        FilteredPropertiesBean bean = new FilteredPropertiesBean();
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("visibleField"));
-        assertFalse(json.contains("ignoredField"));
-    }
-
-    // Tests removeIgnorableTypes eliminates properties marked with @JsonIgnoreType
-    @Test
-    public void testRemoveIgnorableTypes_ignoredType_suppressesTypeField() throws IOException {
-        BeanWithIgnoredType bean = new BeanWithIgnoredType();
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("normal"));
-        assertFalse(json.contains("ignored"));
-    }
-
-    // Tests processViews with DEFAULT_VIEW_INCLUSION enabled
-    @Test
-    public void testProcessViews_defaultViewInclusionEnabled_includesUnannotated() throws IOException {
-        ViewBean bean = new ViewBean();
-        String json = mapper.writerWithView(Views.ViewA.class).writeValueAsString(bean);
-        assertTrue(json.contains("viewA"));
-        assertFalse(json.contains("viewB"));
-        assertTrue(json.contains("general"));
-    }
-
-    // Tests processViews with DEFAULT_VIEW_INCLUSION disabled
-    @Test
-    public void testProcessViews_defaultViewInclusionDisabled_excludesUnannotated() throws IOException {
-        ObjectMapper customMapper = new ObjectMapper();
-        customMapper.disable(MapperFeature.DEFAULT_VIEW_INCLUSION);
-        ViewBean bean = new ViewBean();
-        String json = customMapper.writerWithView(Views.ViewA.class).writeValueAsString(bean);
-        assertTrue(json.contains("viewA"));
-        assertFalse(json.contains("viewB"));
-        assertFalse(json.contains("general"));
+    public void testCreateSerializer_withIgnorableType_removesIgnorableProperty() throws Exception {
+        JavaType containerType = mapper.constructType(ContainerOfIgnorable.class);
+        JsonSerializer<Object> ser = factory.createSerializer(serializerProvider, containerType);
+        assertNotNull(ser);
+        assertTrue(ser instanceof BeanSerializer);
     }
 
     // Tests removeSetterlessGetters when REQUIRE_SETTERS_FOR_GETTERS is enabled
     @Test
-    public void testRemoveSetterlessGetters_requireSettersEnabled_removesGetterOnlyProperty() throws IOException {
+    public void testCreateSerializer_withRequireSettersForGetters_removesSetterlessProperties() throws Exception {
         ObjectMapper customMapper = new ObjectMapper();
         customMapper.enable(MapperFeature.REQUIRE_SETTERS_FOR_GETTERS);
-        customMapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-        SetterlessGetterBean bean = new SetterlessGetterBean();
-        String json = customMapper.writeValueAsString(bean);
-        assertEquals("{}", json);
+        SerializerProvider prov = customMapper.getSerializerProviderInstance();
+
+        JavaType type = customMapper.constructType(SetterlessBean.class);
+        JsonSerializer<Object> ser = factory.createSerializer(prov, type);
+        assertNotNull(ser);
     }
 
-    // Tests custom serializer modifiers via SerializerFactoryConfig
+    // Tests processViews with @JsonView properties
     @Test
-    public void testSerializerModifier_customModifier_invokedDuringConstruction() throws IOException {
-        final boolean[] modifierCalled = new boolean[1];
+    public void testCreateSerializer_withJsonView_configuresFilteredProperties() throws Exception {
+        JavaType viewBeanType = mapper.constructType(ViewBean.class);
+        JsonSerializer<Object> ser = factory.createSerializer(serializerProvider, viewBeanType);
+        assertNotNull(ser);
+        assertTrue(ser instanceof BeanSerializer);
+    }
+
+    // Tests findBeanSerializer returns null for non-bean primitive types
+    @Test
+    public void testFindBeanSerializer_primitiveType_returnsNull() throws Exception {
+        JavaType intType = mapper.constructType(int.class);
+        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(intType);
+        JsonSerializer<Object> ser = factory.findBeanSerializer(serializerProvider, intType, beanDesc);
+        assertNull(ser);
+    }
+
+    // Tests findBeanSerializer allows Enum types
+    @Test
+    public void testFindBeanSerializer_enumType_returnsSerializer() throws Exception {
+        JavaType enumType = mapper.constructType(TestEnum.class);
+        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(enumType);
+        JsonSerializer<Object> ser = factory.findBeanSerializer(serializerProvider, enumType, beanDesc);
+        assertNotNull(ser);
+    }
+
+    // Tests findPropertyTypeSerializer for polymorphic property
+    @Test
+    public void testFindPropertyTypeSerializer_polymorphicProperty_returnsTypeSerializer() throws Exception {
+        JavaType containerType = mapper.constructType(PolymorphicContainer.class);
+        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(containerType);
+        SerializationConfig config = mapper.getSerializationConfig();
+
+        AnnotatedMember fieldMember = null;
+        for (BeanPropertyDefinition prop : beanDesc.findProperties()) {
+            if ("polyProperty".equals(prop.getName())) {
+                fieldMember = prop.getAccessor();
+                break;
+            }
+        }
+        assertNotNull(fieldMember);
+        TypeSerializer typeSer = factory.findPropertyTypeSerializer(fieldMember.getType(beanDesc.bindingsForBeanType()), config, fieldMember);
+        assertNotNull(typeSer);
+    }
+
+    // Tests findPropertyContentTypeSerializer for polymorphic collection property
+    @Test
+    public void testFindPropertyContentTypeSerializer_polymorphicContainerProperty_returnsTypeSerializer() throws Exception {
+        JavaType containerType = mapper.constructType(PolymorphicContainer.class);
+        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(containerType);
+        SerializationConfig config = mapper.getSerializationConfig();
+
+        AnnotatedMember fieldMember = null;
+        for (BeanPropertyDefinition prop : beanDesc.findProperties()) {
+            if ("polyList".equals(prop.getName())) {
+                fieldMember = prop.getAccessor();
+                break;
+            }
+        }
+        assertNotNull(fieldMember);
+        JavaType listType = fieldMember.getType(beanDesc.bindingsForBeanType());
+        TypeSerializer contentSer = factory.findPropertyContentTypeSerializer(listType, config, fieldMember);
+        assertNotNull(contentSer);
+    }
+
+    // Tests BeanSerializerModifier hooks in constructBeanSerializer
+    @Test
+    public void testCreateSerializer_withSerializerModifier_appliesModifierModifications() throws Exception {
+        final boolean[] modifierCalled = new boolean[3];
+
         BeanSerializerModifier modifier = new BeanSerializerModifier() {
             @Override
-            public List<BeanPropertyWriter> changeProperties(SerializationConfig config,
-                    BeanDescription beanDesc, List<BeanPropertyWriter> beanProperties) {
+            public List<BeanPropertyWriter> changeProperties(SerializationConfig config, BeanDescription beanDesc, List<BeanPropertyWriter> beanProperties) {
                 modifierCalled[0] = true;
                 return beanProperties;
             }
-        };
 
-        SerializerFactoryConfig config = new SerializerFactoryConfig().withSerializerModifier(modifier);
-        BeanSerializerFactory customFactory = new BeanSerializerFactory(config);
-        ObjectMapper customMapper = new ObjectMapper();
-        customMapper.setSerializerFactory(customFactory);
-
-        customMapper.writeValueAsString(new SimpleBean());
-        assertTrue(modifierCalled[0]);
-    }
-
-    // Tests @JsonFilter on bean class
-    @Test
-    public void testConstructBeanSerializer_withJsonFilter() throws IOException {
-        FilteredBean bean = new FilteredBean();
-        SimpleFilterProvider filters = new SimpleFilterProvider().addFilter(
-                "customFilter", SimpleBeanPropertyFilter.filterOutAllExcept("propA"));
-        String json = mapper.writer(filters).writeValueAsString(bean);
-        assertTrue(json.contains("propA"));
-        assertFalse(json.contains("propB"));
-    }
-
-    // Tests sorting of bean properties with alphabetic order
-    @Test
-    public void testConstructBeanSerializer_alphabeticPropertyOrder() throws IOException {
-        AlphabeticOrderBean bean = new AlphabeticOrderBean();
-        String json = mapper.writeValueAsString(bean);
-        assertEquals("{\"a\":\"a\",\"m\":\"m\",\"z\":\"z\"}", json);
-    }
-
-    // Tests property with polymorphic TypeSerializer
-    @Test
-    public void testConstructBeanSerializer_polymorphicProperty() throws IOException {
-        PolymorphicPropertyBean bean = new PolymorphicPropertyBean();
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"@class\":\"java.lang.String\""));
-        assertTrue(json.contains("\"data\":\"someData\""));
-    }
-
-    // Tests modifier updateBuilder callback
-    @Test
-    public void testSerializerModifier_updateBuilder() throws IOException {
-        final boolean[] updateBuilderCalled = new boolean[1];
-        BeanSerializerModifier modifier = new BeanSerializerModifier() {
             @Override
-            public BeanSerializerBuilder updateBuilder(SerializationConfig config,
-                    BeanDescription beanDesc, BeanSerializerBuilder builder) {
-                updateBuilderCalled[0] = true;
+            public List<BeanPropertyWriter> orderProperties(SerializationConfig config, BeanDescription beanDesc, List<BeanPropertyWriter> beanProperties) {
+                modifierCalled[1] = true;
+                return beanProperties;
+            }
+
+            @Override
+            public BeanSerializerBuilder updateBuilder(SerializationConfig config, BeanDescription beanDesc, BeanSerializerBuilder builder) {
+                modifierCalled[2] = true;
                 return builder;
             }
         };
 
         SerializerFactoryConfig config = new SerializerFactoryConfig().withSerializerModifier(modifier);
-        BeanSerializerFactory customFactory = new BeanSerializerFactory(config);
-        ObjectMapper customMapper = new ObjectMapper();
-        customMapper.setSerializerFactory(customFactory);
+        BeanSerializerFactory modifiedFactory = (BeanSerializerFactory) factory.withConfig(config);
 
-        customMapper.writeValueAsString(new SimpleBean());
-        assertTrue(updateBuilderCalled[0]);
+        JavaType beanType = mapper.constructType(SimpleBean.class);
+        JsonSerializer<Object> ser = modifiedFactory.createSerializer(serializerProvider, beanType);
+
+        assertNotNull(ser);
+        assertTrue(modifierCalled[0]);
+        assertTrue(modifierCalled[1]);
+        assertTrue(modifierCalled[2]);
+    }
+
+    // Tests createSerializer with additional custom Serializers configured
+    @Test
+    public void testCreateSerializer_withCustomSerializers_usesCustomSerializer() throws Exception {
+        final JsonSerializer<Object> customSer = new StdSerializer<Object>(SimpleBean.class) {
+            @Override
+            public void serialize(Object value, com.fasterxml.jackson.core.JsonGenerator gen, SerializerProvider provider) {}
+        };
+
+        Serializers.Base additionalSerializers = new Serializers.Base() {
+            @Override
+            public JsonSerializer<?> findSerializer(SerializationConfig config, JavaType type, BeanDescription beanDesc) {
+                if (type.getRawClass() == SimpleBean.class) {
+                    return customSer;
+                }
+                return null;
+            }
+        };
+
+        SerializerFactoryConfig config = new SerializerFactoryConfig().withAdditionalSerializers(additionalSerializers);
+        BeanSerializerFactory customFactory = (BeanSerializerFactory) factory.withConfig(config);
+
+        JavaType beanType = mapper.constructType(SimpleBean.class);
+        JsonSerializer<Object> ser = customFactory.createSerializer(serializerProvider, beanType);
+        assertSame(customSer, ser);
+    }
+
+    // Tests BeanSerializerModifier modifySerializer hook
+    @Test
+    public void testCreateSerializer_withModifySerializerHook_replacesSerializer() throws Exception {
+        final JsonSerializer<Object> replacement = new StdSerializer<Object>(SimpleBean.class) {
+            @Override
+            public void serialize(Object value, com.fasterxml.jackson.core.JsonGenerator gen, SerializerProvider provider) {}
+        };
+
+        BeanSerializerModifier modifier = new BeanSerializerModifier() {
+            @Override
+            public JsonSerializer<?> modifySerializer(SerializationConfig config, BeanDescription beanDesc, JsonSerializer<?> serializer) {
+                return replacement;
+            }
+        };
+
+        SerializerFactoryConfig config = new SerializerFactoryConfig().withSerializerModifier(modifier);
+        BeanSerializerFactory modifiedFactory = (BeanSerializerFactory) factory.withConfig(config);
+
+        JavaType beanType = mapper.constructType(SimpleBean.class);
+        JsonSerializer<Object> ser = modifiedFactory.createSerializer(serializerProvider, beanType);
+        assertSame(replacement, ser);
+    }
+
+    // Tests constructObjectIdHandler with non-existent property throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateSerializer_withInvalidPropertyObjectId_throwsIllegalArgumentException() throws Exception {
+        JavaType invalidIdType = mapper.constructType(InvalidObjectIdBean.class);
+        factory.createSerializer(serializerProvider, invalidIdType);
+    }
+
+    // Tests findPropertyTypeSerializer returns null when property has no type info
+    @Test
+    public void testFindPropertyTypeSerializer_nonPolymorphicProperty_returnsNull() throws Exception {
+        JavaType containerType = mapper.constructType(NonPolymorphicContainer.class);
+        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(containerType);
+        SerializationConfig config = mapper.getSerializationConfig();
+
+        AnnotatedMember fieldMember = null;
+        for (BeanPropertyDefinition prop : beanDesc.findProperties()) {
+            if ("plainProperty".equals(prop.getName())) {
+                fieldMember = prop.getAccessor();
+                break;
+            }
+        }
+        assertNotNull(fieldMember);
+        TypeSerializer typeSer = factory.findPropertyTypeSerializer(fieldMember.getType(beanDesc.bindingsForBeanType()), config, fieldMember);
+        assertNull(typeSer);
+    }
+
+    // Tests findPropertyContentTypeSerializer returns null when container content has no type info
+    @Test
+    public void testFindPropertyContentTypeSerializer_nonPolymorphicContainerProperty_returnsNull() throws Exception {
+        JavaType containerType = mapper.constructType(NonPolymorphicContainer.class);
+        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(containerType);
+        SerializationConfig config = mapper.getSerializationConfig();
+
+        AnnotatedMember fieldMember = null;
+        for (BeanPropertyDefinition prop : beanDesc.findProperties()) {
+            if ("plainList".equals(prop.getName())) {
+                fieldMember = prop.getAccessor();
+                break;
+            }
+        }
+        assertNotNull(fieldMember);
+        JavaType listType = fieldMember.getType(beanDesc.bindingsForBeanType());
+        TypeSerializer contentSer = factory.findPropertyContentTypeSerializer(listType, config, fieldMember);
+        assertNull(contentSer);
+    }
+
+    // Tests createSerializer with empty bean when FAIL_ON_EMPTY_BEANS is disabled
+    @Test
+    public void testCreateSerializer_emptyBeanWithFailOnEmptyBeansDisabled_returnsSerializer() throws Exception {
+        ObjectMapper customMapper = new ObjectMapper();
+        customMapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+        SerializerProvider prov = customMapper.getSerializerProviderInstance();
+
+        JavaType emptyType = customMapper.constructType(CompletelyEmptyBean.class);
+        JsonSerializer<Object> ser = factory.createSerializer(prov, emptyType);
+        assertNotNull(ser);
+    }
+
+    // Tests findBeanSerializer returns null for container types like List and Map
+    @Test
+    public void testFindBeanSerializer_containerType_returnsNull() throws Exception {
+        JavaType listType = mapper.constructType(List.class);
+        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(listType);
+        JsonSerializer<Object> ser = factory.findBeanSerializer(serializerProvider, listType, beanDesc);
+        assertNull(ser);
+
+        JavaType mapType = mapper.constructType(Map.class);
+        BeanDescription mapDesc = mapper.getSerializationConfig().introspect(mapType);
+        JsonSerializer<Object> mapSer = factory.findBeanSerializer(serializerProvider, mapType, mapDesc);
+        assertNull(mapSer);
     }
 }

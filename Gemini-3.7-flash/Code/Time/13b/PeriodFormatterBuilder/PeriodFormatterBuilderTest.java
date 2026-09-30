@@ -1,6 +1,5 @@
 package org.joda.time.format;
 
-import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Locale;
@@ -8,15 +7,10 @@ import java.util.Locale;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.joda.time.MutablePeriod;
-import org.joda.time.DurationFieldType;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class PeriodFormatterBuilderTest {
 
@@ -27,389 +21,422 @@ public class PeriodFormatterBuilderTest {
         builder = new PeriodFormatterBuilder();
     }
 
-    // Tests building a simple years and months formatter and printing standard values
+    // Tests formatting negative millis less than 1 second with optional millis (Defects4J Time-13 defect)
     @Test
-    public void testPrint_yearsAndMonths_printsCorrectFormat() {
+    public void testPrint_negativeMillisLessThanOneSecond_printsMinusZeroPointMillis() {
         PeriodFormatter formatter = builder
-            .appendYears()
-            .appendSuffix("Y")
-            .appendMonths()
-            .appendSuffix("M")
-            .toFormatter();
+                .appendSecondsWithOptionalMillis()
+                .appendSuffix("s")
+                .toFormatter();
 
-        Period period = new Period(2, 5, 0, 0, 0, 0, 0, 0);
-        assertEquals("2Y5M", formatter.print(period));
+        Period period = new Period(0, 0, 0, -500);
+        assertEquals("-0.5s", formatter.print(period));
+
+        Period period2 = new Period(0, 0, 0, -8);
+        assertEquals("-0.008s", formatter.print(period2));
     }
 
-    // Tests negative millis printing with secondsWithOptionalMillis (regression bug for negative zero seconds)
+    // Tests formatting negative seconds and millis with appendSecondsWithMillis
     @Test
-    public void testPrint_negativeMillisOnly_printsNegativeZeroPoint() {
+    public void testPrint_negativeSecondsAndMillis_printsNegative() {
         PeriodFormatter formatter = builder
-            .appendLiteral("PT")
-            .appendSecondsWithOptionalMillis()
-            .appendSuffix("S")
-            .toFormatter();
+                .appendSecondsWithMillis()
+                .appendSuffix("s")
+                .toFormatter();
 
-        Period period = new Period(0, 0, 0, 0, 0, 0, 0, -500);
-        assertEquals("PT-0.500S", formatter.print(period));
+        Period period = new Period(0, 0, -2, -500);
+        assertEquals("-2.500s", formatter.print(period));
     }
 
-    // Tests negative seconds and millis printing with secondsWithOptionalMillis
+    // Tests standard printing of fields with suffixes
     @Test
-    public void testPrint_negativeSecondsAndMillis_printsCorrectFormat() {
+    public void testPrint_standardFieldsWithSuffixes_printsFormattedString() {
         PeriodFormatter formatter = builder
-            .appendLiteral("PT")
-            .appendSecondsWithOptionalMillis()
-            .appendSuffix("S")
-            .toFormatter();
+                .appendYears().appendSuffix(" year", " years")
+                .appendSeparator(", ")
+                .appendMonths().appendSuffix(" month", " months")
+                .appendSeparator(", ")
+                .appendDays().appendSuffix(" day", " days")
+                .toFormatter();
 
-        Period period = new Period(0, 0, 0, 0, 0, 0, -2, -500);
-        assertEquals("PT-2.500S", formatter.print(period));
+        Period p1 = new Period(1, 2, 0, 3, 0, 0, 0, 0);
+        assertEquals("1 year, 2 months, 3 days", formatter.print(p1));
+
+        Period p2 = new Period(2, 1, 0, 1, 0, 0, 0, 0);
+        assertEquals("2 years, 1 month, 1 day", formatter.print(p2));
     }
 
-    // Tests seconds with millis where millis are zero
+    // Tests printZeroAlways behavior
     @Test
-    public void testPrint_secondsWithOptionalMillisZeroMillis_omitsMillis() {
+    public void testPrint_printZeroAlways_printsZeroValues() {
         PeriodFormatter formatter = builder
-            .appendLiteral("PT")
-            .appendSecondsWithOptionalMillis()
-            .appendSuffix("S")
-            .toFormatter();
+                .printZeroAlways()
+                .appendHours()
+                .appendLiteral(":")
+                .appendMinutes()
+                .appendLiteral(":")
+                .appendSeconds()
+                .toFormatter();
 
-        Period period = new Period(0, 0, 0, 0, 0, 0, 5, 0);
-        assertEquals("PT5S", formatter.print(period));
+        Period period = new Period(0, 0, 0, 0);
+        assertEquals("0:0:0", formatter.print(period));
     }
 
-    // Tests secondsWithMillis always prints millis even if zero
+    // Tests printZeroRarelyFirst behavior
     @Test
-    public void testPrint_secondsWithMillisZeroMillis_printsMillis() {
+    public void testPrint_printZeroRarelyFirst_printsZeroOnFirstFieldOnly() {
         PeriodFormatter formatter = builder
-            .appendSecondsWithMillis()
-            .appendSuffix("s")
-            .toFormatter();
+                .printZeroRarelyFirst()
+                .appendHours().appendSuffix("h")
+                .appendMinutes().appendSuffix("m")
+                .appendSeconds().appendSuffix("s")
+                .toFormatter();
 
-        Period period = new Period(0, 0, 0, 0, 0, 0, 5, 0);
-        assertEquals("5.000s", formatter.print(period));
+        Period period = new Period(0, 0, 0, 0);
+        assertEquals("0h", formatter.print(period));
     }
 
-    // Tests printZeroAlways setting
+    // Tests printZeroRarelyLast behavior (default)
     @Test
-    public void testPrint_printZeroAlways_printsZeroFields() {
+    public void testPrint_printZeroRarelyLast_printsZeroOnLastFieldOnly() {
         PeriodFormatter formatter = builder
-            .printZeroAlways()
-            .appendHours()
-            .appendSuffix("h")
-            .appendMinutes()
-            .appendSuffix("m")
-            .toFormatter();
+                .printZeroRarelyLast()
+                .appendHours().appendSuffix("h")
+                .appendMinutes().appendSuffix("m")
+                .appendSeconds().appendSuffix("s")
+                .toFormatter();
 
-        Period period = new Period(0, 0, 0, 0, 0, 5, 0, 0);
-        assertEquals("0h5m", formatter.print(period));
+        Period period = new Period(0, 0, 0, 0);
+        assertEquals("0s", formatter.print(period));
     }
 
-    // Tests printZeroNever setting
+    // Tests printZeroNever behavior
     @Test
-    public void testPrint_printZeroNever_omitsZeroFields() {
+    public void testPrint_printZeroNever_printsEmptyStringWhenZero() {
         PeriodFormatter formatter = builder
-            .printZeroNever()
-            .appendHours()
-            .appendSuffix("h")
-            .appendMinutes()
-            .appendSuffix("m")
-            .toFormatter();
+                .printZeroNever()
+                .appendHours().appendSuffix("h")
+                .appendMinutes().appendSuffix("m")
+                .toFormatter();
 
-        Period period = new Period(0, 0, 0, 0, 0, 0, 0, 0);
+        Period period = new Period(0, 0, 0, 0);
         assertEquals("", formatter.print(period));
     }
 
-    // Tests plural affix with singular and plural values
+    // Tests minimumPrintedDigits formatting
     @Test
-    public void testPrint_pluralAffix_usesSingularAndPlural() {
+    public void testPrint_minimumPrintedDigits_padsWithZeros() {
         PeriodFormatter formatter = builder
-            .appendDays()
-            .appendSuffix(" day", " days")
-            .toFormatter();
+                .minimumPrintedDigits(2)
+                .appendHours()
+                .appendLiteral(":")
+                .appendMinutes()
+                .toFormatter();
 
-        assertEquals("1 day", formatter.print(new Period().withDays(1)));
-        assertEquals("2 days", formatter.print(new Period().withDays(2)));
-        assertEquals("0 days", formatter.print(new Period().withDays(0)));
+        Period period = new Period(5, 7, 0, 0);
+        assertEquals("05:07", formatter.print(period));
     }
 
-    // Tests prefix appending and formatting
+    // Tests printing to Writer and calculatePrintedLength
     @Test
-    public void testPrint_prefix_printsPrefixBeforeField() {
+    public void testPrintToWriter_validPeriod_writesSuccessfully() throws IOException {
         PeriodFormatter formatter = builder
-            .appendPrefix("T: ")
-            .appendHours()
-            .toFormatter();
+                .appendHours().appendSuffix("h")
+                .appendMinutes().appendSuffix("m")
+                .toFormatter();
 
-        assertEquals("T: 4", formatter.print(new Period().withHours(4)));
-    }
-
-    // Tests separator with multiple elements
-    @Test
-    public void testPrint_separator_formatsCorrectly() {
-        PeriodFormatter formatter = builder
-            .appendYears()
-            .appendSuffix("Y")
-            .appendSeparator(", ", " and ")
-            .appendMonths()
-            .appendSuffix("M")
-            .appendSeparator(", ", " and ")
-            .appendDays()
-            .appendSuffix("D")
-            .toFormatter();
-
-        assertEquals("1Y, 2M and 3D", formatter.print(new Period(1, 2, 0, 3, 0, 0, 0, 0)));
-        assertEquals("1Y and 2M", formatter.print(new Period(1, 2, 0, 0, 0, 0, 0, 0)));
-        assertEquals("1Y", formatter.print(new Period(1, 0, 0, 0, 0, 0, 0, 0)));
-    }
-
-    // Tests parsing standard period string
-    @Test
-    public void testParse_standardFormat_parsesCorrectPeriod() {
-        PeriodFormatter formatter = builder
-            .appendYears().appendSuffix("y")
-            .appendMonths().appendSuffix("m")
-            .appendDays().appendSuffix("d")
-            .toFormatter();
-
-        Period parsed = formatter.parsePeriod("5y6m7d");
-        assertEquals(5, parsed.getYears());
-        assertEquals(6, parsed.getMonths());
-        assertEquals(7, parsed.getDays());
-    }
-
-    // Tests parsing seconds and millis
-    @Test
-    public void testParse_secondsWithOptionalMillis_parsesCorrectly() {
-        PeriodFormatter formatter = builder
-            .appendLiteral("PT")
-            .appendSecondsWithOptionalMillis()
-            .appendSuffix("S")
-            .toFormatter();
-
-        Period parsed = formatter.parsePeriod("PT12.345S");
-        assertEquals(12, parsed.getSeconds());
-        assertEquals(345, parsed.getMillis());
-    }
-
-    // Tests parsing negative seconds and millis
-    @Test
-    public void testParse_negativeSecondsAndMillis_parsesCorrectly() {
-        PeriodFormatter formatter = builder
-            .appendLiteral("PT")
-            .appendSecondsWithOptionalMillis()
-            .appendSuffix("S")
-            .toFormatter();
-
-        Period parsed = formatter.parsePeriod("PT-12.345S");
-        assertEquals(-12, parsed.getSeconds());
-        assertEquals(-345, parsed.getMillis());
-    }
-
-    // Tests minimum printed digits formatting
-    @Test
-    public void testPrint_minimumPrintedDigits_padsZeros() {
-        PeriodFormatter formatter = builder
-            .minimumPrintedDigits(2)
-            .appendHours()
-            .appendLiteral(":")
-            .appendMinutes()
-            .appendLiteral(":")
-            .appendSeconds()
-            .toFormatter();
-
-        Period period = new Period(0, 0, 0, 0, 3, 4, 5, 0);
-        assertEquals("03:04:05", formatter.print(period));
-    }
-
-    // Tests printTo with Writer
-    @Test
-    public void testPrintTo_writer_outputsExpectedText() throws IOException {
-        PeriodFormatter formatter = builder
-            .appendYears()
-            .appendSuffix("Y")
-            .toFormatter();
-
+        Period period = new Period(1, 30, 0, 0);
         StringWriter writer = new StringWriter();
-        formatter.getPrinter().printTo(writer, new Period().withYears(10), Locale.ENGLISH);
-        assertEquals("10Y", writer.toString());
+        formatter.getPrinter().printTo(writer, period, Locale.getDefault());
+        assertEquals("1h30m", writer.toString());
+
+        int length = formatter.getPrinter().calculatePrintedLength(period, Locale.getDefault());
+        assertEquals("1h30m".length(), length);
     }
 
-    // Tests append null formatter throws IllegalArgumentException
+    // Tests appendPrefix and composite prefix/affix
+    @Test
+    public void testPrintAndParse_withPrefixAndSuffix_success() {
+        PeriodFormatter formatter = builder
+                .appendPrefix("P-", "P+")
+                .appendDays()
+                .appendSuffix("D")
+                .toFormatter();
+
+        Period period = new Period(0, 0, 0, 5, 0, 0, 0, 0);
+        assertEquals("P+5D", formatter.print(period));
+
+        MutablePeriod parsed = new MutablePeriod();
+        int pos = formatter.getParser().parseInto(parsed, "P+5D", 0, Locale.getDefault());
+        assertEquals(4, pos);
+        assertEquals(5, parsed.getDays());
+    }
+
+    // Tests appendSeparator variations (final text and variants)
+    @Test
+    public void testPrint_appendSeparatorWithFinalText_printsCorrectSeparators() {
+        PeriodFormatter formatter = builder
+                .appendYears().appendSuffix("y")
+                .appendSeparator(", ", " and ")
+                .appendMonths().appendSuffix("m")
+                .appendSeparator(", ", " and ")
+                .appendDays().appendSuffix("d")
+                .toFormatter();
+
+        Period threeFields = new Period(1, 2, 0, 3, 0, 0, 0, 0);
+        assertEquals("1y, 2m and 3d", formatter.print(threeFields));
+
+        Period twoFields = new Period(1, 0, 0, 3, 0, 0, 0, 0);
+        assertEquals("1y and 3d", formatter.print(twoFields));
+
+        Period oneField = new Period(1, 0, 0, 0, 0, 0, 0, 0);
+        assertEquals("1y", formatter.print(oneField));
+    }
+
+    // Tests parsing with integer fields, signed values, and separators
+    @Test
+    public void testParse_standardText_parsesIntoPeriod() {
+        PeriodFormatter formatter = builder
+                .appendYears().appendSuffix("Y")
+                .appendMonths().appendSuffix("M")
+                .appendWeeks().appendSuffix("W")
+                .appendDays().appendSuffix("D")
+                .toFormatter();
+
+        MutablePeriod period = new MutablePeriod();
+        int pos = formatter.getParser().parseInto(period, "1Y2M3W4D", 0, Locale.getDefault());
+
+        assertEquals(8, pos);
+        assertEquals(1, period.getYears());
+        assertEquals(2, period.getMonths());
+        assertEquals(3, period.getWeeks());
+        assertEquals(4, period.getDays());
+    }
+
+    // Tests decimal seconds and millis
+    @Test
+    public void testParse_secondsWithFractionalMillis_parsesSecondsAndMillis() {
+        PeriodFormatter formatter = builder
+                .appendSecondsWithOptionalMillis()
+                .appendSuffix("s")
+                .toFormatter();
+
+        MutablePeriod period = new MutablePeriod();
+        int pos = formatter.getParser().parseInto(period, "12.345s", 0, Locale.getDefault());
+
+        assertEquals(7, pos);
+        assertEquals(12, period.getSeconds());
+        assertEquals(345, period.getMillis());
+    }
+
+    // Tests parsing signed negative values
+    @Test
+    public void testParse_negativeValues_parsesNegative() {
+        PeriodFormatter formatter = builder
+                .appendHours().appendSuffix("h")
+                .appendMinutes().appendSuffix("m")
+                .toFormatter();
+
+        MutablePeriod period = new MutablePeriod();
+        int pos = formatter.getParser().parseInto(period, "-5h-30m", 0, Locale.getDefault());
+
+        assertEquals(7, pos);
+        assertEquals(-5, period.getHours());
+        assertEquals(-30, period.getMinutes());
+    }
+
+    // Tests rejectSignedValues setting during parsing
+    @Test
+    public void testParse_rejectSignedValues_failsOnSign() {
+        PeriodFormatter formatter = builder
+                .rejectSignedValues(true)
+                .appendHours().appendSuffix("h")
+                .toFormatter();
+
+        MutablePeriod period = new MutablePeriod();
+        int pos = formatter.getParser().parseInto(period, "-5h", 0, Locale.getDefault());
+
+        assertTrue(pos < 0);
+    }
+
+    // Tests appendMillis and appendMillis3Digit
+    @Test
+    public void testPrint_appendMillis3Digit_prints3Digits() {
+        PeriodFormatter formatter = builder
+                .appendMillis3Digit()
+                .appendSuffix("ms")
+                .toFormatter();
+
+        Period period = new Period(0, 0, 0, 5);
+        assertEquals("005ms", formatter.print(period));
+    }
+
+    // Tests append(PeriodFormatter) and clear()
+    @Test
+    public void testAppendFormatterAndClear_resetsBuilder() {
+        PeriodFormatter subFormatter = new PeriodFormatterBuilder()
+                .appendHours().appendSuffix("h")
+                .toFormatter();
+
+        builder.append(subFormatter).appendMinutes().appendSuffix("m");
+        PeriodFormatter combined = builder.toFormatter();
+        assertEquals("1h30m", combined.print(new Period(1, 30, 0, 0)));
+
+        builder.clear();
+        builder.appendDays().appendSuffix("d");
+        PeriodFormatter clearedFormatter = builder.toFormatter();
+        assertEquals("5d", clearedFormatter.print(new Period(0, 0, 0, 5, 0, 0, 0, 0)));
+    }
+
+    // Tests exception path when appending null formatter
     @Test(expected = IllegalArgumentException.class)
-    public void testAppend_nullFormatter_throwsException() {
+    public void testAppend_nullFormatter_throwsIllegalArgumentException() {
         builder.append((PeriodFormatter) null);
     }
 
-    // Tests appendSuffix without a field throws IllegalStateException
+    // Tests exception path when appending null literal
+    @Test(expected = IllegalArgumentException.class)
+    public void testAppendLiteral_nullText_throwsIllegalArgumentException() {
+        builder.appendLiteral(null);
+    }
+
+    // Tests exception path when suffix has no preceding field
     @Test(expected = IllegalStateException.class)
-    public void testAppendSuffix_noField_throwsException() {
-        builder.appendSuffix("s");
+    public void testAppendSuffix_noField_throwsIllegalStateException() {
+        builder.appendSuffix("suffix");
     }
 
-    // Tests clear resets builder state
-    @Test
-    public void testClear_builderReset_allowsReuse() {
-        builder.appendHours().appendSuffix("h");
-        builder.clear();
-        PeriodFormatter formatter = builder.appendMinutes().appendSuffix("m").toFormatter();
-
-        assertEquals("15m", formatter.print(new Period().withMinutes(15)));
+    // Tests exception path when builder creates neither printer nor parser
+    @Test(expected = IllegalStateException.class)
+    public void testToFormatter_emptyBuilder_throwsIllegalStateException() {
+        builder.toFormatter();
     }
 
-    // Tests toPrinter and toParser methods
+    // Tests maximumParsedDigits configuration
     @Test
-    public void testToPrinterAndToParser_validBuilder_returnsNotNull() {
-        builder.appendDays().appendSuffix("d");
-        assertNotNull(builder.toPrinter());
-        assertNotNull(builder.toParser());
-    }
-
-    @Test
-    public void testAppendWeeksAndMillisAndMillis3Digit() {
+    public void testParse_maximumParsedDigits_limitsDigitCount() {
         PeriodFormatter formatter = builder
-            .appendWeeks().appendSuffix("w")
-            .appendMillis().appendSuffix("ms")
-            .appendMillis3Digit()
-            .toFormatter();
-
-        Period period = new Period(0, 0, 2, 0, 0, 0, 0, 5);
-        assertEquals("2w5ms005", formatter.print(period));
-
-        Period parsed = formatter.parsePeriod("2w5ms005");
-        assertEquals(2, parsed.getWeeks());
-        assertEquals(5, parsed.getMillis());
-    }
-
-    @Test
-    public void testPrintZeroRarelyFirstAndLastAndIfSupported() {
-        PeriodFormatter f1 = new PeriodFormatterBuilder()
-            .printZeroRarelyFirst()
-            .appendHours().appendSuffix("h")
-            .appendMinutes().appendSuffix("m")
-            .toFormatter();
-
-        assertEquals("0h5m", f1.print(new Period(0, 0, 0, 0, 0, 5, 0, 0)));
-        assertEquals("", f1.print(new Period(0, 0, 0, 0, 0, 0, 0, 0)));
-
-        PeriodFormatter f2 = new PeriodFormatterBuilder()
-            .printZeroRarelyLast()
-            .appendHours().appendSuffix("h")
-            .appendMinutes().appendSuffix("m")
-            .toFormatter();
-
-        assertEquals("5h0m", f2.print(new Period(0, 0, 0, 0, 5, 0, 0, 0)));
-        assertEquals("", f2.print(new Period(0, 0, 0, 0, 0, 0, 0, 0)));
-
-        PeriodFormatter f3 = new PeriodFormatterBuilder()
-            .printZeroIfSupported()
-            .appendHours().appendSuffix("h")
-            .appendMinutes().appendSuffix("m")
-            .toFormatter();
-
-        Period periodHoursOnly = new Period(0, 5, 0, 0, PeriodType.hours());
-        assertEquals("5h", f3.print(periodHoursOnly));
-    }
-
-    @Test
-    public void testMaximumParsedDigitsAndRejectSignedValues() {
-        PeriodFormatter formatter = builder
-            .maximumParsedDigits(2)
-            .rejectSignedValues(true)
-            .appendHours().appendSuffix("h")
-            .toFormatter();
+                .maximumParsedDigits(2)
+                .appendHours()
+                .appendSuffix("h")
+                .toFormatter();
 
         MutablePeriod period = new MutablePeriod();
-        int res = formatter.getParser().parseInto(period, "123h", 0, Locale.ENGLISH);
-        assertEquals(2, res); // parsed max 2 digits "12"
+        int pos = formatter.getParser().parseInto(period, "123h", 0, Locale.getDefault());
+        assertEquals(2, pos);
         assertEquals(12, period.getHours());
-
-        MutablePeriod periodNegative = new MutablePeriod();
-        int failRes = formatter.getParser().parseInto(periodNegative, "-12h", 0, Locale.ENGLISH);
-        assertTrue(failRes < 0);
     }
 
+    // Tests appendMillis standard
     @Test
-    public void testAppendPrefixPluralAndPrefixSuffixBranches() {
+    public void testPrintAndParse_appendMillis() {
         PeriodFormatter formatter = builder
-            .appendPrefix("approx ", "around ")
-            .appendHours()
-            .appendSuffix(" hour", " hours")
-            .toFormatter();
+                .appendMillis()
+                .appendSuffix("ms")
+                .toFormatter();
 
-        assertEquals("around 1 hour", formatter.print(new Period().withHours(1)));
-        assertEquals("approx 2 hours", formatter.print(new Period().withHours(2)));
+        Period period = new Period(0, 0, 0, 42);
+        assertEquals("42ms", formatter.print(period));
 
-        Period p1 = formatter.parsePeriod("around 1 hour");
-        assertEquals(1, p1.getHours());
-        Period p2 = formatter.parsePeriod("approx 2 hours");
-        assertEquals(2, p2.getHours());
+        MutablePeriod parsed = new MutablePeriod();
+        int pos = formatter.getParser().parseInto(parsed, "42ms", 0, Locale.getDefault());
+        assertEquals(4, pos);
+        assertEquals(42, parsed.getMillis());
     }
 
+    // Tests appendSeparatorIfFieldsAfter
     @Test
-    public void testAppendSeparatorIfFieldsAfterAndIfFieldsBefore() {
-        PeriodFormatter fAfter = new PeriodFormatterBuilder()
-            .appendHours().appendSuffix("h")
-            .appendSeparatorIfFieldsAfter(":")
-            .appendMinutes().appendSuffix("m")
-            .toFormatter();
+    public void testPrint_appendSeparatorIfFieldsAfter() {
+        PeriodFormatter formatter = builder
+                .appendYears().appendSuffix("y")
+                .appendSeparatorIfFieldsAfter(", ")
+                .appendMonths().appendSuffix("m")
+                .toFormatter();
 
-        assertEquals("1h:2m", fAfter.print(new Period(0, 0, 0, 0, 1, 2, 0, 0)));
-        assertEquals("1h", fAfter.print(new Period(0, 0, 0, 0, 1, 0, 0, 0)));
-        assertEquals("2m", fAfter.print(new Period(0, 0, 0, 0, 0, 2, 0, 0)));
+        Period periodWithBoth = new Period(1, 2, 0, 0, 0, 0, 0, 0);
+        assertEquals("1y, 2m", formatter.print(periodWithBoth));
 
-        PeriodFormatter fBefore = new PeriodFormatterBuilder()
-            .appendHours().appendSuffix("h")
-            .appendSeparatorIfFieldsBefore(":")
-            .appendMinutes().appendSuffix("m")
-            .toFormatter();
-
-        assertEquals("1h:2m", fBefore.print(new Period(0, 0, 0, 0, 1, 2, 0, 0)));
-        assertEquals("1h", fBefore.print(new Period(0, 0, 0, 0, 1, 0, 0, 0)));
-        assertEquals("2m", fBefore.print(new Period(0, 0, 0, 0, 0, 2, 0, 0)));
+        Period periodWithYearsOnly = new Period(1, 0, 0, 0, 0, 0, 0, 0);
+        assertEquals("1y", formatter.print(periodWithYearsOnly));
     }
 
+    // Tests appendSeparatorIfFieldsBefore
     @Test
-    public void testAppendFormatterAndPrinterParserCombo() {
+    public void testPrint_appendSeparatorIfFieldsBefore() {
+        PeriodFormatter formatter = builder
+                .appendYears().appendSuffix("y")
+                .appendSeparatorIfFieldsBefore(", ")
+                .appendMonths().appendSuffix("m")
+                .toFormatter();
+
+        Period periodWithBoth = new Period(1, 2, 0, 0, 0, 0, 0, 0);
+        assertEquals("1y, 2m", formatter.print(periodWithBoth));
+
+        Period periodWithMonthsOnly = new Period(0, 2, 0, 0, 0, 0, 0, 0);
+        assertEquals("2m", formatter.print(periodWithMonthsOnly));
+    }
+
+    // Tests printZeroIfSupported setting
+    @Test
+    public void testPrint_printZeroIfSupported() {
+        PeriodFormatter formatter = builder
+                .printZeroIfSupported()
+                .appendHours().appendSuffix("h")
+                .appendMinutes().appendSuffix("m")
+                .toFormatter();
+
+        Period period = new Period(0, 0, 0, 0, PeriodType.hours());
+        assertEquals("0h", formatter.print(period));
+    }
+
+    // Tests toPrinter and toParser
+    @Test
+    public void testToPrinterAndToParser() {
+        builder.appendHours().appendSuffix("h");
+        PeriodPrinter printer = builder.toPrinter();
+        PeriodParser parser = builder.toParser();
+
+        assertNotNull(printer);
+        assertNotNull(parser);
+
+        StringBuffer buf = new StringBuffer();
+        printer.printTo(buf, new Period(2, 0, 0, 0), Locale.getDefault());
+        assertEquals("2h", buf.toString());
+
+        MutablePeriod parsed = new MutablePeriod();
+        int pos = parser.parseInto(parsed, "3h", 0, Locale.getDefault());
+        assertEquals(2, pos);
+        assertEquals(3, parsed.getHours());
+    }
+
+    // Tests append(PeriodPrinter, PeriodParser)
+    @Test
+    public void testAppend_printerAndParser() {
         PeriodFormatter subFormatter = new PeriodFormatterBuilder()
-            .appendMinutes().appendSuffix("m")
-            .toFormatter();
+                .appendHours().appendSuffix("h")
+                .toFormatter();
 
-        PeriodFormatter mainFormatter = builder
-            .appendHours().appendSuffix("h ")
-            .append(subFormatter)
-            .append(subFormatter.getPrinter(), subFormatter.getParser())
-            .toFormatter();
+        builder.append(subFormatter.getPrinter(), subFormatter.getParser())
+                .appendMinutes().appendSuffix("m");
 
-        Period period = new Period(0, 0, 0, 0, 1, 2, 0, 0);
-        assertEquals("1h 2m2m", mainFormatter.print(period));
+        PeriodFormatter formatter = builder.toFormatter();
+        assertEquals("1h30m", formatter.print(new Period(1, 30, 0, 0)));
     }
 
+    // Tests appendPrefix simple string
     @Test
-    public void testEmptyBuilderToFormatterPrinterParser() {
-        PeriodFormatter emptyFormatter = builder.toFormatter();
-        assertNull(emptyFormatter.getPrinter());
-        assertNull(emptyFormatter.getParser());
-        assertEquals("", emptyFormatter.print(new Period()));
+    public void testAppendPrefix_simple() {
+        PeriodFormatter formatter = builder
+                .appendPrefix("PT")
+                .appendHours()
+                .appendSuffix("H")
+                .toFormatter();
 
-        assertNull(builder.toPrinter());
-        assertNull(builder.toParser());
-    }
+        assertEquals("PT2H", formatter.print(new Period(2, 0, 0, 0)));
 
-    @Test(expected = IllegalStateException.class)
-    public void testAppendPrefixWithoutFollowingField() {
-        builder.appendPrefix("pre:").toFormatter();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testAppendSeparatorNullText() {
-        builder.appendSeparator(null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testAppendLiteralNullText() {
-        builder.appendLiteral(null);
+        MutablePeriod parsed = new MutablePeriod();
+        int pos = formatter.getParser().parseInto(parsed, "PT2H", 0, Locale.getDefault());
+        assertEquals(4, pos);
+        assertEquals(2, parsed.getHours());
     }
 }

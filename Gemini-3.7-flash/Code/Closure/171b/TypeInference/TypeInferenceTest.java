@@ -1,17 +1,11 @@
 package com.google.javascript.jscomp;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import com.google.common.collect.Maps;
-import com.google.javascript.jscomp.CodingConvention.AssertionFunctionSpec;
-import com.google.javascript.jscomp.type.FlowScope;
-import com.google.javascript.jscomp.type.ReverseAbstractInterpreter;
-import com.google.javascript.jscomp.type.SemanticReverseAbstractInterpreter;
 import com.google.javascript.rhino.Node;
-import com.google.javascript.rhino.Token;
 import com.google.javascript.rhino.jstype.BooleanLiteralSet;
 import com.google.javascript.rhino.jstype.JSType;
 import com.google.javascript.rhino.jstype.JSTypeNative;
@@ -19,248 +13,322 @@ import com.google.javascript.rhino.jstype.JSTypeRegistry;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
+import java.util.Collections;
 
 public class TypeInferenceTest {
 
   private Compiler compiler;
   private JSTypeRegistry registry;
-  private ReverseAbstractInterpreter reverseInterpreter;
-  private Map<String, AssertionFunctionSpec> assertionMap;
 
   @Before
   public void setUp() {
     compiler = new Compiler();
     CompilerOptions options = new CompilerOptions();
+    options.setCheckTypes(true);
     compiler.initOptions(options);
     registry = compiler.getTypeRegistry();
-    reverseInterpreter = new SemanticReverseAbstractInterpreter(
-        compiler.getCodingConvention(), registry);
-    assertionMap = Maps.newHashMap();
   }
 
-  private TypeInference createTypeInference(String js) {
-    Node scriptNode = compiler.parseTestCode(js);
-    Node functionNode = scriptNode.getFirstChild();
-    if (!functionNode.isFunction()) {
-      functionNode = scriptNode;
-    }
-    ControlFlowAnalysis cfa = new ControlFlowAnalysis(compiler, false, false);
-    cfa.process(null, functionNode);
-    ControlFlowGraph<Node> cfg = cfa.getCfg();
-
-    TypedScopeCreator scopeCreator = new TypedScopeCreator(compiler);
-    Scope scope = scopeCreator.createScope(functionNode, null);
-
-    return new TypeInference(compiler, cfg, reverseInterpreter, scope, assertionMap);
-  }
-
-  // Tests getBooleanOutcomes when condition is true with BOTH sets
+  // Tests static diagnostic type definition
   @Test
-  public void testGetBooleanOutcomes_conditionTrueBoth_returnsBoth() {
-    BooleanLiteralSet left = BooleanLiteralSet.BOTH;
-    BooleanLiteralSet right = BooleanLiteralSet.BOTH;
-    BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, true);
-    assertEquals(BooleanLiteralSet.BOTH, result);
+  public void testDiagnosticType_warningCreation_returnsNonNull() {
+    DiagnosticType warning = TypeInference.FUNCTION_LITERAL_UNDEFINED_THIS;
+    assertNotNull(warning);
+    assertEquals("JSC_FUNCTION_LITERAL_UNDEFINED_THIS", warning.key);
   }
 
-  // Tests getBooleanOutcomes when condition is false with TRUE and FALSE sets
+  // Tests getBooleanOutcomes when condition is true and left is TRUE
   @Test
-  public void testGetBooleanOutcomes_conditionFalse_returnsUnion() {
+  public void testGetBooleanOutcomes_trueCondition_leftTrue_returnsRightOutcomes() {
     BooleanLiteralSet left = BooleanLiteralSet.TRUE;
     BooleanLiteralSet right = BooleanLiteralSet.FALSE;
-    BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, false);
-    assertEquals(BooleanLiteralSet.BOTH, result);
-  }
-
-  // Tests getBooleanOutcomes with EMPTY literal sets
-  @Test
-  public void testGetBooleanOutcomes_emptySets_returnsEmpty() {
-    BooleanLiteralSet left = BooleanLiteralSet.EMPTY;
-    BooleanLiteralSet right = BooleanLiteralSet.EMPTY;
     BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, true);
-    assertEquals(BooleanLiteralSet.EMPTY, result);
+    assertEquals(BooleanLiteralSet.FALSE, result);
   }
 
-  // Tests getBooleanOutcomes with TRUE condition and left as FALSE
+  // Tests getBooleanOutcomes when condition is true and left is FALSE
   @Test
-  public void testGetBooleanOutcomes_conditionTrueLeftFalse_returnsRight() {
+  public void testGetBooleanOutcomes_trueCondition_leftFalse_returnsUnionWithFalse() {
     BooleanLiteralSet left = BooleanLiteralSet.FALSE;
     BooleanLiteralSet right = BooleanLiteralSet.TRUE;
     BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, true);
     assertEquals(BooleanLiteralSet.BOTH, result);
   }
 
-  // Tests initial lattice creation produces non-null lattice
+  // Tests getBooleanOutcomes when condition is false and left is TRUE
   @Test
-  public void testCreateInitialEstimateLattice_validInference_returnsBottomScope() {
-    TypeInference inference = createTypeInference("function f() { var x = 1; }");
-    FlowScope bottom = inference.createInitialEstimateLattice();
-    assertNotNull(bottom);
+  public void testGetBooleanOutcomes_falseCondition_leftTrue_returnsUnionWithTrue() {
+    BooleanLiteralSet left = BooleanLiteralSet.TRUE;
+    BooleanLiteralSet right = BooleanLiteralSet.FALSE;
+    BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, false);
+    assertEquals(BooleanLiteralSet.BOTH, result);
   }
 
-  // Tests entry lattice creation produces non-null lattice
+  // Tests getBooleanOutcomes when condition is false and left is FALSE
   @Test
-  public void testCreateEntryLattice_validInference_returnsFunctionScope() {
-    TypeInference inference = createTypeInference("function f(a, b) { return a + b; }");
-    FlowScope entry = inference.createEntryLattice();
-    assertNotNull(entry);
+  public void testGetBooleanOutcomes_falseCondition_leftFalse_returnsRightOutcomes() {
+    BooleanLiteralSet left = BooleanLiteralSet.FALSE;
+    BooleanLiteralSet right = BooleanLiteralSet.TRUE;
+    BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, false);
+    assertEquals(BooleanLiteralSet.TRUE, result);
   }
 
-  // Tests flowThrough with bottom scope returns bottom scope unchanged
+  // Tests getBooleanOutcomes with BOTH on both sides
   @Test
-  public void testFlowThrough_bottomScope_returnsBottomScope() {
-    TypeInference inference = createTypeInference("function f() { var a = 1; }");
-    FlowScope bottom = inference.createInitialEstimateLattice();
-    Node node = new Node(Token.EMPTY);
-    FlowScope output = inference.flowThrough(node, bottom);
-    assertSame(bottom, output);
+  public void testGetBooleanOutcomes_bothSidesBoth_returnsBoth() {
+    BooleanLiteralSet left = BooleanLiteralSet.BOTH;
+    BooleanLiteralSet right = BooleanLiteralSet.BOTH;
+    BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, true);
+    assertEquals(BooleanLiteralSet.BOTH, result);
   }
 
-  // Tests flowThrough arithmetic addition of numbers
+  // Tests getBooleanOutcomes with EMPTY literal set
   @Test
-  public void testFlowThrough_additionNumbers_infersNumberType() {
-    TypeInference inference = createTypeInference("function f() { var x = 1 + 2; }");
-    FlowScope entry = inference.createEntryLattice();
-
-    Node left = Node.newNumber(1.0);
-    left.setJSType(registry.getNativeType(JSTypeNative.NUMBER_TYPE));
-    Node right = Node.newNumber(2.0);
-    right.setJSType(registry.getNativeType(JSTypeNative.NUMBER_TYPE));
-    Node add = new Node(Token.ADD, left, right);
-
-    FlowScope out = inference.flowThrough(add, entry);
-    assertNotNull(out);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), add.getJSType());
+  public void testGetBooleanOutcomes_emptyLeft_returnsRightOutcomes() {
+    BooleanLiteralSet left = BooleanLiteralSet.EMPTY;
+    BooleanLiteralSet right = BooleanLiteralSet.TRUE;
+    BooleanLiteralSet result = TypeInference.getBooleanOutcomes(left, right, true);
+    assertEquals(BooleanLiteralSet.TRUE, result);
   }
 
-  // Tests flowThrough string concatenation
+  // Tests type inference on simple number assignment
   @Test
-  public void testFlowThrough_additionString_infersStringType() {
-    TypeInference inference = createTypeInference("function f() { var x = 'a' + 1; }");
-    FlowScope entry = inference.createEntryLattice();
-
-    Node left = Node.newString("a");
-    left.setJSType(registry.getNativeType(JSTypeNative.STRING_TYPE));
-    Node right = Node.newNumber(1.0);
-    right.setJSType(registry.getNativeType(JSTypeNative.NUMBER_TYPE));
-    Node add = new Node(Token.ADD, left, right);
-
-    inference.flowThrough(add, entry);
-    assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), add.getJSType());
+  public void testTypeInference_numberAssignment_infersNumberType() {
+    Node root = parseAndTypeCheck("function f() { var x = 1; }");
+    Node varNode = findFirstVarName(root, "x");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varNode.getJSType());
   }
 
-  // Tests flowThrough array literal
+  // Tests type inference on string concatenation
   @Test
-  public void testFlowThrough_arrayLiteral_infersArrayType() {
-    TypeInference inference = createTypeInference("function f() { var arr = [1, 2]; }");
-    FlowScope entry = inference.createEntryLattice();
-
-    Node elem1 = Node.newNumber(1.0);
-    Node elem2 = Node.newNumber(2.0);
-    Node arrayLit = new Node(Token.ARRAYLIT, elem1, elem2);
-
-    inference.flowThrough(arrayLit, entry);
-    assertEquals(registry.getNativeType(JSTypeNative.ARRAY_TYPE), arrayLit.getJSType());
+  public void testTypeInference_stringAddition_infersStringType() {
+    Node root = parseAndTypeCheck("function f() { var s = 'hello' + ' world'; }");
+    Node varNode = findFirstVarName(root, "s");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), varNode.getJSType());
   }
 
-  // Tests flowThrough typeof operator
+  // Tests type inference on array literal
   @Test
-  public void testFlowThrough_typeofOperator_infersStringType() {
-    TypeInference inference = createTypeInference("function f() { var x = typeof 1; }");
-    FlowScope entry = inference.createEntryLattice();
-
-    Node child = Node.newNumber(1.0);
-    child.setJSType(registry.getNativeType(JSTypeNative.NUMBER_TYPE));
-    Node typeOfNode = new Node(Token.TYPEOF, child);
-
-    inference.flowThrough(typeOfNode, entry);
-    assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), typeOfNode.getJSType());
+  public void testTypeInference_arrayLiteral_infersArrayType() {
+    Node root = parseAndTypeCheck("function f() { var arr = [1, 2, 3]; }");
+    Node varNode = findFirstVarName(root, "arr");
+    assertNotNull(varNode);
+    assertTrue(varNode.getJSType().isSubtype(registry.getNativeType(JSTypeNative.ARRAY_TYPE)));
   }
 
-  // Tests flowThrough comparison operators
+  // Tests type inference on comparison expression
   @Test
-  public void testFlowThrough_comparisonOperator_infersBooleanType() {
-    TypeInference inference = createTypeInference("function f() { var x = (1 < 2); }");
-    FlowScope entry = inference.createEntryLattice();
-
-    Node left = Node.newNumber(1.0);
-    Node right = Node.newNumber(2.0);
-    Node ltNode = new Node(Token.LT, left, right);
-
-    inference.flowThrough(ltNode, entry);
-    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), ltNode.getJSType());
+  public void testTypeInference_comparisonOp_infersBooleanType() {
+    Node root = parseAndTypeCheck("function f() { var b = 1 < 2; }");
+    Node varNode = findFirstVarName(root, "b");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), varNode.getJSType());
   }
 
-  // Tests flowThrough unary negation operator
+  // Tests type inference on typeof expression
   @Test
-  public void testFlowThrough_negationOperator_infersNumberType() {
-    TypeInference inference = createTypeInference("function f() { var x = -5; }");
-    FlowScope entry = inference.createEntryLattice();
-
-    Node child = Node.newNumber(5.0);
-    child.setJSType(registry.getNativeType(JSTypeNative.NUMBER_TYPE));
-    Node negNode = new Node(Token.NEG, child);
-
-    inference.flowThrough(negNode, entry);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), negNode.getJSType());
+  public void testTypeInference_typeofOp_infersStringType() {
+    Node root = parseAndTypeCheck("function f() { var t = typeof 42; }");
+    Node varNode = findFirstVarName(root, "t");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.STRING_TYPE), varNode.getJSType());
   }
 
-  // Tests flowThrough hook (ternary) operator
+  // Tests type inference on subtraction operation
   @Test
-  public void testFlowThrough_hookOperator_infersUnionOrCommonType() {
-    TypeInference inference = createTypeInference("function f() { var x = true ? 1 : 2; }");
-    FlowScope entry = inference.createEntryLattice();
-
-    Node cond = new Node(Token.TRUE);
-    cond.setJSType(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE));
-    Node trueBranch = Node.newNumber(1.0);
-    trueBranch.setJSType(registry.getNativeType(JSTypeNative.NUMBER_TYPE));
-    Node falseBranch = Node.newNumber(2.0);
-    falseBranch.setJSType(registry.getNativeType(JSTypeNative.NUMBER_TYPE));
-
-    Node hook = new Node(Token.HOOK, cond, trueBranch, falseBranch);
-    inference.flowThrough(hook, entry);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), hook.getJSType());
+  public void testTypeInference_subtractionOp_infersNumberType() {
+    Node root = parseAndTypeCheck("function f() { var n = 10 - 5; }");
+    Node varNode = findFirstVarName(root, "n");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varNode.getJSType());
   }
 
-  // Tests flowThrough assignment node
+  // Tests type inference on conditional hook (ternary)
   @Test
-  public void testFlowThrough_assignment_updatesNodeAndVariableType() {
-    TypeInference inference = createTypeInference("function f() { var x; x = 10; }");
-    FlowScope entry = inference.createEntryLattice();
-
-    Node name = Node.newString(Token.NAME, "x");
-    Node value = Node.newNumber(10.0);
-    value.setJSType(registry.getNativeType(JSTypeNative.NUMBER_TYPE));
-    Node assign = new Node(Token.ASSIGN, name, value);
-
-    FlowScope out = inference.flowThrough(assign, entry);
-    assertNotNull(out);
-    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), assign.getJSType());
+  public void testTypeInference_hookOp_infersUnionOrCommonType() {
+    Node root = parseAndTypeCheck("function f() { var x = true ? 1 : 2; }");
+    Node varNode = findFirstVarName(root, "x");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varNode.getJSType());
   }
 
-  // Tests branchedFlowThrough on an IF condition
+  // Tests type inference on logical AND operation
   @Test
-  public void testBranchedFlowThrough_ifCondition_returnsBranchedScopes() {
-    TypeInference inference = createTypeInference("function f(x) { if (x) { return 1; } else { return 2; } }");
-    FlowScope entry = inference.createEntryLattice();
-
-    Node scriptNode = compiler.parseTestCode("function f(x) { if (x) { return 1; } else { return 2; } }");
-    Node fn = scriptNode.getFirstChild();
-    Node block = fn.getLastChild();
-    Node ifNode = block.getFirstChild();
-
-    List<FlowScope> branched = inference.branchedFlowThrough(ifNode, entry);
-    assertNotNull(branched);
+  public void testTypeInference_logicalAnd_infersCorrectType() {
+    Node root = parseAndTypeCheck("function f() { var a = true && false; }");
+    Node varNode = findFirstVarName(root, "a");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), varNode.getJSType());
   }
 
-  // Tests diagnostic warning constant definition
+  // Tests type inference on object literal assignment
   @Test
-  public void testDiagnosticConstant_definedCorrectly() {
-    assertNotNull(TypeInference.FUNCTION_LITERAL_UNDEFINED_THIS);
-    assertEquals("JSC_FUNCTION_LITERAL_UNDEFINED_THIS",
-        TypeInference.FUNCTION_LITERAL_UNDEFINED_THIS.key);
+  public void testTypeInference_objectLiteral_infersObjectType() {
+    Node root = parseAndTypeCheck("function f() { var obj = { foo: 'bar', num: 123 }; }");
+    Node varNode = findFirstVarName(root, "obj");
+    assertNotNull(varNode);
+    assertTrue(varNode.getJSType().isObject());
+  }
+
+  // Tests type inference on null literal
+  @Test
+  public void testTypeInference_nullLiteral_infersNullType() {
+    Node root = parseAndTypeCheck("function f() { var n = null; }");
+    Node varNode = findFirstVarName(root, "n");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.NULL_TYPE), varNode.getJSType());
+  }
+
+  // Tests type inference on void operator
+  @Test
+  public void testTypeInference_voidOp_infersVoidType() {
+    Node root = parseAndTypeCheck("function f() { var u = void 0; }");
+    Node varNode = findFirstVarName(root, "u");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.VOID_TYPE), varNode.getJSType());
+  }
+
+  // Tests type inference on NOT operator
+  @Test
+  public void testTypeInference_notOp_infersBooleanType() {
+    Node root = parseAndTypeCheck("function f() { var b = !0; }");
+    Node varNode = findFirstVarName(root, "b");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), varNode.getJSType());
+  }
+
+  // Tests type inference on bitwise NOT operator
+  @Test
+  public void testTypeInference_bitNotOp_infersNumberType() {
+    Node root = parseAndTypeCheck("function f() { var bn = ~5; }");
+    Node varNode = findFirstVarName(root, "bn");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varNode.getJSType());
+  }
+
+  // Tests type inference on bitwise AND/OR/XOR operators
+  @Test
+  public void testTypeInference_bitwiseOps_infersNumberType() {
+    Node root = parseAndTypeCheck("function f() { var a = 1 & 2; var o = 1 | 2; var x = 1 ^ 2; }");
+    Node varA = findFirstVarName(root, "a");
+    Node varO = findFirstVarName(root, "o");
+    Node varX = findFirstVarName(root, "x");
+    assertNotNull(varA);
+    assertNotNull(varO);
+    assertNotNull(varX);
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varA.getJSType());
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varO.getJSType());
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varX.getJSType());
+  }
+
+  // Tests type inference on bit shift operators
+  @Test
+  public void testTypeInference_shiftOps_infersNumberType() {
+    Node root = parseAndTypeCheck("function f() { var s1 = 1 << 2; var s2 = 4 >> 1; var s3 = -1 >>> 1; }");
+    Node varS1 = findFirstVarName(root, "s1");
+    Node varS2 = findFirstVarName(root, "s2");
+    Node varS3 = findFirstVarName(root, "s3");
+    assertNotNull(varS1);
+    assertNotNull(varS2);
+    assertNotNull(varS3);
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varS1.getJSType());
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varS2.getJSType());
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varS3.getJSType());
+  }
+
+  // Tests type inference on multiply, divide, and modulo operators
+  @Test
+  public void testTypeInference_arithmeticOps_infersNumberType() {
+    Node root = parseAndTypeCheck("function f() { var m = 3 * 4; var d = 10 / 2; var rem = 7 % 3; }");
+    Node varM = findFirstVarName(root, "m");
+    Node varD = findFirstVarName(root, "d");
+    Node varRem = findFirstVarName(root, "rem");
+    assertNotNull(varM);
+    assertNotNull(varD);
+    assertNotNull(varRem);
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varM.getJSType());
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varD.getJSType());
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varRem.getJSType());
+  }
+
+  // Tests type inference on instanceof and in operators
+  @Test
+  public void testTypeInference_instanceofAndIn_infersBooleanType() {
+    Node root = parseAndTypeCheck("function f(o) { var inst = o instanceof Object; var hasProp = 'p' in o; }");
+    Node varInst = findFirstVarName(root, "inst");
+    Node varHasProp = findFirstVarName(root, "hasProp");
+    assertNotNull(varInst);
+    assertNotNull(varHasProp);
+    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), varInst.getJSType());
+    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), varHasProp.getJSType());
+  }
+
+  // Tests type inference on logical OR operation
+  @Test
+  public void testTypeInference_logicalOr_infersCorrectType() {
+    Node root = parseAndTypeCheck("function f() { var b = false || true; }");
+    Node varNode = findFirstVarName(root, "b");
+    assertNotNull(varNode);
+    assertEquals(registry.getNativeType(JSTypeNative.BOOLEAN_TYPE), varNode.getJSType());
+  }
+
+  // Tests type inference on increment and decrement operators
+  @Test
+  public void testTypeInference_incDecOps_infersNumberType() {
+    Node root = parseAndTypeCheck("function f() { var x = 0; var y = ++x; var z = x--; }");
+    Node varY = findFirstVarName(root, "y");
+    Node varZ = findFirstVarName(root, "z");
+    assertNotNull(varY);
+    assertNotNull(varZ);
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varY.getJSType());
+    assertEquals(registry.getNativeType(JSTypeNative.NUMBER_TYPE), varZ.getJSType());
+  }
+
+  private Node parseAndTypeCheck(String js) {
+    Node scriptRoot = compiler.parseTestCode(js);
+    ReverseAbstractInterpreter rai = new SemanticReverseAbstractInterpreter(
+        compiler.getCodingConvention(), registry);
+    TypedScopeCreator scopeCreator = new TypedScopeCreator(compiler);
+    Scope globalScope = scopeCreator.createScope(scriptRoot, null);
+
+    Node functionNode = findFirstFunction(scriptRoot);
+    if (functionNode != null) {
+      Scope functionScope = scopeCreator.createScope(functionNode, globalScope);
+      ControlFlowAnalysis cfa = new ControlFlowAnalysis(compiler, false, true);
+      cfa.process(null, functionNode.getLastChild());
+      ControlFlowGraph<Node> cfg = cfa.getCfg();
+      TypeInference inference = new TypeInference(
+          compiler, cfg, rai, functionScope, Collections.<String, CodingConvention.AssertionFunctionSpec>emptyMap());
+      inference.analyze();
+    }
+    return scriptRoot;
+  }
+
+  private Node findFirstFunction(Node n) {
+    if (n.isFunction()) {
+      return n;
+    }
+    for (Node child = n.getFirstChild(); child != null; child = child.getNext()) {
+      Node fn = findFirstFunction(child);
+      if (fn != null) {
+        return fn;
+      }
+    }
+    return null;
+  }
+
+  private Node findFirstVarName(Node n, String name) {
+    if (n.isName() && name.equals(n.getString())) {
+      return n;
+    }
+    for (Node child = n.getFirstChild(); child != null; child = child.getNext()) {
+      Node found = findFirstVarName(child, name);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 }

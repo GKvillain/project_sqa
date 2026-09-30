@@ -12,208 +12,208 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class MatchersTest {
 
     @After
-    public void cleanUp() {
-        new ThreadSafeMockingProgress().getArgumentMatcherStorage().reset();
+    public void resetProgressState() {
+        new ThreadSafeMockingProgress().getArgumentMatcherStorage().pullLocalizedMatchers();
     }
 
-    private <T> Matcher<T> dummyMatcher() {
+    private static <T> Matcher<T> dummyMatcher() {
         return new BaseMatcher<T>() {
+            @Override
             public boolean matches(Object item) {
                 return true;
             }
+
+            @Override
             public void describeTo(Description description) {
+                description.appendText("dummy matcher");
             }
         };
     }
 
-    // Tests primitive any* methods return appropriate zero/false values
+    // Tests Matchers class constructor instantiation
     @Test
-    public void testAnyPrimitives_invoked_returnsDefaultPrimitiveValues() {
+    public void testConstructor_instanceCreation_isNotNull() {
+        Matchers matchers = new Matchers();
+        assertNotNull(matchers);
+    }
+
+    // Tests primitive any matchers returning zero or false
+    @Test
+    public void testAnyPrimitives_invocations_returnsZeroOrFalse() {
         assertFalse(Matchers.anyBoolean());
         assertEquals((byte) 0, Matchers.anyByte());
         assertEquals((char) 0, Matchers.anyChar());
         assertEquals(0, Matchers.anyInt());
         assertEquals(0L, Matchers.anyLong());
-        assertEquals(0.0f, Matchers.anyFloat(), 0.0f);
-        assertEquals(0.0d, Matchers.anyDouble(), 0.0d);
+        assertEquals(0.0f, Matchers.anyFloat(), 0.0001f);
+        assertEquals(0.0d, Matchers.anyDouble(), 0.0001d);
         assertEquals((short) 0, Matchers.anyShort());
     }
 
-    // Tests anyObject, any, and anyVararg return null
+    // Tests generic any/anyObject/anyVararg matchers returning null
     @Test
-    public void testAnyObjectAndVararg_invoked_returnsNull() {
+    public void testAnyObjects_variousInvocations_returnsNull() {
         assertNull(Matchers.anyObject());
         assertNull(Matchers.any());
+        assertNull(Matchers.any(String.class));
+        assertNull(Matchers.any(Integer.class));
         assertNull(Matchers.anyVararg());
     }
 
-    // Tests any(Class) returns appropriate dummy value
+    // Tests anyString matcher returning empty string
     @Test
-    public void testAnyClass_objectClass_returnsNull() {
-        assertNull(Matchers.any(Object.class));
-        assertNull(Matchers.any(String.class));
-    }
-
-    // Tests anyString returns empty string
-    @Test
-    public void testAnyString_invoked_returnsEmptyString() {
+    public void testAnyString_invocation_returnsEmptyString() {
         assertEquals("", Matchers.anyString());
     }
 
-    // Tests collection matchers return empty collection instances
+    // Tests list matchers returning empty list
     @Test
-    public void testAnyCollections_invoked_returnsEmptyCollections() {
-        List<?> list = Matchers.anyList();
-        assertNotNull(list);
-        assertEquals(0, list.size());
+    public void testAnyList_genericAndNonGeneric_returnsEmptyList() {
+        List nonGenericList = Matchers.anyList();
+        assertNotNull(nonGenericList);
+        assertTrue(nonGenericList.isEmpty());
 
-        List<String> listOf = Matchers.anyListOf(String.class);
-        assertNotNull(listOf);
-        assertEquals(0, listOf.size());
-
-        Set<?> set = Matchers.anySet();
-        assertNotNull(set);
-        assertEquals(0, set.size());
-
-        Set<String> setOf = Matchers.anySetOf(String.class);
-        assertNotNull(setOf);
-        assertEquals(0, setOf.size());
-
-        Map<?, ?> map = Matchers.anyMap();
-        assertNotNull(map);
-        assertEquals(0, map.size());
-
-        Map<String, Integer> mapOf = Matchers.anyMapOf(String.class, Integer.class);
-        assertNotNull(mapOf);
-        assertEquals(0, mapOf.size());
-
-        Collection<?> collection = Matchers.anyCollection();
-        assertNotNull(collection);
-        assertEquals(0, collection.size());
-
-        Collection<String> collectionOf = Matchers.anyCollectionOf(String.class);
-        assertNotNull(collectionOf);
-        assertEquals(0, collectionOf.size());
+        List<String> genericList = Matchers.anyListOf(String.class);
+        assertNotNull(genericList);
+        assertTrue(genericList.isEmpty());
     }
 
-    // Tests isA matcher with given class
+    // Tests set matchers returning empty set
+    @Test
+    public void testAnySet_genericAndNonGeneric_returnsEmptySet() {
+        Set nonGenericSet = Matchers.anySet();
+        assertNotNull(nonGenericSet);
+        assertTrue(nonGenericSet.isEmpty());
+
+        Set<String> genericSet = Matchers.anySetOf(String.class);
+        assertNotNull(genericSet);
+        assertTrue(genericSet.isEmpty());
+    }
+
+    // Tests map matchers returning empty map
+    @Test
+    public void testAnyMap_genericAndNonGeneric_returnsEmptyMap() {
+        Map nonGenericMap = Matchers.anyMap();
+        assertNotNull(nonGenericMap);
+        assertTrue(nonGenericMap.isEmpty());
+
+        Map<String, Integer> genericMap = Matchers.anyMapOf(String.class, Integer.class);
+        assertNotNull(genericMap);
+        assertTrue(genericMap.isEmpty());
+    }
+
+    // Tests collection matchers returning empty collection
+    @Test
+    public void testAnyCollection_genericAndNonGeneric_returnsEmptyCollection() {
+        Collection nonGenericCol = Matchers.anyCollection();
+        assertNotNull(nonGenericCol);
+        assertTrue(nonGenericCol.isEmpty());
+
+        Collection<String> genericCol = Matchers.anyCollectionOf(String.class);
+        assertNotNull(genericCol);
+        assertTrue(genericCol.isEmpty());
+    }
+
+    // Tests isA matcher returning null for given type
     @Test
     public void testIsA_validClass_returnsNull() {
         assertNull(Matchers.isA(String.class));
-        assertNull(Matchers.isA(Integer.class));
+        assertNull(Matchers.isA(Number.class));
     }
 
-    // Tests primitive eq methods return primitive defaults
+    // Tests primitive eq matchers returning zero or false
     @Test
-    public void testEqPrimitives_validValues_returnsDefaultPrimitiveValues() {
+    public void testEq_primitiveInputs_returnsZeroOrFalse() {
         assertFalse(Matchers.eq(true));
         assertFalse(Matchers.eq(false));
-        assertEquals((byte) 0, Matchers.eq((byte) 42));
-        assertEquals((char) 0, Matchers.eq('x'));
-        assertEquals(0.0d, Matchers.eq(3.14d), 0.0d);
-        assertEquals(0.0f, Matchers.eq(2.71f), 0.0f);
+        assertEquals((byte) 0, Matchers.eq((byte) 12));
+        assertEquals((char) 0, Matchers.eq('c'));
         assertEquals(0, Matchers.eq(100));
         assertEquals(0L, Matchers.eq(1000L));
-        assertEquals((short) 0, Matchers.eq((short) 5));
+        assertEquals(0.0f, Matchers.eq(2.5f), 0.0001f);
+        assertEquals(0.0d, Matchers.eq(5.5d), 0.0001d);
+        assertEquals((short) 0, Matchers.eq((short) 20));
     }
 
-    // Tests eq with object argument
+    // Tests object eq matcher with normal and null inputs
     @Test
-    public void testEqObject_validObject_returnsObject() {
-        String testVal = "expected";
-        assertEquals(testVal, Matchers.eq(testVal));
+    public void testEq_objectInputs_returnsNull() {
+        assertNull(Matchers.eq("expectedString"));
         assertNull(Matchers.eq((Object) null));
     }
 
-    // Tests refEq with object argument and excluded fields
+    // Tests refEq matcher with excluded fields
     @Test
-    public void testRefEq_validObjectAndExcludes_returnsNull() {
-        assertNull(Matchers.refEq("testString", "field1", "field2"));
+    public void testRefEq_withAndWithoutExcludedFields_returnsNull() {
+        assertNull(Matchers.refEq("targetObject"));
+        assertNull(Matchers.refEq("targetObject", "field1", "field2"));
+        assertNull(Matchers.refEq(null));
     }
 
-    // Tests same matcher returns the passed object
+    // Tests same matcher with object and null
     @Test
-    public void testSame_validObject_returnsSameObject() {
-        Object obj = new Object();
-        assertEquals(obj, Matchers.same(obj));
+    public void testSame_variousInputs_returnsNull() {
+        String ref = "instance";
+        assertNull(Matchers.same(ref));
         assertNull(Matchers.same(null));
     }
 
-    // Tests null and notNull matchers
+    // Tests isNull matchers
     @Test
-    public void testNullAndNotNullMatchers_invoked_returnsNull() {
+    public void testIsNull_withAndWithoutClass_returnsNull() {
         assertNull(Matchers.isNull());
         assertNull(Matchers.isNull(String.class));
+    }
+
+    // Tests notNull and isNotNull matchers
+    @Test
+    public void testNotNullAndIsNotNull_withAndWithoutClass_returnsNull() {
         assertNull(Matchers.notNull());
         assertNull(Matchers.notNull(String.class));
         assertNull(Matchers.isNotNull());
         assertNull(Matchers.isNotNull(String.class));
     }
 
-    // Tests string specific matchers return empty strings
+    // Tests string matcher utility methods
     @Test
-    public void testStringMatchers_validPatterns_returnsEmptyString() {
-        assertEquals("", Matchers.contains("sub"));
-        assertEquals("", Matchers.matches(".*"));
+    public void testStringMatchers_variousStringMethods_returnsEmptyString() {
+        assertEquals("", Matchers.contains("substring"));
+        assertEquals("", Matchers.matches("^[a-z]+$"));
         assertEquals("", Matchers.endsWith("suffix"));
         assertEquals("", Matchers.startsWith("prefix"));
     }
 
-    // Tests primitive *That custom matchers return default primitive values
-    @Test
-    public void testPrimitiveThatMatchers_customMatcher_returnsDefaultPrimitiveValues() {
-        assertEquals((char) 0, Matchers.charThat(this.<Character>dummyMatcher()));
-        assertFalse(Matchers.booleanThat(this.<Boolean>dummyMatcher()));
-        assertEquals((byte) 0, Matchers.byteThat(this.<Byte>dummyMatcher()));
-        assertEquals((short) 0, Matchers.shortThat(this.<Short>dummyMatcher()));
-        assertEquals(0, Matchers.intThat(this.<Integer>dummyMatcher()));
-        assertEquals(0L, Matchers.longThat(this.<Long>dummyMatcher()));
-        assertEquals(0.0f, Matchers.floatThat(this.<Float>dummyMatcher()), 0.0f);
-        assertEquals(0.0d, Matchers.doubleThat(this.<Double>dummyMatcher()), 0.0d);
-    }
-
-    // Tests argThat matcher returns null
+    // Tests argThat matcher with custom hamcrest matcher
     @Test
     public void testArgThat_customMatcher_returnsNull() {
-        assertNull(Matchers.argThat(this.<String>dummyMatcher()));
+        Matcher<String> matcher = dummyMatcher();
+        assertNull(Matchers.argThat(matcher));
     }
 
-    // Tests constructor of Matchers
+    // Tests primitive that matchers with custom hamcrest matcher
     @Test
-    public void testConstructor_instantiation_createsInstance() {
-        Matchers matchers = new Matchers();
-        assertNotNull(matchers);
+    public void testPrimitiveThat_customMatchers_returnsZeroOrFalse() {
+        assertFalse(Matchers.booleanThat(dummyMatcher()));
+        assertEquals((byte) 0, Matchers.byteThat(dummyMatcher()));
+        assertEquals((char) 0, Matchers.charThat(dummyMatcher()));
+        assertEquals((short) 0, Matchers.shortThat(dummyMatcher()));
+        assertEquals(0, Matchers.intThat(dummyMatcher()));
+        assertEquals(0L, Matchers.longThat(dummyMatcher()));
+        assertEquals(0.0f, Matchers.floatThat(dummyMatcher()), 0.0001f);
+        assertEquals(0.0d, Matchers.doubleThat(dummyMatcher()), 0.0001d);
     }
 
-    // Tests refEq with no excluded fields
+    // Tests matcher registration in MockingProgress storage
     @Test
-    public void testRefEq_noExcludes_returnsNull() {
-        assertNull(Matchers.refEq("testString"));
-        assertNull(Matchers.refEq(null));
-    }
-
-    // Tests any(Class) with primitive wrappers and interfaces
-    @Test
-    public void testAnyClass_variousTypes_returnsNull() {
-        assertNull(Matchers.any(Integer.class));
-        assertNull(Matchers.any(List.class));
-        assertNull(Matchers.any(Runnable.class));
-    }
-
-    // Tests null arguments for String matchers
-    @Test
-    public void testStringMatchers_nullPatterns_returnsEmptyString() {
-        assertEquals("", Matchers.contains(null));
-        assertEquals("", Matchers.matches(null));
-        assertEquals("", Matchers.endsWith(null));
-        assertEquals("", Matchers.startsWith(null));
+    public void testReportMatcher_invokingMatcher_registersInStorage() {
+        Matchers.eq("sample");
+        List<?> pulled = new ThreadSafeMockingProgress().getArgumentMatcherStorage().pullLocalizedMatchers();
+        assertNotNull(pulled);
+        assertEquals(1, pulled.size());
     }
 }

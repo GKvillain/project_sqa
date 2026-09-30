@@ -5,7 +5,10 @@ import com.google.javascript.rhino.Token;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class NormalizeTest {
 
@@ -16,159 +19,196 @@ public class NormalizeTest {
     compiler = new Compiler();
   }
 
-  private Node normalize(String js) {
-    return normalize("", js);
-  }
-
-  private Node normalize(String externsJs, String js) {
-    Node externs = compiler.parseTestCode(externsJs);
+  private Node testNormalize(String js) {
     Node root = compiler.parseTestCode(js);
-    new Node(Token.BLOCK, externs, root);
+    Node externs = new Node(Token.BLOCK);
+    Node externsAndJs = new Node(Token.BLOCK, externs, root);
     Normalize normalize = new Normalize(compiler, false);
     normalize.process(externs, root);
     return root;
   }
 
-  // Tests splitting multiple variable declarations in a single var statement
+  // Tests splitting multiple var declarations into separate var statements
   @Test
-  public void testNormalize_splitVars_splitsMultipleDeclarations() {
-    Node root = normalize("var a = 1, b = 2;");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
-    assertTrue(compiler.isNormalized());
+  public void testProcess_splitVars_separatesDeclarations() {
+    Node root = testNormalize("var a = 1, b = 2;");
+    int varCount = 0;
+    for (Node c = root.getFirstChild(); c != null; c = c.getNext()) {
+      if (c.getType() == Token.VAR) {
+        varCount++;
+        assertTrue(c.hasOneChild());
+      }
+    }
+    assertEquals(2, varCount);
   }
 
-  // Tests converting while loops into for loops
+  // Tests conversion of while loop to for loop
   @Test
-  public void testNormalize_whileLoop_convertsToFor() {
-    Node root = normalize("while (x < 10) { x++; }");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
-    Node firstStatement = root.getFirstChild();
-    assertEquals(Token.FOR, firstStatement.getType());
+  public void testProcess_whileLoop_convertsToForLoop() {
+    Node root = testNormalize("while (true) { foo(); }");
+    Node statement = root.getFirstChild();
+    assertEquals(Token.FOR, statement.getType());
+    assertEquals(Token.EMPTY, statement.getFirstChild().getType());
   }
 
-  // Tests extracting initializers from standard for loops
+  // Tests extracting var initializer from for-in loop
   @Test
-  public void testNormalize_forLoop_extractsInitializer() {
-    Node root = normalize("for (var i = 0; i < 10; i++) {}");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
-    assertEquals(Token.VAR, root.getFirstChild().getType());
+  public void testProcess_forInVar_extractsVarDeclaration() {
+    Node root = testNormalize("for (var a in b) {}");
+    Node first = root.getFirstChild();
+    assertEquals(Token.VAR, first.getType());
+    assertEquals("a", first.getFirstChild().getString());
+    Node forNode = first.getNext();
+    assertEquals(Token.FOR, forNode.getType());
+    assertEquals(Token.NAME, forNode.getFirstChild().getType());
   }
 
-  // Tests extracting variable declarations from for-in loops
+  // Tests extracting initializer from standard for loop
   @Test
-  public void testNormalize_forInLoop_extractsVarDeclaration() {
-    Node root = normalize("for (var prop in obj) {}");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
-    assertEquals(Token.VAR, root.getFirstChild().getType());
+  public void testProcess_forInitializer_movesInitBeforeFor() {
+    Node root = testNormalize("for (var i = 0; i < 10; i++) {}");
+    Node first = root.getFirstChild();
+    assertEquals(Token.VAR, first.getType());
+    assertEquals("i", first.getFirstChild().getString());
+    Node forNode = first.getNext();
+    assertEquals(Token.FOR, forNode.getType());
+    assertEquals(Token.EMPTY, forNode.getFirstChild().getType());
   }
 
-  // Tests hoisting functions to top of containing function body
+  // Tests that duplicate var declarations are converted to assignments
   @Test
-  public void testNormalize_moveNamedFunctions_hoistsFunctions() {
-    Node root = normalize("function outer() { foo(); function inner() {} }");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
+  public void testProcess_duplicateVarDeclaration_replacesWithAssignment() {
+    Node root = testNormalize("var x = 1; var x = 2;");
+    Node first = root.getFirstChild();
+    assertEquals(Token.VAR, first.getType());
+    Node second = first.getNext();
+    assertEquals(Token.EXPR_RESULT, second.getType());
+    assertEquals(Token.ASSIGN, second.getFirstChild().getType());
   }
 
-  // Tests removing duplicate var declarations with initializers
+  // Tests converting unhoisted function declaration in block to var declaration
   @Test
-  public void testNormalize_duplicateVarDeclarations_removesDuplicates() {
-    Node root = normalize("var a = 1; var a = 2;");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
+  public void testProcess_unhoistedFunctionDeclaration_rewritesToVarFunction() {
+    Node root = testNormalize("if (true) { function f() {} }");
+    Node ifNode = root.getFirstChild();
+    Node block = ifNode.getLastChild();
+    Node varNode = block.getFirstChild();
+    assertEquals(Token.VAR, varNode.getType());
+    assertEquals("f", varNode.getFirstChild().getString());
+    assertEquals(Token.FUNCTION, varNode.getFirstChild().getFirstChild().getType());
   }
 
-  // Tests removing duplicate var declarations without initializers
+  // Tests hoisting named functions to the top of function body
   @Test
-  public void testNormalize_duplicateVarNoInit_removesDuplicates() {
-    Node root = normalize("var a = 1; var a;");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
+  public void testProcess_moveNamedFunctions_hoistsToBeginning() {
+    Node root = testNormalize("function outer() { var x = 1; function inner() {} }");
+    Node outerFn = root.getFirstChild();
+    Node outerBody = outerFn.getLastChild();
+    Node firstInBody = outerBody.getFirstChild();
+    assertEquals(Token.FUNCTION, firstInBody.getType());
+    assertEquals("inner", firstInBody.getFirstChild().getString());
   }
 
-  // Tests duplicate declaration between a function declaration and a var declaration
+  // Tests wrapping non-block labeled statements into blocks
   @Test
-  public void testNormalize_duplicateFunctionAndVar_handlesGracefully() {
-    Node root = normalize("var f = 1; function f() {}");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
+  public void testProcess_labeledStatement_wrapsInBlock() {
+    Node root = testNormalize("lbl: foo();");
+    Node labelNode = root.getFirstChild();
+    assertEquals(Token.LABEL, labelNode.getType());
+    Node labelTarget = labelNode.getLastChild();
+    assertEquals(Token.BLOCK, labelTarget.getType());
+    assertEquals(Token.EXPR_RESULT, labelTarget.getFirstChild().getType());
   }
 
-  // Tests duplicate declaration in reverse order (var after function)
+  // Tests catch block redeclaration reporting error
   @Test
-  public void testNormalize_varAfterFunction_handlesGracefully() {
-    Node root = normalize("function f() {} var f = 1;");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
-  }
-
-  // Tests catch block variable redeclaration triggers error
-  @Test
-  public void testNormalize_catchBlockVarRedeclaration_reportsError() {
-    normalize("function test() { try { throw 0; } catch (e) { var e = 1; } }");
-    assertEquals(1, compiler.getErrorCount());
-  }
-
-  // Tests label normalization wrapping non-block statement in a block
-  @Test
-  public void testNormalize_labelNonBlock_normalizesLabel() {
-    Node root = normalize("myLabel: a = 1;");
-    assertNotNull(root);
-    assertEquals(0, compiler.getErrorCount());
-    Node label = root.getFirstChild();
-    assertEquals(Token.LABEL, label.getType());
-    assertEquals(Token.BLOCK, label.getLastChild().getType());
-  }
-
-  // Tests parseAndNormalizeSyntheticCode static method
-  @Test
-  public void testNormalize_parseAndNormalizeSyntheticCode_returnsNormalizedNode() {
-    Node result = Normalize.parseAndNormalizeSyntheticCode(compiler, "var a = 1, b = 2;", "prefix_");
-    assertNotNull(result);
-    assertEquals(Token.SCRIPT, result.getType());
-  }
-
-  // Tests parseAndNormalizeTestCode static method
-  @Test
-  public void testNormalize_parseAndNormalizeTestCode_returnsNormalizedNode() {
-    Node result = Normalize.parseAndNormalizeTestCode(compiler, "while (true) {}", "prefix_");
-    assertNotNull(result);
-    assertEquals(Token.FOR, result.getFirstChild().getType());
-  }
-
-  // Tests assertOnChange throws exception when AST requires modification
-  @Test(expected = IllegalStateException.class)
-  public void testNormalize_assertOnChange_throwsOnModification() {
-    Node externs = compiler.parseTestCode("");
-    Node root = compiler.parseTestCode("while (true) {}");
+  public void testProcess_catchVarRedeclaration_reportsError() {
+    Node root = compiler.parseTestCode("function f() { try {} catch (e) { var e = 1; } }");
+    Node externs = new Node(Token.BLOCK);
     new Node(Token.BLOCK, externs, root);
+    Normalize normalize = new Normalize(compiler, false);
+    normalize.process(externs, root);
+    assertEquals(1, compiler.getErrorCount());
+    assertEquals(Normalize.CATCH_BLOCK_VAR_ERROR, compiler.getErrors()[0].getType());
+  }
+
+  // Tests duplicate var declaration when function name conflicts with var
+  @Test
+  public void testProcess_functionRedeclaringVar_handlesConflict() {
+    Node root = testNormalize("function f() { var x = 1; function x() {} }");
+    assertNotNull(root);
+    assertEquals(0, compiler.getErrorCount());
+  }
+
+  // Tests IllegalStateException thrown when assertOnChange is true and changes occur
+  @Test(expected = IllegalStateException.class)
+  public void testProcess_assertOnChange_throwsIllegalStateException() {
+    Node root = compiler.parseTestCode("var a = 1, b = 2;");
+    Node externs = new Node(Token.BLOCK);
     Normalize normalize = new Normalize(compiler, true);
     normalize.process(externs, root);
   }
 
-  // Tests PropagateConstantAnnotationsOverVars pass
+  // Tests parseAndNormalizeTestCode utility method
   @Test
-  public void testPropagateConstantAnnotationsOverVars_marksConstants() {
-    Node externs = compiler.parseTestCode("");
-    Node root = compiler.parseTestCode("var CONST_VAL = 1; var y = CONST_VAL;");
+  public void testParseAndNormalizeTestCode_validCode_normalizesNode() {
+    Node node = Normalize.parseAndNormalizeTestCode(compiler, "while(true);", "prefix");
+    assertNotNull(node);
+    assertEquals(Token.FOR, node.getFirstChild().getType());
+  }
+
+  // Tests parseAndNormalizeSyntheticCode utility method
+  @Test
+  public void testParseAndNormalizeSyntheticCode_validCode_normalizesWithPrefix() {
+    Node node = Normalize.parseAndNormalizeSyntheticCode(compiler, "var a = 1, b = 2;", "syn_");
+    assertNotNull(node);
+    int varCount = 0;
+    for (Node c = node.getFirstChild(); c != null; c = c.getNext()) {
+      if (c.getType() == Token.VAR) {
+        varCount++;
+      }
+    }
+    assertEquals(2, varCount);
+  }
+
+  // Tests PropagateConstantAnnotationsOverVars marking constant by convention
+  @Test
+  public void testPropagateConstantAnnotationsOverVars_constantConvention_setsProp() {
+    Node root = compiler.parseTestCode("var CONST_VALUE = 42;");
+    Node externs = new Node(Token.BLOCK);
     Normalize.PropagateConstantAnnotationsOverVars pass =
         new Normalize.PropagateConstantAnnotationsOverVars(compiler, false);
     pass.process(externs, root);
-    assertNotNull(root);
+    Node nameNode = root.getFirstChild().getFirstChild();
+    assertTrue(nameNode.getBooleanProp(Node.IS_CONSTANT_NAME));
   }
 
-  // Tests VerifyConstants pass without violations
+  // Tests VerifyConstants pass with consistent annotations
   @Test
-  public void testVerifyConstants_validCode_success() {
+  public void testVerifyConstants_consistentConstants_passes() {
     Node externs = compiler.parseTestCode("");
-    Node root = compiler.parseTestCode("var a = 1; var b = a;");
+    Node root = compiler.parseTestCode("var CONST_FOO = 1; var y = CONST_FOO;");
+    Node externsAndJs = new Node(Token.BLOCK, externs, root);
+
+    Normalize.PropagateConstantAnnotationsOverVars propagate =
+        new Normalize.PropagateConstantAnnotationsOverVars(compiler, false);
+    propagate.process(externs, root);
+
+    Normalize.VerifyConstants verify = new Normalize.VerifyConstants(compiler, false);
+    verify.process(externs, root);
+  }
+
+  // Tests VerifyConstants pass throwing when constants are inconsistently annotated
+  @Test(expected = IllegalStateException.class)
+  public void testVerifyConstants_inconsistentConstants_throwsIllegalStateException() {
+    Node externs = compiler.parseTestCode("");
+    Node root = compiler.parseTestCode("var CONST_FOO = 1; var y = CONST_FOO;");
     new Node(Token.BLOCK, externs, root);
-    Normalize.VerifyConstants verifier = new Normalize.VerifyConstants(compiler, false);
-    verifier.process(externs, root);
-    assertEquals(0, compiler.getErrorCount());
+
+    Node firstVarName = root.getFirstChild().getFirstChild();
+    firstVarName.putBooleanProp(Node.IS_CONSTANT_NAME, true);
+
+    Normalize.VerifyConstants verify = new Normalize.VerifyConstants(compiler, false);
+    verify.process(externs, root);
   }
 }

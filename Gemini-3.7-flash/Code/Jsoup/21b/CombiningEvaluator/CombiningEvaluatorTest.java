@@ -10,196 +10,226 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class CombiningEvaluatorTest {
 
     private Element root;
-    private Element node;
+    private Element element;
 
-    private Evaluator trueEval;
-    private Evaluator falseEval;
+    private static class DummyEvaluator extends Evaluator {
+        private final boolean matchResult;
+        private final String name;
+
+        DummyEvaluator(boolean matchResult, String name) {
+            this.matchResult = matchResult;
+            this.name = name;
+        }
+
+        @Override
+        public boolean matches(Element root, Element element) {
+            return matchResult;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
 
     @Before
     public void setUp() {
         root = new Element(Tag.valueOf("div"), "");
-        node = new Element(Tag.valueOf("p"), "");
-
-        trueEval = new Evaluator() {
-            @Override
-            public boolean matches(Element r, Element n) {
-                return true;
-            }
-
-            @Override
-            public String toString() {
-                return "true";
-            }
-        };
-
-        falseEval = new Evaluator() {
-            @Override
-            public boolean matches(Element r, Element n) {
-                return false;
-            }
-
-            @Override
-            public String toString() {
-                return "false";
-            }
-        };
+        element = new Element(Tag.valueOf("p"), "");
+        root.appendChild(element);
     }
 
-    // Tests And evaluator with all evaluators returning true
+    // Tests And matching when all sub-evaluators return true
     @Test
-    public void testAndMatches_allTrue_returnsTrue() {
-        CombiningEvaluator.And and = new CombiningEvaluator.And(trueEval, trueEval);
-        assertTrue(and.matches(root, node));
+    public void testMatches_andAllTrue_returnsTrue() {
+        Evaluator eval1 = new DummyEvaluator(true, "eval1");
+        Evaluator eval2 = new DummyEvaluator(true, "eval2");
+        CombiningEvaluator.And andEval = new CombiningEvaluator.And(eval1, eval2);
+
+        assertTrue(andEval.matches(root, element));
     }
 
-    // Tests And evaluator when one evaluator returns false
+    // Tests And matching when at least one sub-evaluator returns false
     @Test
-    public void testAndMatches_oneFalse_returnsFalse() {
-        CombiningEvaluator.And and = new CombiningEvaluator.And(trueEval, falseEval);
-        assertFalse(and.matches(root, node));
+    public void testMatches_andOneFalse_returnsFalse() {
+        Evaluator eval1 = new DummyEvaluator(true, "eval1");
+        Evaluator eval2 = new DummyEvaluator(false, "eval2");
+        CombiningEvaluator.And andEval = new CombiningEvaluator.And(eval1, eval2);
+
+        assertFalse(andEval.matches(root, element));
     }
 
-    // Tests And evaluator when first evaluator returns false to verify short-circuit
+    // Tests And matching when evaluators list is empty
     @Test
-    public void testAndMatches_firstFalse_returnsFalse() {
-        CombiningEvaluator.And and = new CombiningEvaluator.And(falseEval, trueEval);
-        assertFalse(and.matches(root, node));
-    }
+    public void testMatches_andEmptyList_returnsTrue() {
+        CombiningEvaluator.And andEval = new CombiningEvaluator.And(Collections.<Evaluator>emptyList());
 
-    // Tests And evaluator with empty evaluator collection
-    @Test
-    public void testAndMatches_emptyEvaluators_returnsTrue() {
-        CombiningEvaluator.And and = new CombiningEvaluator.And(Collections.<Evaluator>emptyList());
-        assertTrue(and.matches(root, node));
+        assertTrue(andEval.matches(root, element));
     }
 
     // Tests And toString joining evaluators with space
     @Test
-    public void testAndToString_multipleEvaluators_returnsJoinedString() {
-        CombiningEvaluator.And and = new CombiningEvaluator.And(trueEval, falseEval);
-        assertEquals("true false", and.toString());
+    public void testToString_andMultipleEvaluators_returnsJoinedString() {
+        Evaluator eval1 = new DummyEvaluator(true, "div");
+        Evaluator eval2 = new DummyEvaluator(true, ".class");
+        CombiningEvaluator.And andEval = new CombiningEvaluator.And(eval1, eval2);
+
+        assertEquals("div .class", andEval.toString());
     }
 
-    // Tests Or constructor with empty list
+    // Tests And constructor with varargs array
     @Test
-    public void testOrConstructor_emptyCollection_evaluatorsEmpty() {
-        CombiningEvaluator.Or or = new CombiningEvaluator.Or(Collections.<Evaluator>emptyList());
-        assertEquals(0, or.evaluators.size());
-        assertFalse(or.matches(root, node));
+    public void testConstructor_andVarargs_populatesEvaluatorsList() {
+        Evaluator eval1 = new DummyEvaluator(true, "e1");
+        Evaluator eval2 = new DummyEvaluator(true, "e2");
+        CombiningEvaluator.And andEval = new CombiningEvaluator.And(eval1, eval2);
+
+        assertEquals(2, andEval.evaluators.size());
+        assertEquals(eval1, andEval.evaluators.get(0));
+        assertEquals(eval2, andEval.evaluators.get(1));
     }
 
-    // Tests Or constructor with single evaluator
+    // Tests Or constructor when given empty collection
     @Test
-    public void testOrConstructor_singleEvaluator_evaluatorsAddedDirectly() {
-        CombiningEvaluator.Or or = new CombiningEvaluator.Or(Collections.singletonList(trueEval));
-        assertEquals(1, or.evaluators.size());
-        assertTrue(or.matches(root, node));
+    public void testConstructor_orEmptyCollection_evaluatorsListIsEmpty() {
+        CombiningEvaluator.Or orEval = new CombiningEvaluator.Or(Collections.<Evaluator>emptyList());
+
+        assertEquals(0, orEval.evaluators.size());
+        assertFalse(orEval.matches(root, element));
     }
 
-    // Tests Or constructor with multiple evaluators wrapped in an And evaluator
+    // Tests Or constructor when given a single evaluator
     @Test
-    public void testOrConstructor_multipleEvaluators_wrapsInAnd() {
-        List<Evaluator> list = Arrays.asList(trueEval, falseEval);
-        CombiningEvaluator.Or or = new CombiningEvaluator.Or(list);
-        assertEquals(1, or.evaluators.size());
-        assertTrue(or.evaluators.get(0) instanceof CombiningEvaluator.And);
-        assertFalse(or.matches(root, node));
+    public void testConstructor_orSingleEvaluator_addsDirectlyWithoutWrapping() {
+        Evaluator eval1 = new DummyEvaluator(true, "e1");
+        CombiningEvaluator.Or orEval = new CombiningEvaluator.Or(Collections.singletonList(eval1));
+
+        assertEquals(1, orEval.evaluators.size());
+        assertEquals(eval1, orEval.evaluators.get(0));
+        assertTrue(orEval.matches(root, element));
     }
 
-    // Tests Or add method adding subsequent evaluator clauses
+    // Tests Or constructor when given multiple evaluators wraps them into And evaluator
     @Test
-    public void testOrAdd_addEvaluator_addsToEvaluatorList() {
-        CombiningEvaluator.Or or = new CombiningEvaluator.Or(Collections.singletonList(falseEval));
-        or.add(trueEval);
-        assertEquals(2, or.evaluators.size());
-        assertTrue(or.matches(root, node));
+    public void testConstructor_orMultipleEvaluators_wrapsInAndEvaluator() {
+        Evaluator eval1 = new DummyEvaluator(true, "e1");
+        Evaluator eval2 = new DummyEvaluator(true, "e2");
+        CombiningEvaluator.Or orEval = new CombiningEvaluator.Or(Arrays.asList(eval1, eval2));
+
+        assertEquals(1, orEval.evaluators.size());
+        assertTrue(orEval.evaluators.get(0) instanceof CombiningEvaluator.And);
+        assertTrue(orEval.matches(root, element));
     }
 
-    // Tests Or matches when all evaluators return false
+    // Tests Or matches returns false when wrapped initial And evaluator fails
     @Test
-    public void testOrMatches_allFalse_returnsFalse() {
-        CombiningEvaluator.Or or = new CombiningEvaluator.Or(Collections.singletonList(falseEval));
-        or.add(falseEval);
-        assertFalse(or.matches(root, node));
+    public void testMatches_orWrappedInitialAndEvaluatorFails_returnsFalse() {
+        Evaluator eval1 = new DummyEvaluator(true, "e1");
+        Evaluator eval2 = new DummyEvaluator(false, "e2");
+        CombiningEvaluator.Or orEval = new CombiningEvaluator.Or(Arrays.asList(eval1, eval2));
+
+        assertFalse(orEval.matches(root, element));
     }
 
-    // Tests Or toString formatting
+    // Tests Or add method adds new clause
     @Test
-    public void testOrToString_formatsCorrectly() {
-        CombiningEvaluator.Or or = new CombiningEvaluator.Or(Collections.singletonList(trueEval));
-        assertEquals(":or[true]", or.toString());
+    public void testAdd_orAddEvaluator_increasesSizeAndMatches() {
+        Evaluator eval1 = new DummyEvaluator(false, "e1");
+        CombiningEvaluator.Or orEval = new CombiningEvaluator.Or(Collections.singletonList(eval1));
+
+        assertFalse(orEval.matches(root, element));
+
+        Evaluator eval2 = new DummyEvaluator(true, "e2");
+        orEval.add(eval2);
+
+        assertEquals(2, orEval.evaluators.size());
+        assertTrue(orEval.matches(root, element));
     }
 
-    // Tests custom CombiningEvaluator subclass default constructor
+    // Tests Or matches returns false when all clauses return false
     @Test
-    public void testCombiningEvaluator_defaultConstructor_initializesEmptyList() {
-        CombiningEvaluator custom = new CombiningEvaluator() {
-            @Override
-            public boolean matches(Element r, Element n) {
-                return false;
-            }
-        };
-        assertNotNull(custom.evaluators);
-        assertEquals(0, custom.evaluators.size());
+    public void testMatches_orAllClausesFalse_returnsFalse() {
+        Evaluator eval1 = new DummyEvaluator(false, "e1");
+        Evaluator eval2 = new DummyEvaluator(false, "e2");
+        CombiningEvaluator.Or orEval = new CombiningEvaluator.Or(Collections.singletonList(eval1));
+        orEval.add(eval2);
+
+        assertFalse(orEval.matches(root, element));
     }
 
-    // Tests custom CombiningEvaluator subclass collection constructor
+    // Tests Or toString format
     @Test
-    public void testCombiningEvaluator_collectionConstructor_initializesWithCollection() {
-        List<Evaluator> list = new ArrayList<Evaluator>();
-        list.add(trueEval);
-        CombiningEvaluator custom = new CombiningEvaluator(list) {
-            @Override
-            public boolean matches(Element r, Element n) {
-                return false;
-            }
-        };
-        assertEquals(1, custom.evaluators.size());
-        assertEquals(trueEval, custom.evaluators.get(0));
+    public void testToString_orEvaluators_returnsFormattedString() {
+        Evaluator eval1 = new DummyEvaluator(true, "div");
+        Evaluator eval2 = new DummyEvaluator(true, "p");
+        CombiningEvaluator.Or orEval = new CombiningEvaluator.Or(Collections.singletonList(eval1));
+        orEval.add(eval2);
+
+        assertEquals(":or[div, p]", orEval.toString());
     }
 
-    // Tests Or default no-arg constructor
-    @Test
-    public void testOr_defaultConstructor_emptyEvaluators() {
-        CombiningEvaluator.Or or = new CombiningEvaluator.Or();
-        assertEquals(0, or.evaluators.size());
-        assertFalse(or.matches(root, node));
-    }
-
-    // Tests rightMostEvaluator when empty
-    @Test
-    public void testRightMostEvaluator_emptyEvaluators_returnsNull() {
-        CombiningEvaluator.And and = new CombiningEvaluator.And(Collections.<Evaluator>emptyList());
-        assertNull(and.rightMostEvaluator());
-    }
-
-    // Tests rightMostEvaluator when evaluators present
+    // Tests rightMostEvaluator returns last evaluator when non-empty
     @Test
     public void testRightMostEvaluator_withEvaluators_returnsLastEvaluator() {
-        CombiningEvaluator.And and = new CombiningEvaluator.And(trueEval, falseEval);
-        assertSame(falseEval, and.rightMostEvaluator());
+        Evaluator eval1 = new DummyEvaluator(true, "e1");
+        Evaluator eval2 = new DummyEvaluator(true, "e2");
+        CombiningEvaluator.And andEval = new CombiningEvaluator.And(eval1, eval2);
+
+        assertSame(eval2, andEval.rightMostEvaluator());
     }
 
-    // Tests replaceRightMostEvaluator
+    // Tests rightMostEvaluator returns null when evaluators list is empty
+    @Test
+    public void testRightMostEvaluator_emptyEvaluators_returnsNull() {
+        CombiningEvaluator.And andEval = new CombiningEvaluator.And(Collections.<Evaluator>emptyList());
+
+        assertNull(andEval.rightMostEvaluator());
+    }
+
+    // Tests replaceRightMostEvaluator replaces the last evaluator in list
     @Test
     public void testReplaceRightMostEvaluator_replacesLastEvaluator() {
-        CombiningEvaluator.And and = new CombiningEvaluator.And(trueEval, falseEval);
-        assertSame(falseEval, and.rightMostEvaluator());
-        and.replaceRightMostEvaluator(trueEval);
-        assertSame(trueEval, and.rightMostEvaluator());
-        assertTrue(and.matches(root, node));
+        Evaluator eval1 = new DummyEvaluator(true, "e1");
+        Evaluator eval2 = new DummyEvaluator(true, "e2");
+        Evaluator replacement = new DummyEvaluator(false, "replacement");
+        CombiningEvaluator.And andEval = new CombiningEvaluator.And(eval1, eval2);
+
+        andEval.replaceRightMostEvaluator(replacement);
+
+        assertEquals(2, andEval.evaluators.size());
+        assertSame(eval1, andEval.evaluators.get(0));
+        assertSame(replacement, andEval.evaluators.get(1));
+        assertSame(replacement, andEval.rightMostEvaluator());
     }
 
-    // Tests Or toString with multiple evaluators
+    // Tests Or no-arg constructor creates empty evaluator
     @Test
-    public void testOrToString_multipleEvaluators_formatsWithCommaSeparated() {
-        CombiningEvaluator.Or or = new CombiningEvaluator.Or(Collections.singletonList(trueEval));
-        or.add(falseEval);
-        assertEquals(":or[true, false]", or.toString());
+    public void testConstructor_orNoArgs_isEmpty() {
+        CombiningEvaluator.Or orEval = new CombiningEvaluator.Or();
+
+        assertEquals(0, orEval.evaluators.size());
+        assertNull(orEval.rightMostEvaluator());
+        assertFalse(orEval.matches(root, element));
+    }
+
+    // Tests Or varargs constructor
+    @Test
+    public void testConstructor_orVarargs_populatesEvaluatorsList() {
+        Evaluator eval1 = new DummyEvaluator(true, "e1");
+        Evaluator eval2 = new DummyEvaluator(true, "e2");
+        CombiningEvaluator.Or orEval = new CombiningEvaluator.Or(eval1, eval2);
+
+        assertEquals(1, orEval.evaluators.size());
+        assertTrue(orEval.evaluators.get(0) instanceof CombiningEvaluator.And);
+        assertTrue(orEval.matches(root, element));
     }
 }

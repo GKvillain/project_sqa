@@ -5,7 +5,6 @@ import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,166 +15,121 @@ import static org.junit.Assert.*;
 
 public class ElementTest {
 
-    // Tests that siblingElements excludes the element itself and returns only actual siblings
+    // Tests that siblingElements excludes this element and returns correct sibling count
     @Test
-    public void testSiblingElements_hasSiblings_excludesSelf() {
-        Document doc = Jsoup.parse("<div><p id='p1'>One</p><p id='p2'>Two</p><p id='p3'>Three</p></div>");
-        Element p2 = doc.getElementById("p2");
-        Elements siblings = p2.siblingElements();
+    public void testSiblingElements_hasParentAndSiblings_returnsSiblingsExcludingSelf() {
+        Element parent = new Element(Tag.valueOf("div"), "");
+        Element child1 = parent.appendElement("p");
+        Element child2 = parent.appendElement("span");
+        Element child3 = parent.appendElement("a");
 
+        Elements siblings = child2.siblingElements();
         assertEquals(2, siblings.size());
-        assertEquals("p1", siblings.get(0).id());
-        assertEquals("p3", siblings.get(1).id());
-        assertFalse(siblings.contains(p2));
+        assertEquals("p", siblings.get(0).tagName());
+        assertEquals("a", siblings.get(1).tagName());
+        assertFalse(siblings.contains(child2));
     }
 
-    // Tests nextElementSibling and previousElementSibling boundary returns
+    // Tests sibling navigation: next, previous, first, last, and index
     @Test
-    public void testNextAndPreviousElementSibling_adjacentElements_returnsCorrectSiblings() {
-        Document doc = Jsoup.parse("<div><p id='p1'>One</p><p id='p2'>Two</p><p id='p3'>Three</p></div>");
-        Element p1 = doc.getElementById("p1");
-        Element p2 = doc.getElementById("p2");
-        Element p3 = doc.getElementById("p3");
+    public void testSiblingNavigation_multipleChildren_returnsCorrectSiblingsAndIndices() {
+        Element parent = new Element(Tag.valueOf("div"), "");
+        Element c1 = parent.appendElement("h1");
+        Element c2 = parent.appendElement("p");
+        Element c3 = parent.appendElement("span");
 
-        assertNull(p1.previousElementSibling());
-        assertEquals(p2, p1.nextElementSibling());
-        assertEquals(p1, p2.previousElementSibling());
-        assertEquals(p3, p2.nextElementSibling());
-        assertNull(p3.nextElementSibling());
+        assertEquals(c2, c1.nextElementSibling());
+        assertNull(c1.previousElementSibling());
+        assertEquals(c1, c2.previousElementSibling());
+        assertEquals(c3, c2.nextElementSibling());
+        assertNull(c3.nextElementSibling());
+
+        assertEquals(c1, c2.firstElementSibling());
+        assertEquals(c3, c2.lastElementSibling());
+
+        assertEquals(Integer.valueOf(0), c1.elementSiblingIndex());
+        assertEquals(Integer.valueOf(1), c2.elementSiblingIndex());
+        assertEquals(Integer.valueOf(2), c3.elementSiblingIndex());
     }
 
-    // Tests firstElementSibling and lastElementSibling
+    // Tests elementSiblingIndex when element has no parent
     @Test
-    public void testFirstAndLastElementSibling_multipleSiblings_returnsFirstAndLast() {
-        Document doc = Jsoup.parse("<div><p id='p1'>One</p><p id='p2'>Two</p><p id='p3'>Three</p></div>");
-        Element p2 = doc.getElementById("p2");
-
-        assertEquals("p1", p2.firstElementSibling().id());
-        assertEquals("p3", p2.lastElementSibling().id());
-
-        Element standalone = new Element(Tag.valueOf("div"), "");
-        assertNull(standalone.firstElementSibling());
-        assertNull(standalone.lastElementSibling());
+    public void testElementSiblingIndex_orphanElement_returnsZero() {
+        Element orphan = new Element(Tag.valueOf("div"), "");
+        assertEquals(Integer.valueOf(0), orphan.elementSiblingIndex());
     }
 
-    // Tests elementSiblingIndex calculation
+    // Tests tag name retrieval, updating, and validation
     @Test
-    public void testElementSiblingIndex_variousPositions_returnsCorrectIndex() {
-        Document doc = Jsoup.parse("<div><p id='p1'>One</p><p id='p2'>Two</p><p id='p3'>Three</p></div>");
-        assertEquals(Integer.valueOf(0), doc.getElementById("p1").elementSiblingIndex());
-        assertEquals(Integer.valueOf(1), doc.getElementById("p2").elementSiblingIndex());
-        assertEquals(Integer.valueOf(2), doc.getElementById("p3").elementSiblingIndex());
-
-        Element standalone = new Element(Tag.valueOf("div"), "");
-        assertEquals(Integer.valueOf(0), standalone.elementSiblingIndex());
-    }
-
-    // Tests tagName changes and isBlock status
-    @Test
-    public void testTagNameAndIsBlock_changeTag_updatesTagAndBlockStatus() {
+    public void testTagName_changeTag_updatesTagSuccessfully() {
         Element el = new Element(Tag.valueOf("span"), "");
-        assertFalse(el.isBlock());
         assertEquals("span", el.tagName());
+        assertEquals("span", el.nodeName());
+        assertFalse(el.isBlock());
 
         el.tagName("div");
-        assertTrue(el.isBlock());
         assertEquals("div", el.tagName());
-        assertEquals("div", el.nodeName());
+        assertTrue(el.isBlock());
     }
 
-    // Tests exception on empty tagName
+    // Tests empty tag name exception
     @Test(expected = IllegalArgumentException.class)
-    public void testTagName_emptyName_throwsException() {
-        Element el = new Element(Tag.valueOf("span"), "");
+    public void testTagName_emptyTag_throwsException() {
+        Element el = new Element(Tag.valueOf("div"), "");
         el.tagName("");
     }
 
-    // Tests class name manipulation methods: addClass, removeClass, toggleClass, hasClass
+    // Tests id and attribute manipulation
     @Test
-    public void testClassNames_manipulation_updatesClassesCorrectly() {
+    public void testIdAndAttributes_setAndGet_returnsExpectedValues() {
         Element el = new Element(Tag.valueOf("div"), "");
-        el.attr("class", "foo bar");
+        assertEquals("", el.id());
 
-        assertTrue(el.hasClass("foo"));
-        assertTrue(el.hasClass("BAR"));
-        assertFalse(el.hasClass("baz"));
+        el.attr("id", "main-content");
+        assertEquals("main-content", el.id());
 
-        el.addClass("baz");
-        assertTrue(el.hasClass("baz"));
-        assertEquals("foo bar baz", el.className());
-
-        el.removeClass("bar");
-        assertFalse(el.hasClass("bar"));
-        assertEquals("foo baz", el.className());
-
-        el.toggleClass("baz");
-        assertFalse(el.hasClass("baz"));
-
-        el.toggleClass("qux");
-        assertTrue(el.hasClass("qux"));
+        el.attr("data-test", "val");
+        Map<String, String> dataset = el.dataset();
+        assertEquals("val", dataset.get("test"));
     }
 
-    // Tests text and ownText with nested mixed children
+    // Tests children filtering and child node extraction
     @Test
-    public void testTextAndOwnText_nestedContent_returnsCombinedAndDirectText() {
-        Document doc = Jsoup.parse("<div>Hello <span>beautiful</span> <b>world</b>!</div>");
-        Element div = doc.select("div").first();
+    public void testChildrenAndTextNodes_mixedContent_filtersCorrectly() {
+        Element p = new Element(Tag.valueOf("p"), "");
+        p.appendText("Hello ");
+        Element span = p.appendElement("span");
+        span.text("World");
+        p.appendText("!");
 
-        assertEquals("Hello beautiful world!", div.text());
-        assertEquals("Hello !", div.ownText());
-        assertTrue(div.hasText());
+        Elements children = p.children();
+        assertEquals(1, children.size());
+        assertEquals("span", children.get(0).tagName());
+        assertEquals(span, p.child(0));
 
-        List<TextNode> textNodes = div.textNodes();
+        List<TextNode> textNodes = p.textNodes();
         assertEquals(2, textNodes.size());
         assertEquals("Hello ", textNodes.get(0).getWholeText());
         assertEquals("!", textNodes.get(1).getWholeText());
     }
 
-    // Tests data and dataNodes extraction
+    // Tests parent and ancestors hierarchy accumulation
     @Test
-    public void testData_scriptContent_returnsDataString() {
-        Document doc = Jsoup.parse("<script type='text/javascript'>var x = 10;</script>");
-        Element script = doc.select("script").first();
+    public void testParents_nestedElements_accumulatesAllAncestors() {
+        Element root = new Element(Tag.valueOf("#root"), "");
+        Element body = root.appendElement("body");
+        Element div = body.appendElement("div");
+        Element span = div.appendElement("span");
 
-        assertEquals("var x = 10;", script.data());
-        List<DataNode> dataNodes = script.dataNodes();
-        assertEquals(1, dataNodes.size());
-        assertEquals("var x = 10;", dataNodes.get(0).getWholeData());
+        Elements parents = span.parents();
+        assertEquals(2, parents.size());
+        assertEquals(div, parents.get(0));
+        assertEquals(body, parents.get(1));
     }
 
-    // Tests val method for input and textarea tags
+    // Tests append, prepend, empty, and text content updates
     @Test
-    public void testVal_inputAndTextarea_getsAndSetsValues() {
-        Element input = new Element(Tag.valueOf("input"), "").attr("value", "initial");
-        assertEquals("initial", input.val());
-        input.val("updated");
-        assertEquals("updated", input.attr("value"));
-
-        Element textarea = new Element(Tag.valueOf("textarea"), "");
-        textarea.text("initial text");
-        assertEquals("initial text", textarea.val());
-        textarea.val("updated text");
-        assertEquals("updated text", textarea.text());
-    }
-
-    // Tests dataset retrieval of HTML5 data-* attributes
-    @Test
-    public void testDataset_customDataAttributes_returnsFilteredMap() {
-        Element el = new Element(Tag.valueOf("div"), "");
-        el.attr("data-name", "jsoup");
-        el.attr("data-version", "1.0");
-        el.attr("id", "main");
-
-        Map<String, String> dataset = el.dataset();
-        assertEquals(2, dataset.size());
-        assertEquals("jsoup", dataset.get("name"));
-        assertEquals("1.0", dataset.get("version"));
-        assertNull(dataset.get("id"));
-    }
-
-    // Tests appending and prepending child nodes and elements
-    @Test
-    public void testAppendAndPrepend_elementsAndText_updatesChildrenOrder() {
+    public void testAppendPrependAndEmpty_manipulateChildren_updatesStructure() {
         Element div = new Element(Tag.valueOf("div"), "");
         div.appendElement("p").text("Middle");
         div.prependElement("header").text("Top");
@@ -186,223 +140,248 @@ public class ElementTest {
         assertEquals("p", div.child(1).tagName());
         assertEquals("footer", div.child(2).tagName());
 
-        div.prependText("Start: ");
-        div.appendText(" :End");
-        assertEquals("Start: Top Middle Bottom :End", div.text());
-    }
-
-    // Tests parents accumulation up to document root
-    @Test
-    public void testParents_nestedHierarchy_returnsAncestorsInOrder() {
-        Document doc = Jsoup.parse("<div><section><p><span>Test</span></p></section></div>");
-        Element span = doc.select("span").first();
-        Elements parents = span.parents();
-
-        assertEquals(4, parents.size());
-        assertEquals("p", parents.get(0).tagName());
-        assertEquals("section", parents.get(1).tagName());
-        assertEquals("div", parents.get(2).tagName());
-        assertEquals("body", parents.get(3).tagName());
-    }
-
-    // Tests empty and html getter/setter
-    @Test
-    public void testHtmlAndEmpty_modifyInnerHtml_updatesContent() {
-        Element div = new Element(Tag.valueOf("div"), "");
-        div.html("<p>Hello</p><span>World</span>");
-
-        assertEquals(2, div.children().size());
-        assertEquals("<p>Hello</p>\n<span>World</span>", div.html());
-
         div.empty();
         assertEquals(0, div.children().size());
-        assertEquals("", div.html());
-        assertFalse(div.hasText());
+        assertEquals("", div.text());
     }
 
-    // Tests various DOM query methods on Element
+    // Tests text(), ownText(), and hasText() behavior with whitespace and br
     @Test
-    public void testGetElements_queriesByAttributesAndText_returnsMatches() {
-        Document doc = Jsoup.parse("<div id='root'><p class='intro' data-type='a'>First</p><p class='intro' data-type='b'>Second</p><span class='outro'>Third</span></div>");
-        Element root = doc.getElementById("root");
+    public void testTextAndOwnText_nestedElements_returnsCorrectTextHierarchy() {
+        Element p = new Element(Tag.valueOf("p"), "");
+        assertFalse(p.hasText());
 
-        assertEquals("root", root.id());
-        assertEquals(2, root.getElementsByClass("intro").size());
-        assertEquals(2, root.getElementsByAttribute("data-type").size());
-        assertEquals(1, root.getElementsByAttributeValue("data-type", "a").size());
-        assertEquals(1, root.getElementsByAttributeStarting("data-").size() > 0 ? 2 : 0);
-        assertEquals(1, root.getElementsContainingText("First").size());
-        assertEquals(1, root.getElementsContainingOwnText("Second").size());
-        assertEquals(2, root.getElementsByTag("p").size());
-        assertEquals(1, root.getElementsByIndexEquals(0).size());
+        p.appendText("One ");
+        p.appendElement("span").text("Two");
+        p.appendText(" Three");
+        p.appendElement("br");
+        p.appendText("Four");
+
+        assertTrue(p.hasText());
+        assertEquals("One Two Three Four", p.text());
+        assertEquals("One Three Four", p.ownText());
     }
 
-    // Tests clone creates independent copy with preserved attributes
+    // Tests class manipulation methods: add, remove, toggle, hasClass
     @Test
-    public void testClone_elementWithAttributes_createsDeepCopy() {
-        Element div = new Element(Tag.valueOf("div"), "");
-        div.attr("id", "main");
-        div.addClass("active");
-        div.appendElement("span").text("Content");
-
-        Element clone = div.clone();
-
-        assertEquals(div.outerHtml(), clone.outerHtml());
-        clone.attr("id", "secondary");
-        clone.removeClass("active");
-
-        assertEquals("main", div.id());
-        assertTrue(div.hasClass("active"));
-        assertEquals("secondary", clone.id());
-        assertFalse(clone.hasClass("active"));
-    }
-
-    // Tests cssSelector generation for elements
-    @Test
-    public void testCssSelector_variousElements_generatesValidSelector() {
-        Document doc = Jsoup.parse("<div id='container'><p class='one'>Text</p><p class='two'>Text 2</p></div>");
-        Element p1 = doc.select(".one").first();
-        Element p2 = doc.select(".two").first();
-
-        assertEquals("#container > p.one", p1.cssSelector());
-        assertEquals("#container > p.two", p2.cssSelector());
-        assertEquals("#container", doc.getElementById("container").cssSelector());
-    }
-
-    // Tests classNames set getter and setter
-    @Test
-    public void testClassNames_setOperations_updatesClasses() {
+    public void testClassNames_manipulateClasses_updatesAttributeCorrectly() {
         Element el = new Element(Tag.valueOf("div"), "");
-        Set<String> initialClasses = el.classNames();
-        assertTrue(initialClasses.isEmpty());
+        el.addClass("foo");
+        assertTrue(el.hasClass("foo"));
+        assertTrue(el.hasClass("FOO"));
 
-        Set<String> newClasses = new HashSet<String>(Arrays.asList("alpha", "beta", "gamma"));
-        el.classNames(newClasses);
+        el.addClass("bar");
+        assertEquals("foo bar", el.className());
 
-        assertEquals(3, el.classNames().size());
-        assertTrue(el.hasClass("alpha"));
-        assertTrue(el.hasClass("beta"));
-        assertTrue(el.hasClass("gamma"));
+        el.removeClass("foo");
+        assertFalse(el.hasClass("foo"));
+        assertTrue(el.hasClass("bar"));
+
+        el.toggleClass("bar");
+        assertFalse(el.hasClass("bar"));
+
+        el.toggleClass("baz");
+        assertTrue(el.hasClass("baz"));
+
+        Set<String> classes = el.classNames();
+        assertTrue(classes.contains("baz"));
     }
 
-    // Tests wrap and unwrap structure modifications
+    // Tests val() on input and textarea
     @Test
-    public void testWrapAndUnwrap_modifiesStructure() {
-        Document doc = Jsoup.parse("<div><p>Inner text</p></div>");
-        Element p = doc.select("p").first();
+    public void testVal_inputAndTextarea_getsAndSetsValue() {
+        Element input = new Element(Tag.valueOf("input"), "");
+        input.val("test-value");
+        assertEquals("test-value", input.val());
+        assertEquals("test-value", input.attr("value"));
 
-        p.wrap("<div class='wrapper'></div>");
-        assertEquals("<div class=\"wrapper\">\n <p>Inner text</p>\n</div>", doc.body().children().first().html());
-
-        p.unwrap();
-        assertEquals("<div class=\"wrapper\">\n Inner text\n</div>", doc.body().children().first().outerHtml());
+        Element textarea = new Element(Tag.valueOf("textarea"), "");
+        textarea.val("content text");
+        assertEquals("content text", textarea.val());
+        assertEquals("content text", textarea.text());
     }
 
-    // Tests before and after HTML/Node insertions
+    // Tests DOM selection and query methods
     @Test
-    public void testBeforeAndAfter_insertContent_updatesSiblingNodes() {
-        Document doc = Jsoup.parse("<div><p id='target'>Target</p></div>");
-        Element target = doc.getElementById("target");
-
-        target.before("<span id='before-html'>Before</span>");
-        target.after("<span id='after-html'>After</span>");
-
-        target.before(new Element(Tag.valueOf("b"), "").text("BoldBefore"));
-        target.after(new Element(Tag.valueOf("i"), "").text("ItalicAfter"));
-
-        Element div = doc.select("div").first();
-        assertEquals(5, div.childNodeSize());
-        assertEquals("before-html", div.child(0).id());
-        assertEquals("b", div.child(1).tagName());
-        assertEquals("target", div.child(2).id());
-        assertEquals("i", div.child(3).tagName());
-        assertEquals("after-html", div.child(4).id());
-    }
-
-    // Tests append, prepend with raw HTML strings and child nodes
-    @Test
-    public void testAppendAndPrependHtml_stringAndNodes_updatesChildren() {
+    public void testDOMSearchMethods_validHierarchy_findsMatchingElements() {
         Element div = new Element(Tag.valueOf("div"), "");
-        div.append("<span>Appended 1</span>");
-        div.prepend("<span>Prepended 1</span>");
-        div.appendChild(new Element(Tag.valueOf("b"), "").text("Child"));
-        div.prependChild(new Element(Tag.valueOf("i"), "").text("FirstChild"));
+        Element p1 = div.appendElement("p").attr("id", "first").attr("class", "intro active").text("Hello World");
+        Element p2 = div.appendElement("p").attr("id", "second").attr("class", "body").text("Jsoup testing");
 
-        assertEquals(4, div.children().size());
-        assertEquals("i", div.child(0).tagName());
-        assertEquals("span", div.child(1).tagName());
-        assertEquals("span", div.child(2).tagName());
-        assertEquals("b", div.child(3).tagName());
+        assertEquals(p1, div.getElementById("first"));
+        assertNull(div.getElementById("unknown"));
+
+        assertEquals(2, div.getElementsByTag("p").size());
+        assertEquals(1, div.getElementsByClass("intro").size());
+        assertEquals(1, div.getElementsByAttribute("id").size() + 1); // 2 total
+        assertEquals(1, div.getElementsByAttributeValue("id", "second").size());
+        assertEquals(1, div.getElementsByAttributeValueStarting("class", "in").size());
+        assertEquals(1, div.getElementsByAttributeValueEnding("class", "active").size());
+        assertEquals(1, div.getElementsByAttributeValueContaining("class", "tro").size());
+        assertEquals(1, div.getElementsByAttributeValueMatching("id", Pattern.compile("^f.*t$")).size());
+
+        assertEquals(1, div.getElementsByIndexEquals(0).size());
+        assertEquals(1, div.getElementsByIndexLessThan(1).size());
+        assertEquals(1, div.getElementsByIndexGreaterThan(0).size());
+
+        assertEquals(1, div.getElementsContainingText("World").size());
+        assertEquals(1, div.getElementsContainingOwnText("Hello").size());
+        assertEquals(1, div.getElementsMatchingText("(?i)world").size());
+        assertEquals(1, div.getElementsMatchingOwnText("(?i)hello").size());
+
+        assertEquals(3, div.getAllElements().size()); // div, p1, p2
+        assertEquals(1, div.select("p.intro").size());
     }
 
-    // Tests insertChildren at specific index
+    // Tests HTML rendering and inner/outer HTML formatting
     @Test
-    public void testInsertChildren_atIndex_preservesOrder() {
-        Document doc = Jsoup.parse("<div id='root'><p>First</p><p>Last</p></div>");
-        Element root = doc.getElementById("root");
-
-        Element middle1 = new Element(Tag.valueOf("span"), "").text("Middle 1");
-        Element middle2 = new Element(Tag.valueOf("span"), "").text("Middle 2");
-
-        root.insertChildren(1, Arrays.asList(middle1, middle2));
-
-        assertEquals(4, root.children().size());
-        assertEquals("p", root.child(0).tagName());
-        assertEquals("Middle 1", root.child(1).text());
-        assertEquals("Middle 2", root.child(2).text());
-        assertEquals("p", root.child(3).tagName());
-    }
-
-    // Tests advanced query selector methods on Element
-    @Test
-    public void testAdvancedGetElements_variousSelectors_returnsExpectedResults() {
-        Document doc = Jsoup.parse("<div id='container'>" +
-                "<p title='apple-fruit' class='item first'>One 100</p>" +
-                "<p title='banana-fruit' class='item'>Two 200</p>" +
-                "<p title='grape-juice' class='item'>Three 300</p>" +
-                "<span>Extra text</span>" +
-                "</div>");
-        Element container = doc.getElementById("container");
-
-        assertEquals(4, container.getAllElements().size()); // container, p, p, p, span (excluding doc/html/body since query starts at container)
-        assertEquals(2, container.getElementsByAttributeValueEnding("title", "-fruit").size());
-        assertEquals(1, container.getElementsByAttributeValueStarting("title", "banana").size());
-        assertEquals(1, container.getElementsByAttributeValueContaining("title", "juice").size());
-        assertEquals(1, container.getElementsByAttributeValueMatching("title", Pattern.compile("^apple.*")).size());
-        assertEquals(1, container.getElementsByAttributeValueMatching("title", "^grape.*").size());
-        assertEquals(3, container.getElementsByAttributeValueNot("title", "banana-fruit").size()); // includes container & span which don't have that exact title value
-
-        assertEquals(1, container.getElementsByIndexLessThan(1).size());
-        assertEquals(2, container.getElementsByIndexGreaterThan(1).size());
-
-        assertEquals(1, container.getElementsMatchingText(Pattern.compile("\\b200\\b")).size());
-        assertEquals(1, container.getElementsMatchingText("\\b300\\b").size());
-        assertEquals(1, container.getElementsMatchingOwnText(Pattern.compile("^Two 200$")).size());
-        assertEquals(1, container.getElementsMatchingOwnText("^Three 300$").size());
-    }
-
-    // Tests preserveWhitespace for pre and plaintext elements
-    @Test
-    public void testPreserveWhitespace_preTag_returnsTrue() {
-        Element pre = new Element(Tag.valueOf("pre"), "");
-        assertTrue(pre.preserveWhitespace());
-
+    public void testHtmlAndOuterHtml_nestedTags_rendersExpectedMarkup() {
         Element div = new Element(Tag.valueOf("div"), "");
-        assertFalse(div.preserveWhitespace());
+        div.attr("id", "box");
+        div.appendElement("span").text("inner");
 
-        div.appendChild(pre);
-        assertFalse(div.preserveWhitespace());
+        assertEquals("<span>inner</span>", div.html());
+        assertEquals("<div id=\"box\"><span>inner</span></div>", div.outerHtml().replaceAll("\\s+", " ").trim());
+
+        div.html("<b>bold</b>");
+        assertEquals("<b>bold</b>", div.html());
+        assertEquals(1, div.children().size());
+        assertEquals("b", div.child(0).tagName());
     }
 
-    // Tests equals and hashCode consistency
+    // Tests data() extraction from DataNodes
     @Test
-    public void testEqualsAndHashCode_sameAndDifferentElements() {
-        Element el1 = new Element(Tag.valueOf("p"), "").attr("id", "test");
-        Element el2 = new Element(Tag.valueOf("p"), "").attr("id", "test");
+    public void testData_scriptTag_extractsData() {
+        Element script = new Element(Tag.valueOf("script"), "");
+        DataNode dataNode = new DataNode("var x = 1;", "");
+        script.appendChild(dataNode);
 
-        assertEquals(el1, el1);
-        assertNotEquals(el1, el2);
-        assertNotEquals(el1, "some string");
-        assertNotEquals(el1, null);
+        assertEquals(1, script.dataNodes().size());
+        assertEquals("var x = 1;", script.data());
+    }
+
+    // Tests clone method independence
+    @Test
+    public void testClone_clonedElement_isDeepCopy() {
+        Element original = new Element(Tag.valueOf("div"), "");
+        original.attr("class", "orig");
+        original.appendElement("p").text("child");
+
+        Element clone = original.clone();
+        assertNotSame(original, clone);
+        assertEquals(original.outerHtml(), clone.outerHtml());
+
+        clone.addClass("extra");
+        assertFalse(original.hasClass("extra"));
+        assertTrue(clone.hasClass("extra"));
+    }
+
+    @Test
+    public void testSiblingNavigation_orphanElement_returnsNullAndEmptySiblings() {
+        Element orphan = new Element(Tag.valueOf("div"), "");
+        assertNull(orphan.nextElementSibling());
+        assertNull(orphan.previousElementSibling());
+        assertNull(orphan.firstElementSibling());
+        assertNull(orphan.lastElementSibling());
+        assertEquals(0, orphan.siblingElements().size());
+    }
+
+    @Test
+    public void testClassNames_setExplicitCollection_updatesClasses() {
+        Element el = new Element(Tag.valueOf("div"), "");
+        Set<String> classSet = new HashSet<String>();
+        classSet.add("classA");
+        classSet.add("classB");
+        el.classNames(classSet);
+
+        assertTrue(el.hasClass("classA"));
+        assertTrue(el.hasClass("classB"));
+        assertTrue(el.className().contains("classA"));
+        assertTrue(el.className().contains("classB"));
+    }
+
+    @Test
+    public void testAppendAndPrependHtml_stringInput_appendsAndPrependsParsedNodes() {
+        Element div = new Element(Tag.valueOf("div"), "");
+        div.append("<p>Paragraph</p>");
+        assertEquals(1, div.children().size());
+        assertEquals("p", div.child(0).tagName());
+
+        div.prepend("<span>First</span>");
+        assertEquals(2, div.children().size());
+        assertEquals("span", div.child(0).tagName());
+        assertEquals("p", div.child(1).tagName());
+    }
+
+    @Test
+    public void testBeforeAndAfter_elementAndHtml_insertsSiblings() {
+        Element parent = new Element(Tag.valueOf("div"), "");
+        Element middle = parent.appendElement("p").text("middle");
+
+        middle.before("<h1>Header</h1>");
+        middle.after("<footer>Footer</footer>");
+
+        Element extra = new Element(Tag.valueOf("span"), "");
+        middle.before(extra);
+
+        assertEquals(4, parent.children().size());
+        assertEquals("h1", parent.child(0).tagName());
+        assertEquals("span", parent.child(1).tagName());
+        assertEquals("p", parent.child(2).tagName());
+        assertEquals("footer", parent.child(3).tagName());
+    }
+
+    @Test
+    public void testWrapAndUnwrap_nestedElements_wrapsAndUnwrapsCorrectly() {
+        Element parent = new Element(Tag.valueOf("div"), "");
+        Element child = parent.appendElement("span").text("inner");
+
+        Element wrapped = child.wrap("<div class='wrapper'></div>");
+        assertEquals(wrapped, child);
+        assertEquals("wrapper", child.parent().className());
+        assertEquals(1, parent.children().size());
+        assertEquals("wrapper", parent.child(0).className());
+
+        Node unwrapped = child.unwrap();
+        assertEquals(child, unwrapped);
+        assertEquals(parent, child.parent());
+        assertEquals("span", parent.child(0).tagName());
+    }
+
+    @Test
+    public void testAdditionalDOMSearchMethods() {
+        Element div = new Element(Tag.valueOf("div"), "");
+        Element a1 = div.appendElement("a").attr("href", "http://example.com/test").attr("target", "_blank").text("Link 1");
+        Element a2 = div.appendElement("a").attr("href", "ftp://example.org").attr("target", "_self").text("Link 2");
+
+        assertEquals(1, div.getElementsByAttributeValueNot("target", "_blank").size());
+        assertEquals(2, div.getElementsByAttributeStarting("hr").size());
+        assertEquals(1, div.getElementsByAttributeValueMatching("href", "^http.*").size());
+        assertEquals(1, div.getElementsByMatchingText("Link 1").size());
+        assertEquals(1, div.getElementsByMatchingOwnText("Link 2").size());
+    }
+
+    @Test
+    public void testTag_getter_returnsTagInstance() {
+        Tag tag = Tag.valueOf("div");
+        Element el = new Element(tag, "");
+        assertSame(tag, el.tag());
+    }
+
+    @Test
+    public void testVal_genericElement_getsAndSetsAttribute() {
+        Element span = new Element(Tag.valueOf("span"), "");
+        assertEquals("", span.val());
+        span.val("test-val");
+        assertEquals("test-val", span.attr("value"));
+        assertEquals("test-val", span.val());
+    }
+
+    @Test
+    public void testCssSelector_nestedElements_generatesValidSelector() {
+        Element doc = Jsoup.parse("<html><body><div id='content'><p class='first'>Hello</p></div></body></html>");
+        Element p = doc.select("p.first").first();
+        assertNotNull(p.cssSelector());
+        assertEquals(p, doc.select(p.cssSelector()).first());
     }
 }

@@ -23,237 +23,218 @@ public class StdDateFormatTest {
         stdDateFormat = new StdDateFormat();
     }
 
-    // Tests default instance and static getters
+    // Tests default instance and default time zone
     @Test
     public void testGetDefaultTimeZone_returnsUTC() {
         TimeZone tz = StdDateFormat.getDefaultTimeZone();
         assertEquals("UTC", tz.getID());
+        assertTrue(stdDateFormat.isLenient());
     }
 
-    // Tests cloning and configuration methods
+    // Tests formatting date to ISO8601 string
     @Test
-    public void testWithTimeZone_validTimeZone_returnsNewInstanceWithTimeZone() {
-        TimeZone tz = TimeZone.getTimeZone("GMT+2");
-        StdDateFormat custom = stdDateFormat.withTimeZone(tz);
-        assertNotSame(stdDateFormat, custom);
-        assertEquals(tz, custom.getTimeZone());
+    public void testFormat_validDate_returnsISO8601String() {
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.US);
+        cal.clear();
+        cal.set(2023, Calendar.JANUARY, 1, 12, 30, 45);
+        cal.set(Calendar.MILLISECOND, 123);
+        Date date = cal.getTime();
 
-        // with null timezone defaults to UTC
-        StdDateFormat defaultTz = custom.withTimeZone(null);
-        assertEquals(StdDateFormat.getDefaultTimeZone(), defaultTz.getTimeZone());
-
-        // same timezone returns same instance
-        assertSame(custom, custom.withTimeZone(tz));
+        StringBuffer sb = stdDateFormat.format(date, new StringBuffer(), new FieldPosition(0));
+        assertEquals("2023-01-01T12:30:45.123+0000", sb.toString());
     }
 
-    // Tests withLocale
+    // Tests parsing ISO8601 date string with Z timezone
     @Test
-    public void testWithLocale_differentLocale_returnsNewInstance() {
-        StdDateFormat custom = stdDateFormat.withLocale(Locale.GERMANY);
-        assertNotSame(stdDateFormat, custom);
+    public void testParse_iso8601WithZ_success() throws Exception {
+        Date dt = stdDateFormat.parse("2023-01-01T12:30:45.123Z");
+        assertNotNull(dt);
 
-        // same locale returns this
-        assertSame(stdDateFormat, stdDateFormat.withLocale(Locale.US));
-    }
-
-    // Tests clone method
-    @Test
-    public void testClone_createsIndependentCopy() {
-        StdDateFormat cloned = stdDateFormat.clone();
-        assertNotSame(stdDateFormat, cloned);
-        assertEquals(stdDateFormat.getTimeZone(), cloned.getTimeZone());
-        assertEquals(stdDateFormat.isLenient(), cloned.isLenient());
-    }
-
-    // Tests parsing ISO8601 with Zulu time ('Z')
-    @Test
-    public void testParse_iso8601WithZulu_returnsCorrectDate() throws Exception {
-        Date d = stdDateFormat.parse("2020-01-01T12:00:00.000Z");
-        assertNotNull(d);
-
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTime(d);
-        assertEquals(2020, cal.get(Calendar.YEAR));
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.US);
+        cal.setTime(dt);
+        assertEquals(2023, cal.get(Calendar.YEAR));
         assertEquals(Calendar.JANUARY, cal.get(Calendar.MONTH));
         assertEquals(1, cal.get(Calendar.DAY_OF_MONTH));
         assertEquals(12, cal.get(Calendar.HOUR_OF_DAY));
+        assertEquals(30, cal.get(Calendar.MINUTE));
+        assertEquals(45, cal.get(Calendar.SECOND));
+        assertEquals(123, cal.get(Calendar.MILLISECOND));
     }
 
-    // Tests parsing ISO8601 with missing milliseconds and 'Z'
+    // Tests parsing ISO8601 date string with Z and without milliseconds
     @Test
-    public void testParse_iso8601WithZuluMissingMillis_returnsCorrectDate() throws Exception {
-        Date d = stdDateFormat.parse("2020-01-01T12:00:00Z");
-        assertNotNull(d);
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTime(d);
+    public void testParse_iso8601WithZMissingMillis_success() throws Exception {
+        Date dt = stdDateFormat.parse("2023-01-01T12:30:45Z");
+        assertNotNull(dt);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.US);
+        cal.setTime(dt);
+        assertEquals(45, cal.get(Calendar.SECOND));
+        assertEquals(0, cal.get(Calendar.MILLISECOND));
+    }
+
+    // Tests parsing ISO8601 with timezone offset containing colon
+    @Test
+    public void testParse_iso8601WithColonTimezone_success() throws Exception {
+        Date dt = stdDateFormat.parse("2023-01-01T14:30:45.123+02:00");
+        assertNotNull(dt);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.US);
+        cal.setTime(dt);
+        assertEquals(12, cal.get(Calendar.HOUR_OF_DAY));
+        assertEquals(30, cal.get(Calendar.MINUTE));
+    }
+
+    // Tests parsing ISO8601 with partial time offset
+    @Test
+    public void testParse_iso8601With2DigitTimezoneOffset_success() throws Exception {
+        Date dt = stdDateFormat.parse("2023-01-01T14:30:45.123+02");
+        assertNotNull(dt);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.US);
+        cal.setTime(dt);
         assertEquals(12, cal.get(Calendar.HOUR_OF_DAY));
     }
 
-    // Tests parsing plain date without time
+    // Tests parsing plain date without time (yyyy-MM-dd)
     @Test
-    public void testParse_plainDate_returnsCorrectDate() throws Exception {
-        Date d = stdDateFormat.parse("2020-05-15");
-        assertNotNull(d);
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTime(d);
-        assertEquals(2020, cal.get(Calendar.YEAR));
-        assertEquals(Calendar.MAY, cal.get(Calendar.MONTH));
-        assertEquals(15, cal.get(Calendar.DAY_OF_MONTH));
-    }
+    public void testParse_plainDateFormat_success() throws Exception {
+        Date dt = stdDateFormat.parse("2023-01-01");
+        assertNotNull(dt);
 
-    // Tests parsing ISO8601 with timezone offset
-    @Test
-    public void testParse_iso8601WithOffset_returnsCorrectDate() throws Exception {
-        Date d = stdDateFormat.parse("2020-01-01T12:00:00.000+02:00");
-        assertNotNull(d);
-
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTime(d);
-        assertEquals(10, cal.get(Calendar.HOUR_OF_DAY)); // 12:00 +02:00 is 10:00 UTC
-    }
-
-    // Tests parsing ISO8601 with offset without colon
-    @Test
-    public void testParse_iso8601WithOffsetNoColon_returnsCorrectDate() throws Exception {
-        Date d = stdDateFormat.parse("2020-01-01T12:00:00.000+0200");
-        assertNotNull(d);
-
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTime(d);
-        assertEquals(10, cal.get(Calendar.HOUR_OF_DAY));
-    }
-
-    // Tests parsing ISO8601 with partial milliseconds
-    @Test
-    public void testParse_iso8601WithPartialMillis_returnsCorrectDate() throws Exception {
-        Date d1 = stdDateFormat.parse("2020-01-01T12:00:00.1+0000");
-        assertNotNull(d1);
-
-        Date d2 = stdDateFormat.parse("2020-01-01T12:00:00.12+0000");
-        assertNotNull(d2);
-
-        Date d3 = stdDateFormat.parse("2020-01-01T12:00:00+0000");
-        assertNotNull(d3);
-    }
-
-    // Tests parsing ISO8601 without timezone indicator (defaults to UTC/Z)
-    @Test
-    public void testParse_iso8601NoTimezone_returnsCorrectDate() throws Exception {
-        Date d = stdDateFormat.parse("2020-01-01T12:00:00.000");
-        assertNotNull(d);
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTime(d);
-        assertEquals(12, cal.get(Calendar.HOUR_OF_DAY));
-    }
-
-    // Tests parsing RFC1123 format
-    @Test
-    public void testParse_rfc1123Format_returnsCorrectDate() throws Exception {
-        Date d = stdDateFormat.parse("Wed, 01 Jan 2020 12:00:00 GMT");
-        assertNotNull(d);
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTime(d);
-        assertEquals(2020, cal.get(Calendar.YEAR));
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.US);
+        cal.setTime(dt);
+        assertEquals(2023, cal.get(Calendar.YEAR));
         assertEquals(Calendar.JANUARY, cal.get(Calendar.MONTH));
         assertEquals(1, cal.get(Calendar.DAY_OF_MONTH));
+        assertEquals(0, cal.get(Calendar.HOUR_OF_DAY));
+    }
+
+    // Tests parsing RFC1123 date string
+    @Test
+    public void testParse_rfc1123Format_success() throws Exception {
+        Date dt = stdDateFormat.parse("Sun, 01 Jan 2023 12:30:45 GMT");
+        assertNotNull(dt);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"), Locale.US);
+        cal.setTime(dt);
+        assertEquals(2023, cal.get(Calendar.YEAR));
         assertEquals(12, cal.get(Calendar.HOUR_OF_DAY));
+        assertEquals(30, cal.get(Calendar.MINUTE));
+        assertEquals(45, cal.get(Calendar.SECOND));
     }
 
-    // Tests parsing numeric timestamp (positive and negative)
+    // Tests parsing numeric timestamp string (positive long)
     @Test
-    public void testParse_numericTimestamp_returnsCorrectDate() throws Exception {
-        Date d1 = stdDateFormat.parse("0");
-        assertEquals(0L, d1.getTime());
-
-        Date d2 = stdDateFormat.parse("1577836800000");
-        assertEquals(1577836800000L, d2.getTime());
-
-        Date d3 = stdDateFormat.parse("-1000");
-        assertEquals(-1000L, d3.getTime());
+    public void testParse_numericTimestamp_success() throws Exception {
+        long timestamp = 1672576245123L;
+        Date dt = stdDateFormat.parse(String.valueOf(timestamp));
+        assertNotNull(dt);
+        assertEquals(timestamp, dt.getTime());
     }
 
-    // Tests parse with ParsePosition for ISO8601
+    // Tests parsing negative numeric timestamp string
     @Test
-    public void testParse_withParsePosition_returnsDate() {
-        ParsePosition pos = new ParsePosition(0);
-        Date d = stdDateFormat.parse("2020-01-01T12:00:00.000Z", pos);
-        assertNotNull(d);
-        assertEquals(0, pos.getErrorIndex());
-
-        ParsePosition posNumeric = new ParsePosition(0);
-        Date dNumeric = stdDateFormat.parse("123456", posNumeric);
-        assertNotNull(dNumeric);
-        assertEquals(123456L, dNumeric.getTime());
+    public void testParse_negativeNumericTimestamp_success() throws Exception {
+        long timestamp = -1000000L;
+        Date dt = stdDateFormat.parse(String.valueOf(timestamp));
+        assertNotNull(dt);
+        assertEquals(timestamp, dt.getTime());
     }
 
     // Tests parsing invalid date string throws ParseException
     @Test(expected = ParseException.class)
     public void testParse_invalidFormat_throwsParseException() throws Exception {
-        stdDateFormat.parse("invalid-date-string");
+        stdDateFormat.parse("not-a-valid-date-string");
     }
 
-    // Tests formatting a date to ISO8601
+    // Tests parse with ParsePosition returning null for invalid format
     @Test
-    public void testFormat_validDate_returnsFormattedIsoString() {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.set(2020, Calendar.JANUARY, 1, 12, 0, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        Date d = cal.getTime();
-
-        StringBuffer sb = new StringBuffer();
-        StringBuffer result = stdDateFormat.format(d, sb, new FieldPosition(0));
-        assertEquals("2020-01-01T12:00:00.000+0000", result.toString());
+    public void testParse_withParsePositionInvalid_returnsNull() {
+        ParsePosition pos = new ParsePosition(0);
+        Date dt = stdDateFormat.parse("invalid_date", pos);
+        assertNull(dt);
     }
 
-    // Tests setTimeZone clears formats and updates timezone
+    // Tests parse with ParsePosition for numeric string
     @Test
-    public void testSetTimeZone_updatesTimeZoneAndClearsFormats() {
+    public void testParse_withParsePositionNumeric_success() {
+        ParsePosition pos = new ParsePosition(0);
+        Date dt = stdDateFormat.parse("123456789", pos);
+        assertNotNull(dt);
+        assertEquals(123456789L, dt.getTime());
+    }
+
+    // Tests withTimeZone creating a new instance with different timezone
+    @Test
+    public void testWithTimeZone_differentTimeZone_returnsNewInstance() {
+        TimeZone tz = TimeZone.getTimeZone("GMT+2");
+        StdDateFormat custom = stdDateFormat.withTimeZone(tz);
+        assertNotSame(stdDateFormat, custom);
+        assertEquals(tz, custom.getTimeZone());
+
+        StdDateFormat same = custom.withTimeZone(tz);
+        assertSame(custom, same);
+
+        StdDateFormat resetToDefault = custom.withTimeZone(null);
+        assertNotSame(custom, resetToDefault);
+    }
+
+    // Tests withLocale creating a new instance with different locale
+    @Test
+    public void testWithLocale_differentLocale_returnsNewInstance() {
+        StdDateFormat custom = stdDateFormat.withLocale(Locale.GERMANY);
+        assertNotSame(stdDateFormat, custom);
+
+        StdDateFormat same = custom.withLocale(Locale.GERMANY);
+        assertSame(custom, same);
+    }
+
+    // Tests setTimeZone resetting format instances
+    @Test
+    public void testSetTimeZone_updatesTimeZone() {
         TimeZone tz = TimeZone.getTimeZone("PST");
         stdDateFormat.setTimeZone(tz);
         assertEquals(tz, stdDateFormat.getTimeZone());
-
-        // Calling format uses new timezone
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.set(2020, Calendar.JANUARY, 1, 12, 0, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        Date d = cal.getTime();
-
-        StringBuffer sb = new StringBuffer();
-        StringBuffer result = stdDateFormat.format(d, sb, new FieldPosition(0));
-        assertTrue(result.toString().contains("-0800"));
     }
 
-    // Tests static factory methods for format blueprints
+    // Tests clone method preserving configuration
+    @Test
+    public void testClone_createsIndependentCopy() {
+        StdDateFormat clone = stdDateFormat.clone();
+        assertNotNull(clone);
+        assertNotSame(stdDateFormat, clone);
+        assertEquals(stdDateFormat.isLenient(), clone.isLenient());
+    }
+
+    // Tests static factory methods for format instances
     @Test
     public void testStaticGetFormatMethods_returnConfiguredFormats() {
-        TimeZone tz = TimeZone.getTimeZone("GMT+1");
-        Locale loc = Locale.FRENCH;
-
-        DateFormat isoFormat = StdDateFormat.getISO8601Format(tz, loc);
+        TimeZone tz = TimeZone.getTimeZone("GMT");
+        DateFormat isoFormat = StdDateFormat.getISO8601Format(tz, Locale.US);
         assertNotNull(isoFormat);
         assertEquals(tz, isoFormat.getTimeZone());
 
-        DateFormat rfcFormat = StdDateFormat.getRFC1123Format(tz, loc);
+        DateFormat rfcFormat = StdDateFormat.getRFC1123Format(tz, Locale.US);
         assertNotNull(rfcFormat);
         assertEquals(tz, rfcFormat.getTimeZone());
 
-        DateFormat isoDeprecated = StdDateFormat.getISO8601Format(tz);
-        assertNotNull(isoDeprecated);
+        DateFormat isoFormatDeprecated = StdDateFormat.getISO8601Format(tz);
+        assertNotNull(isoFormatDeprecated);
 
-        DateFormat rfcDeprecated = StdDateFormat.getRFC1123Format(tz);
-        assertNotNull(rfcDeprecated);
+        DateFormat rfcFormatDeprecated = StdDateFormat.getRFC1123Format(tz);
+        assertNotNull(rfcFormatDeprecated);
     }
 
-    // Tests isLenient and toString representation
+    // Tests toString method contains class name and locale info
     @Test
-    public void testIsLenientAndToString() {
-        assertTrue(stdDateFormat.isLenient());
-
-        StdDateFormat nonLenient = new StdDateFormat(TimeZone.getTimeZone("UTC"), Locale.US, Boolean.FALSE);
-        assertFalse(nonLenient.isLenient());
-
+    public void testToString_containsFormatInformation() {
         String str = stdDateFormat.toString();
         assertTrue(str.contains("DateFormat"));
-        assertTrue(str.contains("locale: en_US"));
+        assertTrue(str.contains(Locale.US.toString()));
+
+        StdDateFormat tzFormat = stdDateFormat.withTimeZone(TimeZone.getTimeZone("GMT+1"));
+        String tzStr = tzFormat.toString();
+        assertTrue(tzStr.contains("timezone:"));
     }
 }

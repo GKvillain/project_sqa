@@ -7,12 +7,18 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.Charset;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class SourceFileTest {
 
@@ -30,184 +36,196 @@ public class SourceFileTest {
     }
   }
 
-  // Tests constructor with null filename throws exception
+  // Tests null fileName in constructor throws IllegalArgumentException
   @Test(expected = IllegalArgumentException.class)
   public void testConstructor_nullFileName_throwsException() {
     new SourceFile(null);
   }
 
-  // Tests constructor with empty filename throws exception
+  // Tests empty fileName in constructor throws IllegalArgumentException
   @Test(expected = IllegalArgumentException.class)
   public void testConstructor_emptyFileName_throwsException() {
     new SourceFile("");
   }
 
-  // Tests getting the last line when there is no trailing newline (Defects4J 56 defect test)
+  // Tests basic properties of SourceFile created from code
   @Test
-  public void testGetLine_lastLineWithoutTrailingNewline_returnsLineContent() {
+  public void testFromCode_validInput_setsPropertiesCorrectly() throws IOException {
+    SourceFile sf = SourceFile.fromCode("test.js", "orig/test.js", "var a = 1;");
+    assertEquals("test.js", sf.getName());
+    assertEquals("orig/test.js", sf.getOriginalPath());
+    assertEquals("test.js", sf.toString());
+    assertEquals("var a = 1;", sf.getCode());
+    assertTrue(sf.hasSourceInMemory());
+  }
+
+  // Tests default original path equals file name if not explicitly set
+  @Test
+  public void testGetOriginalPath_defaultPath_returnsFileName() {
+    SourceFile sf = SourceFile.fromCode("test.js", "var a = 1;");
+    assertEquals("test.js", sf.getOriginalPath());
+
+    sf.setOriginalPath("custom/path.js");
+    assertEquals("custom/path.js", sf.getOriginalPath());
+  }
+
+  // Tests getLine when file has single line without trailing newline (detects defect in getLine)
+  @Test
+  public void testGetLine_singleLineWithoutNewline_returnsCorrectLine() {
+    SourceFile sf = SourceFile.fromCode("test.js", "var a = 1;");
+    assertEquals("var a = 1;", sf.getLine(1));
+    assertNull(sf.getLine(2));
+  }
+
+  // Tests getLine with multiple lines and sequential queries
+  @Test
+  public void testGetLine_multipleLines_returnsCorrectLines() {
     SourceFile sf = SourceFile.fromCode("test.js", "line1\nline2\nline3");
     assertEquals("line1", sf.getLine(1));
     assertEquals("line2", sf.getLine(2));
     assertEquals("line3", sf.getLine(3));
+    assertNull(sf.getLine(4));
   }
 
-  // Tests getting the single line without newline
+  // Tests getLine query for invalid line number before line 1 or beyond line count
   @Test
-  public void testGetLine_singleLineWithoutNewline_returnsLineContent() {
-    SourceFile sf = SourceFile.fromCode("test.js", "single_line_code");
-    assertEquals("single_line_code", sf.getLine(1));
-  }
-
-  // Tests getting line beyond total lines returns null
-  @Test
-  public void testGetLine_lineNumberOutOfBounds_returnsNull() {
-    SourceFile sf = SourceFile.fromCode("test.js", "line1\nline2\n");
+  public void testGetLine_outOfRange_returnsNull() {
+    SourceFile sf = SourceFile.fromCode("test.js", "line1\nline2");
+    assertNull(sf.getLine(0));
     assertNull(sf.getLine(3));
-    assertNull(sf.getLine(10));
   }
 
-  // Tests sequential and reverse line queries using internal offset caching
+  // Tests getLineOffset returns correct byte/char offset for valid lines
   @Test
-  public void testGetLine_cachedOffsetScanning_returnsCorrectLines() {
-    SourceFile sf = SourceFile.fromCode("test.js", "first\nsecond\nthird\nfourth\n");
-    assertEquals("first", sf.getLine(1));
-    assertEquals("third", sf.getLine(3));
-    assertEquals("second", sf.getLine(2));
-    assertEquals("fourth", sf.getLine(4));
-  }
-
-  // Tests line offset calculations for valid line numbers
-  @Test
-  public void testGetLineOffset_validLines_returnsCorrectOffsets() {
-    SourceFile sf = SourceFile.fromCode("test.js", "123\n5678\n0");
+  public void testGetLineOffset_validLines_returnsOffsets() {
+    SourceFile sf = SourceFile.fromCode("test.js", "line1\nline2\nline3");
     assertEquals(0, sf.getLineOffset(1));
-    assertEquals(4, sf.getLineOffset(2));
-    assertEquals(9, sf.getLineOffset(3));
+    assertEquals(6, sf.getLineOffset(2));
+    assertEquals(12, sf.getLineOffset(3));
   }
 
-  // Tests line offset throws exception for line 0
+  // Tests getLineOffset with line number 0 throws IllegalArgumentException
   @Test(expected = IllegalArgumentException.class)
   public void testGetLineOffset_zeroLineNumber_throwsException() {
     SourceFile sf = SourceFile.fromCode("test.js", "line1\nline2");
     sf.getLineOffset(0);
   }
 
-  // Tests line offset throws exception for line beyond maximum
+  // Tests getLineOffset with line number exceeding line count throws IllegalArgumentException
   @Test(expected = IllegalArgumentException.class)
-  public void testGetLineOffset_exceedingLineNumber_throwsException() {
+  public void testGetLineOffset_lineNumberExceedsLines_throwsException() {
     SourceFile sf = SourceFile.fromCode("test.js", "line1\nline2");
     sf.getLineOffset(3);
   }
 
-  // Tests getNumLines count
+  // Tests getNumLines returns correct line count
   @Test
-  public void testGetNumLines_multiLineContent_returnsCorrectCount() {
-    SourceFile sf = SourceFile.fromCode("test.js", "a\nb\nc\n");
-    assertEquals(3, sf.getNumLines());
+  public void testGetNumLines_multipleLines_returnsCorrectCount() {
+    SourceFile sf = SourceFile.fromCode("test.js", "line1\nline2\nline3\n");
+    assertEquals(4, sf.getNumLines());
   }
 
-  // Tests getRegion within bounds
+  // Tests getCodeReader returns a Reader providing the source code
   @Test
-  public void testGetRegion_validMiddle_returnsRegion() {
-    SourceFile sf = SourceFile.fromCode("test.js", "1\n2\n3\n4\n5\n6\n7\n8\n9\n");
-    Region region = sf.getRegion(5);
-    assertNotNull(region);
-    assertEquals(3, region.getBeginningLineNumber());
-    assertEquals(8, region.getEndingLineNumber());
-    assertEquals("3\n4\n5\n6\n7", region.getSourceExcerpt());
+  public void testGetCodeReader_preloaded_readsCorrectContent() throws IOException {
+    SourceFile sf = SourceFile.fromCode("test.js", "var a = 1;");
+    Reader reader = sf.getCodeReader();
+    assertNotNull(reader);
+    char[] buf = new char[10];
+    int read = reader.read(buf);
+    assertEquals("var a = 1;", new String(buf, 0, read));
   }
 
-  // Tests getRegion with line number out of range returns null
+  // Tests getRegion returns appropriate excerpt around specified line
   @Test
-  public void testGetRegion_outOfRangeLineNumber_returnsNull() {
-    SourceFile sf = SourceFile.fromCode("test.js", "line1\nline2");
-    assertNull(sf.getRegion(10));
-  }
-
-  // Tests getRegion when content does not end with a newline
-  @Test
-  public void testGetRegion_noTrailingNewline_returnsValidRegion() {
-    SourceFile sf = SourceFile.fromCode("test.js", "1\n2\n3");
-    Region region = sf.getRegion(2);
+  public void testGetRegion_validLine_returnsRegion() {
+    SourceFile sf = SourceFile.fromCode("test.js", "1\n2\n3\n4\n5\n6\n7\n");
+    Region region = sf.getRegion(3);
     assertNotNull(region);
     assertEquals(1, region.getBeginningLineNumber());
-    assertEquals(4, region.getEndingLineNumber());
-    assertEquals("1\n2\n3", region.getSourceExcerpt());
+    assertEquals(6, region.getEndingLineNumber());
   }
 
-  // Tests original path and extern flags getter and setter
+  // Tests getRegion returns null when line number exceeds file length
   @Test
-  public void testProperties_nameOriginalPathAndExtern_returnsExpectedValues() {
-    SourceFile sf = SourceFile.fromCode("file.js", "orig/file.js", "var x;");
-    assertEquals("file.js", sf.getName());
-    assertEquals("file.js", sf.toString());
-    assertEquals("orig/file.js", sf.getOriginalPath());
-
-    sf.setOriginalPath("new/orig/file.js");
-    assertEquals("new/orig/file.js", sf.getOriginalPath());
-
-    assertFalse(sf.isExtern());
-    sf.setIsExtern(true);
-    assertTrue(sf.isExtern());
+  public void testGetRegion_lineExceedsFileLength_returnsNull() {
+    SourceFile sf = SourceFile.fromCode("test.js", "1\n2\n");
+    Region region = sf.getRegion(10);
+    assertNull(region);
   }
 
-  // Tests creation from InputStream
+  // Tests SourceFile created from Generator caches code and can clear cache
   @Test
-  public void testFromInputStream_validStream_loadsCodeCorrectly() throws IOException {
-    ByteArrayInputStream in = new ByteArrayInputStream("var a = 1;".getBytes(Charsets.UTF_8));
-    SourceFile sf = SourceFile.fromInputStream("stream.js", in);
-    assertEquals("var a = 1;", sf.getCode());
-    assertTrue(sf.hasSourceInMemory());
-  }
-
-  // Tests creation from Reader
-  @Test
-  public void testFromReader_validReader_loadsCodeCorrectly() throws IOException {
-    SourceFile sf = SourceFile.fromReader("reader.js", new StringReader("var b = 2;"));
-    assertEquals("var b = 2;", sf.getCode());
-  }
-
-  // Tests generated SourceFile and clearCachedSource behavior
-  @Test
-  public void testFromGenerator_andClearCachedSource_regeneratesCode() throws IOException {
+  public void testFromGenerator_generatesAndCachesCode() throws IOException {
+    final int[] callCount = new int[]{0};
     SourceFile.Generator generator = new SourceFile.Generator() {
       @Override
       public String getCode() {
-        return "generated()";
+        callCount[0]++;
+        return "generatedCode();";
       }
     };
     SourceFile sf = SourceFile.fromGenerator("generated.js", generator);
-    assertNull(sf.getCodeNoCache());
-    assertEquals("generated()", sf.getCode());
-    assertEquals("generated()", sf.getCodeNoCache());
+    assertEquals("generatedCode();", sf.getCode());
+    assertEquals(1, callCount[0]);
 
+    // Second call should hit cache
+    assertEquals("generatedCode();", sf.getCode());
+    assertEquals(1, callCount[0]);
+
+    // Clear cache and call again
     sf.clearCachedSource();
-    assertNull(sf.getCodeNoCache());
-    assertEquals("generated()", sf.getCode());
+    assertEquals("generatedCode();", sf.getCode());
+    assertEquals(2, callCount[0]);
   }
 
-  // Tests OnDisk SourceFile reading from file, getCodeReader, and clearCachedSource
+  // Tests SourceFile created from InputStream
   @Test
-  public void testFromFile_onDiskFile_readsContentAndClearsCache() throws IOException {
-    FileWriter writer = new FileWriter(tempFile);
-    writer.write("var disk = true;\n");
-    writer.close();
+  public void testFromInputStream_validStream_readsContent() throws IOException {
+    InputStream is = new ByteArrayInputStream("streamCode();".getBytes(Charsets.UTF_8));
+    SourceFile sf = SourceFile.fromInputStream("stream.js", "orig/stream.js", is);
+    assertEquals("streamCode();", sf.getCode());
+    assertEquals("stream.js", sf.getName());
+    assertEquals("orig/stream.js", sf.getOriginalPath());
+  }
 
+  // Tests SourceFile created from Reader
+  @Test
+  public void testFromReader_validReader_readsContent() throws IOException {
+    Reader reader = new StringReader("readerCode();");
+    SourceFile sf = SourceFile.fromReader("reader.js", reader);
+    assertEquals("readerCode();", sf.getCode());
+    assertEquals("reader.js", sf.getName());
+  }
+
+  // Tests SourceFile created from File on disk
+  @Test
+  public void testFromFile_onDisk_readsContentAndClearsCache() throws IOException {
+    try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+      fos.write("fileContent();".getBytes(Charsets.UTF_8));
+    }
     SourceFile sf = SourceFile.fromFile(tempFile, Charsets.UTF_8);
     assertFalse(sf.hasSourceInMemory());
 
-    Reader readerBeforeLoad = sf.getCodeReader();
-    assertNotNull(readerBeforeLoad);
-    readerBeforeLoad.close();
+    Reader reader = sf.getCodeReader();
+    assertNotNull(reader);
+    reader.close();
 
-    assertEquals("var disk = true;\n", sf.getCode());
+    assertEquals("fileContent();", sf.getCode());
     assertTrue(sf.hasSourceInMemory());
-
-    Reader readerAfterLoad = sf.getCodeReader();
-    assertNotNull(readerAfterLoad);
-    readerAfterLoad.close();
 
     sf.clearCachedSource();
     assertFalse(sf.hasSourceInMemory());
+  }
+
+  // Tests setting and getting extern status
+  @Test
+  public void testIsExtern_setAndGet_returnsCorrectStatus() {
+    SourceFile sf = SourceFile.fromCode("test.js", "var a = 1;");
+    assertFalse(sf.isExtern());
+    sf.setIsExtern(true);
+    assertTrue(sf.isExtern());
+    sf.setIsExtern(false);
+    assertFalse(sf.isExtern());
   }
 }

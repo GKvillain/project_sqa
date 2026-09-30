@@ -1,163 +1,227 @@
 package com.google.javascript.jscomp;
 
-/**
- * Unit tests for {@link InlineVariables}.
- */
+import org.junit.Before;
+import org.junit.Test;
+
 public class InlineVariablesTest extends CompilerTestCase {
 
   private InlineVariables.Mode mode = InlineVariables.Mode.ALL;
   private boolean inlineAllStrings = false;
 
-  public InlineVariablesTest() {
-    enableNormalize();
-  }
-
   @Override
-  protected CompilerPass getProcessor(Compiler compiler) {
+  protected CompilerPass getProcessor(final Compiler compiler) {
     return new InlineVariables(compiler, mode, inlineAllStrings);
   }
 
   @Override
-  protected void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     super.setUp();
     mode = InlineVariables.Mode.ALL;
     inlineAllStrings = false;
     enableNormalize();
   }
 
-  // Tests inlining a single local variable read once
-  public void testInline_singleLocalVariable_inlinesSuccessfully() {
+  // Tests single-use variable inlining in simple local scope
+  @Test
+  public void testInlineSingleUseVariable_simpleValue_inlinesCorrectly() {
     test("function f() { var x = 1; return x; }",
          "function f() { return 1; }");
   }
 
-  // Tests inlining an immutable variable referenced multiple times
-  public void testInline_immutableVariableMultipleRefs_inlinesAll() {
+  // Tests immutable variable used multiple times
+  @Test
+  public void testInlineImmutableVariable_multipleReads_inlinesAll() {
     test("function f() { var x = 1; return x + x; }",
          "function f() { return 1 + 1; }");
   }
 
-  // Tests that uninitialized local variable is inlined as void 0
-  public void testInline_uninitializedVariable_inlinesUndefined() {
-    test("function f() { var x; return x + x; }",
-         "function f() { return void 0 + void 0; }");
-  }
-
-  // Tests variable declared and assigned in separate statements
-  public void testInline_separateDeclarationAndAssignment_inlinesValue() {
-    test("function f() { var x; x = 1; return x; }",
-         "function f() { return 1; }");
-  }
-
   // Tests that variable assigned multiple times is not inlined
-  public void testInline_variableAssignedMultipleTimes_doesNotInline() {
+  @Test
+  public void testInlineVariable_reassigned_doesNotInline() {
     testSame("function f() { var x = 1; x = 2; return x; }");
   }
 
-  // Tests that method call context is preserved and not inlined to change this-binding
-  public void testInline_methodCallProperty_doesNotInlineToPreserveThis() {
-    testSame("function f(o) { var m = o.bar; m(); }");
-  }
-
-  // Tests that property access as argument can be inlined safely
-  public void testInline_propertyAccessAsArgument_inlinesSafely() {
-    test("function f(o, g) { var m = o.bar; g(m); }",
-         "function f(o, g) { g(o.bar); }");
-  }
-
-  // Tests LOCALS_ONLY mode does not inline global variables
-  public void testMode_localsOnly_doesNotInlineGlobals() {
-    mode = InlineVariables.Mode.LOCALS_ONLY;
-    testSame("var x = 1; function f() { return x; }");
-  }
-
-  // Tests LOCALS_ONLY mode inlines local variables
-  public void testMode_localsOnly_inlinesLocals() {
-    mode = InlineVariables.Mode.LOCALS_ONLY;
-    test("function f() { var x = 1; return x; }",
-         "function f() { return 1; }");
-  }
-
-  // Tests CONSTANTS_ONLY mode does not inline non-constant variables
-  public void testMode_constantsOnly_doesNotInlineNonConstants() {
+  // Tests MODE = CONSTANTS_ONLY inlines only constant variables
+  @Test
+  public void testInlineConstantsOnlyMode_constantAndNonConstant_inlinesOnlyConstant() {
     mode = InlineVariables.Mode.CONSTANTS_ONLY;
-    testSame("function f() { var x = 1; return x; }");
+    test("var CONST_A = 1; var b = 2; return CONST_A + b;",
+         "var b = 2; return 1 + b;");
   }
 
-  // Tests CONSTANTS_ONLY mode inlines variables marked with @const
-  public void testMode_constantsOnly_inlinesDeclaredConstants() {
-    mode = InlineVariables.Mode.CONSTANTS_ONLY;
-    test("/** @const */ var X = 1; function f() { return X; }",
-         "var X = 1; function f() { return 1; }");
+  // Tests MODE = LOCALS_ONLY does not inline global variables
+  @Test
+  public void testInlineLocalsOnlyMode_globalsAndLocals_inlinesOnlyLocals() {
+    mode = InlineVariables.Mode.LOCALS_ONLY;
+    test("var x = 1; var y = x; function f() { var a = 2; return a; }",
+         "var x = 1; var y = x; function f() { return 2; }");
   }
 
   // Tests string inlining heuristic when inlineAllStrings is false
-  public void testInline_stringHeuristic_doesNotInlineLargeStringMultipleTimes() {
+  @Test
+  public void testInlineString_shortVersusLongString_respectsSizeHeuristic() {
     inlineAllStrings = false;
-    testSame("var X = 'a_very_long_string_constant_value'; " +
-             "function f() { return X + X + X + X; }");
+    test("function f() { var x = 'short'; return x; }",
+         "function f() { return 'short'; }");
   }
 
-  // Tests string inlining when inlineAllStrings is true
-  public void testInline_inlineAllStringsTrue_inlinesLargeString() {
+  // Tests inlineAllStrings flag enabled
+  @Test
+  public void testInlineAllStrings_longString_inlinesRegardlessOfSize() {
     inlineAllStrings = true;
-    test("/** @const */ var X = 'a_very_long_string_constant_value'; " +
-         "function f() { return X; }",
-         "var X = 'a_very_long_string_constant_value'; " +
-         "function f() { return 'a_very_long_string_constant_value'; }");
+    test("var x = 'a very long string that would not normally inline'; return x + x;",
+         "return 'a very long string that would not normally inline' + " +
+         "'a very long string that would not normally inline';");
   }
 
-  // Tests aliasing candidate inlining when safe
-  public void testInline_aliasCandidate_inlinesCorrectly() {
-    test("function f(a) { var b = a; var c = b; return c; }",
-         "function f(a) { var b = a; return b; }");
+  // Tests that property method call context is preserved and not inlined as callee
+  @Test
+  public void testInlineMethodCallContext_getPropAsCallee_doesNotInlineToPreserveThis() {
+    testSame("var a = b.c; a();");
+    test("var a = b.c; f(a);", "f(b.c);");
   }
 
-  // Tests that aliasing is not performed when arguments object may be modified
-  public void testInline_argumentsModified_doesNotInlineAlias() {
-    testSame("function f(x) { arguments[0] = 2; var a = x; var b = a; return b; }");
+  // Tests variable aliasing where candidate alias is inlined
+  @Test
+  public void testInlineAlias_singleAliasOfVariable_inlinesAlias() {
+    test("function f() { var x = extern(); var y = x; return y; }",
+         "function f() { var x = extern(); return x; }");
   }
 
-  // Tests that aliasing across reassignment is handled correctly (Defects4J bug 121)
-  public void testInline_aliasCandidateReassigned_doesNotIncorrectlyInline() {
-    testSame("function f(a) { var b = a; var c = b; b = 1; return c; }");
+  // Tests variable aliasing with multiple aliases
+  @Test
+  public void testInlineAlias_multipleAliases_inlinesCorrectly() {
+    test("function f() { var a = 1; var b = a; var c = b; return c; }",
+         "function f() { return 1; }");
   }
 
-  // Tests that aliasing with multiple reads doesn't inline unsafe references
-  public void testInline_aliasMultipleReferences_maintainsSemantics() {
-    testSame("function f(d) { var e = d.bar; var x = e; var y = function() { return e; }; var z = function() { return x; }; return [y, z]; }");
+  // Tests variable separated declaration and assignment
+  @Test
+  public void testInlineVariable_declarationSeparateFromInit_inlinesCorrectly() {
+    test("function f() { var x; x = 10; return x; }",
+         "function f() { return 10; }");
+  }
+
+  // Tests uninitialized variable inlining as undefined
+  @Test
+  public void testInlineVariable_uninitialized_inlinesUndefined() {
+    test("function f() { var x; return x; }",
+         "function f() { return void 0; }");
+  }
+
+  // Tests escaping arguments object prevents inlining
+  @Test
+  public void testInlineVariable_escapedArguments_doesNotInline() {
+    testSame("function f() { var a = arguments; g(arguments); return a[0]; }");
+  }
+
+  // Tests unescaped arguments property read allows inlining
+  @Test
+  public void testInlineVariable_unescapedArgumentsRead_inlinesCorrectly() {
+    test("function f() { var a = arguments[0]; return a; }",
+         "function f() { return arguments[0]; }");
+  }
+
+  // Tests this alias inlining inside function
+  @Test
+  public void testInlineThisAlias_notEscaped_inlinesThis() {
+    test("function f() { var self = this; return self.foo(); }",
+         "function f() { return this.foo(); }");
+  }
+
+  // Tests that side effect between initialization and reference prevents moderate movement
+  @Test
+  public void testInlineVariable_sideEffectIntervening_doesNotInlining() {
+    testSame("function f() { var x = g(); sideEffect(); return x; }");
   }
 
   // Tests function expression inlining
-  public void testInline_functionExpression_inlinesIntoUse() {
-    test("function f() { var fn = function(a) { return a; }; return fn(1); }",
-         "function f() { return (function(a) { return a; })(1); }");
+  @Test
+  public void testInlineFunction_functionExpression_inlinesCall() {
+    test("function f() { var g = function(a) { return a; }; return g(1); }",
+         "function f() { return function(a) { return a; }(1); }");
   }
 
-  // Tests this alias inlining when this is immutable and not escaped
-  public void testInline_thisAlias_inlinesSafely() {
-    test("function f() { var self = this; return self.foo; }",
-         "function f() { return this.foo; }");
+  // Tests that variable mutated with unary increment/decrement is not inlined
+  @Test
+  public void testInlineVariable_incrementDecrement_doesNotInline() {
+    testSame("function f() { var x = 1; x++; return x; }");
+    testSame("function f() { var x = 1; ++x; return x; }");
+    testSame("function f() { var x = 1; x--; return x; }");
   }
 
-  // Tests that variable inside a loop modified across iterations is not inlined
-  public void testInline_variableInLoop_doesNotInlineIfModified() {
-    testSame("function f() { var x = 0; while (true) { var y = x; x++; if (y) break; } }");
+  // Tests that variable mutated with compound assignment is not inlined
+  @Test
+  public void testInlineVariable_compoundAssignment_doesNotInline() {
+    testSame("function f() { var x = 1; x += 2; return x; }");
   }
 
-  // Tests inlining with conditional branch
-  public void testInline_conditionalBranch_inlinesWhenDeclaredInBranch() {
-    test("function f(cond) { if (cond) { var x = 1; return x; } return 0; }",
-         "function f(cond) { if (cond) { return 1; } return 0; }");
+  // Tests inlining boolean and null literals
+  @Test
+  public void testInlineLiterals_booleanAndNull_inlinesMultipleReads() {
+    test("function f() { var a = true; var b = false; var c = null; return a && !b && c; }",
+         "function f() { return true && !false && null; }");
   }
 
-  // Tests that variable read across try-catch block boundary is handled safely
-  public void testInline_tryCatch_preservesExceptionHandling() {
-    testSame("function f() { var x = g(); try { h(); } catch (e) { return x; } }");
+  // Tests inlining inside loop: mutable variable initialized outside loop should not be inlined into loop
+  @Test
+  public void testInlineVariable_initializedOutsideModifiedInLoop_doesNotInline() {
+    testSame("function f() { var x = 0; while (g()) { x = x + 1; } return x; }");
   }
 
-  // Tests recursive or self-referential variable is not inlined incorrectly
-  public void testInline_selfReferentialDeclaration_doesNotInline() {
-    testSame("function f() { var x = x + 1; return x; }");
+  // Tests inlining across conditional branching if side effects are present
+  @Test
+  public void testInlineVariable_sideEffectInsideBranch_doesNotInlineAcrossBranch() {
+    testSame("function f(cond) { var x = g(); if (cond) { return 0; } return x; }");
+  }
+
+  // Tests inlining inside catch block
+  @Test
+  public void testInlineVariable_catchBlockParameterShadow_doesNotInlineParameter() {
+    test("function f() { var x = 1; try { throw 2; } catch (x) { return x; } }",
+         "function f() { try { throw 2; } catch (x) { return x; } }");
+  }
+
+  // Tests that variable modified inside closure is not inlined
+  @Test
+  public void testInlineVariable_modifiedInsideClosure_doesNotInline() {
+    testSame("function f() { var x = 1; function inner() { x = 2; } inner(); return x; }");
+  }
+
+  // Tests inlining of regex literal
+  @Test
+  public void testInlineRegexLiteral_singleUse_inlinesCorrectly() {
+    test("function f(s) { var re = /abc/g; return re.test(s); }",
+         "function f(s) { return /abc/g.test(s); }");
+  }
+
+  // Tests inlining of object and array literals with single read
+  @Test
+  public void testInlineComplexLiteral_singleRead_inlinesCorrectly() {
+    test("function f() { var obj = {a: 1, b: 2}; return obj.a; }",
+         "function f() { return {a: 1, b: 2}.a; }");
+    test("function f() { var arr = [1, 2, 3]; return arr[0]; }",
+         "function f() { return [1, 2, 3][0]; }");
+  }
+
+  // Tests that multiple reads of mutable object/array literals are not duplicated
+  @Test
+  public void testInlineComplexLiteral_multipleReads_doesNotInlineDuplicate() {
+    testSame("function f() { var obj = {a: 1}; return obj.a + obj.a; }");
+    testSame("function f() { var arr = [1, 2]; return arr[0] + arr[1]; }");
+  }
+
+  // Tests self-referential / recursive variable definitions
+  @Test
+  public void testInlineVariable_recursiveSelfReference_doesNotInline() {
+    testSame("function f() { var f = function() { return f(); }; return f; }");
+  }
+
+  // Tests inlining in conditional operator (ternary)
+  @Test
+  public void testInlineVariable_inTernary_inlinesCorrectly() {
+    test("function f(cond) { var a = 1; var b = 2; return cond ? a : b; }",
+         "function f(cond) { return cond ? 1 : 2; }");
   }
 }

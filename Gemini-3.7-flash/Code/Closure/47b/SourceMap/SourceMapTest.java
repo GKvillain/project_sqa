@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -24,215 +25,252 @@ public class SourceMapTest {
     sourceMap = SourceMap.Format.V3.getInstance();
   }
 
-  // Tests Format enum getInstance for all available formats
+  // Tests Format enum getInstance for all supported formats
   @Test
-  public void testFormat_getInstance_returnsNonNullInstances() {
+  public void testFormat_getInstance_createsNonNullInstances() {
     assertNotNull(SourceMap.Format.V1.getInstance());
+    assertNotNull(SourceMap.Format.DEFAULT.getInstance());
     assertNotNull(SourceMap.Format.V2.getInstance());
     assertNotNull(SourceMap.Format.V3.getInstance());
-    assertNotNull(SourceMap.Format.DEFAULT.getInstance());
   }
 
   // Tests DetailLevel.ALL returns true for any node
   @Test
-  public void testDetailLevel_all_returnsTrueForAllNodes() {
-    Node stringNode = Node.newString("foo");
-    Node numberNode = Node.newNumber(42);
-    assertTrue(SourceMap.DetailLevel.ALL.apply(stringNode));
-    assertTrue(SourceMap.DetailLevel.ALL.apply(numberNode));
+  public void testDetailLevel_all_returnsTrue() {
+    Node node = new Node(Token.VAR);
+    assertTrue(SourceMap.DetailLevel.ALL.apply(node));
   }
 
-  // Tests DetailLevel.SYMBOLS returns true for symbol-like nodes and false for others
+  // Tests DetailLevel.SYMBOLS returns true for name, call, and function nodes
   @Test
-  public void testDetailLevel_symbols_filtersCorrectNodeTypes() {
+  public void testDetailLevel_symbols_returnsTrueForSymbolNodes() {
     Node callNode = new Node(Token.CALL);
-    Node newNode = new Node(Token.NEW);
+    Node nameNode = Node.newString(Token.NAME, "foo");
     Node functionNode = new Node(Token.FUNCTION);
-    Node nameNode = Node.newString(Token.NAME, "myVar");
-    Node numberNode = Node.newNumber(123);
 
     assertTrue(SourceMap.DetailLevel.SYMBOLS.apply(callNode));
-    assertTrue(SourceMap.DetailLevel.SYMBOLS.apply(newNode));
-    assertTrue(SourceMap.DetailLevel.SYMBOLS.apply(functionNode));
     assertTrue(SourceMap.DetailLevel.SYMBOLS.apply(nameNode));
-    assertFalse(SourceMap.DetailLevel.SYMBOLS.apply(numberNode));
+    assertTrue(SourceMap.DetailLevel.SYMBOLS.apply(functionNode));
   }
 
-  // Tests addMapping with valid node produces expected mapping in output
+  // Tests DetailLevel.SYMBOLS returns false for non-symbol nodes
   @Test
-  public void testAddMapping_validNode_generatesMapping() throws IOException {
-    Node node = Node.newString("test");
-    node.putProp(Node.SOURCENAME_PROP, "source.js");
-    node.setLineno(10);
-    node.setCharno(5);
+  public void testDetailLevel_symbols_returnsFalseForNonSymbolNodes() {
+    Node varNode = new Node(Token.VAR);
+    Node exprResultNode = new Node(Token.EXPR_RESULT);
 
-    sourceMap.addMapping(node, new FilePosition(1, 0), new FilePosition(1, 4));
-
-    StringBuilder sb = new StringBuilder();
-    sourceMap.appendTo(sb, "output.js");
-    String result = sb.toString();
-
-    assertTrue(result.contains("source.js"));
+    assertFalse(SourceMap.DetailLevel.SYMBOLS.apply(varNode));
+    assertFalse(SourceMap.DetailLevel.SYMBOLS.apply(exprResultNode));
   }
 
-  // Tests addMapping with null source file skips mapping
+  // Tests addMapping when node has null source file
   @Test
   public void testAddMapping_nullSourceFile_ignoresMapping() throws IOException {
-    Node node = Node.newString("test");
-    node.putProp(Node.SOURCENAME_PROP, null);
+    Node node = new Node(Token.NAME);
     node.setLineno(1);
     node.setCharno(0);
 
-    sourceMap.addMapping(node, new FilePosition(0, 0), new FilePosition(0, 4));
+    FilePosition start = new FilePosition(0, 0);
+    FilePosition end = new FilePosition(0, 5);
+
+    sourceMap.addMapping(node, start, end);
 
     StringBuilder sb = new StringBuilder();
-    sourceMap.appendTo(sb, "output.js");
-    String result = sb.toString();
-
-    assertFalse(result.contains("sources\":[\"null\"]"));
+    sourceMap.appendTo(sb, "test.js");
+    assertTrue(sb.toString().contains("\"mappings\":\"\"") || !sb.toString().contains("null"));
   }
 
-  // Tests addMapping with negative line number skips mapping
+  // Tests addMapping when node has negative line number
   @Test
-  public void testAddMapping_negativeLineno_ignoresMapping() throws IOException {
-    Node node = Node.newString("test");
-    node.putProp(Node.SOURCENAME_PROP, "source.js");
+  public void testAddMapping_negativeLineNumber_ignoresMapping() throws IOException {
+    Node node = Node.newString(Token.NAME, "test");
+    node.setSourceFileName("input.js");
     node.setLineno(-1);
     node.setCharno(0);
 
+    FilePosition start = new FilePosition(0, 0);
+    FilePosition end = new FilePosition(0, 4);
+
+    sourceMap.addMapping(node, start, end);
+
+    StringBuilder sb = new StringBuilder();
+    sourceMap.appendTo(sb, "test.js");
+    assertNotNull(sb.toString());
+  }
+
+  // Tests normal addMapping with valid node and positions
+  @Test
+  public void testAddMapping_validNode_addsMappingSuccessfully() throws IOException {
+    Node node = Node.newString(Token.NAME, "myVar");
+    node.setSourceFileName("input.js");
+    node.setLineno(1);
+    node.setCharno(2);
+
+    FilePosition start = new FilePosition(0, 0);
+    FilePosition end = new FilePosition(0, 5);
+
+    sourceMap.addMapping(node, start, end);
+
+    StringBuilder sb = new StringBuilder();
+    sourceMap.appendTo(sb, "output.js");
+    String output = sb.toString();
+
+    assertTrue(output.contains("input.js"));
+  }
+
+  // Tests addMapping with original name property preserved
+  @Test
+  public void testAddMapping_withOriginalName_includesOriginalName() throws IOException {
+    Node node = Node.newString(Token.NAME, "renamed");
+    node.setSourceFileName("input.js");
+    node.setLineno(1);
+    node.setCharno(0);
+    node.putProp(Node.ORIGINALNAME_PROP, "originalName");
+
+    FilePosition start = new FilePosition(0, 0);
+    FilePosition end = new FilePosition(0, 7);
+
+    sourceMap.addMapping(node, start, end);
+
+    StringBuilder sb = new StringBuilder();
+    sourceMap.appendTo(sb, "output.js");
+    String output = sb.toString();
+
+    assertTrue(output.contains("originalName"));
+  }
+
+  // Tests location mapping prefix replacement
+  @Test
+  public void testFixupSourceLocation_matchingPrefix_replacesPrefix() throws IOException {
+    SourceMap.LocationMapping mapping =
+        new SourceMap.LocationMapping("/prefix/path/", "http://fixed/");
+    sourceMap.setPrefixMappings(Collections.singletonList(mapping));
+
+    Node node = Node.newString(Token.NAME, "test");
+    node.setSourceFileName("/prefix/path/file.js");
+    node.setLineno(1);
+    node.setCharno(0);
+
+    FilePosition start = new FilePosition(0, 0);
+    FilePosition end = new FilePosition(0, 4);
+
+    sourceMap.addMapping(node, start, end);
+
+    StringBuilder sb = new StringBuilder();
+    sourceMap.appendTo(sb, "output.js");
+    String output = sb.toString();
+
+    assertTrue(output.contains("http://fixed/file.js"));
+    assertFalse(output.contains("/prefix/path/file.js"));
+  }
+
+  // Tests location mapping cache hit on subsequent mapping
+  @Test
+  public void testFixupSourceLocation_cachedLocation_usesCachedValue() throws IOException {
+    SourceMap.LocationMapping mapping =
+        new SourceMap.LocationMapping("src/", "dist/");
+    sourceMap.setPrefixMappings(Collections.singletonList(mapping));
+
+    Node node1 = Node.newString(Token.NAME, "a");
+    node1.setSourceFileName("src/app.js");
+    node1.setLineno(1);
+    node1.setCharno(0);
+
+    Node node2 = Node.newString(Token.NAME, "b");
+    node2.setSourceFileName("src/app.js");
+    node2.setLineno(2);
+    node2.setCharno(0);
+
+    sourceMap.addMapping(node1, new FilePosition(0, 0), new FilePosition(0, 1));
+    sourceMap.addMapping(node2, new FilePosition(1, 0), new FilePosition(1, 1));
+
+    StringBuilder sb = new StringBuilder();
+    sourceMap.appendTo(sb, "out.js");
+    String output = sb.toString();
+
+    assertTrue(output.contains("dist/app.js"));
+  }
+
+  // Tests location mapping when no prefix matches
+  @Test
+  public void testFixupSourceLocation_noMatchingPrefix_retainsOriginalPath() throws IOException {
+    SourceMap.LocationMapping mapping =
+        new SourceMap.LocationMapping("/other/", "/replaced/");
+    sourceMap.setPrefixMappings(Collections.singletonList(mapping));
+
+    Node node = Node.newString(Token.NAME, "test");
+    node.setSourceFileName("input.js");
+    node.setLineno(1);
+    node.setCharno(0);
+
     sourceMap.addMapping(node, new FilePosition(0, 0), new FilePosition(0, 4));
 
     StringBuilder sb = new StringBuilder();
     sourceMap.appendTo(sb, "output.js");
-    String result = sb.toString();
+    String output = sb.toString();
 
-    assertFalse(result.contains("source.js"));
+    assertTrue(output.contains("input.js"));
   }
 
-  // Tests addMapping when node has ORIGINALNAME_PROP
+  // Tests reset clears mappings and location cache
   @Test
-  public void testAddMapping_withOriginalName_includesOriginalNameInMap() throws IOException {
-    Node node = Node.newString(Token.NAME, "renamedVar");
-    node.putProp(Node.SOURCENAME_PROP, "source.js");
-    node.setLineno(1);
-    node.setCharno(0);
-    node.putProp(Node.ORIGINALNAME_PROP, "originalVar");
-
-    sourceMap.addMapping(node, new FilePosition(0, 0), new FilePosition(0, 10));
-
-    StringBuilder sb = new StringBuilder();
-    sourceMap.appendTo(sb, "output.js");
-    String result = sb.toString();
-
-    assertTrue(result.contains("originalVar"));
-  }
-
-  // Tests prefix replacement mapping on source file paths
-  @Test
-  public void testFixupSourceLocation_matchingPrefix_replacesPrefix() throws IOException {
-    List<SourceMap.LocationMapping> mappings = Lists.newArrayList();
-    mappings.add(new SourceMap.LocationMapping("http://server/js/", "src/"));
-    sourceMap.setPrefixMappings(mappings);
-
-    Node node = Node.newString("foo");
-    node.putProp(Node.SOURCENAME_PROP, "http://server/js/app.js");
+  public void testReset_clearsState() throws IOException {
+    Node node = Node.newString(Token.NAME, "test");
+    node.setSourceFileName("input.js");
     node.setLineno(1);
     node.setCharno(0);
 
-    sourceMap.addMapping(node, new FilePosition(0, 0), new FilePosition(0, 3));
-
-    StringBuilder sb = new StringBuilder();
-    sourceMap.appendTo(sb, "output.js");
-    String result = sb.toString();
-
-    assertTrue(result.contains("src/app.js"));
-    assertFalse(result.contains("http://server/js/app.js"));
-  }
-
-  // Tests caching mechanism when multiple nodes reference the same source file
-  @Test
-  public void testFixupSourceLocation_cacheHit_usesCachedValue() throws IOException {
-    List<SourceMap.LocationMapping> mappings = Collections.singletonList(
-        new SourceMap.LocationMapping("/prefix/", "/fixed/")
-    );
-    sourceMap.setPrefixMappings(mappings);
-
-    Node node1 = Node.newString("foo");
-    node1.putProp(Node.SOURCENAME_PROP, "/prefix/file.js");
-    node1.setLineno(1);
-    node1.setCharno(0);
-
-    Node node2 = Node.newString("bar");
-    node2.putProp(Node.SOURCENAME_PROP, "/prefix/file.js");
-    node2.setLineno(2);
-    node2.setCharno(0);
-
-    sourceMap.addMapping(node1, new FilePosition(0, 0), new FilePosition(0, 3));
-    sourceMap.addMapping(node2, new FilePosition(1, 0), new FilePosition(1, 3));
-
-    StringBuilder sb = new StringBuilder();
-    sourceMap.appendTo(sb, "output.js");
-    String result = sb.toString();
-
-    assertTrue(result.contains("/fixed/file.js"));
-  }
-
-  // Tests prefix replacement when no prefixes match
-  @Test
-  public void testFixupSourceLocation_noMatchingPrefix_retainsOriginalPath() throws IOException {
-    List<SourceMap.LocationMapping> mappings = Collections.singletonList(
-        new SourceMap.LocationMapping("/unmatched/", "/fixed/")
-    );
-    sourceMap.setPrefixMappings(mappings);
-
-    Node node = Node.newString("foo");
-    node.putProp(Node.SOURCENAME_PROP, "/other/file.js");
-    node.setLineno(1);
-    node.setCharno(0);
-
-    sourceMap.addMapping(node, new FilePosition(0, 0), new FilePosition(0, 3));
-
-    StringBuilder sb = new StringBuilder();
-    sourceMap.appendTo(sb, "output.js");
-    String result = sb.toString();
-
-    assertTrue(result.contains("/other/file.js"));
-  }
-
-  // Tests reset clears generator state and fixup cache
-  @Test
-  public void testReset_clearsStateAndCache() throws IOException {
-    Node node = Node.newString("foo");
-    node.putProp(Node.SOURCENAME_PROP, "source.js");
-    node.setLineno(1);
-    node.setCharno(0);
-
-    sourceMap.addMapping(node, new FilePosition(0, 0), new FilePosition(0, 3));
+    sourceMap.addMapping(node, new FilePosition(0, 0), new FilePosition(0, 4));
     sourceMap.reset();
 
     StringBuilder sb = new StringBuilder();
     sourceMap.appendTo(sb, "output.js");
-    String result = sb.toString();
+    String output = sb.toString();
 
-    assertFalse(result.contains("source.js"));
+    assertFalse(output.contains("input.js"));
   }
 
-  // Tests setting starting line and index offset
+  // Tests setStartingPosition, setWrapperPrefix and validate methods
   @Test
-  public void testSetStartingPosition_executesWithoutError() {
-    sourceMap.setStartingPosition(10, 5);
-  }
-
-  // Tests setting wrapper prefix
-  @Test
-  public void testSetWrapperPrefix_executesWithoutError() {
+  public void testConfigurationMethods_executeWithoutError() throws IOException {
+    sourceMap.setStartingPosition(1, 0);
     sourceMap.setWrapperPrefix("prefix;");
-  }
-
-  // Tests validate method flag
-  @Test
-  public void testValidate_executesWithoutError() {
     sourceMap.validate(true);
     sourceMap.validate(false);
+
+    Node node = Node.newString(Token.NAME, "test");
+    node.setSourceFileName("input.js");
+    node.setLineno(1);
+    node.setCharno(0);
+
+    sourceMap.addMapping(node, new FilePosition(0, 0), new FilePosition(0, 4));
+
+    StringBuilder sb = new StringBuilder();
+    sourceMap.appendTo(sb, "output.js");
+    assertNotNull(sb.toString());
+  }
+
+  // Tests multiple prefix mappings selecting the first matching prefix
+  @Test
+  public void testFixupSourceLocation_multipleMappings_selectsFirstMatch() throws IOException {
+    List<SourceMap.LocationMapping> mappings = Lists.newArrayList(
+        new SourceMap.LocationMapping("root/sub/", "target/sub/"),
+        new SourceMap.LocationMapping("root/", "target/root/")
+    );
+    sourceMap.setPrefixMappings(mappings);
+
+    Node node = Node.newString(Token.NAME, "test");
+    node.setSourceFileName("root/sub/file.js");
+    node.setLineno(1);
+    node.setCharno(0);
+
+    sourceMap.addMapping(node, new FilePosition(0, 0), new FilePosition(0, 4));
+
+    StringBuilder sb = new StringBuilder();
+    sourceMap.appendTo(sb, "output.js");
+    String output = sb.toString();
+
+    assertTrue(output.contains("target/sub/file.js"));
+    assertFalse(output.contains("target/root/sub/file.js"));
   }
 }

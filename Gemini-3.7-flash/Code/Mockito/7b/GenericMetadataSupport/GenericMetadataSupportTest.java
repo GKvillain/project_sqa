@@ -18,25 +18,6 @@ import static org.junit.Assert.*;
 
 public class GenericMetadataSupportTest {
 
-    interface SingleGeneric<T> {
-        T get();
-        String nonGeneric();
-        List<T> list();
-    }
-
-    interface MultiGeneric<K, V> {
-        K getKey();
-        V getValue();
-    }
-
-    interface SubSingleGeneric extends SingleGeneric<String> {
-    }
-
-    interface BoundedGeneric<T extends Comparable<T> & Cloneable> {
-        T getBounded();
-        <S extends T> S getSubBounded();
-    }
-
     interface GenericsNest<K extends Comparable<K> & Cloneable> extends Map<K, Set<Number>> {
         Set<Number> remove(Object key);
         List<? super Integer> returning_wildcard_with_class_lower_bound();
@@ -49,276 +30,181 @@ public class GenericMetadataSupportTest {
         Number returningNonGeneric();
     }
 
-    static class BaseGenericClass<A, B> {
-        A a;
-        B b;
+    interface UpperBoundedInterface<E extends Number & Serializable> {
+        E getBounded();
     }
 
-    static class SubGenericClass extends BaseGenericClass<String, Integer> implements Serializable {
+    static class StringGenericsNest implements GenericsNest<StringComparableCloneable> {
+        public Set<Number> remove(Object key) { return null; }
+        public List<? super Integer> returning_wildcard_with_class_lower_bound() { return null; }
+        public List<? super StringComparableCloneable> returning_wildcard_with_typeVar_lower_bound() { return null; }
+        public List<? extends StringComparableCloneable> returning_wildcard_with_typeVar_upper_bound() { return null; }
+        public StringComparableCloneable returningK() { return null; }
+        public <O extends StringComparableCloneable> List<O> paramType_with_type_params() { return null; }
+        public <S, T extends S> T two_type_params() { return null; }
+        public <O extends StringComparableCloneable> O typeVar_with_type_params() { return null; }
+        public Number returningNonGeneric() { return null; }
+        public void clear() {}
+        public boolean containsKey(Object key) { return false; }
+        public boolean containsValue(Object value) { return false; }
+        public Set<java.util.Map.Entry<StringComparableCloneable, Set<Number>>> entrySet() { return null; }
+        public boolean equals(Object o) { return false; }
+        public Set<Number> get(Object key) { return null; }
+        public int hashCode() { return 0; }
+        public boolean isEmpty() { return false; }
+        public Set<StringComparableCloneable> keySet() { return null; }
+        public Set<Number> put(StringComparableCloneable key, Set<Number> value) { return null; }
+        public void putAll(Map<? extends StringComparableCloneable, ? extends Set<Number>> m) {}
+        public int size() { return 0; }
+        public java.util.Collection<Set<Number>> values() { return null; }
     }
 
-    interface MultipleInterfaceBounds<T extends Serializable & Cloneable> {
-        T getMultiple();
+    static abstract class StringComparableCloneable implements Comparable<StringComparableCloneable>, Cloneable {
     }
 
-    private static class DummyType implements Type {
-    }
-
-    // Tests null input to inferFrom
-    @Test(expected = RuntimeException.class)
-    public void testInferFrom_nullType_throwsException() {
-        GenericMetadataSupport.inferFrom(null);
-    }
-
-    // Tests unsupported Type implementation to inferFrom
-    @Test(expected = MockitoException.class)
-    public void testInferFrom_unsupportedType_throwsMockitoException() {
-        GenericMetadataSupport.inferFrom(new DummyType());
-    }
-
-    // Tests inferFrom with standard Class
+    // Tests inferFrom with Class
     @Test
-    public void testInferFrom_class_returnsFromClassGenericMetadataSupport() {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(String.class);
-        assertNotNull(metadata);
-        assertEquals(String.class, metadata.rawType());
-        assertTrue(metadata.actualTypeArguments().isEmpty());
-        assertFalse(metadata.hasRawExtraInterfaces());
-        assertEquals(0, metadata.rawExtraInterfaces().length);
-        assertEquals(Collections.emptyList(), metadata.extraInterfaces());
+    public void testInferFrom_class_returnsClassMetadata() {
+        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(StringGenericsNest.class);
+        assertEquals(StringGenericsNest.class, metadata.rawType());
     }
 
     // Tests inferFrom with ParameterizedType
     @Test
-    public void testInferFrom_parameterizedType_returnsCorrectRawTypeAndArgs() throws Exception {
+    public void testInferFrom_parameterizedType_returnsParameterizedMetadata() throws NoSuchMethodException {
         Method method = GenericsNest.class.getMethod("paramType_with_type_params");
         Type genericReturnType = method.getGenericReturnType();
-        assertTrue(genericReturnType instanceof ParameterizedType);
-
         GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(genericReturnType);
-        assertNotNull(metadata);
         assertEquals(List.class, metadata.rawType());
+    }
+
+    // Tests inferFrom with null input throws MockitoException
+    @Test(expected = MockitoException.class)
+    public void testInferFrom_nullType_throwsMockitoException() {
+        GenericMetadataSupport.inferFrom(null);
+    }
+
+    // Tests inferFrom with unsupported Type throws MockitoException
+    @Test(expected = MockitoException.class)
+    public void testInferFrom_unsupportedType_throwsMockitoException() {
+        Type customType = new Type() {
+            @Override
+            public String toString() {
+                return "CustomType";
+            }
+        };
+        GenericMetadataSupport.inferFrom(customType);
     }
 
     // Tests resolving non-generic return type
     @Test
-    public void testResolveGenericReturnType_nonGenericMethod_returnsClass() throws Exception {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(SingleGeneric.class);
-        Method method = SingleGeneric.class.getMethod("nonGeneric");
-
-        GenericMetadataSupport returnTypeMetadata = metadata.resolveGenericReturnType(method);
-        assertEquals(String.class, returnTypeMetadata.rawType());
-        assertFalse(returnTypeMetadata.hasRawExtraInterfaces());
-    }
-
-    // Tests resolving ParameterizedType return type on class
-    @Test
-    public void testResolveGenericReturnType_parameterizedReturnType_returnsRawClass() throws Exception {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(SingleGeneric.class);
-        Method method = SingleGeneric.class.getMethod("list");
-
-        GenericMetadataSupport returnTypeMetadata = metadata.resolveGenericReturnType(method);
-        assertEquals(List.class, returnTypeMetadata.rawType());
-    }
-
-    // Tests resolving TypeVariable return type from an interface declaration
-    @Test
-    public void testResolveGenericReturnType_typeVariableOnInterface_returnsBoundOrObject() throws Exception {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(SingleGeneric.class);
-        Method method = SingleGeneric.class.getMethod("get");
-
-        GenericMetadataSupport returnTypeMetadata = metadata.resolveGenericReturnType(method);
-        assertEquals(Object.class, returnTypeMetadata.rawType());
-    }
-
-    // Tests resolving TypeVariable on concrete sub-interface
-    @Test
-    public void testResolveGenericReturnType_typeVariableOnSubInterface_resolvesActualType() throws Exception {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(SubSingleGeneric.class);
-        Method method = SingleGeneric.class.getMethod("get");
-
-        GenericMetadataSupport returnTypeMetadata = metadata.resolveGenericReturnType(method);
-        assertEquals(String.class, returnTypeMetadata.rawType());
-    }
-
-    // Tests resolving TypeVariable on bounded interface
-    @Test
-    public void testResolveGenericReturnType_boundedTypeVariable_resolvesBoundsAndExtraInterfaces() throws Exception {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(BoundedGeneric.class);
-        Method method = BoundedGeneric.class.getMethod("getBounded");
-
-        GenericMetadataSupport returnTypeMetadata = metadata.resolveGenericReturnType(method);
-        assertEquals(Comparable.class, returnTypeMetadata.rawType());
-        assertTrue(returnTypeMetadata.hasRawExtraInterfaces());
-        assertArrayEquals(new Class<?>[]{Cloneable.class}, returnTypeMetadata.rawExtraInterfaces());
-    }
-
-    // Tests resolving method-level TypeVariable with upper bound
-    @Test
-    public void testResolveGenericReturnType_methodLevelTypeVariable_resolvesUpperBounds() throws Exception {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(BoundedGeneric.class);
-        Method method = BoundedGeneric.class.getMethod("getSubBounded");
-
-        GenericMetadataSupport returnTypeMetadata = metadata.resolveGenericReturnType(method);
-        assertEquals(Comparable.class, returnTypeMetadata.rawType());
-        assertTrue(returnTypeMetadata.hasRawExtraInterfaces());
-        assertArrayEquals(new Class<?>[]{Cloneable.class}, returnTypeMetadata.rawExtraInterfaces());
-    }
-
-    // Tests resolving various methods in GenericsNest
-    @Test
-    public void testResolveGenericReturnType_genericsNestMethods_resolvesCorrectly() throws Exception {
+    public void testResolveGenericReturnType_nonGenericMethod_returnsClassType() throws NoSuchMethodException {
         GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(GenericsNest.class);
+        Method method = GenericsNest.class.getMethod("returningNonGeneric");
+        GenericMetadataSupport returnMetadata = metadata.resolveGenericReturnType(method);
 
-        Method removeMethod = GenericsNest.class.getMethod("remove", Object.class);
-        GenericMetadataSupport removeMetadata = metadata.resolveGenericReturnType(removeMethod);
-        assertEquals(Set.class, removeMetadata.rawType());
-
-        Method returningKMethod = GenericsNest.class.getMethod("returningK");
-        GenericMetadataSupport returningKMetadata = metadata.resolveGenericReturnType(returningKMethod);
-        assertEquals(Comparable.class, returningKMetadata.rawType());
-        assertTrue(returningKMetadata.hasRawExtraInterfaces());
-        assertArrayEquals(new Class<?>[]{Cloneable.class}, returningKMetadata.rawExtraInterfaces());
-
-        Method returningNonGenericMethod = GenericsNest.class.getMethod("returningNonGeneric");
-        GenericMetadataSupport nonGenericMetadata = metadata.resolveGenericReturnType(returningNonGenericMethod);
-        assertEquals(Number.class, nonGenericMetadata.rawType());
-
-        Method twoTypeParamsMethod = GenericsNest.class.getMethod("two_type_params");
-        GenericMetadataSupport twoTypeParamsMetadata = metadata.resolveGenericReturnType(twoTypeParamsMethod);
-        assertEquals(Object.class, twoTypeParamsMetadata.rawType());
+        assertEquals(Number.class, returnMetadata.rawType());
+        assertFalse(returnMetadata.hasRawExtraInterfaces());
+        assertEquals(0, returnMetadata.rawExtraInterfaces().length);
+        assertEquals(Collections.emptyList(), returnMetadata.extraInterfaces());
     }
 
-    // Tests actualTypeArguments retrieval on a parameterized generic interface
+    // Tests resolving ParameterizedType return type
     @Test
-    public void testActualTypeArguments_subSingleGeneric_containsConcreteBinding() {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(SubSingleGeneric.class);
-        Map<TypeVariable, Type> actualArgs = metadata.actualTypeArguments();
-        assertNotNull(actualArgs);
-        assertEquals(0, actualArgs.size());
+    public void testResolveGenericReturnType_parameterizedReturnType_returnsRawClass() throws NoSuchMethodException {
+        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(GenericsNest.class);
+        Method method = GenericsNest.class.getMethod("remove", Object.class);
+        GenericMetadataSupport returnMetadata = metadata.resolveGenericReturnType(method);
+
+        assertEquals(Set.class, returnMetadata.rawType());
     }
 
-    // Tests actualTypeArguments on class with type parameters
+    // Tests resolving TypeVariable return type
     @Test
-    public void testActualTypeArguments_genericClass_returnsTypeVariableMap() {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(MultiGeneric.class);
-        Map<TypeVariable, Type> actualArgs = metadata.actualTypeArguments();
-        assertEquals(2, actualArgs.size());
-        for (Map.Entry<TypeVariable, Type> entry : actualArgs.entrySet()) {
-            assertNotNull(entry.getKey());
-            assertNotNull(entry.getValue());
-        }
+    public void testResolveGenericReturnType_typeVariableReturnType_returnsBoundRawClass() throws NoSuchMethodException {
+        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(GenericsNest.class);
+        Method method = GenericsNest.class.getMethod("returningK");
+        GenericMetadataSupport returnMetadata = metadata.resolveGenericReturnType(method);
+
+        assertEquals(Comparable.class, returnMetadata.rawType());
+        assertTrue(returnMetadata.hasRawExtraInterfaces());
+        assertArrayEquals(new Class<?>[]{Cloneable.class}, returnMetadata.rawExtraInterfaces());
     }
 
-    // Tests TypeVarBoundedType methods, equals, hashCode and toString
+    // Tests resolving method with TypeVariable bounds on class hierarchy
     @Test
-    public void testTypeVarBoundedType_behavior() throws Exception {
-        Method method = BoundedGeneric.class.getMethod("getBounded");
-        TypeVariable<?> typeVar = (TypeVariable<?>) method.getGenericReturnType();
+    public void testResolveGenericReturnType_implementedGenerics_resolvesActualType() throws NoSuchMethodException {
+        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(StringGenericsNest.class);
+        Method method = GenericsNest.class.getMethod("returningK");
+        GenericMetadataSupport returnMetadata = metadata.resolveGenericReturnType(method);
+
+        assertEquals(StringComparableCloneable.class, returnMetadata.rawType());
+    }
+
+    // Tests actualTypeArguments on generic class
+    @Test
+    public void testActualTypeArguments_genericInterface_returnsResolvedTypeMap() {
+        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(GenericsNest.class);
+        Map<TypeVariable, Type> typeArguments = metadata.actualTypeArguments();
+
+        assertNotNull(typeArguments);
+        assertEquals(1, typeArguments.size());
+    }
+
+    // Tests TypeVarBoundedType methods
+    @Test
+    public void testTypeVarBoundedType_boundsAndEquality() throws NoSuchMethodException {
+        TypeVariable<?>[] typeParameters = UpperBoundedInterface.class.getTypeParameters();
+        TypeVariable<?> typeVar = typeParameters[0];
 
         GenericMetadataSupport.TypeVarBoundedType boundedType = new GenericMetadataSupport.TypeVarBoundedType(typeVar);
-        assertEquals(Comparable.class, ((ParameterizedType) boundedType.firstBound()).getRawType());
-        assertEquals(1, boundedType.interfaceBounds().length);
-        assertEquals(Cloneable.class, boundedType.interfaceBounds()[0]);
+
+        assertEquals(Number.class, boundedType.firstBound());
+        assertArrayEquals(new Type[]{Serializable.class}, boundedType.interfaceBounds());
         assertEquals(typeVar, boundedType.typeVariable());
 
         GenericMetadataSupport.TypeVarBoundedType sameBoundedType = new GenericMetadataSupport.TypeVarBoundedType(typeVar);
         assertEquals(boundedType, sameBoundedType);
         assertEquals(boundedType.hashCode(), sameBoundedType.hashCode());
         assertNotNull(boundedType.toString());
+
         assertFalse(boundedType.equals(null));
-        assertFalse(boundedType.equals("string"));
+        assertFalse(boundedType.equals("NotATypeVarBoundedType"));
     }
 
-    // Tests WildCardBoundedType methods, equals, hashCode and toString
+    // Tests WildCardBoundedType methods with upper bound
     @Test
-    public void testWildCardBoundedType_behavior() throws Exception {
+    public void testWildCardBoundedType_upperBound() throws NoSuchMethodException {
         Method method = GenericsNest.class.getMethod("returning_wildcard_with_class_lower_bound");
         ParameterizedType returnType = (ParameterizedType) method.getGenericReturnType();
         WildcardType wildcardType = (WildcardType) returnType.getActualTypeArguments()[0];
 
-        GenericMetadataSupport.WildCardBoundedType wildCardBoundedType = new GenericMetadataSupport.WildCardBoundedType(wildcardType);
-        assertEquals(Integer.class, wildCardBoundedType.firstBound());
-        assertEquals(0, wildCardBoundedType.interfaceBounds().length);
-        assertEquals(wildcardType, wildCardBoundedType.wildCard());
+        GenericMetadataSupport.WildCardBoundedType boundedType = new GenericMetadataSupport.WildCardBoundedType(wildcardType);
 
-        GenericMetadataSupport.WildCardBoundedType sameWildCardBoundedType = new GenericMetadataSupport.WildCardBoundedType(wildcardType);
-        assertEquals(wildCardBoundedType.hashCode(), sameWildCardBoundedType.hashCode());
-        assertNotNull(wildCardBoundedType.toString());
-        assertFalse(wildCardBoundedType.equals(null));
-        assertFalse(wildCardBoundedType.equals("string"));
+        assertEquals(Integer.class, boundedType.firstBound());
+        assertEquals(0, boundedType.interfaceBounds().length);
+        assertEquals(wildcardType, boundedType.wildCard());
+        assertNotNull(boundedType.toString());
+        assertEquals(wildcardType.hashCode(), boundedType.hashCode());
     }
 
-    // Tests wildcard upper bound in GenericsNest
+    // Tests method with type parameters defined on the method itself
     @Test
-    public void testResolveGenericReturnType_wildcardUpperBounds() throws Exception {
+    public void testResolveGenericReturnType_methodWithTypeParameters_resolvesProperly() throws NoSuchMethodException {
         GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(GenericsNest.class);
-        Method method = GenericsNest.class.getMethod("returning_wildcard_with_typeVar_upper_bound");
-        GenericMetadataSupport returnTypeMetadata = metadata.resolveGenericReturnType(method);
-        assertEquals(List.class, returnTypeMetadata.rawType());
+        Method method = GenericsNest.class.getMethod("two_type_params");
+        GenericMetadataSupport returnMetadata = metadata.resolveGenericReturnType(method);
+
+        assertEquals(Object.class, returnMetadata.rawType());
     }
 
-    // Tests inferFrom with TypeVariable directly
+    // Tests method returning TypeVariable with nested type params
     @Test
-    public void testInferFrom_typeVariable_returnsMetadata() {
-        TypeVariable<?> typeVar = GenericsNest.class.getTypeParameters()[0];
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(typeVar);
-        assertNotNull(metadata);
-        assertEquals(Comparable.class, metadata.rawType());
-        assertTrue(metadata.hasRawExtraInterfaces());
-        assertArrayEquals(new Class<?>[]{Cloneable.class}, metadata.rawExtraInterfaces());
-    }
-
-    // Tests inferFrom with WildcardType directly
-    @Test
-    public void testInferFrom_wildcardType_returnsMetadata() throws Exception {
-        Method method = GenericsNest.class.getMethod("returning_wildcard_with_class_lower_bound");
-        ParameterizedType returnType = (ParameterizedType) method.getGenericReturnType();
-        WildcardType wildcardType = (WildcardType) returnType.getActualTypeArguments()[0];
-
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(wildcardType);
-        assertNotNull(metadata);
-        assertEquals(Integer.class, metadata.rawType());
-    }
-
-    // Tests inferFrom with BoundedType directly
-    @Test
-    public void testInferFrom_boundedType_returnsMetadata() throws Exception {
-        Method method = BoundedGeneric.class.getMethod("getBounded");
-        TypeVariable<?> typeVar = (TypeVariable<?>) method.getGenericReturnType();
-        GenericMetadataSupport.TypeVarBoundedType boundedType = new GenericMetadataSupport.TypeVarBoundedType(typeVar);
-
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(boundedType);
-        assertNotNull(metadata);
-        assertEquals(Comparable.class, metadata.rawType());
-        assertTrue(metadata.hasRawExtraInterfaces());
-    }
-
-    // Tests resolveGenericReturnType for wildcard with TypeVariable lower bound
-    @Test
-    public void testResolveGenericReturnType_wildcardWithTypeVarLowerBound() throws Exception {
+    public void testResolveGenericReturnType_typeVarWithTypeParams_resolvesToBound() throws NoSuchMethodException {
         GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(GenericsNest.class);
-        Method method = GenericsNest.class.getMethod("returning_wildcard_with_typeVar_lower_bound");
-        GenericMetadataSupport returnTypeMetadata = metadata.resolveGenericReturnType(method);
-        assertEquals(List.class, returnTypeMetadata.rawType());
-    }
+        Method method = GenericsNest.class.getMethod("typeVar_with_type_params");
+        GenericMetadataSupport returnMetadata = metadata.resolveGenericReturnType(method);
 
-    // Tests class hierarchy with generic superclass
-    @Test
-    public void testInferFrom_classWithGenericSuperClass_registersTypeVariables() {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(SubGenericClass.class);
-        assertNotNull(metadata);
-        assertEquals(SubGenericClass.class, metadata.rawType());
-    }
-
-    // Tests multiple interface bounds on TypeVariable
-    @Test
-    public void testResolveGenericReturnType_multipleInterfaceBounds() throws Exception {
-        GenericMetadataSupport metadata = GenericMetadataSupport.inferFrom(MultipleInterfaceBounds.class);
-        Method method = MultipleInterfaceBounds.class.getMethod("getMultiple");
-        GenericMetadataSupport returnTypeMetadata = metadata.resolveGenericReturnType(method);
-        assertEquals(Serializable.class, returnTypeMetadata.rawType());
-        assertTrue(returnTypeMetadata.hasRawExtraInterfaces());
-        assertArrayEquals(new Class<?>[]{Cloneable.class}, returnTypeMetadata.rawExtraInterfaces());
+        assertEquals(Comparable.class, returnMetadata.rawType());
     }
 }

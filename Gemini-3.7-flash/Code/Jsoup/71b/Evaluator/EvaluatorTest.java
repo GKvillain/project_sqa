@@ -8,297 +8,376 @@ import org.junit.Test;
 
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class EvaluatorTest {
 
     private Document doc;
-    private Element body;
 
     @Before
     public void setUp() {
-        String html = "<html><head><title>Test</title></head>"
-                + "<body>"
-                + "<div id='div1' class='main highlight' data-key='value123' title='hello world'><span>Text 1</span><p>Para 1</p></div>"
-                + "<div id='div2' class='sub' data-name='test' custom-attr='xyz'><p class='inner'>Para 2</p><span>Text 2</span></div>"
-                + "<div id='emptyDiv'><!-- comment --></div>"
-                + "<ul id='list'><li>Item 1</li><li>Item 2</li><li>Item 3</li></ul>"
-                + "<script>var x = 'script_data';</script>"
-                + "</body></html>";
+        String html = "<div id='root'>"
+                + "<div id='d1' class='test one' title='heading' data-val='xyz' custom-attr='abc'>"
+                + "<p id='p1' class='text'>First paragraph</p>"
+                + "<p id='p2' class='text special'>Second paragraph with <b>bold</b> text</p>"
+                + "<span id='s1'>Span text</span>"
+                + "<div id='empty-div'><!-- comment --></div>"
+                + "</div>"
+                + "</div>";
         doc = Jsoup.parse(html);
-        body = doc.body();
     }
 
-    // Tests tag name evaluator matching and toString
+    // Tests Tag evaluator matching and toString
     @Test
-    public void testTag_matchingElement_returnsTrue() {
-        Evaluator.Tag eval = new Evaluator.Tag("div");
-        Element div1 = doc.getElementById("div1");
-        Element span = div1.select("span").first();
+    public void testTag_matchesAndToString_returnsExpected() {
+        Evaluator.Tag eval = new Evaluator.Tag("p");
+        Element p1 = doc.getElementById("p1");
+        Element s1 = doc.getElementById("s1");
 
-        assertTrue(eval.matches(body, div1));
-        assertFalse(eval.matches(body, span));
-        assertEquals("div", eval.toString());
+        assertTrue(eval.matches(doc, p1));
+        assertFalse(eval.matches(doc, s1));
+        assertEquals("p", eval.toString());
     }
 
-    // Tests tag ends with evaluator
+    // Tests TagEndsWith evaluator
     @Test
-    public void testTagEndsWith_matchingSuffix_returnsTrue() {
-        Evaluator.TagEndsWith eval = new Evaluator.TagEndsWith("iv");
-        Element div1 = doc.getElementById("div1");
-        Element span = div1.select("span").first();
+    public void testTagEndsWith_matchingTagSuffix_returnsTrue() {
+        Evaluator.TagEndsWith eval = new Evaluator.TagEndsWith("v");
+        Element d1 = doc.getElementById("d1");
+        Element p1 = doc.getElementById("p1");
 
-        assertTrue(eval.matches(body, div1));
-        assertFalse(eval.matches(body, span));
-        assertEquals("iv", eval.toString());
+        assertTrue(eval.matches(doc, d1));
+        assertFalse(eval.matches(doc, p1));
+        assertEquals("v", eval.toString());
     }
 
-    // Tests ID and Class evaluators
+    // Tests Id evaluator matching and toString
     @Test
-    public void testIdAndClass_validElements_matchCorrectly() {
-        Evaluator.Id idEval = new Evaluator.Id("div1");
-        Evaluator.Class classEval = new Evaluator.Class("highlight");
-        Element div1 = doc.getElementById("div1");
-        Element div2 = doc.getElementById("div2");
+    public void testId_matchesAndToString_returnsExpected() {
+        Evaluator.Id eval = new Evaluator.Id("d1");
+        Element d1 = doc.getElementById("d1");
+        Element p1 = doc.getElementById("p1");
 
-        assertTrue(idEval.matches(body, div1));
-        assertFalse(idEval.matches(body, div2));
-        assertEquals("#div1", idEval.toString());
-
-        assertTrue(classEval.matches(body, div1));
-        assertFalse(classEval.matches(body, div2));
-        assertEquals(".highlight", classEval.toString());
+        assertTrue(eval.matches(doc, d1));
+        assertFalse(eval.matches(doc, p1));
+        assertEquals("#d1", eval.toString());
     }
 
-    // Tests attribute name existence and attribute starting with prefix
+    // Tests Class evaluator matching and toString
     @Test
-    public void testAttributeAndAttributeStarting_presentAttributes_matchCorrectly() {
-        Evaluator.Attribute attrEval = new Evaluator.Attribute("custom-attr");
-        Evaluator.AttributeStarting attrStartEval = new Evaluator.AttributeStarting("data-");
-        Element div1 = doc.getElementById("div1");
-        Element div2 = doc.getElementById("div2");
+    public void testClass_matchesAndToString_returnsExpected() {
+        Evaluator.Class eval = new Evaluator.Class("special");
+        Element p1 = doc.getElementById("p1");
+        Element p2 = doc.getElementById("p2");
 
-        assertFalse(attrEval.matches(body, div1));
-        assertTrue(attrEval.matches(body, div2));
-        assertEquals("[custom-attr]", attrEval.toString());
-
-        assertTrue(attrStartEval.matches(body, div1));
-        assertTrue(attrStartEval.matches(body, div2));
-        assertFalse(attrStartEval.matches(body, doc.getElementById("emptyDiv")));
-        assertEquals("[^data-]", attrStartEval.toString());
+        assertFalse(eval.matches(doc, p1));
+        assertTrue(eval.matches(doc, p2));
+        assertEquals(".special", eval.toString());
     }
 
-    // Tests attribute value comparisons (exact, not, prefix, suffix, contains)
+    // Tests Attribute evaluator
     @Test
-    public void testAttributeValueVariants_validValues_matchCorrectly() {
-        Element div1 = doc.getElementById("div1");
+    public void testAttribute_hasAttribute_returnsTrue() {
+        Evaluator.Attribute eval = new Evaluator.Attribute("title");
+        Element d1 = doc.getElementById("d1");
+        Element p1 = doc.getElementById("p1");
 
-        Evaluator.AttributeWithValue eqEval = new Evaluator.AttributeWithValue("data-key", "value123");
-        assertTrue(eqEval.matches(body, div1));
-        assertEquals("[data-key=value123]", eqEval.toString());
-
-        Evaluator.AttributeWithValueNot notEval = new Evaluator.AttributeWithValueNot("data-key", "wrong");
-        assertTrue(notEval.matches(body, div1));
-        assertEquals("[data-key!=wrong]", notEval.toString());
-
-        Evaluator.AttributeWithValueStarting startEval = new Evaluator.AttributeWithValueStarting("data-key", "val");
-        assertTrue(startEval.matches(body, div1));
-        assertEquals("[data-key^=val]", startEval.toString());
-
-        Evaluator.AttributeWithValueEnding endEval = new Evaluator.AttributeWithValueEnding("data-key", "123");
-        assertTrue(endEval.matches(body, div1));
-        assertEquals("[data-key$=123]", endEval.toString());
-
-        Evaluator.AttributeWithValueContaining contEval = new Evaluator.AttributeWithValueContaining("data-key", "lue");
-        assertTrue(contEval.matches(body, div1));
-        assertEquals("[data-key*=lue]", contEval.toString());
+        assertTrue(eval.matches(doc, d1));
+        assertFalse(eval.matches(doc, p1));
+        assertEquals("[title]", eval.toString());
     }
 
-    // Tests attribute value matching by regex pattern
+    // Tests AttributeStarting evaluator with prefix
+    @Test
+    public void testAttributeStarting_prefixMatch_returnsTrue() {
+        Evaluator.AttributeStarting eval = new Evaluator.AttributeStarting("data-");
+        Element d1 = doc.getElementById("d1");
+        Element p1 = doc.getElementById("p1");
+
+        assertTrue(eval.matches(doc, d1));
+        assertFalse(eval.matches(doc, p1));
+        assertEquals("[^data-]", eval.toString());
+    }
+
+    // Tests AttributeWithValue matching quoted and unquoted values
+    @Test
+    public void testAttributeWithValue_matchingValue_returnsExpected() {
+        Evaluator.AttributeWithValue eval = new Evaluator.AttributeWithValue("title", "\"heading\"");
+        Element d1 = doc.getElementById("d1");
+        Element p1 = doc.getElementById("p1");
+
+        assertTrue(eval.matches(doc, d1));
+        assertFalse(eval.matches(doc, p1));
+        assertEquals("[title=heading]", eval.toString());
+    }
+
+    // Tests AttributeWithValueNot, Starting, Ending, and Containing
+    @Test
+    public void testAttributeValueVariations_variousMatchings_returnsCorrectBoolean() {
+        Element d1 = doc.getElementById("d1");
+
+        Evaluator.AttributeWithValueNot notEval = new Evaluator.AttributeWithValueNot("title", "other");
+        assertTrue(notEval.matches(doc, d1));
+        assertEquals("[title!=other]", notEval.toString());
+
+        Evaluator.AttributeWithValueStarting startEval = new Evaluator.AttributeWithValueStarting("title", "head");
+        assertTrue(startEval.matches(doc, d1));
+        assertEquals("[title^=head]", startEval.toString());
+
+        Evaluator.AttributeWithValueEnding endEval = new Evaluator.AttributeWithValueEnding("title", "ing");
+        assertTrue(endEval.matches(doc, d1));
+        assertEquals("[title$=ing]", endEval.toString());
+
+        Evaluator.AttributeWithValueContaining containEval = new Evaluator.AttributeWithValueContaining("title", "ead");
+        assertTrue(containEval.matches(doc, d1));
+        assertEquals("[title*=ead]", containEval.toString());
+    }
+
+    // Tests AttributeWithValueMatching using regex
     @Test
     public void testAttributeWithValueMatching_regexPattern_matchesCorrectly() {
-        Pattern pattern = Pattern.compile("^val.*23$");
-        Evaluator.AttributeWithValueMatching eval = new Evaluator.AttributeWithValueMatching("data-key", pattern);
-        Element div1 = doc.getElementById("div1");
-        Element div2 = doc.getElementById("div2");
+        Evaluator.AttributeWithValueMatching eval = new Evaluator.AttributeWithValueMatching("title", Pattern.compile("^head.*"));
+        Element d1 = doc.getElementById("d1");
 
-        assertTrue(eval.matches(body, div1));
-        assertFalse(eval.matches(body, div2));
-        assertEquals("[data-key~=^val.*23$]", eval.toString());
+        assertTrue(eval.matches(doc, d1));
+        assertEquals("[title~=^head.*]", eval.toString());
     }
 
-    // Tests all elements evaluator
+    // Tests AllElements evaluator
     @Test
-    public void testAllElements_anyElement_returnsTrue() {
+    public void testAllElements_matchesAlways_returnsTrue() {
         Evaluator.AllElements eval = new Evaluator.AllElements();
-        assertTrue(eval.matches(body, doc.getElementById("div1")));
-        assertTrue(eval.matches(body, body));
+        Element d1 = doc.getElementById("d1");
+
+        assertTrue(eval.matches(doc, d1));
         assertEquals("*", eval.toString());
     }
 
-    // Tests index based evaluators: lt, gt, eq
+    // Tests IndexLessThan, IndexGreaterThan, and IndexEquals evaluators
     @Test
-    public void testIndexEvaluators_siblingPositions_matchExpected() {
-        Element list = doc.getElementById("list");
-        Element li0 = list.child(0);
-        Element li1 = list.child(1);
-        Element li2 = list.child(2);
+    public void testIndexEvaluators_siblingPositions_returnsExpected() {
+        Element p1 = doc.getElementById("p1"); // index 0
+        Element p2 = doc.getElementById("p2"); // index 1
 
-        Evaluator.IndexLessThan ltEval = new Evaluator.IndexLessThan(1);
-        assertTrue(ltEval.matches(list, li0));
-        assertFalse(ltEval.matches(list, li1));
-        assertEquals(":lt(1)", ltEval.toString());
+        Evaluator.IndexLessThan lt = new Evaluator.IndexLessThan(1);
+        assertTrue(lt.matches(doc, p1));
+        assertFalse(lt.matches(doc, p2));
+        assertFalse(lt.matches(p1, p1)); // root == element returns false
+        assertEquals(":lt(1)", lt.toString());
 
-        Evaluator.IndexGreaterThan gtEval = new Evaluator.IndexGreaterThan(1);
-        assertFalse(gtEval.matches(list, li1));
-        assertTrue(gtEval.matches(list, li2));
-        assertEquals(":gt(1)", gtEval.toString());
+        Evaluator.IndexGreaterThan gt = new Evaluator.IndexGreaterThan(0);
+        assertFalse(gt.matches(doc, p1));
+        assertTrue(gt.matches(doc, p2));
+        assertEquals(":gt(0)", gt.toString());
 
-        Evaluator.IndexEquals eqEval = new Evaluator.IndexEquals(1);
-        assertFalse(eqEval.matches(list, li0));
-        assertTrue(eqEval.matches(list, li1));
-        assertEquals(":eq(1)", eqEval.toString());
+        Evaluator.IndexEquals eq = new Evaluator.IndexEquals(1);
+        assertFalse(eq.matches(doc, p1));
+        assertTrue(eq.matches(doc, p2));
+        assertEquals(":eq(1)", eq.toString());
     }
 
-    // Tests structural pseudo evaluators: first-child, last-child, only-child, root
+    // Tests structural pseudo-classes: IsFirstChild, IsLastChild, IsOnlyChild
     @Test
-    public void testStructuralPseudoClasses_treeNodes_matchExpected() {
-        Element list = doc.getElementById("list");
-        Element li0 = list.child(0);
-        Element li2 = list.child(2);
+    public void testStructuralChildEvaluators_positions_evaluatesCorrectly() {
+        Element p1 = doc.getElementById("p1");
+        Element emptyDiv = doc.getElementById("empty-div");
+        Element d1 = doc.getElementById("d1");
 
-        Evaluator.IsFirstChild firstChildEval = new Evaluator.IsFirstChild();
-        assertTrue(firstChildEval.matches(list, li0));
-        assertFalse(firstChildEval.matches(list, li2));
-        assertEquals(":first-child", firstChildEval.toString());
+        Evaluator.IsFirstChild firstChild = new Evaluator.IsFirstChild();
+        assertTrue(firstChild.matches(doc, p1));
+        assertFalse(firstChild.matches(doc, emptyDiv));
+        assertEquals(":first-child", firstChild.toString());
 
-        Evaluator.IsLastChild lastChildEval = new Evaluator.IsLastChild();
-        assertFalse(lastChildEval.matches(list, li0));
-        assertTrue(lastChildEval.matches(list, li2));
-        assertEquals(":last-child", lastChildEval.toString());
+        Evaluator.IsLastChild lastChild = new Evaluator.IsLastChild();
+        assertFalse(lastChild.matches(doc, p1));
+        assertTrue(lastChild.matches(doc, emptyDiv));
+        assertEquals(":last-child", lastChild.toString());
 
-        Evaluator.IsOnlyChild onlyChildEval = new Evaluator.IsOnlyChild();
-        Element innerP = doc.select(".inner").first();
-        assertFalse(onlyChildEval.matches(body, li0));
-        assertFalse(onlyChildEval.matches(body, innerP));
-        assertEquals(":only-child", onlyChildEval.toString());
+        Evaluator.IsOnlyChild onlyChild = new Evaluator.IsOnlyChild();
+        assertFalse(onlyChild.matches(doc, p1));
+        assertTrue(onlyChild.matches(doc.getElementById("root"), d1));
+        assertEquals(":only-child", onlyChild.toString());
+    }
 
+    // Tests IsRoot evaluator with Document and Element roots
+    @Test
+    public void testIsRoot_matchingRoot_returnsExpected() {
         Evaluator.IsRoot rootEval = new Evaluator.IsRoot();
-        assertTrue(rootEval.matches(doc, doc.child(0)));
-        assertFalse(rootEval.matches(doc, body));
+        Element htmlTag = doc.child(0);
+        Element d1 = doc.getElementById("d1");
+
+        assertTrue(rootEval.matches(doc, htmlTag));
+        assertFalse(rootEval.matches(doc, d1));
+        assertTrue(rootEval.matches(d1, d1));
         assertEquals(":root", rootEval.toString());
     }
 
-    // Tests nth child pseudo class with formulas
+    // Tests Nth-child and Nth-last-child evaluators including toString formats
     @Test
-    public void testIsNthChild_formulaVariants_matchExpected() {
-        Element list = doc.getElementById("list");
-        Element li0 = list.child(0);
-        Element li1 = list.child(1);
-        Element li2 = list.child(2);
+    public void testNthChildEvaluators_nthPositions_matchesCorrectly() {
+        Element p1 = doc.getElementById("p1"); // pos 1
+        Element p2 = doc.getElementById("p2"); // pos 2
 
-        Evaluator.IsNthChild nthChildExact = new Evaluator.IsNthChild(0, 2);
-        assertFalse(nthChildExact.matches(list, li0));
-        assertTrue(nthChildExact.matches(list, li1));
-        assertFalse(nthChildExact.matches(list, li2));
-        assertEquals(":nth-child(2)", nthChildExact.toString());
+        Evaluator.IsNthChild nthChild1 = new Evaluator.IsNthChild(0, 1);
+        assertTrue(nthChild1.matches(doc, p1));
+        assertFalse(nthChild1.matches(doc, p2));
+        assertEquals(":nth-child(1)", nthChild1.toString());
 
-        Evaluator.IsNthChild nthChildOdd = new Evaluator.IsNthChild(2, 1);
-        assertTrue(nthChildOdd.matches(list, li0));
-        assertFalse(nthChildOdd.matches(list, li1));
-        assertTrue(nthChildOdd.matches(list, li2));
-        assertEquals(":nth-child(2n+1)", nthChildOdd.toString());
+        Evaluator.IsNthChild nthChildFormula = new Evaluator.IsNthChild(2, 1);
+        assertTrue(nthChildFormula.matches(doc, p1));
+        assertFalse(nthChildFormula.matches(doc, p2));
+        assertEquals(":nth-child(2n+1)", nthChildFormula.toString());
 
-        Evaluator.IsNthLastChild nthLastChild = new Evaluator.IsNthLastChild(0, 1);
-        assertFalse(nthLastChild.matches(list, li0));
-        assertTrue(nthLastChild.matches(list, li2));
-        assertEquals(":nth-last-child(1)", nthLastChild.toString());
+        Evaluator.IsNthLastChild nthLastChild = new Evaluator.IsNthLastChild(0, 4);
+        assertTrue(nthLastChild.matches(doc, p1));
+        assertEquals(":nth-last-child(4)", nthLastChild.toString());
     }
 
-    // Tests type-based pseudo classes: first-of-type, last-of-type, only-of-type, nth-of-type
+    // Tests IsNthOfType, IsNthLastOfType, IsFirstOfType, IsLastOfType, and IsOnlyOfType
     @Test
-    public void testOfTypeEvaluators_tagTypes_matchExpected() {
-        Element div1 = doc.getElementById("div1");
-        Element spanInDiv1 = div1.select("span").first();
-        Element pInDiv1 = div1.select("p").first();
+    public void testNthOfTypeEvaluators_typePositions_evaluatesCorrectly() {
+        Element p1 = doc.getElementById("p1"); // first p
+        Element p2 = doc.getElementById("p2"); // second p
+        Element s1 = doc.getElementById("s1"); // only span
 
         Evaluator.IsFirstOfType firstOfType = new Evaluator.IsFirstOfType();
-        assertTrue(firstOfType.matches(div1, spanInDiv1));
-        assertTrue(firstOfType.matches(div1, pInDiv1));
+        assertTrue(firstOfType.matches(doc, p1));
+        assertFalse(firstOfType.matches(doc, p2));
         assertEquals(":first-of-type", firstOfType.toString());
 
         Evaluator.IsLastOfType lastOfType = new Evaluator.IsLastOfType();
-        assertTrue(lastOfType.matches(div1, spanInDiv1));
-        assertTrue(lastOfType.matches(div1, pInDiv1));
+        assertFalse(lastOfType.matches(doc, p1));
+        assertTrue(lastOfType.matches(doc, p2));
         assertEquals(":last-of-type", lastOfType.toString());
 
         Evaluator.IsOnlyOfType onlyOfType = new Evaluator.IsOnlyOfType();
-        assertTrue(onlyOfType.matches(div1, spanInDiv1));
+        assertFalse(onlyOfType.matches(doc, p1));
+        assertTrue(onlyOfType.matches(doc, s1));
         assertEquals(":only-of-type", onlyOfType.toString());
     }
 
-    // Tests empty element evaluator
+    // Tests IsEmpty evaluator
     @Test
-    public void testIsEmpty_elementsWithAndWithoutChildren_matchCorrectly() {
+    public void testIsEmpty_emptyAndNonEmptyElements_returnsExpected() {
         Evaluator.IsEmpty emptyEval = new Evaluator.IsEmpty();
-        Element emptyDiv = doc.getElementById("emptyDiv");
-        Element div1 = doc.getElementById("div1");
+        Element p1 = doc.getElementById("p1");
+        Element emptyDiv = doc.getElementById("empty-div");
 
-        assertTrue(emptyEval.matches(body, emptyDiv));
-        assertFalse(emptyEval.matches(body, div1));
+        assertFalse(emptyEval.matches(doc, p1));
+        assertTrue(emptyEval.matches(doc, emptyDiv));
         assertEquals(":empty", emptyEval.toString());
     }
 
-    // Tests text evaluators: containsText, containsOwnText, containsData
+    // Tests text matching evaluators: ContainsText, ContainsOwnText, and ContainsData
     @Test
-    public void testTextEvaluators_textContent_matchCorrectly() {
-        Element div1 = doc.getElementById("div1");
-        Element script = doc.select("script").first();
+    public void testTextEvaluators_textContent_matchesProperly() {
+        Element p2 = doc.getElementById("p2");
 
-        Evaluator.ContainsText containsText = new Evaluator.ContainsText("Text 1");
-        assertTrue(containsText.matches(body, div1));
-        assertFalse(containsText.matches(body, doc.getElementById("div2")));
-        assertEquals(":contains(text 1)", containsText.toString());
+        Evaluator.ContainsText containsText = new Evaluator.ContainsText("paragraph");
+        assertTrue(containsText.matches(doc, p2));
+        assertEquals(":contains(paragraph)", containsText.toString());
 
-        Evaluator.ContainsOwnText containsOwnText = new Evaluator.ContainsOwnText("Text 1");
-        assertFalse(containsOwnText.matches(body, div1));
-        assertTrue(containsOwnText.matches(body, div1.select("span").first()));
-        assertEquals(":containsOwn(text 1)", containsOwnText.toString());
+        Evaluator.ContainsOwnText containsOwn = new Evaluator.ContainsOwnText("second paragraph");
+        assertTrue(containsOwn.matches(doc, p2));
+        assertFalse(new Evaluator.ContainsOwnText("bold").matches(doc, p2));
+        assertEquals(":containsOwn(second paragraph)", containsOwn.toString());
 
-        Evaluator.ContainsData containsData = new Evaluator.ContainsData("script_data");
-        assertTrue(containsData.matches(body, script));
-        assertFalse(containsData.matches(body, div1));
-        assertEquals(":containsData(script_data)", containsData.toString());
+        Document scriptDoc = Jsoup.parse("<script>var x = 10;</script>");
+        Element script = scriptDoc.selectFirst("script");
+        Evaluator.ContainsData containsData = new Evaluator.ContainsData("var x");
+        assertTrue(containsData.matches(scriptDoc, script));
+        assertEquals(":containsData(var x)", containsData.toString());
     }
 
-    // Tests regex matching evaluators: matches and matchesOwn
+    // Tests regex text matching evaluators: Matches and MatchesOwn
     @Test
-    public void testRegexEvaluators_patternMatching_matchCorrectly() {
-        Pattern p = Pattern.compile("Para \\d");
-        Evaluator.Matches matches = new Evaluator.Matches(p);
-        Evaluator.MatchesOwn matchesOwn = new Evaluator.MatchesOwn(p);
+    public void testRegexMatchesEvaluators_regexOnText_evaluatesCorrectly() {
+        Element p2 = doc.getElementById("p2");
 
-        Element div1 = doc.getElementById("div1");
-        Element p1 = div1.select("p").first();
+        Evaluator.Matches matches = new Evaluator.Matches(Pattern.compile("Second.*text"));
+        assertTrue(matches.matches(doc, p2));
+        assertEquals(":matches(Second.*text)", matches.toString());
 
-        assertTrue(matches.matches(body, div1));
-        assertTrue(matches.matches(body, p1));
-        assertEquals(":matches(" + p.toString() + ")", matches.toString());
-
-        assertFalse(matchesOwn.matches(body, div1));
-        assertTrue(matchesOwn.matches(body, p1));
-        assertEquals(":matchesOwn(" + p.toString() + ")", matchesOwn.toString());
+        Evaluator.MatchesOwn matchesOwn = new Evaluator.MatchesOwn(Pattern.compile("Second.*with"));
+        assertTrue(matchesOwn.matches(doc, p2));
+        assertFalse(new Evaluator.MatchesOwn(Pattern.compile("^bold$")).matches(doc, p2));
+        assertEquals(":matchesOwn(Second.*with)", matchesOwn.toString());
     }
 
-    // Tests validation exception on empty attribute starting prefix
+    // Tests validation exception when key or value is empty
     @Test(expected = IllegalArgumentException.class)
     public void testAttributeStarting_emptyPrefix_throwsException() {
         new Evaluator.AttributeStarting("");
     }
 
-    // Tests validation exception on empty attribute key in AttributeKeyPair
-    @Test(expected = IllegalArgumentException.class)
-    public void testAttributeKeyPair_emptyKey_throwsException() {
-        new Evaluator.AttributeWithValue("", "value");
+    // Tests nth evaluators formula representations (b=0, b<0, IsNthOfType, IsNthLastOfType)
+    @Test
+    public void testCssNthEvaluator_formulaToStringVariants_formatsCorrectly() {
+        Evaluator.IsNthChild nthChildBZero = new Evaluator.IsNthChild(2, 0);
+        assertEquals(":nth-child(2n)", nthChildBZero.toString());
+
+        Evaluator.IsNthChild nthChildBNegative = new Evaluator.IsNthChild(2, -1);
+        assertEquals(":nth-child(2n-1)", nthChildBNegative.toString());
+
+        Evaluator.IsNthOfType nthOfTypeFormula = new Evaluator.IsNthOfType(2, 1);
+        assertEquals(":nth-of-type(2n+1)", nthOfTypeFormula.toString());
+
+        Evaluator.IsNthOfType nthOfTypeSingle = new Evaluator.IsNthOfType(0, 2);
+        assertEquals(":nth-of-type(2)", nthOfTypeSingle.toString());
+
+        Evaluator.IsNthLastOfType nthLastOfTypeFormula = new Evaluator.IsNthLastOfType(2, 1);
+        assertEquals(":nth-last-of-type(2n+1)", nthLastOfTypeFormula.toString());
+
+        Evaluator.IsNthLastOfType nthLastOfTypeSingle = new Evaluator.IsNthLastOfType(0, 1);
+        assertEquals(":nth-last-of-type(1)", nthLastOfTypeSingle.toString());
+
+        Element p1 = doc.getElementById("p1");
+        Element p2 = doc.getElementById("p2");
+        assertTrue(nthOfTypeSingle.matches(doc, p2));
+        assertFalse(nthOfTypeSingle.matches(doc, p1));
+        assertTrue(nthLastOfTypeSingle.matches(doc, p2));
+        assertFalse(nthLastOfTypeSingle.matches(doc, p1));
+    }
+
+    // Tests structural evaluators on orphaned elements with no parent
+    @Test
+    public void testStructuralEvaluators_orphanElement_returnsFalse() {
+        Element orphan = new Element("p");
+
+        assertFalse(new Evaluator.IsFirstChild().matches(doc, orphan));
+        assertFalse(new Evaluator.IsLastChild().matches(doc, orphan));
+        assertFalse(new Evaluator.IsOnlyChild().matches(doc, orphan));
+        assertFalse(new Evaluator.IsFirstOfType().matches(doc, orphan));
+        assertFalse(new Evaluator.IsLastOfType().matches(doc, orphan));
+        assertFalse(new Evaluator.IsOnlyOfType().matches(doc, orphan));
+        assertFalse(new Evaluator.IsNthChild(0, 1).matches(doc, orphan));
+        assertFalse(new Evaluator.IsNthOfType(0, 1).matches(doc, orphan));
+    }
+
+    // Tests AttributeWithValue with single quotes and AttributeWithValueNot when attribute is missing
+    @Test
+    public void testAttributeEvaluators_additionalCases_returnsExpected() {
+        Evaluator.AttributeWithValue singleQuoted = new Evaluator.AttributeWithValue("title", "'heading'");
+        Element d1 = doc.getElementById("d1");
+        Element p1 = doc.getElementById("p1");
+
+        assertTrue(singleQuoted.matches(doc, d1));
+
+        Evaluator.AttributeWithValueNot notEval = new Evaluator.AttributeWithValueNot("title", "heading");
+        assertFalse(notEval.matches(doc, d1)); // has attribute with matching value -> false
+        assertTrue(notEval.matches(doc, p1));  // does not have attribute -> true
+    }
+
+    // Tests IsEmpty with various node types like blank text nodes, non-blank text nodes, and whitespace
+    @Test
+    public void testIsEmpty_variousChildNodes_evaluatesCorrectly() {
+        Document parsed = Jsoup.parse("<div><span id='blank-text'>   </span><span id='non-blank'> a </span></div>");
+        Element blankTextSpan = parsed.getElementById("blank-text");
+        Element nonBlankSpan = parsed.getElementById("non-blank");
+
+        assertTrue(new Evaluator.IsEmpty().matches(parsed, blankTextSpan));
+        assertFalse(new Evaluator.IsEmpty().matches(parsed, nonBlankSpan));
     }
 }

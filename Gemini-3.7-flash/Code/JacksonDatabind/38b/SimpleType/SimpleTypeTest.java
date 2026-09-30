@@ -1,193 +1,265 @@
 package com.fasterxml.jackson.databind.type;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import com.fasterxml.jackson.databind.JavaType;
 
 public class SimpleTypeTest {
 
-    // Tests normal construction using construct()
+    // Tests normal construction via constructUnsafe
     @Test
-    public void testConstruct_validClass_returnsSimpleType() {
-        SimpleType type = SimpleType.construct(String.class);
+    public void testConstructUnsafe_validClass_returnsSimpleType() {
+        SimpleType type = SimpleType.constructUnsafe(String.class);
         assertNotNull(type);
         assertEquals(String.class, type.getRawClass());
         assertFalse(type.isContainerType());
-        assertEquals("java.lang.String", type.toCanonical());
     }
 
-    // Tests construct() throwing exception on Map class
+    // Tests normal construction via construct
+    @Test
+    public void testConstruct_validClass_returnsSimpleType() {
+        SimpleType type = SimpleType.construct(Integer.class);
+        assertNotNull(type);
+        assertEquals(Integer.class, type.getRawClass());
+        assertEquals(0, type.containedTypeCount());
+    }
+
+    // Tests construct with Map class throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testConstruct_mapClass_throwsIllegalArgumentException() {
         SimpleType.construct(HashMap.class);
     }
 
-    // Tests construct() throwing exception on Collection class
+    // Tests construct with Collection class throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testConstruct_collectionClass_throwsIllegalArgumentException() {
         SimpleType.construct(ArrayList.class);
     }
 
-    // Tests construct() throwing exception on array class
+    // Tests construct with Array class throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testConstruct_arrayClass_throwsIllegalArgumentException() {
         SimpleType.construct(String[].class);
     }
 
-    // Tests constructUnsafe factory method
+    // Tests _narrow with identical subclass returns same instance
     @Test
-    public void testConstructUnsafe_validClass_returnsSimpleType() {
-        SimpleType type = SimpleType.constructUnsafe(Integer.class);
-        assertNotNull(type);
-        assertEquals(Integer.class, type.getRawClass());
-        assertFalse(type.isContainerType());
+    public void testNarrow_sameClass_returnsSameInstance() {
+        SimpleType type = SimpleType.constructUnsafe(Number.class);
+        JavaType narrowed = type._narrow(Number.class);
+        assertSame(type, narrowed);
     }
 
-    // Tests withContentType throwing exception
+    // Tests _narrow with actual subclass returns new SimpleType instance
+    @Test
+    public void testNarrow_subClass_returnsNewNarrowedInstance() {
+        SimpleType type = SimpleType.constructUnsafe(Number.class);
+        JavaType narrowed = type._narrow(Integer.class);
+        assertNotSame(type, narrowed);
+        assertEquals(Integer.class, narrowed.getRawClass());
+    }
+
+    // Tests withContentType unsupported throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testWithContentType_anyInput_throwsIllegalArgumentException() {
+    public void testWithContentType_throwsIllegalArgumentException() {
         SimpleType type = SimpleType.constructUnsafe(String.class);
-        type.withContentType(type);
+        type.withContentType(SimpleType.constructUnsafe(Integer.class));
     }
 
-    // Tests withContentTypeHandler throwing exception
+    // Tests withContentTypeHandler unsupported throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testWithContentTypeHandler_anyInput_throwsIllegalArgumentException() {
+    public void testWithContentTypeHandler_throwsIllegalArgumentException() {
         SimpleType type = SimpleType.constructUnsafe(String.class);
         type.withContentTypeHandler("handler");
     }
 
-    // Tests withContentValueHandler throwing exception
+    // Tests withContentValueHandler unsupported throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testWithContentValueHandler_anyInput_throwsIllegalArgumentException() {
+    public void testWithContentValueHandler_throwsIllegalArgumentException() {
         SimpleType type = SimpleType.constructUnsafe(String.class);
         type.withContentValueHandler("handler");
     }
 
-    // Tests withTypeHandler with new and same handler
+    // Tests withTypeHandler returns same instance when handler unchanged, or new instance when changed
     @Test
-    public void testWithTypeHandler_newAndSameHandler_returnsCorrectInstances() {
+    public void testWithTypeHandler_setsHandlerCorrectly() {
         SimpleType type = SimpleType.constructUnsafe(String.class);
-        Object handler = "customTypeHandler";
+        Object handler = "handlerObject";
+        SimpleType typed = type.withTypeHandler(handler);
 
-        SimpleType typeWithHandler = type.withTypeHandler(handler);
-        assertNotNull(typeWithHandler);
-        assertNotSame(type, typeWithHandler);
-        assertEquals(handler, typeWithHandler.getTypeHandler());
-
-        // Same handler should return same instance
-        SimpleType typeWithSameHandler = typeWithHandler.withTypeHandler(handler);
-        assertSame(typeWithHandler, typeWithSameHandler);
+        assertNotSame(type, typed);
+        assertSame(handler, typed.getTypeHandler());
+        assertSame(typed, typed.withTypeHandler(handler));
     }
 
-    // Tests withValueHandler with new and same handler
+    // Tests withValueHandler returns same instance when handler unchanged, or new instance when changed
     @Test
-    public void testWithValueHandler_newAndSameHandler_returnsCorrectInstances() {
+    public void testWithValueHandler_setsHandlerCorrectly() {
         SimpleType type = SimpleType.constructUnsafe(String.class);
-        Object handler = "customValueHandler";
+        Object handler = "valueHandlerObject";
+        SimpleType valued = type.withValueHandler(handler);
 
-        SimpleType typeWithHandler = type.withValueHandler(handler);
-        assertNotNull(typeWithHandler);
-        assertNotSame(type, typeWithHandler);
-        assertEquals(handler, typeWithHandler.getValueHandler());
-
-        // Same handler should return same instance
-        SimpleType typeWithSameHandler = typeWithHandler.withValueHandler(handler);
-        assertSame(typeWithHandler, typeWithSameHandler);
+        assertNotSame(type, valued);
+        assertSame(handler, valued.getValueHandler());
+        assertSame(valued, valued.withValueHandler(handler));
     }
 
-    // Tests withStaticTyping when false and when already true
+    // Tests withStaticTyping returns static type or same instance if already static
     @Test
-    public void testWithStaticTyping_togglesStaticFlag() {
+    public void testWithStaticTyping_returnsStaticTypedInstance() {
         SimpleType type = SimpleType.constructUnsafe(String.class);
         assertFalse(type.useStaticType());
 
         SimpleType staticType = type.withStaticTyping();
-        assertNotNull(staticType);
-        assertNotSame(type, staticType);
         assertTrue(staticType.useStaticType());
-
-        // Calling again when already static should return same instance
-        SimpleType staticType2 = staticType.withStaticTyping();
-        assertSame(staticType, staticType2);
+        assertSame(staticType, staticType.withStaticTyping());
     }
 
-    // Tests refine method returns null
+    // Tests refine returns null for SimpleType
     @Test
-    public void testRefine_anyInput_returnsNull() {
+    public void testRefine_returnsNull() {
         SimpleType type = SimpleType.constructUnsafe(String.class);
         JavaType refined = type.refine(String.class, TypeBindings.emptyBindings(), null, null);
         assertNull(refined);
     }
 
-    // Tests _narrow method with same and sub class
+    // Tests signatures and toString representation
     @Test
-    public void testNarrow_sameClassAndSubClass_returnsExpectedType() {
-        SimpleType type = SimpleType.constructUnsafe(CharSequence.class);
-
-        // Same class should return this
-        JavaType sameNarrow = type._narrow(CharSequence.class);
-        assertSame(type, sameNarrow);
-
-        // Subclass should return new SimpleType
-        JavaType subNarrow = type._narrow(String.class);
-        assertNotNull(subNarrow);
-        assertNotSame(type, subNarrow);
-        assertEquals(String.class, subNarrow.getRawClass());
-    }
-
-    // Tests signatures and toString
-    @Test
-    public void testSignaturesAndToString_validType_returnsCorrectFormat() {
+    public void testSignaturesAndToString_formatsCorrectly() {
         SimpleType type = SimpleType.constructUnsafe(String.class);
 
-        StringBuilder erasedSig = type.getErasedSignature(new StringBuilder());
-        assertEquals("Ljava/lang/String;", erasedSig.toString());
+        StringBuilder erasedSb = new StringBuilder();
+        type.getErasedSignature(erasedSb);
+        assertEquals("Ljava/lang/String;", erasedSb.toString());
 
-        StringBuilder genericSig = type.getGenericSignature(new StringBuilder());
-        assertEquals("Ljava/lang/String;;", genericSig.toString());
+        StringBuilder genericSb = new StringBuilder();
+        type.getGenericSignature(genericSb);
+        assertEquals("Ljava/lang/String;;", genericSb.toString());
 
-        String str = type.toString();
-        assertEquals("[simple type, class java.lang.String]", str);
+        assertEquals("[simple type, class java.lang.String]", type.toString());
     }
 
-    // Tests equals method branches
+    // Tests equals method with various inputs
     @Test
-    public void testEquals_variousScenarios_returnsExpectedBoolean() {
+    public void testEquals_variousInputs_returnsExpected() {
         SimpleType type1 = SimpleType.constructUnsafe(String.class);
         SimpleType type2 = SimpleType.constructUnsafe(String.class);
         SimpleType type3 = SimpleType.constructUnsafe(Integer.class);
 
-        // Same object
         assertTrue(type1.equals(type1));
-
-        // Null object
-        assertFalse(type1.equals(null));
-
-        // Different class object
-        assertFalse(type1.equals("a string"));
-
-        // Same raw class SimpleType
         assertTrue(type1.equals(type2));
-        assertTrue(type2.equals(type1));
-
-        // Different raw class SimpleType
+        assertFalse(type1.equals(null));
+        assertFalse(type1.equals("aString"));
         assertFalse(type1.equals(type3));
     }
 
-    // Tests canonical name and generic signature with type parameters
+    // Tests generic signatures and canonical name with TypeBindings
     @Test
-    public void testGenericBindings_withParameters_formatsCorrectly() {
-        JavaType paramType = SimpleType.constructUnsafe(String.class);
-        TypeBindings bindings = TypeBindings.create(SimpleTypeTest.class, new JavaType[] { paramType });
-        SimpleType typeWithParams = new SimpleType(SimpleTypeTest.class, bindings, null, null, null, null, false);
+    public void testBindingsGenericSignatureAndCanonicalName() {
+        TypeBindings bindings = TypeBindings.create(
+                SimpleType.class,
+                new JavaType[] { SimpleType.constructUnsafe(String.class), SimpleType.constructUnsafe(Integer.class) }
+        );
+        SimpleType typeWithBindings = new SimpleType(
+                SimpleType.class,
+                bindings,
+                null,
+                null,
+                null,
+                null,
+                false
+        );
 
-        assertEquals(SimpleTypeTest.class.getName() + "<java.lang.String>", typeWithParams.toCanonical());
+        assertEquals("com.fasterxml.jackson.databind.type.SimpleType<java.lang.String,java.lang.Integer>", typeWithCanonicalName(typeWithBindings));
 
-        StringBuilder genericSig = typeWithParams.getGenericSignature(new StringBuilder());
-        assertTrue(genericSig.toString().contains("<Ljava/lang/String;;>;"));
+        StringBuilder genericSb = new StringBuilder();
+        typeWithBindings.getGenericSignature(genericSb);
+        assertEquals("Lcom/fasterxml/jackson/databind/type/SimpleType<Ljava/lang/String;;Ljava/lang/Integer;;>;", genericSb.toString());
+    }
+
+    private String typeWithCanonicalName(SimpleType type) {
+        return type.toCanonical();
+    }
+
+    // Tests containedType, containedTypeName, hasGenericTypes and bounds
+    @Test
+    public void testContainedTypesAndBindingsAccess() {
+        SimpleType nonGeneric = SimpleType.constructUnsafe(String.class);
+        assertFalse(nonGeneric.hasGenericTypes());
+        assertEquals(0, nonGeneric.containedTypeCount());
+        assertNull(nonGeneric.containedType(0));
+        assertNull(nonGeneric.containedType(-1));
+        assertNull(nonGeneric.containedTypeName(0));
+
+        TypeBindings bindings = TypeBindings.create(
+                SimpleType.class,
+                new JavaType[] { SimpleType.constructUnsafe(String.class) }
+        );
+        SimpleType genericType = new SimpleType(
+                SimpleType.class,
+                bindings,
+                null,
+                null,
+                null,
+                null,
+                false
+        );
+
+        assertTrue(genericType.hasGenericTypes());
+        assertEquals(1, genericType.containedTypeCount());
+        assertEquals(SimpleType.constructUnsafe(String.class), genericType.containedType(0));
+        assertNull(genericType.containedType(1));
+    }
+
+    // Tests equals when raw class matches but type bindings differ
+    @Test
+    public void testEquals_differentBindings_returnsFalse() {
+        TypeBindings bindings1 = TypeBindings.create(
+                SimpleType.class,
+                new JavaType[] { SimpleType.constructUnsafe(String.class) }
+        );
+        TypeBindings bindings2 = TypeBindings.create(
+                SimpleType.class,
+                new JavaType[] { SimpleType.constructUnsafe(Integer.class) }
+        );
+
+        SimpleType type1 = new SimpleType(SimpleType.class, bindings1, null, null, null, null, false);
+        SimpleType type2 = new SimpleType(SimpleType.class, bindings2, null, null, null, null, false);
+
+        assertFalse(type1.equals(type2));
+    }
+
+    // Tests canonical name without bindings
+    @Test
+    public void testCanonicalName_withoutBindings() {
+        SimpleType type = SimpleType.constructUnsafe(String.class);
+        assertEquals("java.lang.String", type.toCanonical());
+    }
+
+    // Tests constructor with superclass and interfaces
+    @Test
+    public void testSuperClassAndInterfaces() {
+        JavaType superClass = SimpleType.constructUnsafe(Number.class);
+        JavaType[] superInterfaces = new JavaType[] { SimpleType.constructUnsafe(Comparable.class) };
+
+        SimpleType type = new SimpleType(
+                Integer.class,
+                TypeBindings.emptyBindings(),
+                superClass,
+                superInterfaces,
+                null,
+                null,
+                false
+        );
+
+        assertEquals(superClass, type.getSuperClass());
+        assertNotNull(type.getInterfaces());
+        assertEquals(1, type.getInterfaces().size());
+        assertEquals(Comparable.class, type.getInterfaces().get(0).getRawClass());
     }
 }

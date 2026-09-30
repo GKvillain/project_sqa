@@ -1,7 +1,6 @@
 package com.fasterxml.jackson.databind.type;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -14,63 +13,69 @@ import static org.junit.Assert.*;
 
 public class CollectionLikeTypeTest {
 
-    private TypeFactory _typeFactory;
-    private JavaType _elemType;
-    private CollectionLikeType _collectionLikeType;
+    private JavaType stringType;
+    private JavaType intType;
+    private CollectionLikeType listLikeType;
 
     @Before
     public void setUp() {
-        _typeFactory = TypeFactory.defaultInstance();
-        _elemType = _typeFactory.constructType(String.class);
-        _collectionLikeType = CollectionLikeType.construct(ArrayList.class, _elemType);
+        stringType = SimpleType.constructUnsafe(String.class);
+        intType = SimpleType.constructUnsafe(Integer.class);
+        listLikeType = CollectionLikeType.construct(List.class, stringType);
     }
 
-    // Tests construction with construct(Class, JavaType)
+    // Tests construction with TypeBindings and full parameters
     @Test
-    public void testConstruct_singleTypeParam_constructsSuccessfully() {
-        CollectionLikeType type = CollectionLikeType.construct(ArrayList.class, _elemType);
-        assertNotNull(type);
-        assertEquals(ArrayList.class, type.getRawClass());
-        assertEquals(_elemType, type.getContentType());
-        assertTrue(type.isCollectionLikeType());
-        assertTrue(type.isContainerType());
-    }
-
-    // Tests construct(Class, JavaType) when class has no type parameters
-    @Test
-    public void testConstruct_noTypeParams_constructsWithEmptyBindings() {
-        CollectionLikeType type = CollectionLikeType.construct(String.class, _elemType);
-        assertNotNull(type);
-        assertEquals(String.class, type.getRawClass());
-        assertEquals(_elemType, type.getContentType());
-    }
-
-    // Tests construct with explicit bindings and super types
-    @Test
-    public void testConstruct_withBindingsAndSuperTypes_constructsSuccessfully() {
-        TypeBindings bindings = TypeBindings.create(ArrayList.class, _elemType);
+    public void testConstruct_withFullParameters_createsInstance() {
+        TypeBindings bindings = TypeBindings.create(ArrayList.class, stringType);
         CollectionLikeType type = CollectionLikeType.construct(
-                ArrayList.class, bindings, null, null, _elemType);
+                ArrayList.class, bindings, null, null, stringType);
+
         assertNotNull(type);
         assertEquals(ArrayList.class, type.getRawClass());
-        assertEquals(_elemType, type.getContentType());
+        assertEquals(stringType, type.getContentType());
+        assertTrue(type.isTrueCollectionType());
     }
 
-    // Tests upgradeFrom valid TypeBase
+    // Tests deprecated construct method with raw class and element type
     @Test
-    public void testUpgradeFrom_validTypeBase_returnsCollectionLikeType() {
+    public void testConstruct_withRawTypeAndElemType_createsInstance() {
+        CollectionLikeType type = CollectionLikeType.construct(List.class, stringType);
+
+        assertNotNull(type);
+        assertEquals(List.class, type.getRawClass());
+        assertEquals(stringType, type.getContentType());
+        assertTrue(type.isTrueCollectionType());
+        assertTrue(type.isContainerType());
+        assertTrue(type.isCollectionLikeType());
+    }
+
+    // Tests isTrueCollectionType for non-Collection raw class
+    @Test
+    public void testIsTrueCollectionType_nonCollectionClass_returnsFalse() {
+        CollectionLikeType customType = CollectionLikeType.construct(String.class, intType);
+
+        assertNotNull(customType);
+        assertFalse(customType.isTrueCollectionType());
+    }
+
+    // Tests upgradeFrom method with valid TypeBase instance
+    @Test
+    public void testUpgradeFrom_validBaseType_success() {
         JavaType baseType = SimpleType.constructUnsafe(ArrayList.class);
-        CollectionLikeType upgraded = CollectionLikeType.upgradeFrom(baseType, _elemType);
+        CollectionLikeType upgraded = CollectionLikeType.upgradeFrom(baseType, stringType);
+
         assertNotNull(upgraded);
         assertEquals(ArrayList.class, upgraded.getRawClass());
-        assertEquals(_elemType, upgraded.getContentType());
+        assertEquals(stringType, upgraded.getContentType());
     }
 
-    // Tests upgradeFrom invalid base type throwing IllegalArgumentException
+    // Tests upgradeFrom with invalid non-TypeBase JavaType throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testUpgradeFrom_invalidBaseType_throwsIllegalArgumentException() {
-        JavaType invalidBase = new JavaType(String.class, 0, null, null, false) {
+    public void testUpgradeFrom_nonTypeBase_throwsException() {
+        JavaType dummy = new JavaType(String.class, 0, null, null, false) {
             private static final long serialVersionUID = 1L;
+
             @Override
             public JavaType withContentType(JavaType contentType) { return this; }
             @Override
@@ -96,132 +101,191 @@ public class CollectionLikeTypeTest {
             @Override
             public boolean equals(Object o) { return false; }
         };
-        CollectionLikeType.upgradeFrom(invalidBase, _elemType);
+
+        CollectionLikeType.upgradeFrom(dummy, stringType);
     }
 
-    // Tests withContentType with same and different content types
+    // Tests withContentType returning same instance when content type is identical
     @Test
-    public void testWithContentType_sameAndDifferent_returnsExpectedInstance() {
-        JavaType same = _collectionLikeType.withContentType(_elemType);
-        assertSame(_collectionLikeType, same);
-
-        JavaType intType = _typeFactory.constructType(Integer.class);
-        JavaType diff = _collectionLikeType.withContentType(intType);
-        assertNotSame(_collectionLikeType, diff);
-        assertEquals(intType, diff.getContentType());
+    public void testWithContentType_sameType_returnsSameInstance() {
+        JavaType result = listLikeType.withContentType(stringType);
+        assertSame(listLikeType, result);
     }
 
-    // Tests withTypeHandler and withValueHandler
+    // Tests withContentType returning new instance when content type differs
     @Test
-    public void testWithTypeAndValueHandler_validHandlers_handlersSetCorrectly() {
-        String typeHandler = "typeH";
-        String valueHandler = "valH";
-        CollectionLikeType withTH = _collectionLikeType.withTypeHandler(typeHandler);
-        assertEquals(typeHandler, withTH.getTypeHandler());
+    public void testWithContentType_differentType_returnsNewInstance() {
+        JavaType result = listLikeType.withContentType(intType);
 
-        CollectionLikeType withVH = _collectionLikeType.withValueHandler(valueHandler);
-        assertEquals(valueHandler, withVH.getValueHandler());
+        assertNotSame(listLikeType, result);
+        assertEquals(intType, result.getContentType());
+        assertEquals(listLikeType.getRawClass(), result.getRawClass());
     }
 
-    // Tests withContentTypeHandler and withContentValueHandler
+    // Tests withValueHandler and getContentValueHandler
     @Test
-    public void testWithContentTypeAndContentValueHandler_validHandlers_contentHandlersSetCorrectly() {
-        String typeH = "cTypeH";
-        String valH = "cValH";
-        CollectionLikeType withCTH = _collectionLikeType.withContentTypeHandler(typeH);
-        assertEquals(typeH, withCTH.getContentTypeHandler());
+    public void testWithValueHandler_and_withContentValueHandler() {
+        Object valHandler = "customValueHandler";
+        Object contentValHandler = "customContentValHandler";
 
-        CollectionLikeType withCVH = _collectionLikeType.withContentValueHandler(valH);
-        assertEquals(valH, withCVH.getContentValueHandler());
+        CollectionLikeType withVal = listLikeType.withValueHandler(valHandler);
+        assertEquals(valHandler, withVal.getValueHandler());
+        assertTrue(withVal.hasHandlers());
+
+        CollectionLikeType withContentVal = listLikeType.withContentValueHandler(contentValHandler);
+        assertEquals(contentValHandler, withContentVal.getContentValueHandler());
+        assertTrue(withContentVal.hasHandlers());
     }
 
-    // Tests withStaticTyping on dynamic and static instances
+    // Tests withTypeHandler and getContentTypeHandler
     @Test
-    public void testWithStaticTyping_dynamicAndStatic_returnsCorrectInstance() {
-        assertFalse(_collectionLikeType.useStaticType());
-        CollectionLikeType staticType = _collectionLikeType.withStaticTyping();
+    public void testWithTypeHandler_and_withContentTypeHandler() {
+        Object typeHandler = "customTypeHandler";
+        Object contentTypeHandler = "customContentTypeHandler";
+
+        CollectionLikeType withType = listLikeType.withTypeHandler(typeHandler);
+        assertEquals(typeHandler, withType.getTypeHandler());
+        assertTrue(withType.hasHandlers());
+
+        CollectionLikeType withContentType = listLikeType.withContentTypeHandler(contentTypeHandler);
+        assertEquals(contentTypeHandler, withContentType.getContentTypeHandler());
+        assertTrue(withContentType.hasHandlers());
+    }
+
+    // Tests hasHandlers when neither handler is set
+    @Test
+    public void testHasHandlers_noHandlers_returnsFalse() {
+        assertFalse(listLikeType.hasHandlers());
+        assertNull(listLikeType.getContentValueHandler());
+        assertNull(listLikeType.getContentTypeHandler());
+    }
+
+    // Tests withStaticTyping behavior and idempotence
+    @Test
+    public void testWithStaticTyping_createsStaticInstance() {
+        assertFalse(listLikeType.useStaticType());
+
+        CollectionLikeType staticType = listLikeType.withStaticTyping();
         assertTrue(staticType.useStaticType());
 
-        CollectionLikeType staticTypeAgain = staticType.withStaticTyping();
-        assertSame(staticType, staticTypeAgain);
+        CollectionLikeType staticAgain = staticType.withStaticTyping();
+        assertSame(staticType, staticAgain);
     }
 
-    // Tests refine method
+    // Tests refine method updating raw class and bindings
     @Test
-    public void testRefine_differentRawClass_returnsRefinedInstance() {
-        TypeBindings bindings = TypeBindings.emptyBindings();
-        JavaType refined = _collectionLikeType.refine(LinkedList.class, bindings, null, null);
+    public void testRefine_updatesClassAndBindings() {
+        TypeBindings bindings = TypeBindings.create(LinkedList.class, stringType);
+        JavaType refined = listLikeType.refine(LinkedList.class, bindings, null, null);
+
+        assertNotNull(refined);
         assertEquals(LinkedList.class, refined.getRawClass());
-        assertEquals(_elemType, refined.getContentType());
+        assertEquals(stringType, refined.getContentType());
     }
 
-    // Tests deprecated _narrow method
+    // Tests _narrow method
     @Test
-    public void testNarrow_differentSubclass_returnsNarrowedInstance() {
-        JavaType narrowed = _collectionLikeType._narrow(LinkedList.class);
+    public void testNarrow_returnsNarrowedType() {
+        JavaType narrowed = listLikeType._narrow(LinkedList.class);
+
+        assertNotNull(narrowed);
         assertEquals(LinkedList.class, narrowed.getRawClass());
-        assertEquals(_elemType, narrowed.getContentType());
+        assertEquals(stringType, narrowed.getContentType());
     }
 
-    // Tests hasHandlers when handlers are absent vs present on self or element type
+    // Tests signatures and canonical name generation
     @Test
-    public void testHasHandlers_variousHandlerPlacements_returnsExpectedBoolean() {
-        assertFalse(_collectionLikeType.hasHandlers());
+    public void testSignatures_andCanonicalName() {
+        StringBuilder sbErased = new StringBuilder();
+        listLikeType.getErasedSignature(sbErased);
+        assertEquals("Ljava/util/List;", sbErased.toString());
 
-        CollectionLikeType withValH = _collectionLikeType.withValueHandler("valH");
-        assertTrue(withValH.hasHandlers());
+        StringBuilder sbGeneric = new StringBuilder();
+        listLikeType.getGenericSignature(sbGeneric);
+        assertEquals("Ljava/util/List<Ljava/lang/String;>;", sbGeneric.toString());
 
-        CollectionLikeType withContentValH = _collectionLikeType.withContentValueHandler("elemValH");
-        assertTrue(withContentValH.hasHandlers());
+        String canonical = listLikeType.toCanonical();
+        assertEquals("java.util.List<java.lang.String>", canonical);
     }
 
-    // Tests isTrueCollectionType for Collection and non-Collection types
+    // Tests equals method branches
     @Test
-    public void testIsTrueCollectionType_collectionAndCustomTypes_returnsCorrectBoolean() {
-        assertTrue(_collectionLikeType.isTrueCollectionType());
+    public void testEquals_variousScenarios() {
+        assertTrue(listLikeType.equals(listLikeType));
+        assertFalse(listLikeType.equals(null));
+        assertFalse(listLikeType.equals("notAType"));
 
-        CollectionLikeType customType = CollectionLikeType.construct(String.class, _elemType);
-        assertFalse(customType.isTrueCollectionType());
+        CollectionLikeType same = CollectionLikeType.construct(List.class, stringType);
+        assertTrue(listLikeType.equals(same));
+
+        CollectionLikeType diffElem = CollectionLikeType.construct(List.class, intType);
+        assertFalse(listLikeType.equals(diffElem));
+
+        CollectionLikeType diffClass = CollectionLikeType.construct(ArrayList.class, stringType);
+        assertFalse(listLikeType.equals(diffClass));
     }
 
-    // Tests getErasedSignature and getGenericSignature
+    // Tests toString format
     @Test
-    public void testSignatures_validType_buildsCorrectSignatures() {
-        StringBuilder erased = new StringBuilder();
-        _collectionLikeType.getErasedSignature(erased);
-        assertEquals("Ljava/util/ArrayList;", erased.toString());
-
-        StringBuilder generic = new StringBuilder();
-        _collectionLikeType.getGenericSignature(generic);
-        assertEquals("Ljava/util/ArrayList<Ljava/lang/String;>;", generic.toString());
+    public void testToString_returnsExpectedString() {
+        String str = listLikeType.toString();
+        assertTrue(str.contains("[collection-like type; class java.util.List"));
+        assertTrue(str.contains("contains " + stringType));
     }
 
-    // Tests buildCanonicalName
+    // Tests hasHandlers when element type has value handler or type handler
     @Test
-    public void testToCanonical_validType_returnsCanonicalString() {
-        String canonical = _collectionLikeType.toCanonical();
-        assertEquals("java.util.ArrayList<java.lang.String>", canonical);
+    public void testHasHandlers_whenElementTypeHasHandlers_returnsTrue() {
+        JavaType elemWithValueHandler = stringType.withValueHandler("elemValHandler");
+        CollectionLikeType cltWithValue = CollectionLikeType.construct(List.class, elemWithValueHandler);
+        assertTrue(cltWithValue.hasHandlers());
+
+        JavaType elemWithTypeHandler = stringType.withTypeHandler("elemTypeHandler");
+        CollectionLikeType cltWithType = CollectionLikeType.construct(List.class, elemWithTypeHandler);
+        assertTrue(cltWithType.hasHandlers());
     }
 
-    // Tests equals and toString methods
+    // Tests withContentTypeHandler and withContentValueHandler updates element type directly
     @Test
-    public void testEqualsAndToString_variousObjects_returnsExpectedResults() {
-        assertTrue(_collectionLikeType.equals(_collectionLikeType));
-        assertFalse(_collectionLikeType.equals(null));
-        assertFalse(_collectionLikeType.equals("some string"));
+    public void testWithContentTypeAndValueHandlers_modifiesElementType() {
+        CollectionLikeType withContentHandlers = listLikeType
+                .withContentTypeHandler("typeH")
+                .withContentValueHandler("valH");
 
-        CollectionLikeType same = CollectionLikeType.construct(ArrayList.class, _elemType);
-        assertTrue(_collectionLikeType.equals(same));
+        assertEquals("typeH", withContentHandlers.getContentType().getTypeHandler());
+        assertEquals("valH", withContentHandlers.getContentType().getValueHandler());
+        assertEquals("typeH", withContentHandlers.getContentTypeHandler());
+        assertEquals("valH", withContentHandlers.getContentValueHandler());
+    }
 
-        JavaType intType = _typeFactory.constructType(Integer.class);
-        CollectionLikeType diffElem = CollectionLikeType.construct(ArrayList.class, intType);
-        assertFalse(_collectionLikeType.equals(diffElem));
+    // Tests refine method with superClass and superInterfaces
+    @Test
+    public void testRefine_withSuperClassAndSuperInterfaces() {
+        JavaType superClass = SimpleType.constructUnsafe(Object.class);
+        JavaType[] superInterfaces = new JavaType[] { SimpleType.constructUnsafe(Cloneable.class) };
+        TypeBindings bindings = TypeBindings.create(ArrayList.class, stringType);
 
-        CollectionLikeType diffClass = CollectionLikeType.construct(LinkedList.class, _elemType);
-        assertFalse(_collectionLikeType.equals(diffClass));
+        JavaType refined = listLikeType.refine(ArrayList.class, bindings, superClass, superInterfaces);
 
-        String str = _collectionLikeType.toString();
-        assertTrue(str.contains("collection-like type"));
-        assertTrue(str.contains("ArrayList"));
+        assertNotNull(refined);
+        assertEquals(superClass, refined.getSuperClass());
+        assertEquals(1, refined.getInterfaces().size());
+        assertEquals(Cloneable.class, refined.getInterfaces().get(0).getRawClass());
+    }
+
+    // Tests upgradeFrom preserving handlers and static typing from baseType
+    @Test
+    public void testUpgradeFrom_preservesBaseTypeHandlersAndStatic() {
+        JavaType baseType = SimpleType.constructUnsafe(ArrayList.class)
+                .withValueHandler("vh")
+                .withTypeHandler("th")
+                .withStaticTyping();
+
+        CollectionLikeType upgraded = CollectionLikeType.upgradeFrom(baseType, stringType);
+
+        assertNotNull(upgraded);
+        assertEquals("vh", upgraded.getValueHandler());
+        assertEquals("th", upgraded.getTypeHandler());
+        assertTrue(upgraded.useStaticType());
     }
 }

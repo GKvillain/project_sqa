@@ -2,182 +2,150 @@ package org.jsoup.nodes;
 
 import org.junit.Test;
 import java.nio.charset.Charset;
+
 import static org.junit.Assert.*;
 
 public class DocumentTest {
 
-    // Tests createShell with valid base URI
+    // Tests createShell creates html, head, and body
     @Test
-    public void testCreateShell_validBaseUri_createsShellStructure() {
-        Document doc = Document.createShell("http://example.com");
-        assertEquals("http://example.com", doc.baseUri());
+    public void testCreateShell_validUri_createsStructure() {
+        Document doc = Document.createShell("http://example.com/");
         assertNotNull(doc.head());
         assertNotNull(doc.body());
-        assertEquals("head", doc.head().nodeName());
-        assertEquals("body", doc.body().nodeName());
-    }
-
-    // Tests createShell with null base URI throwing IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testCreateShell_nullBaseUri_throwsException() {
-        Document.createShell(null);
-    }
-
-    // Tests nodeName returning #document
-    @Test
-    public void testNodeName_default_returnsDocument() {
-        Document doc = new Document("http://example.com");
+        assertEquals("http://example.com/", doc.baseUri());
         assertEquals("#document", doc.nodeName());
     }
 
-    // Tests title retrieval when no title tag exists
+    // Tests createShell with null baseUri throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreateShell_nullUri_throwsException() {
+        Document.createShell(null);
+    }
+
+    // Tests getting title when no title element exists
     @Test
     public void testTitle_noTitleElement_returnsEmptyString() {
-        Document doc = Document.createShell("http://example.com");
+        Document doc = Document.createShell("http://example.com/");
         assertEquals("", doc.title());
     }
 
-    // Tests title setting when title tag does not exist
+    // Tests setting and getting title when title element does not exist initially
     @Test
-    public void testTitle_setTitleWhenNoneExists_createsTitleInHead() {
-        Document doc = Document.createShell("http://example.com");
+    public void testTitle_setNewTitle_createsTitleInHead() {
+        Document doc = Document.createShell("http://example.com/");
         doc.title("Test Title");
         assertEquals("Test Title", doc.title());
         assertEquals("Test Title", doc.head().getElementsByTag("title").first().text());
     }
 
-    // Tests title updating when title tag already exists
+    // Tests updating an existing title element
     @Test
     public void testTitle_updateExistingTitle_updatesText() {
-        Document doc = Document.createShell("http://example.com");
+        Document doc = Document.createShell("http://example.com/");
         doc.title("Initial Title");
         doc.title("Updated Title");
         assertEquals("Updated Title", doc.title());
-        assertEquals(1, doc.head().getElementsByTag("title").size());
+        assertEquals(1, doc.getElementsByTag("title").size());
     }
 
-    // Tests title setting with null value throwing IllegalArgumentException
+    // Tests setting null title throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testTitle_nullTitle_throwsException() {
-        Document doc = Document.createShell("http://example.com");
+        Document doc = Document.createShell("http://example.com/");
         doc.title(null);
     }
 
-    // Tests createElement creates standalone element with document base URI
+    // Tests createElement creates element with doc's base URI but not attached to doc
     @Test
-    public void testCreateElement_validTagName_returnsElementWithBaseUri() {
-        Document doc = new Document("http://example.com");
-        Element el = doc.createElement("div");
-        assertEquals("div", el.nodeName());
-        assertEquals("http://example.com", el.baseUri());
-        assertNull(el.parent());
+    public void testCreateElement_validTag_createsDetachedElementWithBaseUri() {
+        Document doc = new Document("http://example.com/");
+        Element div = doc.createElement("div");
+        assertNotNull(div);
+        assertEquals("div", div.tagName());
+        assertEquals("http://example.com/", div.baseUri());
+        assertNull(div.parent());
     }
 
-    // Tests text setting updates body text without destroying html/body structure
+    // Tests normalise method when html, head, and body are missing
     @Test
-    public void testText_setBodyText_updatesBodyOnly() {
-        Document doc = Document.createShell("http://example.com");
-        doc.text("Hello World");
-        assertEquals("Hello World", doc.body().text());
-        assertNotNull(doc.head());
-    }
-
-    // Tests normalise moves non-blank text nodes from root/head/html into body
-    @Test
-    public void testNormalise_textNodesOutsideBody_movesTextToBody() {
-        Document doc = new Document("http://example.com");
-        Element html = doc.appendElement("html");
-        Element head = html.appendElement("head");
-        Element body = html.appendElement("body");
-
-        doc.appendChild(new TextNode("Root Text", ""));
-        head.appendChild(new TextNode("Head Text", ""));
-
+    public void testNormalise_emptyDocument_createsHtmlHeadBody() {
+        Document doc = new Document("http://example.com/");
         doc.normalise();
-
-        assertTrue(doc.body().text().contains("Root Text"));
-        assertTrue(doc.body().text().contains("Head Text"));
-        assertEquals(0, head.getElementsByTag("title").size());
-    }
-
-    // Tests normalise creates missing html, head, and body elements
-    @Test
-    public void testNormalise_missingHtmlHeadBody_createsMissingStructure() {
-        Document doc = new Document("http://example.com");
-        doc.normalise();
-
         assertNotNull(doc.head());
         assertNotNull(doc.body());
         assertEquals("html", doc.childNode(0).nodeName());
     }
 
-    // Tests outerHtml returning children html without wrapper tag
+    // Tests normalise moves non-blank text nodes into body
     @Test
-    public void testOuterHtml_standardDoc_returnsRenderedHtml() {
-        Document doc = Document.createShell("http://example.com");
-        doc.body().appendElement("p").text("Paragraph");
+    public void testNormalise_textNodesInRootAndHead_movedToBody() {
+        Document doc = Document.createShell("http://example.com/");
+        doc.head().appendText("Head text");
+        doc.appendText("Root text");
+        doc.normalise();
+
+        assertTrue(doc.body().text().contains("Head text"));
+        assertTrue(doc.body().text().contains("Root text"));
+    }
+
+    // Tests setting text on document sets body text without destroying structure
+    @Test
+    public void testText_setText_setsBodyTextPreservingStructure() {
+        Document doc = Document.createShell("http://example.com/");
+        doc.text("Hello World");
+        assertEquals("Hello World", doc.body().text());
+        assertNotNull(doc.head());
+    }
+
+    // Tests outerHtml outputs child html without wrapping #document tag
+    @Test
+    public void testOuterHtml_standardDoc_rendersHtmlWithoutDocumentTag() {
+        Document doc = Document.createShell("http://example.com/");
+        doc.body().appendElement("p").text("Sample text");
         String html = doc.outerHtml();
         assertTrue(html.contains("<html>"));
-        assertTrue(html.contains("<head>"));
-        assertTrue(html.contains("<body>"));
-        assertTrue(html.contains("<p>Paragraph</p>"));
+        assertTrue(html.contains("<p>Sample text</p>"));
+        assertFalse(html.contains("#document"));
     }
 
-    // Tests OutputSettings escapeMode getter and setter chaining
+    // Tests outputSettings defaults and chaining setters
     @Test
-    public void testOutputSettings_escapeMode_setsAndGets() {
-        Document doc = new Document("http://example.com");
+    public void testOutputSettings_defaultsAndModifications() {
+        Document doc = new Document("http://example.com/");
         Document.OutputSettings settings = doc.outputSettings();
+
         assertEquals(Entities.EscapeMode.base, settings.escapeMode());
-
-        settings.escapeMode(Entities.EscapeMode.extended);
-        assertEquals(Entities.EscapeMode.extended, settings.escapeMode());
-    }
-
-    // Tests OutputSettings charset by Charset instance and by String name
-    @Test
-    public void testOutputSettings_charset_setsAndGets() {
-        Document doc = new Document("http://example.com");
-        Document.OutputSettings settings = doc.outputSettings();
         assertEquals(Charset.forName("UTF-8"), settings.charset());
+        assertTrue(settings.prettyPrint());
+        assertEquals(1, settings.indentAmount());
         assertNotNull(settings.encoder());
 
-        settings.charset(Charset.forName("US-ASCII"));
+        settings.escapeMode(Entities.EscapeMode.extended)
+                .charset("US-ASCII")
+                .prettyPrint(false)
+                .indentAmount(4);
+
+        assertEquals(Entities.EscapeMode.extended, settings.escapeMode());
         assertEquals(Charset.forName("US-ASCII"), settings.charset());
-
-        settings.charset("ISO-8859-1");
-        assertEquals(Charset.forName("ISO-8859-1"), settings.charset());
-    }
-
-    // Tests OutputSettings prettyPrint getter and setter
-    @Test
-    public void testOutputSettings_prettyPrint_setsAndGets() {
-        Document doc = new Document("http://example.com");
-        Document.OutputSettings settings = doc.outputSettings();
-        assertTrue(settings.prettyPrint());
-
-        settings.prettyPrint(false);
         assertFalse(settings.prettyPrint());
-    }
-
-    // Tests OutputSettings indentAmount with valid boundary value
-    @Test
-    public void testOutputSettings_indentAmountValid_setsAndGets() {
-        Document doc = new Document("http://example.com");
-        Document.OutputSettings settings = doc.outputSettings();
-        assertEquals(1, settings.indentAmount());
-
-        settings.indentAmount(0);
-        assertEquals(0, settings.indentAmount());
-
-        settings.indentAmount(4);
         assertEquals(4, settings.indentAmount());
     }
 
-    // Tests OutputSettings indentAmount with negative value throwing IllegalArgumentException
+    // Tests setting negative indentAmount throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testOutputSettings_indentAmountNegative_throwsException() {
-        Document doc = new Document("http://example.com");
+    public void testOutputSettings_negativeIndentAmount_throwsException() {
+        Document doc = new Document("http://example.com/");
         doc.outputSettings().indentAmount(-1);
+    }
+
+    // Tests charset update using Charset instance
+    @Test
+    public void testOutputSettings_charsetInstance_updatesCharsetAndEncoder() {
+        Document doc = new Document("http://example.com/");
+        Charset iso88591 = Charset.forName("ISO-8859-1");
+        doc.outputSettings().charset(iso88591);
+        assertEquals(iso88591, doc.outputSettings().charset());
+        assertEquals(iso88591, doc.outputSettings().encoder().charset());
     }
 }

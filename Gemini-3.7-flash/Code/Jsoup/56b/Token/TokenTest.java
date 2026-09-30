@@ -1,248 +1,340 @@
 package org.jsoup.parser;
 
+import org.jsoup.nodes.Attributes;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 public class TokenTest {
 
-    // Tests Doctype token initialization, getters, and type cast
+    // Tests Doctype token creation, field accessors, and reset
     @Test
-    public void testDoctype_initialAndGetters_returnsCorrectValues() {
+    public void testDoctype_stateAndReset_resetsAllFields() {
         Token.Doctype doctype = new Token.Doctype();
         doctype.name.append("html");
         doctype.publicIdentifier.append("public-id");
         doctype.systemIdentifier.append("system-id");
         doctype.forceQuirks = true;
 
-        assertTrue(doctype.isDoctype());
         assertEquals("html", doctype.getName());
         assertEquals("public-id", doctype.getPublicIdentifier());
         assertEquals("system-id", doctype.getSystemIdentifier());
         assertTrue(doctype.isForceQuirks());
-        assertEquals(doctype, doctype.asDoctype());
-        assertEquals("Doctype", doctype.tokenType());
-    }
-
-    // Tests Doctype reset behavior
-    @Test
-    public void testDoctype_reset_clearsState() {
-        Token.Doctype doctype = new Token.Doctype();
-        doctype.name.append("html");
-        doctype.publicIdentifier.append("pub");
-        doctype.systemIdentifier.append("sys");
-        doctype.forceQuirks = true;
+        assertTrue(doctype.isDoctype());
+        assertSame(doctype, doctype.asDoctype());
 
         doctype.reset();
-
         assertEquals("", doctype.getName());
         assertEquals("", doctype.getPublicIdentifier());
         assertEquals("", doctype.getSystemIdentifier());
         assertFalse(doctype.isForceQuirks());
     }
 
-    // Tests StartTag creation, name, attributes, and toString
+    // Tests StartTag token naming and normalName lowercase conversion
     @Test
-    public void testStartTag_nameAndAttributes_formatsCorrectly() {
+    public void testStartTag_name_preservesCaseAndLowercasesNormalName() {
         Token.StartTag startTag = new Token.StartTag();
         startTag.name("DIV");
+
         assertEquals("DIV", startTag.name());
         assertEquals("div", startTag.normalName());
-        assertFalse(startTag.isSelfClosing());
-        assertEquals("<div>", startTag.toString());
-
-        startTag.appendAttributeName("id");
-        startTag.appendAttributeValue("main");
-        startTag.finaliseTag();
-
-        assertEquals("<DIV id=\"main\">", startTag.toString());
         assertTrue(startTag.isStartTag());
-        assertEquals(startTag, startTag.asStartTag());
+        assertSame(startTag, startTag.asStartTag());
     }
 
-    // Tests StartTag reset clears attributes and state
+    // Tests StartTag appending tag name chars and strings
     @Test
-    public void testStartTag_reset_clearsState() {
+    public void testStartTag_appendTagName_accumulatesCorrectly() {
         Token.StartTag startTag = new Token.StartTag();
-        startTag.name("span");
-        startTag.selfClosing = true;
-        startTag.appendAttributeName("class");
-        startTag.appendAttributeValue("highlight");
-        startTag.finaliseTag();
+        startTag.appendTagName("sp");
+        startTag.appendTagName('a');
+        startTag.appendTagName("n");
 
-        startTag.reset();
-
-        assertNull(startTag.normalName());
-        assertFalse(startTag.isSelfClosing());
-        assertNotNull(startTag.getAttributes());
-        assertEquals(0, startTag.getAttributes().size());
+        assertEquals("span", startTag.name());
+        assertEquals("span", startTag.normalName());
     }
 
-    // Tests StartTag nameAttr factory-like method
-    @Test
-    public void testStartTag_nameAttr_setsNameAndAttributes() {
+    // Tests StartTag name() throws exception when tagName is unset
+    @Test(expected = IllegalArgumentException.class)
+    public void testStartTag_emptyTagName_throwsException() {
         Token.StartTag startTag = new Token.StartTag();
-        org.jsoup.nodes.Attributes attrs = new org.jsoup.nodes.Attributes();
-        attrs.put("key", "val");
-        startTag.nameAttr("P", attrs);
-
-        assertEquals("P", startTag.name());
-        assertEquals("p", startTag.normalName());
-        assertEquals(attrs, startTag.getAttributes());
+        startTag.name();
     }
 
-    // Tests EndTag creation and toString format
+    // Tests tag attribute accumulation with various appendAttributeValue overloads
     @Test
-    public void testEndTag_nameAndToString_formatsCorrectly() {
-        Token.EndTag endTag = new Token.EndTag();
-        endTag.name("P");
-
-        assertTrue(endTag.isEndTag());
-        assertEquals(endTag, endTag.asEndTag());
-        assertEquals("P", endTag.name());
-        assertEquals("p", endTag.normalName());
-        assertEquals("</P>", endTag.toString());
-    }
-
-    // Tests Tag appendTagName with String and char
-    @Test
-    public void testTag_appendTagName_accumulatesAndNormalizes() {
-        Token.StartTag startTag = new Token.StartTag();
-        startTag.appendTagName("di");
-        startTag.appendTagName('v');
-
-        assertEquals("div", startTag.name());
-        assertEquals("div", startTag.normalName());
-    }
-
-    // Tests Tag attribute accumulation and multiple attribute value appends
-    @Test
-    public void testTag_appendAttributeValueVariants_constructsExpectedAttribute() {
+    public void testStartTag_attributeValueAppenders_accumulatesCorrectValue() {
         Token.StartTag startTag = new Token.StartTag();
         startTag.name("a");
-        startTag.appendAttributeName('h');
-        startTag.appendAttributeName("ref");
+        startTag.appendAttributeName("href");
         startTag.appendAttributeValue("http://");
-        startTag.appendAttributeValue("example.com/");
-        startTag.appendAttributeValue(new char[]{'t', 'e', 's', 't'});
-        startTag.appendAttributeValue(new int[]{0x3F, 0x61}); // '?' and 'a'
-        startTag.finaliseTag();
+        startTag.appendAttributeValue('e');
+        startTag.appendAttributeValue(new char[]{'x', 'a'});
+        startTag.appendAttributeValue(new int[]{0x6D, 0x70, 0x6C, 0x65}); // "mple"
+        startTag.newAttribute();
 
-        assertEquals("http://example.com/test?a", startTag.getAttributes().get("href"));
+        Attributes attrs = startTag.getAttributes();
+        assertNotNull(attrs);
+        assertEquals("http://example", attrs.get("href"));
     }
 
-    // Tests Tag with empty attribute value
+    // Tests tag creation with boolean attribute (no value appended)
     @Test
-    public void testTag_setEmptyAttributeValue_createsAttributeWithEmptyString() {
+    public void testStartTag_booleanAttribute_createsBooleanAttribute() {
+        Token.StartTag startTag = new Token.StartTag();
+        startTag.name("input");
+        startTag.appendAttributeName('r');
+        startTag.appendAttributeName("equired");
+        startTag.newAttribute();
+
+        Attributes attrs = startTag.getAttributes();
+        assertNotNull(attrs);
+        assertTrue(attrs.hasKey("required"));
+        assertEquals("", attrs.get("required"));
+    }
+
+    // Tests tag creation with empty string attribute value
+    @Test
+    public void testStartTag_emptyAttributeValue_createsEmptyValuedAttribute() {
         Token.StartTag startTag = new Token.StartTag();
         startTag.name("input");
         startTag.appendAttributeName("value");
         startTag.setEmptyAttributeValue();
         startTag.newAttribute();
 
-        assertEquals("", startTag.getAttributes().get("value"));
-        assertTrue(startTag.getAttributes().hasKey("value"));
+        Attributes attrs = startTag.getAttributes();
+        assertNotNull(attrs);
+        assertTrue(attrs.hasKey("value"));
+        assertEquals("", attrs.get("value"));
     }
 
-    // Tests Tag with boolean attribute
+    // Tests finaliseTag when an attribute is pending without explicit newAttribute call
     @Test
-    public void testTag_booleanAttribute_createsBooleanAttribute() {
+    public void testStartTag_finaliseTag_addsPendingAttribute() {
         Token.StartTag startTag = new Token.StartTag();
-        startTag.name("input");
-        startTag.appendAttributeName("disabled");
+        startTag.name("div");
+        startTag.appendAttributeName("class");
+        startTag.appendAttributeValue("container");
+        startTag.finaliseTag();
+
+        Attributes attrs = startTag.getAttributes();
+        assertNotNull(attrs);
+        assertEquals("container", attrs.get("class"));
+    }
+
+    // Tests StartTag toString formatting with and without attributes
+    @Test
+    public void testStartTag_toString_returnsFormattedHtml() {
+        Token.StartTag startTag = new Token.StartTag();
+        startTag.name("p");
+        assertEquals("<p>", startTag.toString());
+
+        startTag.appendAttributeName("id");
+        startTag.appendAttributeValue("para1");
+        startTag.newAttribute();
+        assertEquals("<p id=\"para1\">", startTag.toString());
+    }
+
+    // Tests StartTag nameAttr helper method
+    @Test
+    public void testStartTag_nameAttr_initializesTagAndAttributes() {
+        Attributes attributes = new Attributes();
+        attributes.put("class", "active");
+
+        Token.StartTag startTag = new Token.StartTag();
+        startTag.nameAttr("SPAN", attributes);
+
+        assertEquals("SPAN", startTag.name());
+        assertEquals("span", startTag.normalName());
+        assertEquals(attributes, startTag.getAttributes());
+    }
+
+    // Tests StartTag reset clears attributes and state
+    @Test
+    public void testStartTag_reset_clearsAllState() {
+        Token.StartTag startTag = new Token.StartTag();
+        startTag.name("div");
+        startTag.selfClosing = true;
+        startTag.appendAttributeName("id");
+        startTag.appendAttributeValue("main");
         startTag.newAttribute();
 
-        assertTrue(startTag.getAttributes().hasKey("disabled"));
+        startTag.reset();
+
+        assertFalse(startTag.isSelfClosing());
+        assertNull(startTag.normalName());
+        assertEquals(0, startTag.getAttributes().size());
     }
 
-    // Tests Tag name validation exception on empty name
-    @Test(expected = IllegalArgumentException.class)
-    public void testTag_nameWhenNull_throwsException() {
-        Token.StartTag startTag = new Token.StartTag();
-        startTag.name();
-    }
-
-    // Tests Comment token creation, data append, toString, and reset
+    // Tests EndTag methods and toString
     @Test
-    public void testComment_dataToStringAndReset_worksCorrectly() {
+    public void testEndTag_toString_returnsClosingTag() {
+        Token.EndTag endTag = new Token.EndTag();
+        endTag.name("div");
+
+        assertTrue(endTag.isEndTag());
+        assertSame(endTag, endTag.asEndTag());
+        assertEquals("div", endTag.name());
+        assertEquals("div", endTag.normalName());
+        assertEquals("</div>", endTag.toString());
+    }
+
+    // Tests Comment token data, reset, and toString
+    @Test
+    public void testComment_dataAndReset_resetsState() {
         Token.Comment comment = new Token.Comment();
         comment.data.append("This is a comment");
         comment.bogus = true;
 
         assertTrue(comment.isComment());
-        assertEquals(comment, comment.asComment());
+        assertSame(comment, comment.asComment());
         assertEquals("This is a comment", comment.getData());
         assertEquals("<!--This is a comment-->", comment.toString());
-        assertTrue(comment.bogus);
 
         comment.reset();
         assertEquals("", comment.getData());
         assertFalse(comment.bogus);
     }
 
-    // Tests Character token data manipulation and reset
+    // Tests Character token data, reset, and toString
     @Test
-    public void testCharacter_dataAndReset_worksCorrectly() {
+    public void testCharacter_dataAndReset_managesDataState() {
         Token.Character character = new Token.Character();
-        character.data("sample text");
+        character.data("Hello & World");
 
         assertTrue(character.isCharacter());
-        assertEquals(character, character.asCharacter());
-        assertEquals("sample text", character.getData());
-        assertEquals("sample text", character.toString());
+        assertSame(character, character.asCharacter());
+        assertEquals("Hello & World", character.getData());
+        assertEquals("Hello & World", character.toString());
 
         character.reset();
         assertNull(character.getData());
     }
 
-    // Tests EOF token behavior and reset
+    // Tests EOF token properties and reset
     @Test
-    public void testEOF_isEOFAndReset_returnsSelf() {
+    public void testEOF_propertiesAndReset_maintainsType() {
         Token.EOF eof = new Token.EOF();
         assertTrue(eof.isEOF());
-        assertFalse(eof.isStartTag());
-        assertFalse(eof.isEndTag());
-        assertFalse(eof.isComment());
-        assertFalse(eof.isCharacter());
-        assertFalse(eof.isDoctype());
-
-        Token resetResult = eof.reset();
-        assertSame(eof, resetResult);
+        assertSame(eof, eof.reset());
     }
 
-    // Tests Token.reset(StringBuilder) helper method
+    // Tests tokenType method returning class simple name
     @Test
-    public void testResetStringBuilder_nullAndNonNull_clearsSafely() {
-        Token.reset((StringBuilder) null);
-
-        StringBuilder sb = new StringBuilder("content");
-        Token.reset(sb);
-        assertEquals(0, sb.length());
-    }
-
-    // Tests CData token initialization and representation
-    @Test
-    public void testCData_tokenBehavior() {
-        Token.CData cdata = new Token.CData("data content");
-        assertTrue(cdata.isCharacter());
-        assertEquals("data content", cdata.getData());
-        assertEquals("<![CDATA[data content]]>", cdata.toString());
-    }
-
-    // Tests TokenType names and tokenType() on remaining token types
-    @Test
-    public void testTokenType_forAllTokens() {
+    public void testTokenType_returnsSimpleClassName() {
         assertEquals("StartTag", new Token.StartTag().tokenType());
         assertEquals("EndTag", new Token.EndTag().tokenType());
         assertEquals("Comment", new Token.Comment().tokenType());
         assertEquals("Character", new Token.Character().tokenType());
+        assertEquals("Doctype", new Token.Doctype().tokenType());
         assertEquals("EOF", new Token.EOF().tokenType());
     }
 
-    // Tests EndTag reset
+    // Tests static reset helper method on StringBuilder
+    @Test
+    public void testReset_stringBuilder_clearsContent() {
+        StringBuilder sb = new StringBuilder("content");
+        Token.reset(sb);
+        assertEquals(0, sb.length());
+
+        Token.reset((StringBuilder) null); // Null-safe
+    }
+
+    // Tests CData token creation, type check, and toString representation
+    @Test
+    public void testCData_creationAndToString() {
+        Token.CData cdata = new Token.CData("raw cdata content");
+
+        assertTrue(cdata.isCharacter());
+        assertTrue(cdata.isCData());
+        assertEquals("raw cdata content", cdata.getData());
+        assertEquals("<![CDATA[raw cdata content]]>", cdata.toString());
+    }
+
+    // Tests Character token isCData returns false
+    @Test
+    public void testCharacter_isCData_returnsFalse() {
+        Token.Character character = new Token.Character();
+        character.data("text");
+        assertFalse(character.isCData());
+    }
+
+    // Tests Doctype pubSysKey accessor and reset
+    @Test
+    public void testDoctype_pubSysKey_getAndReset() {
+        Token.Doctype doctype = new Token.Doctype();
+        doctype.pubSysKey = "SYSTEM";
+        assertEquals("SYSTEM", doctype.getPubSysKey());
+
+        doctype.reset();
+        assertNull(doctype.getPubSysKey());
+    }
+
+    // Tests Tag attribute query methods (hasAttributes, hasAttribute, hasAttributeWithValue)
+    @Test
+    public void testStartTag_attributeQueries() {
+        Token.StartTag tag = new Token.StartTag();
+        tag.name("input");
+
+        assertFalse(tag.hasAttributes());
+        assertFalse(tag.hasAttribute("type"));
+        assertFalse(tag.hasAttributeWithValue("type", "text"));
+
+        tag.appendAttributeName("type");
+        tag.appendAttributeValue("text");
+        tag.newAttribute();
+
+        assertTrue(tag.hasAttributes());
+        assertTrue(tag.hasAttribute("type"));
+        assertFalse(tag.hasAttribute("other"));
+        assertTrue(tag.hasAttributeWithValue("type", "text"));
+        assertFalse(tag.hasAttributeWithValue("type", "password"));
+        assertFalse(tag.hasAttributeWithValue("other", "text"));
+    }
+
+    // Tests newAttribute does nothing when pendingAttributeName is null
+    @Test
+    public void testTag_newAttribute_withoutPendingAttributeName_doesNothing() {
+        Token.StartTag tag = new Token.StartTag();
+        tag.name("div");
+        tag.newAttribute();
+        assertFalse(tag.hasAttributes());
+    }
+
+    // Tests finaliseTag when no pending attribute name is set
+    @Test
+    public void testTag_finaliseTag_withoutPendingAttribute_leavesAttributesUnchanged() {
+        Token.StartTag tag = new Token.StartTag();
+        tag.name("div");
+        tag.finaliseTag();
+        assertFalse(tag.hasAttributes());
+    }
+
+    // Tests type inquiry methods returning false on mismatched token types
+    @Test
+    public void testToken_typeInquiryMethods_returnFalseForOtherTypes() {
+        Token.StartTag startTag = new Token.StartTag();
+        assertFalse(startTag.isDoctype());
+        assertFalse(startTag.isEndTag());
+        assertFalse(startTag.isComment());
+        assertFalse(startTag.isCharacter());
+        assertFalse(startTag.isCData());
+        assertFalse(startTag.isEOF());
+
+        Token.EOF eof = new Token.EOF();
+        assertFalse(eof.isDoctype());
+        assertFalse(eof.isStartTag());
+        assertFalse(eof.isEndTag());
+        assertFalse(eof.isComment());
+        assertFalse(eof.isCharacter());
+        assertFalse(eof.isCData());
+    }
+
+    // Tests EndTag reset resets tag state
     @Test
     public void testEndTag_reset_clearsState() {
         Token.EndTag endTag = new Token.EndTag();
-        endTag.name("div");
+        endTag.name("span");
         endTag.reset();
 
         assertNull(endTag.normalName());

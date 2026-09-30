@@ -20,191 +20,190 @@ import static org.junit.Assert.assertTrue;
 
 public class DataUtilTest {
 
-    // Tests getCharsetFromContentType with standard charset declaration
+    // Tests extracting charset from standard Content-Type header
     @Test
-    public void testGetCharsetFromContentType_standardCharset_returnsCharset() {
+    public void testGetCharsetFromContentType_validCharset_returnsCharset() {
         String charset = DataUtil.getCharsetFromContentType("text/html; charset=UTF-8");
         assertEquals("UTF-8", charset);
     }
 
-    // Tests getCharsetFromContentType with double-quoted charset
+    // Tests extracting charset enclosed in double quotes
     @Test
-    public void testGetCharsetFromContentType_quotedCharset_returnsTrimmedCharset() {
-        String charset = DataUtil.getCharsetFromContentType("text/html; charset=\"ISO-8859-1\"");
+    public void testGetCharsetFromContentType_quotedCharset_returnsCleanCharset() {
+        String charset = DataUtil.getCharsetFromContentType("text/html; charset=\"gb2312\"");
+        assertEquals("gb2312", charset);
+    }
+
+    // Tests extracting charset enclosed in single quotes
+    @Test
+    public void testGetCharsetFromContentType_singleQuotedCharset_returnsCleanCharset() {
+        String charset = DataUtil.getCharsetFromContentType("text/html; charset='ISO-8859-1'");
         assertEquals("ISO-8859-1", charset);
     }
 
-    // Tests getCharsetFromContentType with single-quoted charset
-    @Test
-    public void testGetCharsetFromContentType_singleQuotedCharset_returnsTrimmedCharset() {
-        String charset = DataUtil.getCharsetFromContentType("text/html; charset='US-ASCII'");
-        assertEquals("US-ASCII", charset);
-    }
-
-    // Tests getCharsetFromContentType with null input
+    // Tests null input for Content-Type header
     @Test
     public void testGetCharsetFromContentType_nullInput_returnsNull() {
         assertNull(DataUtil.getCharsetFromContentType(null));
     }
 
-    // Tests getCharsetFromContentType with unsupported charset name
-    @Test
-    public void testGetCharsetFromContentType_unsupportedCharset_returnsNull() {
-        assertNull(DataUtil.getCharsetFromContentType("text/html; charset=invalid_charset_name_xyz"));
-    }
-
-    // Tests getCharsetFromContentType without charset parameter
+    // Tests Content-Type header with no charset defined
     @Test
     public void testGetCharsetFromContentType_noCharset_returnsNull() {
         assertNull(DataUtil.getCharsetFromContentType("text/html; text/plain"));
     }
 
-    // Tests emptyByteBuffer returns buffer with zero capacity
+    // Tests Content-Type header with unsupported charset name
     @Test
-    public void testEmptyByteBuffer_returnsZeroCapacityBuffer() {
-        ByteBuffer buffer = DataUtil.emptyByteBuffer();
-        assertNotNull(buffer);
-        assertEquals(0, buffer.capacity());
-        assertEquals(0, buffer.remaining());
+    public void testGetCharsetFromContentType_unsupportedCharset_returnsNull() {
+        assertNull(DataUtil.getCharsetFromContentType("text/html; charset=unsupported-invalid-charset-123"));
     }
 
-    // Tests mimeBoundary length and content
+    // Tests mime boundary generator length and content
     @Test
-    public void testMimeBoundary_generatesValidBoundary() {
+    public void testMimeBoundary_generatesRandomBoundary_correctLength() {
         String boundary = DataUtil.mimeBoundary();
         assertNotNull(boundary);
         assertEquals(DataUtil.boundaryLength, boundary.length());
     }
 
+    // Tests empty byte buffer creation
+    @Test
+    public void testEmptyByteBuffer_returnsZeroCapacityBuffer() {
+        ByteBuffer buffer = DataUtil.emptyByteBuffer();
+        assertNotNull(buffer);
+        assertEquals(0, buffer.remaining());
+    }
+
     // Tests crossStreams copies all bytes from input to output
     @Test
-    public void testCrossStreams_validInput_copiesAllBytes() throws IOException {
-        byte[] inputData = "Hello, CrossStreams!".getBytes(Charset.forName("UTF-8"));
-        ByteArrayInputStream in = new ByteArrayInputStream(inputData);
+    public void testCrossStreams_copiesStreamData_matchesInput() throws IOException {
+        byte[] expected = "Testing Stream Copying".getBytes("UTF-8");
+        InputStream in = new ByteArrayInputStream(expected);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         DataUtil.crossStreams(in, out);
-        assertEquals(new String(inputData, "UTF-8"), out.toString("UTF-8"));
+
+        assertArrayEquals(expected, out.toByteArray());
     }
 
-    // Tests readToByteBuffer with unlimited size (maxSize = 0)
+    private static void assertArrayEquals(byte[] expected, byte[] actual) {
+        assertEquals(expected.length, actual.length);
+        for (int i = 0; i < expected.length; i++) {
+            assertEquals(expected[i], actual[i]);
+        }
+    }
+
+    // Tests reading input stream with unlimited size (maxSize = 0)
     @Test
     public void testReadToByteBuffer_unlimitedSize_readsEntireStream() throws IOException {
-        byte[] inputData = "Test stream content for unlimited read".getBytes(Charset.forName("UTF-8"));
-        ByteArrayInputStream in = new ByteArrayInputStream(inputData);
-
-        ByteBuffer byteBuffer = DataUtil.readToByteBuffer(in, 0);
-        assertEquals(inputData.length, byteBuffer.remaining());
+        byte[] data = "Sample unlimited stream content".getBytes("UTF-8");
+        ByteBuffer buffer = DataUtil.readToByteBuffer(new ByteArrayInputStream(data), 0);
+        assertEquals(data.length, buffer.remaining());
     }
 
-    // Tests readToByteBuffer with capped maximum size
+    // Tests reading input stream with capped max size
     @Test
     public void testReadToByteBuffer_cappedSize_readsUpToMaxSize() throws IOException {
-        byte[] inputData = "1234567890abcdefghij".getBytes(Charset.forName("UTF-8"));
-        ByteArrayInputStream in = new ByteArrayInputStream(inputData);
-
-        ByteBuffer byteBuffer = DataUtil.readToByteBuffer(in, 5);
-        assertEquals(5, byteBuffer.remaining());
+        byte[] data = "1234567890".getBytes("UTF-8");
+        ByteBuffer buffer = DataUtil.readToByteBuffer(new ByteArrayInputStream(data), 5);
+        assertEquals(5, buffer.remaining());
     }
 
-    // Tests readToByteBuffer with default maxSize overload
-    @Test
-    public void testReadToByteBuffer_defaultOverload_readsEntireStream() throws IOException {
-        byte[] inputData = "Short test data".getBytes(Charset.forName("UTF-8"));
-        ByteArrayInputStream in = new ByteArrayInputStream(inputData);
-
-        ByteBuffer byteBuffer = DataUtil.readToByteBuffer(in);
-        assertEquals(inputData.length, byteBuffer.remaining());
-    }
-
-    // Tests readToByteBuffer with negative maxSize throws IllegalArgumentException
+    // Tests reading input stream with negative max size throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testReadToByteBuffer_negativeMaxSize_throwsException() throws IOException {
-        ByteArrayInputStream in = new ByteArrayInputStream(new byte[]{1, 2, 3});
-        DataUtil.readToByteBuffer(in, -1);
+        DataUtil.readToByteBuffer(new ByteArrayInputStream(new byte[0]), -1);
     }
 
-    // Tests load from InputStream with specified charset
+    // Tests parsing document with explicit charset
     @Test
-    public void testLoad_specifiedCharset_parsesCorrectly() throws IOException {
-        String html = "<html><head><title>Test</title></head><body><p>Hello</p></body></html>";
-        InputStream in = new ByteArrayInputStream(html.getBytes("UTF-8"));
+    public void testParseByteData_explicitCharset_parsesCorrectly() {
+        String html = "<p>Test Paragraph</p>";
+        ByteBuffer buffer = ByteBuffer.wrap(html.getBytes(Charset.forName("UTF-8")));
+        Document doc = DataUtil.parseByteData(buffer, "UTF-8", "http://example.com", Parser.htmlParser());
 
-        Document doc = DataUtil.load(in, "UTF-8", "http://example.com");
-        assertEquals("Test", doc.title());
+        assertEquals("Test Paragraph", doc.select("p").text());
+        assertEquals("UTF-8", doc.outputSettings().charset().name());
+    }
+
+    // Tests parsing document detecting charset from meta http-equiv
+    @Test
+    public void testParseByteData_metaHttpEquivCharset_redecodesCorrectly() {
+        String html = "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=ISO-8859-1\"></head><body><p>Hello</p></body></html>";
+        ByteBuffer buffer = ByteBuffer.wrap(html.getBytes(Charset.forName("ISO-8859-1")));
+        Document doc = DataUtil.parseByteData(buffer, null, "http://example.com", Parser.htmlParser());
+
         assertEquals("Hello", doc.select("p").text());
-    }
-
-    // Tests load from InputStream detecting meta http-equiv charset
-    @Test
-    public void testLoad_detectMetaHttpEquivCharset_redecodesCorrectly() throws IOException {
-        String html = "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=ISO-8859-1\"></head>"
-                + "<body><p>Caf\u00E9</p></body></html>";
-        InputStream in = new ByteArrayInputStream(html.getBytes("ISO-8859-1"));
-
-        Document doc = DataUtil.load(in, null, "http://example.com");
-        assertEquals("Caf\u00E9", doc.select("p").text());
         assertEquals("ISO-8859-1", doc.outputSettings().charset().name());
     }
 
-    // Tests load from InputStream detecting HTML5 meta charset
+    // Tests parsing document detecting charset from HTML5 meta charset
     @Test
-    public void testLoad_detectMetaCharset_parsesCorrectly() throws IOException {
-        String html = "<html><head><meta charset=\"ISO-8859-1\"></head><body><p>Testing</p></body></html>";
-        InputStream in = new ByteArrayInputStream(html.getBytes("ISO-8859-1"));
+    public void testParseByteData_metaCharset_redecodesCorrectly() {
+        String html = "<html><head><meta charset=\"ISO-8859-1\"></head><body><p>World</p></body></html>";
+        ByteBuffer buffer = ByteBuffer.wrap(html.getBytes(Charset.forName("ISO-8859-1")));
+        Document doc = DataUtil.parseByteData(buffer, null, "http://example.com", Parser.htmlParser());
 
-        Document doc = DataUtil.load(in, null, "http://example.com");
-        assertEquals("Testing", doc.select("p").text());
+        assertEquals("World", doc.select("p").text());
         assertEquals("ISO-8859-1", doc.outputSettings().charset().name());
     }
 
-    // Tests load with XML declaration charset detection using XML parser
+    // Tests parsing XML document detecting encoding from XML declaration
     @Test
-    public void testLoad_xmlDeclarationEncoding_detectsCharset() throws IOException {
-        String xml = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><root><msg>Caf\u00E9</msg></root>";
-        InputStream in = new ByteArrayInputStream(xml.getBytes("ISO-8859-1"));
+    public void testParseByteData_xmlDeclarationEncoding_detectsEncoding() {
+        String xml = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><root><item>test</item></root>";
+        ByteBuffer buffer = ByteBuffer.wrap(xml.getBytes(Charset.forName("ISO-8859-1")));
+        Document doc = DataUtil.parseByteData(buffer, null, "http://example.com", Parser.xmlParser());
 
-        Document doc = DataUtil.load(in, null, "http://example.com", Parser.xmlParser());
-        assertEquals("Caf\u00E9", doc.select("msg").text());
+        assertEquals("test", doc.select("item").text());
         assertEquals("ISO-8859-1", doc.outputSettings().charset().name());
     }
 
-    // Tests load with UTF-8 BOM
+    // Tests parsing empty input stream using xml parser
     @Test
-    public void testLoad_utf8Bom_detectsAndConsumesBom() throws IOException {
-        byte[] bom = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
-        byte[] htmlBytes = "<html><body><p>BOM Test</p></body></html>".getBytes("UTF-8");
-        byte[] combined = new byte[bom.length + htmlBytes.length];
-        System.arraycopy(bom, 0, combined, 0, bom.length);
-        System.arraycopy(htmlBytes, 0, combined, bom.length, htmlBytes.length);
+    public void testParseByteData_emptyXml_parsesWithoutException() {
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[0]);
+        Document doc = DataUtil.parseByteData(buffer, null, "http://example.com", Parser.xmlParser());
+        assertNotNull(doc);
+    }
 
-        InputStream in = new ByteArrayInputStream(combined);
-        Document doc = DataUtil.load(in, null, "http://example.com");
+    // Tests detecting UTF-8 charset from BOM
+    @Test
+    public void testParseByteData_utf8Bom_detectsAndConsumesBom() {
+        byte[] htmlBytes = "<p>BOM Test</p>".getBytes(Charset.forName("UTF-8"));
+        byte[] bomBytes = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        byte[] combined = new byte[bomBytes.length + htmlBytes.length];
+        System.arraycopy(bomBytes, 0, combined, 0, bomBytes.length);
+        System.arraycopy(htmlBytes, 0, combined, bomBytes.length, htmlBytes.length);
+
+        ByteBuffer buffer = ByteBuffer.wrap(combined);
+        Document doc = DataUtil.parseByteData(buffer, null, "http://example.com", Parser.htmlParser());
+
         assertEquals("BOM Test", doc.select("p").text());
         assertEquals("UTF-8", doc.outputSettings().charset().name());
     }
 
-    // Tests load from File
+    // Tests loading document from file
     @Test
-    public void testLoad_fromFile_parsesDocument() throws IOException {
-        File tempFile = File.createTempFile("datautil_test", ".html");
-        try {
-            FileOutputStream fos = new FileOutputStream(tempFile);
-            fos.write("<html><head><title>File Test</title></head><body>Content</body></html>".getBytes("UTF-8"));
-            fos.close();
+    public void testLoad_fileInput_parsesDocument() throws IOException {
+        File tempFile = File.createTempFile("dataUtilTest", ".html");
+        tempFile.deleteOnExit();
 
-            Document doc = DataUtil.load(tempFile, "UTF-8", "http://example.com");
-            assertEquals("File Test", doc.title());
-        } finally {
-            assertTrue(tempFile.delete());
-        }
+        FileOutputStream fos = new FileOutputStream(tempFile);
+        fos.write("<title>File Test</title>".getBytes("UTF-8"));
+        fos.close();
+
+        Document doc = DataUtil.load(tempFile, "UTF-8", "http://example.com");
+        assertEquals("File Test", doc.title());
     }
 
-    // Tests load with empty InputStream
+    // Tests loading document from input stream with xml parser
     @Test
-    public void testLoad_emptyStream_returnsEmptyDoc() throws IOException {
-        InputStream in = new ByteArrayInputStream(new byte[0]);
-        Document doc = DataUtil.load(in, null, "http://example.com");
-        assertNotNull(doc);
+    public void testLoad_streamWithXmlParser_parsesCorrectly() throws IOException {
+        InputStream in = new ByteArrayInputStream("<xml><node>val</node></xml>".getBytes("UTF-8"));
+        Document doc = DataUtil.load(in, "UTF-8", "http://example.com", Parser.xmlParser());
+
+        assertEquals("val", doc.select("node").text());
     }
 }

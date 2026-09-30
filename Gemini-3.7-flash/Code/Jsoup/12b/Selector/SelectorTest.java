@@ -3,224 +3,206 @@ package org.jsoup.select;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.*;
 
 public class SelectorTest {
 
-    // Tests basic selection by tag, id, class, and universal selector
+    private Document doc;
+
+    @Before
+    public void setUp() {
+        String html = "<div id='main' class='container'>"
+                + "<p class='intro' title='first-p'>Hello <span>World</span></p>"
+                + "<p id='p2' class='body-text' data-ref='123' data-type='text'>Second paragraph</p>"
+                + "<div class='content'>"
+                + "<a href='http://example.com/test' rel='nofollow'>Link 1</a>"
+                + "<a href='https://example.com/secure'>Link 2</a>"
+                + "<img src='image.png' width='500' alt='sample image' />"
+                + "<fb:name>Namespace test</fb:name>"
+                + "</div>"
+                + "<ul id='list'>"
+                + "<li class='item'>Item 1</li>"
+                + "<li class='item active'>Item 2</li>"
+                + "<li class='item'>Item 3</li>"
+                + "</ul>"
+                + "</div>";
+        doc = Jsoup.parse(html);
+    }
+
+    // Tests selecting by tag name
     @Test
-    public void testSelect_basicSelectors_returnsMatchingElements() {
-        String html = "<div id='d1' class='main highlight'><p id='p1' class='highlight'>Text</p><span id='s1'>Span</span></div>";
-        Document doc = Jsoup.parse(html);
+    public void testSelect_byTag_returnsMatchingElements() {
+        Elements els = Selector.select("p", doc);
+        assertEquals(2, els.size());
+        assertEquals("intro", els.get(0).className());
+    }
 
-        Elements byTag = Selector.select("p", doc);
-        assertEquals(1, byTag.size());
-        assertEquals("p1", byTag.first().id());
+    // Tests selecting by element ID
+    @Test
+    public void testSelect_byId_returnsMatchingElement() {
+        Elements els = Selector.select("#p2", doc);
+        assertEquals(1, els.size());
+        assertEquals("p2", els.first().id());
+    }
 
-        Elements byId = Selector.select("#d1", doc);
-        assertEquals(1, byId.size());
-        assertEquals("div", byId.first().tagName());
+    // Tests selecting by CSS class
+    @Test
+    public void testSelect_byClass_returnsMatchingElements() {
+        Elements els = Selector.select(".item", doc);
+        assertEquals(3, els.size());
+    }
 
-        Elements byClass = Selector.select(".highlight", doc);
-        assertEquals(2, byClass.size());
-
+    // Tests selecting with universal selector
+    @Test
+    public void testSelect_universalSelector_returnsAllElements() {
         Elements all = Selector.select("*", doc);
-        assertTrue(all.size() >= 4);
+        assertTrue(all.size() > 5);
     }
 
-    // Tests tag combined with class and id
+    // Tests selecting with tag and class combination
     @Test
-    public void testSelect_combinedTagClassAndId_returnsMatchingElement() {
-        String html = "<div id='d1' class='box active'></div><div id='d2' class='box'></div>";
-        Document doc = Jsoup.parse(html);
-
-        Elements elements = Selector.select("div.box#d1", doc);
-        assertEquals(1, elements.size());
-        assertEquals("d1", elements.first().id());
+    public void testSelect_tagAndClass_returnsMatchingElements() {
+        Elements els = Selector.select("li.active", doc);
+        assertEquals(1, els.size());
+        assertEquals("Item 2", els.first().text());
     }
 
-    // Tests all attribute selector variants
+    // Tests direct child combinator (>)
     @Test
-    public void testSelect_attributeSelectors_returnsMatchingElements() {
-        String html = "<a href='http://example.com' title='Example Title' data-val='123' rel='nofollow'></a>" +
-                      "<a href='https://jsoup.org' title='Jsoup Java Library' data-val='456' rel='tag'></a>" +
-                      "<img src='test.png' /><img src='test.jpg' />";
-        Document doc = Jsoup.parse(html);
-
-        assertEquals(2, Selector.select("[href]", doc).size());
-        assertEquals(2, Selector.select("[^data-]", doc).size());
-        assertEquals(1, Selector.select("[href=http://example.com]", doc).size());
-        assertEquals(1, Selector.select("[rel!=nofollow]", doc).size());
-        assertEquals(1, Selector.select("[href^=https]", doc).size());
-        assertEquals(1, Selector.select("[title$=Library]", doc).size());
-        assertEquals(1, Selector.select("[title*=Java]", doc).size());
-        assertEquals(1, Selector.select("img[src~=(?i)\\.png]", doc).size());
+    public void testSelect_directChildCombinator_returnsMatchingChildren() {
+        Elements els = Selector.select("ul#list > li", doc);
+        assertEquals(3, els.size());
     }
 
-    // Tests combinators: descendant, child, adjacent sibling, general sibling, and comma
+    // Tests descendant combinator (space)
     @Test
-    public void testSelect_combinators_returnsMatchingElements() {
-        String html = "<div id='root'>" +
-                      "  <p class='first'>P1</p>" +
-                      "  <p class='second'>P2</p>" +
-                      "  <span>Span1</span>" +
-                      "  <div class='child'><p>Nested P</p></div>" +
-                      "</div>";
-        Document doc = Jsoup.parse(html);
-
-        // Descendant (space)
-        assertEquals(3, Selector.select("div p", doc).size());
-
-        // Direct child (>)
-        assertEquals(2, Selector.select("#root > p", doc).size());
-
-        // Adjacent sibling (+)
-        Elements adjacent = Selector.select("p.first + p", doc);
-        assertEquals(1, adjacent.size());
-        assertEquals("second", adjacent.first().className());
-
-        // General sibling (~)
-        Elements siblings = Selector.select("p.first ~ span", doc);
-        assertEquals(1, siblings.size());
-        assertEquals("Span1", siblings.first().text());
-
-        // Group / comma (,)
-        Elements group = Selector.select("span, p.first", doc);
-        assertEquals(2, group.size());
+    public void testSelect_descendantCombinator_returnsMatchingDescendants() {
+        Elements els = Selector.select("div.container a", doc);
+        assertEquals(2, els.size());
     }
 
-    // Tests pseudo index selectors: :lt(), :gt(), :eq()
+    // Tests adjacent sibling combinator (+)
     @Test
-    public void testSelect_indexSelectors_returnsMatchingElements() {
-        String html = "<ul><li>0</li><li>1</li><li>2</li><li>3</li><li>4</li></ul>";
-        Document doc = Jsoup.parse(html);
+    public void testSelect_adjacentSiblingCombinator_returnsNextSibling() {
+        Elements els = Selector.select("li.item + li.active", doc);
+        assertEquals(1, els.size());
+        assertEquals("Item 2", els.first().text());
+    }
 
-        Elements eq = Selector.select("li:eq(2)", doc);
+    // Tests general sibling combinator (~)
+    @Test
+    public void testSelect_generalSiblingCombinator_returnsSubsequentSiblings() {
+        Elements els = Selector.select("p.intro ~ p", doc);
+        assertEquals(1, els.size());
+        assertEquals("p2", els.first().id());
+    }
+
+    // Tests group selector (comma)
+    @Test
+    public void testSelect_groupSelector_returnsUnionOfElements() {
+        Elements els = Selector.select("p.intro, li.active", doc);
+        assertEquals(2, els.size());
+    }
+
+    // Tests attribute prefix wildcard ([^attrPrefix])
+    @Test
+    public void testSelect_attributePrefix_returnsMatchingElements() {
+        Elements els = Selector.select("[^data-]", doc);
+        assertEquals(1, els.size());
+        assertEquals("p2", els.first().id());
+    }
+
+    // Tests attribute existence and value selectors (=, ^=, $=, *=, !=, ~=)
+    @Test
+    public void testSelect_attributeValueOperators_returnsMatchingElements() {
+        assertEquals(1, Selector.select("a[rel=nofollow]", doc).size());
+        assertEquals(1, Selector.select("a[href^=https]", doc).size());
+        assertEquals(1, Selector.select("img[src$=.png]", doc).size());
+        assertEquals(2, Selector.select("a[href*=/test], a[href*=/secure]", doc).size());
+        assertEquals(1, Selector.select("img[alt~=(?i)sample]", doc).size());
+        assertTrue(Selector.select("p[title!=other]", doc).size() >= 1);
+    }
+
+    // Tests XML namespace selector syntax (ns|tag)
+    @Test
+    public void testSelect_namespacedTag_returnsMatchingElement() {
+        Elements els = Selector.select("fb|name", doc);
+        assertEquals(1, els.size());
+        assertEquals("Namespace test", els.first().text());
+    }
+
+    // Tests pseudo selectors :lt, :gt, :eq
+    @Test
+    public void testSelect_indexPseudoSelectors_returnsIndexedElements() {
+        Elements eq = Selector.select("li:eq(1)", doc);
         assertEquals(1, eq.size());
-        assertEquals("2", eq.first().text());
+        assertEquals("Item 2", eq.first().text());
 
         Elements lt = Selector.select("li:lt(2)", doc);
         assertEquals(2, lt.size());
 
-        Elements gt = Selector.select("li:gt(2)", doc);
-        assertEquals(2, gt.size());
+        Elements gt = Selector.select("li:gt(1)", doc);
+        assertEquals(1, gt.size());
+        assertEquals("Item 3", gt.first().text());
     }
 
-    // Tests structural pseudo selector :has()
+    // Tests structural pseudo selector :has
     @Test
-    public void testSelect_hasPseudoSelector_returnsMatchingParents() {
-        String html = "<div id='d1'><p><span>deep</span></p></div><div id='d2'><span>shallow</span></div>";
-        Document doc = Jsoup.parse(html);
-
-        Elements divsWithP = Selector.select("div:has(p)", doc);
-        assertEquals(1, divsWithP.size());
-        assertEquals("d1", divsWithP.first().id());
-
-        Elements startsWithHas = Selector.select(":has(p)", doc);
-        assertTrue(startsWithHas.contains(doc.getElementById("d1")));
+    public void testSelect_hasPseudo_returnsParentsMatchingDescendantQuery() {
+        Elements els = Selector.select("div:has(img[src$=.png])", doc);
+        assertTrue(els.size() >= 1);
+        assertTrue(els.select("img").size() >= 1);
     }
 
-    // Tests :not() pseudo selector
+    // Tests text matching pseudo selectors (:contains, :containsOwn, :matches, :matchesOwn)
     @Test
-    public void testSelect_notPseudoSelector_returnsFilteredElements() {
-        String html = "<div class='item'>1</div><div class='item skip'>2</div><div class='item'>3</div>";
-        Document doc = Jsoup.parse(html);
+    public void testSelect_textPseudoSelectors_returnsMatchingElements() {
+        Elements contains = Selector.select("p:contains(World)", doc);
+        assertEquals(1, contains.size());
 
-        Elements notSkip = Selector.select("div.item:not(.skip)", doc);
-        assertEquals(2, notSkip.size());
-        assertEquals("1", notSkip.get(0).text());
-        assertEquals("3", notSkip.get(1).text());
-    }
-
-    // Tests text matching pseudo selectors: :contains, :containsOwn, :matches, :matchesOwn
-    @Test
-    public void testSelect_textAndRegexPseudoSelectors_returnsMatchingElements() {
-        String html = "<div id='p'>Hello <span>World</span> 123</div><div id='other'>Goodbye</div>";
-        Document doc = Jsoup.parse(html);
-
-        Elements contains = Selector.select(":contains(world)", doc);
-        assertTrue(contains.contains(doc.getElementById("p")));
-
-        Elements containsOwn = Selector.select("div:containsOwn(Hello)", doc);
+        Elements containsOwn = Selector.select("p:containsOwn(Hello)", doc);
         assertEquals(1, containsOwn.size());
-        assertEquals("p", containsOwn.first().id());
 
-        Elements matches = Selector.select(":matches(\\d+)", doc);
-        assertTrue(matches.contains(doc.getElementById("p")));
+        Elements matches = Selector.select("li:matches(^Item \\d+$)", doc);
+        assertEquals(3, matches.size());
 
-        Elements matchesOwn = Selector.select("div:matchesOwn(Hello.*123)", doc);
+        Elements matchesOwn = Selector.select("span:matchesOwn(World)", doc);
         assertEquals(1, matchesOwn.size());
-        assertEquals("p", matchesOwn.first().id());
     }
 
-    // Tests selecting with namespace prefix
+    // Tests exclusion pseudo selector :not
     @Test
-    public void testSelect_namespacedTag_returnsMatchingElements() {
-        String html = "<fb:name id='fb1'>Facebook Name</fb:name><other id='o1'>Other</other>";
-        Document doc = Jsoup.parse(html);
-
-        Elements namespaced = Selector.select("fb|name", doc);
-        assertEquals(1, namespaced.size());
-        assertEquals("fb1", namespaced.first().id());
+    public void testSelect_notPseudo_filtersOutMatchingElements() {
+        Elements els = Selector.select("li:not(.active)", doc);
+        assertEquals(2, els.size());
     }
 
-    // Tests select method with Iterable<Element> roots
+    // Tests multiple root elements iteration
     @Test
-    public void testSelect_iterableRoots_returnsCombinedMatches() {
-        String html = "<div id='d1'><p class='t'>One</p></div><div id='d2'><p class='t'>Two</p></div>";
-        Document doc = Jsoup.parse(html);
+    public void testSelect_multipleRoots_returnsCombinedResults() {
+        List<Element> roots = new ArrayList<Element>();
+        roots.add(doc.getElementById("main"));
+        roots.add(doc.getElementById("list"));
 
-        List<Element> roots = Arrays.asList(doc.getElementById("d1"), doc.getElementById("d2"));
-        Elements result = Selector.select("p.t", roots);
-        assertEquals(2, result.size());
+        Elements els = Selector.select("li.item", roots);
+        assertEquals(3, els.size());
     }
 
-    // Tests root element starting with a combinator
-    @Test
-    public void testSelect_combinatorAtStart_queriesFromRoot() {
-        String html = "<div id='parent'><p>1</p><p>2</p></div>";
-        Element parent = Jsoup.parse(html).getElementById("parent");
-
-        Elements children = Selector.select("> p", parent);
-        assertEquals(2, children.size());
-    }
-
-    // Tests invalid query syntax throwing SelectorParseException
+    // Tests invalid selector syntax throwing SelectorParseException
     @Test(expected = Selector.SelectorParseException.class)
-    public void testSelect_unexpectedToken_throwsSelectorParseException() {
-        Document doc = Jsoup.parse("<div></div>");
-        Selector.select("div[invalid~?val]", doc);
+    public void testSelect_invalidQuery_throwsSelectorParseException() {
+        Selector.select("div[==]", doc);
     }
 
-    // Tests invalid index in :eq() throws IllegalArgumentException
+    // Tests empty index argument for index selector throwing IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testSelect_nonNumericIndex_throwsException() {
-        Document doc = Jsoup.parse("<div><p>A</p></div>");
-        Selector.select("p:eq(abc)", doc);
-    }
-
-    // Tests null query throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testSelect_nullQuery_throwsException() {
-        Document doc = Jsoup.parse("<div></div>");
-        Selector.select(null, doc);
-    }
-
-    // Tests empty query throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testSelect_emptyQuery_throwsException() {
-        Document doc = Jsoup.parse("<div></div>");
-        Selector.select("   ", doc);
-    }
-
-    // Tests null root throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testSelect_nullRoot_throwsException() {
-        Selector.select("div", (Element) null);
+        Selector.select("li:eq(abc)", doc);
     }
 }

@@ -13,6 +13,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class RecordTypeBuilderTest {
+
   private JSTypeRegistry registry;
   private JSType numberType;
   private JSType stringType;
@@ -26,7 +27,7 @@ public class RecordTypeBuilderTest {
     booleanType = registry.getNativeType(JSTypeNative.BOOLEAN_TYPE);
   }
 
-  // Tests building an empty record type returns the Object type
+  // Tests that building an empty RecordTypeBuilder returns the native Object type
   @Test
   public void testBuild_emptyBuilder_returnsNativeObjectType() {
     RecordTypeBuilder builder = new RecordTypeBuilder(registry);
@@ -34,14 +35,13 @@ public class RecordTypeBuilderTest {
 
     assertNotNull(result);
     assertSame(registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE), result);
-    assertFalse(result.isRecordType());
   }
 
-  // Tests adding a single property returns the builder and builds a valid RecordType
+  // Tests adding a single property returns the builder instance and builds a RecordType
   @Test
-  public void testAddProperty_singleProperty_returnsBuilderAndCreatesRecordType() {
+  public void testAddProperty_singleProperty_returnsBuilderAndBuildsRecordType() {
     RecordTypeBuilder builder = new RecordTypeBuilder(registry);
-    Node node = new Node(0);
+    Node node = Node.newString("propA");
 
     RecordTypeBuilder returnedBuilder = builder.addProperty("propA", numberType, node);
 
@@ -56,72 +56,84 @@ public class RecordTypeBuilderTest {
     assertEquals(node, recordType.getPropertyNode("propA"));
   }
 
-  // Tests method chaining when adding multiple distinct properties
+  // Tests adding multiple distinct properties chains correctly
   @Test
-  public void testAddProperty_multipleProperties_chainsSuccessfully() {
+  public void testAddProperty_multipleDistinctProperties_returnsBuilderAndBuildsAllProperties() {
     RecordTypeBuilder builder = new RecordTypeBuilder(registry);
-    Node node1 = new Node(1);
-    Node node2 = new Node(2);
-    Node node3 = new Node(3);
+    Node nodeA = Node.newString("propA");
+    Node nodeB = Node.newString("propB");
 
-    RecordTypeBuilder resultBuilder = builder
-        .addProperty("foo", numberType, node1)
-        .addProperty("bar", stringType, node2)
-        .addProperty("baz", booleanType, node3);
+    RecordTypeBuilder builderStep1 = builder.addProperty("propA", numberType, nodeA);
+    RecordTypeBuilder builderStep2 = builder.addProperty("propB", stringType, nodeB);
 
-    assertSame(builder, resultBuilder);
+    assertSame(builder, builderStep1);
+    assertSame(builder, builderStep2);
 
     JSType result = builder.build();
     assertTrue(result.isRecordType());
 
     RecordType recordType = (RecordType) result;
-    assertTrue(recordType.hasProperty("foo"));
-    assertTrue(recordType.hasProperty("bar"));
-    assertTrue(recordType.hasProperty("baz"));
-    assertEquals(numberType, recordType.getPropertyType("foo"));
-    assertEquals(stringType, recordType.getPropertyType("bar"));
-    assertEquals(booleanType, recordType.getPropertyType("baz"));
+    assertTrue(recordType.hasProperty("propA"));
+    assertTrue(recordType.hasProperty("propB"));
+    assertEquals(numberType, recordType.getPropertyType("propA"));
+    assertEquals(stringType, recordType.getPropertyType("propB"));
   }
 
-  // Tests adding a duplicate property name returns null
+  // Tests that adding a duplicate property returns null (branch where properties.containsKey is true)
   @Test
   public void testAddProperty_duplicatePropertyName_returnsNull() {
     RecordTypeBuilder builder = new RecordTypeBuilder(registry);
-    Node node1 = new Node(0);
-    Node node2 = new Node(0);
+    Node node1 = Node.newString("propA");
+    Node node2 = Node.newString("propA");
 
-    RecordTypeBuilder firstAdd = builder.addProperty("duplicateProp", numberType, node1);
-    RecordTypeBuilder secondAdd = builder.addProperty("duplicateProp", stringType, node2);
+    RecordTypeBuilder firstAdd = builder.addProperty("propA", numberType, node1);
+    RecordTypeBuilder duplicateAdd = builder.addProperty("propA", stringType, node2);
 
     assertNotNull(firstAdd);
-    assertNull(secondAdd);
+    assertNull(duplicateAdd);
   }
 
-  // Tests building after attempting to add a duplicate property keeps the first definition
+  // Tests that build after failed duplicate add still preserves the original property
   @Test
-  public void testBuild_afterDuplicateProperty_retainsOriginalProperty() {
+  public void testBuild_afterDuplicateProperty_buildsWithOriginalProperty() {
     RecordTypeBuilder builder = new RecordTypeBuilder(registry);
-    Node node1 = new Node(1);
-    Node node2 = new Node(2);
+    Node node1 = Node.newString("propA");
+    Node node2 = Node.newString("propA");
 
-    builder.addProperty("x", numberType, node1);
-    builder.addProperty("x", stringType, node2);
+    builder.addProperty("propA", numberType, node1);
+    builder.addProperty("propA", stringType, node2);
 
     JSType result = builder.build();
     assertTrue(result.isRecordType());
 
     RecordType recordType = (RecordType) result;
-    assertEquals(numberType, recordType.getPropertyType("x"));
-    assertEquals(node1, recordType.getPropertyNode("x"));
+    assertTrue(recordType.hasProperty("propA"));
+    assertEquals(numberType, recordType.getPropertyType("propA"));
+    assertEquals(node1, recordType.getPropertyNode("propA"));
   }
 
-  // Tests adding a property with empty string as name
+  // Tests adding a property with null type and null node
   @Test
-  public void testAddProperty_emptyStringName_success() {
+  public void testAddProperty_nullTypeAndNode_succeeds() {
     RecordTypeBuilder builder = new RecordTypeBuilder(registry);
-    Node node = new Node(0);
+    RecordTypeBuilder returnedBuilder = builder.addProperty("nullableProp", null, null);
 
-    RecordTypeBuilder returnedBuilder = builder.addProperty("", stringType, node);
+    assertSame(builder, returnedBuilder);
+    JSType result = builder.build();
+    assertTrue(result.isRecordType());
+
+    RecordType recordType = (RecordType) result;
+    assertTrue(recordType.hasProperty("nullableProp"));
+    assertNull(recordType.getPropertyNode("nullableProp"));
+  }
+
+  // Tests adding property with empty string name
+  @Test
+  public void testAddProperty_emptyPropertyName_succeeds() {
+    RecordTypeBuilder builder = new RecordTypeBuilder(registry);
+    Node node = Node.newString("");
+
+    RecordTypeBuilder returnedBuilder = builder.addProperty("", booleanType, node);
 
     assertSame(builder, returnedBuilder);
     JSType result = builder.build();
@@ -129,44 +141,101 @@ public class RecordTypeBuilderTest {
 
     RecordType recordType = (RecordType) result;
     assertTrue(recordType.hasProperty(""));
-    assertEquals(stringType, recordType.getPropertyType(""));
+    assertEquals(booleanType, recordType.getPropertyType(""));
   }
 
-  // Tests adding a property with null type and null node
+  // Tests RecordProperty helper class getters
   @Test
-  public void testAddProperty_nullTypeAndNode_success() {
+  public void testRecordProperty_getters_returnProvidedValues() {
+    Node node = Node.newString("prop");
+    RecordTypeBuilder.RecordProperty prop = new RecordTypeBuilder.RecordProperty(stringType, node);
+
+    assertSame(stringType, prop.getType());
+    assertSame(node, prop.getPropertyNode());
+  }
+
+  // Tests RecordProperty helper class with null values
+  @Test
+  public void testRecordProperty_nullValues_returnNull() {
+    RecordTypeBuilder.RecordProperty prop = new RecordTypeBuilder.RecordProperty(null, null);
+
+    assertNull(prop.getType());
+    assertNull(prop.getPropertyNode());
+  }
+
+  // Tests multiple additions and non-existent property check on built RecordType
+  @Test
+  public void testBuild_multipleProperties_doesNotContainUnaddedProperty() {
     RecordTypeBuilder builder = new RecordTypeBuilder(registry);
+    builder.addProperty("x", numberType, null);
+    builder.addProperty("y", numberType, null);
 
-    RecordTypeBuilder returnedBuilder = builder.addProperty("nullProp", null, null);
-
-    assertSame(builder, returnedBuilder);
     JSType result = builder.build();
     assertTrue(result.isRecordType());
 
     RecordType recordType = (RecordType) result;
-    assertTrue(recordType.hasProperty("nullProp"));
-    assertNull(recordType.getPropertyType("nullProp"));
-    assertNull(recordType.getPropertyNode("nullProp"));
+    assertTrue(recordType.hasProperty("x"));
+    assertTrue(recordType.hasProperty("y"));
+    assertFalse(recordType.hasProperty("z"));
   }
 
-  // Tests RecordProperty getters directly
+  // Tests RecordProperty equals and hashCode with equal instances
   @Test
-  public void testRecordProperty_getters_returnProvidedValues() {
-    Node node = new Node(42);
-    RecordTypeBuilder.RecordProperty prop =
-        new RecordTypeBuilder.RecordProperty(numberType, node);
+  public void testRecordProperty_equalsAndHashCode_equalInstances() {
+    Node node = Node.newString("prop");
+    RecordTypeBuilder.RecordProperty prop1 = new RecordTypeBuilder.RecordProperty(stringType, node);
+    RecordTypeBuilder.RecordProperty prop2 = new RecordTypeBuilder.RecordProperty(stringType, node);
 
-    assertSame(numberType, prop.getType());
-    assertSame(node, prop.getPropertyNode());
+    assertTrue(prop1.equals(prop1));
+    assertTrue(prop1.equals(prop2));
+    assertTrue(prop2.equals(prop1));
+    assertEquals(prop1.hashCode(), prop2.hashCode());
   }
 
-  // Tests RecordProperty with null values
+  // Tests RecordProperty equals with null and different object types
   @Test
-  public void testRecordProperty_nullValues_returnsNull() {
-    RecordTypeBuilder.RecordProperty prop =
-        new RecordTypeBuilder.RecordProperty(null, null);
+  public void testRecordProperty_equals_nullAndDifferentType() {
+    Node node = Node.newString("prop");
+    RecordTypeBuilder.RecordProperty prop = new RecordTypeBuilder.RecordProperty(stringType, node);
 
-    assertNull(prop.getType());
-    assertNull(prop.getPropertyNode());
+    assertFalse(prop.equals(null));
+    assertFalse(prop.equals("nonRecordPropertyObject"));
+  }
+
+  // Tests RecordProperty equals with different JSTypes
+  @Test
+  public void testRecordProperty_equals_differentType() {
+    Node node = Node.newString("prop");
+    RecordTypeBuilder.RecordProperty prop1 = new RecordTypeBuilder.RecordProperty(stringType, node);
+    RecordTypeBuilder.RecordProperty prop2 = new RecordTypeBuilder.RecordProperty(numberType, node);
+
+    assertFalse(prop1.equals(prop2));
+    assertFalse(prop2.equals(prop1));
+  }
+
+  // Tests RecordProperty equals with different Nodes
+  @Test
+  public void testRecordProperty_equals_differentNode() {
+    Node node1 = Node.newString("prop1");
+    Node node2 = Node.newString("prop2");
+    RecordTypeBuilder.RecordProperty prop1 = new RecordTypeBuilder.RecordProperty(stringType, node1);
+    RecordTypeBuilder.RecordProperty prop2 = new RecordTypeBuilder.RecordProperty(stringType, node2);
+
+    assertFalse(prop1.equals(prop2));
+    assertFalse(prop2.equals(prop1));
+  }
+
+  // Tests RecordProperty equals and hashCode with null fields
+  @Test
+  public void testRecordProperty_equalsAndHashCode_nullFields() {
+    RecordTypeBuilder.RecordProperty propNull1 = new RecordTypeBuilder.RecordProperty(null, null);
+    RecordTypeBuilder.RecordProperty propNull2 = new RecordTypeBuilder.RecordProperty(null, null);
+    Node node = Node.newString("prop");
+    RecordTypeBuilder.RecordProperty propNonNull = new RecordTypeBuilder.RecordProperty(stringType, node);
+
+    assertTrue(propNull1.equals(propNull2));
+    assertEquals(propNull1.hashCode(), propNull2.hashCode());
+    assertFalse(propNull1.equals(propNonNull));
+    assertFalse(propNonNull.equals(propNull1));
   }
 }

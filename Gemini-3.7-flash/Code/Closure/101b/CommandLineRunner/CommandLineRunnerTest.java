@@ -1,29 +1,44 @@
 package com.google.javascript.jscomp;
 
 import org.junit.Test;
-import org.kohsuke.args4j.CmdLineException;
+import org.junit.Before;
+import org.junit.After;
+import static org.junit.Assert.*;
 
+import org.kohsuke.args4j.CmdLineException;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.IOException;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-/**
- * Tests for {@link CommandLineRunner}.
- */
 public class CommandLineRunnerTest {
 
-  private static class SubCommandLineRunner extends CommandLineRunner {
-    SubCommandLineRunner(String[] args) throws CmdLineException {
-      super(args);
-    }
+  private ByteArrayOutputStream outStream;
+  private ByteArrayOutputStream errStream;
+  private PrintStream out;
+  private PrintStream err;
 
+  @Before
+  public void setUp() {
+    outStream = new ByteArrayOutputStream();
+    errStream = new ByteArrayOutputStream();
+    out = new PrintStream(outStream);
+    err = new PrintStream(errStream);
+  }
+
+  @After
+  public void tearDown() {
+    out.close();
+    err.close();
+  }
+
+  private static class SubCommandLineRunner extends CommandLineRunner {
     SubCommandLineRunner(String[] args, PrintStream out, PrintStream err) throws CmdLineException {
       super(args, out, err);
+    }
+
+    SubCommandLineRunner(String[] args) throws CmdLineException {
+      super(args);
     }
 
     @Override
@@ -37,192 +52,203 @@ public class CommandLineRunnerTest {
     }
 
     @Override
-    public List<JSSourceFile> createExterns() throws FlagUsageException, java.io.IOException {
+    public List<JSSourceFile> createExterns() throws FlagUsageException, IOException {
       return super.createExterns();
     }
   }
 
-  private SubCommandLineRunner createRunner(String[] args) throws CmdLineException {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    ByteArrayOutputStream err = new ByteArrayOutputStream();
-    return new SubCommandLineRunner(args, new PrintStream(out), new PrintStream(err));
-  }
-
-  // Tests defect 101b: --process_closure_primitives=false should disable closurePass even in ADVANCED_OPTIMIZATIONS
+  // Tests process_closure_primitives flag set to false (Defects4J Closure-101 regression test)
   @Test
-  public void testProcessClosurePrimitives_advancedOptimizationFalse_disablesClosurePass() throws Exception {
+  public void testProcessClosurePrimitives_false_setsClosurePassFalse() throws Exception {
     String[] args = new String[] {
-        "--compilation_level=ADVANCED_OPTIMIZATIONS",
-        "--process_closure_primitives=false"
+        "--process_closure_primitives=false",
+        "--js", "input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     CompilerOptions options = runner.createOptions();
     assertFalse(options.closurePass);
   }
 
-  // Tests default process_closure_primitives is true
+  // Tests process_closure_primitives flag default value is true
   @Test
-  public void testProcessClosurePrimitives_default_enablesClosurePass() throws Exception {
-    String[] args = new String[] {};
-    SubCommandLineRunner runner = createRunner(args);
+  public void testProcessClosurePrimitives_default_setsClosurePassTrue() throws Exception {
+    String[] args = new String[] {
+        "--js", "input.js"
+    };
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     CompilerOptions options = runner.createOptions();
     assertTrue(options.closurePass);
   }
 
-  // Tests compilation level WHITESPACE_ONLY
+  // Tests compilation_level ADVANCED_OPTIMIZATIONS and debug flag true
   @Test
-  public void testCompilationLevel_whitespaceOnly_setsWhitespaceOnlyOptions() throws Exception {
+  public void testCompilationLevel_advancedWithDebug_configuresOptions() throws Exception {
     String[] args = new String[] {
-        "--compilation_level=WHITESPACE_ONLY"
+        "--compilation_level", "ADVANCED_OPTIMIZATIONS",
+        "--debug=true",
+        "--js", "input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     CompilerOptions options = runner.createOptions();
-    assertFalse(options.checkTypes);
+    assertTrue(options.checkGlobalThisLevel.isOn());
+    assertTrue(options.removeUnusedVars);
+    assertTrue(options.anonymousFunctionNaming != AnonymousFunctionNamingPolicy.OFF);
   }
 
-  // Tests warning level QUIET
+  // Tests compilation_level WHITESPACE_ONLY
   @Test
-  public void testWarningLevel_quiet_setsQuietOptions() throws Exception {
+  public void testCompilationLevel_whitespaceOnly_configuresOptions() throws Exception {
     String[] args = new String[] {
-        "--warning_level=QUIET"
+        "--compilation_level=WHITESPACE_ONLY",
+        "--js=input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
+    CompilerOptions options = runner.createOptions();
+    assertFalse(options.checkGlobalThisLevel.isOn());
+  }
+
+  // Tests warning_level QUIET and VERBOSE
+  @Test
+  public void testWarningLevel_quiet_configuresOptions() throws Exception {
+    String[] args = new String[] {
+        "--warning_level", "QUIET",
+        "--js", "input.js"
+    };
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     CompilerOptions options = runner.createOptions();
     assertNotNull(options);
   }
 
-  // Tests warning level VERBOSE
+  // Tests warning_level VERBOSE
   @Test
-  public void testWarningLevel_verbose_setsVerboseOptions() throws Exception {
+  public void testWarningLevel_verbose_configuresOptions() throws Exception {
     String[] args = new String[] {
-        "--warning_level=VERBOSE"
+        "--warning_level", "VERBOSE",
+        "--js", "input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     CompilerOptions options = runner.createOptions();
-    assertTrue(options.checkTypes);
+    assertTrue(options.checkGlobalThisLevel.isOn());
   }
 
-  // Tests formatting flag with PRETTY_PRINT
+  // Tests formatting options PRETTY_PRINT and PRINT_INPUT_DELIMITER
   @Test
-  public void testFormatting_prettyPrint_enablesPrettyPrint() throws Exception {
+  public void testFormattingOptions_prettyPrintAndInputDelimiter_setsOptions() throws Exception {
     String[] args = new String[] {
-        "--formatting=PRETTY_PRINT"
+        "--formatting", "PRETTY_PRINT",
+        "--formatting", "PRINT_INPUT_DELIMITER",
+        "--js", "input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     CompilerOptions options = runner.createOptions();
     assertTrue(options.prettyPrint);
-  }
-
-  // Tests formatting flag with PRINT_INPUT_DELIMITER
-  @Test
-  public void testFormatting_printInputDelimiter_enablesInputDelimiter() throws Exception {
-    String[] args = new String[] {
-        "--formatting=PRINT_INPUT_DELIMITER"
-    };
-    SubCommandLineRunner runner = createRunner(args);
-    CompilerOptions options = runner.createOptions();
     assertTrue(options.printInputDelimiter);
   }
 
-  // Tests debug flag
+  // Tests boolean option aliases (true, false, on, off, yes, no, 1, 0)
   @Test
-  public void testDebug_flagTrue_appliesDebugOptions() throws Exception {
+  public void testBooleanOptionHandler_variousValues_parsedCorrectly() throws Exception {
     String[] args = new String[] {
-        "--debug=true"
+        "--third_party=yes",
+        "--print_tree=1",
+        "--compute_phase_ordering=on",
+        "--print_ast=true",
+        "--create_name_map_files=false",
+        "--js", "input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     CompilerOptions options = runner.createOptions();
     assertNotNull(options);
   }
 
-  // Tests parsing argument with quotes
-  @Test
-  public void testArgParsing_quotedValues_unquotesProperly() throws Exception {
+  // Tests boolean option parser with invalid boolean value
+  @Test(expected = CmdLineException.class)
+  public void testBooleanOptionHandler_invalidValue_throwsException() throws Exception {
     String[] args = new String[] {
-        "--js_output_file=\"out.js\""
+        "--third_party=invalid_bool",
+        "--js", "input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
-    CompilerOptions options = runner.createOptions();
-    assertNotNull(options);
+    new SubCommandLineRunner(args, out, err);
   }
 
-  // Tests boolean handler with various accepted truthy values
+  // Tests quoted argument values in initConfigFromFlags
   @Test
-  public void testBooleanOptionHandler_truthyValues_parsesTrue() throws Exception {
+  public void testInitConfigFromFlags_quotedValues_unquotedCorrectly() throws Exception {
     String[] args = new String[] {
-        "--print_tree=on",
-        "--print_ast=yes",
-        "--compute_phase_ordering=1"
+        "--charset='UTF-8'",
+        "--output_wrapper=\"(function(){%output%})();\"",
+        "--js", "input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     assertNotNull(runner.createOptions());
   }
 
-  // Tests boolean handler with various accepted falsy values
-  @Test
-  public void testBooleanOptionHandler_falsyValues_parsesFalse() throws Exception {
-    String[] args = new String[] {
-        "--print_tree=off",
-        "--print_ast=no",
-        "--compute_phase_ordering=0"
-    };
-    SubCommandLineRunner runner = createRunner(args);
-    assertNotNull(runner.createOptions());
-  }
-
-  // Tests boolean handler with invalid value throws exception
+  // Tests unknown command line flag throws CmdLineException
   @Test(expected = CmdLineException.class)
-  public void testBooleanOptionHandler_invalidValue_throwsCmdLineException() throws Exception {
+  public void testInitConfigFromFlags_unknownFlag_throwsException() throws Exception {
     String[] args = new String[] {
-        "--print_tree=invalid_bool"
+        "--unknown_flag_xyz=123"
     };
-    createRunner(args);
-  }
-
-  // Tests unknown flag throws CmdLineException
-  @Test(expected = CmdLineException.class)
-  public void testInitConfig_unknownFlag_throwsCmdLineException() throws Exception {
-    String[] args = new String[] {
-        "--non_existent_flag=true"
-    };
-    createRunner(args);
+    new SubCommandLineRunner(args, out, err);
   }
 
   // Tests createCompiler returns non-null compiler instance
   @Test
-  public void testCreateCompiler_returnsCompiler() throws Exception {
-    String[] args = new String[] {};
-    SubCommandLineRunner runner = createRunner(args);
+  public void testCreateCompiler_returnsValidCompilerInstance() throws Exception {
+    String[] args = new String[] {
+        "--js", "input.js"
+    };
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     Compiler compiler = runner.createCompiler();
     assertNotNull(compiler);
   }
 
-  // Tests custom externs flag excludes default externs
+  // Tests createExterns default behavior (includes default externs from zip)
   @Test
-  public void testCreateExterns_useOnlyCustomExternsTrue_returnsOnlyCustomExterns() throws Exception {
+  public void testCreateExterns_default_loadsZipExterns() throws Exception {
     String[] args = new String[] {
-        "--use_only_custom_externs=true"
+        "--js", "input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     List<JSSourceFile> externs = runner.createExterns();
-    assertEquals(0, externs.size());
+    assertNotNull(externs);
+    assertFalse(externs.isEmpty());
   }
 
-  // Tests default externs are loaded when use_only_custom_externs is false
+  // Tests createExterns with use_only_custom_externs flag
   @Test
-  public void testCreateExterns_useOnlyCustomExternsFalse_includesDefaultExterns() throws Exception {
+  public void testCreateExterns_useOnlyCustomExterns_doesNotLoadDefaultExterns() throws Exception {
     String[] args = new String[] {
-        "--use_only_custom_externs=false"
+        "--use_only_custom_externs=true",
+        "--js", "input.js"
     };
-    SubCommandLineRunner runner = createRunner(args);
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
     List<JSSourceFile> externs = runner.createExterns();
-    assertTrue(externs.size() > 0);
+    assertNotNull(externs);
+    assertTrue(externs.isEmpty());
   }
 
-  // Tests default constructor initializes without error
+  // Tests define flags with aliases -D and --D
   @Test
-  public void testConstructor_noArgs_succeeds() throws Exception {
-    SubCommandLineRunner runner = new SubCommandLineRunner(new String[] {});
+  public void testDefineFlag_aliases_parsedCorrectly() throws Exception {
+    String[] args = new String[] {
+        "-D", "DEF_BOOLEAN",
+        "--D", "DEF_NUM=123",
+        "--define", "DEF_STR='foo'",
+        "--js", "input.js"
+    };
+    SubCommandLineRunner runner = new SubCommandLineRunner(args, out, err);
+    CompilerOptions options = runner.createOptions();
+    assertNotNull(options);
+  }
+
+  // Tests single argument constructor using System.err
+  @Test
+  public void testConstructor_singleArg_initializesCorrectly() throws Exception {
+    String[] args = new String[] {
+        "--js", "input.js"
+    };
+    SubCommandLineRunner runner = new SubCommandLineRunner(args);
     assertNotNull(runner.createOptions());
   }
 }

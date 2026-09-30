@@ -4,32 +4,26 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-/**
- * Unit tests for {@link SerializationUtils}.
- */
 public class SerializationUtilsTest {
 
     // Helper class for serialization tests
-    static class TestClass implements Serializable {
+    private static class DummySerializable implements Serializable {
         private static final long serialVersionUID = 1L;
-        private final int value;
+        private int value;
 
-        TestClass(int value) {
+        public DummySerializable(int value) {
             this.value = value;
         }
 
@@ -45,8 +39,8 @@ public class SerializationUtilsTest {
             if (obj == null || getClass() != obj.getClass()) {
                 return false;
             }
-            TestClass other = (TestClass) obj;
-            return value == other.value;
+            DummySerializable that = (DummySerializable) obj;
+            return value == that.value;
         }
 
         @Override
@@ -55,34 +49,31 @@ public class SerializationUtilsTest {
         }
     }
 
-    // Helper broken OutputStream to trigger IOException
-    static class BrokenOutputStream extends OutputStream {
-        @Override
-        public void write(int b) throws IOException {
-            throw new IOException("Simulated write error");
-        }
+    // Helper class with non-serializable field to trigger SerializationException
+    private static class NonSerializableFieldClass implements Serializable {
+        private static final long serialVersionUID = 1L;
+        @SuppressWarnings("unused")
+        private final Object nonSerializable = new Object();
     }
 
-    // Helper broken InputStream to trigger IOException
-    static class BrokenInputStream extends InputStream {
-        @Override
-        public int read() throws IOException {
-            throw new IOException("Simulated read error");
-        }
-    }
-
-    // Tests constructor instantiation
+    // Tests constructor
     @Test
-    public void testConstructor_default_createsInstance() {
+    public void testConstructor_default_instanceCreated() {
         SerializationUtils utils = new SerializationUtils();
         assertNotNull(utils);
     }
 
-    // Tests clone with valid object
+    // Tests clone with null input
     @Test
-    public void testClone_validObject_returnsClonedObject() {
-        TestClass original = new TestClass(42);
-        TestClass cloned = SerializationUtils.clone(original);
+    public void testClone_nullInput_returnsNull() {
+        assertNull(SerializationUtils.clone(null));
+    }
+
+    // Tests clone with standard object
+    @Test
+    public void testClone_validObject_returnsClonedCopy() {
+        DummySerializable original = new DummySerializable(42);
+        DummySerializable cloned = SerializationUtils.clone(original);
 
         assertNotNull(cloned);
         assertNotSame(original, cloned);
@@ -90,129 +81,134 @@ public class SerializationUtilsTest {
         assertEquals(42, cloned.getValue());
     }
 
-    // Tests clone with list collection
+    // Tests clone with standard library collection
     @Test
-    public void testClone_listObject_returnsDeepCopy() {
-        List<String> list = new ArrayList<String>();
-        list.add("one");
-        list.add("two");
+    public void testClone_mapObject_returnsClonedMap() {
+        HashMap<String, String> original = new HashMap<String, String>();
+        original.put("key1", "value1");
+        original.put("key2", "value2");
 
-        List<String> cloned = SerializationUtils.clone((ArrayList<String>) list);
-        assertNotNull(cloned);
-        assertNotSame(list, cloned);
-        assertEquals(list, cloned);
-    }
-
-    // Tests clone with null input
-    @Test
-    public void testClone_nullInput_returnsNull() {
-        Object result = SerializationUtils.clone(null);
-        assertNull(result);
-    }
-
-    // Tests clone with primitive class array to verify classloader primitive resolution (Defects4J Lang-13)
-    @Test
-    public void testClone_primitiveClasses_returnsClonedClasses() {
-        Class<?>[] original = new Class<?>[] {
-            byte.class, short.class, int.class, long.class,
-            float.class, double.class, boolean.class, char.class, void.class
-        };
-        Class<?>[] cloned = SerializationUtils.clone(original);
+        HashMap<String, String> cloned = SerializationUtils.clone(original);
 
         assertNotNull(cloned);
         assertNotSame(original, cloned);
-        assertEquals(original.length, cloned.length);
-        for (int i = 0; i < original.length; i++) {
-            assertEquals(original[i], cloned[i]);
-        }
+        assertEquals(original, cloned);
+    }
+
+    // Tests clone with primitive array (regression test for primitive class resolution)
+    @Test
+    public void testClone_primitiveByteArray_returnsClonedArray() {
+        byte[] original = new byte[]{1, 2, 3, 4, 5};
+        byte[] cloned = SerializationUtils.clone(original);
+
+        assertNotNull(cloned);
+        assertNotSame(original, cloned);
+        assertArrayEquals(original, cloned);
+    }
+
+    // Tests clone with primitive int array
+    @Test
+    public void testClone_primitiveIntArray_returnsClonedArray() {
+        int[] original = new int[]{10, 20, 30};
+        int[] cloned = SerializationUtils.clone(original);
+
+        assertNotNull(cloned);
+        assertNotSame(original, cloned);
+        assertArrayEquals(original, cloned);
+    }
+
+    // Tests clone failure with non-serializable field
+    @Test(expected = SerializationException.class)
+    public void testClone_unserializableField_throwsSerializationException() {
+        SerializationUtils.clone(new NonSerializableFieldClass());
     }
 
     // Tests serialize to byte array and deserialize from byte array
     @Test
     public void testSerializeAndDeserialize_validObject_returnsEqualObject() {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("key1", "value1");
-        map.put("key2", "value2");
+        DummySerializable original = new DummySerializable(100);
+        byte[] bytes = SerializationUtils.serialize(original);
 
-        byte[] bytes = SerializationUtils.serialize((Serializable) map);
         assertNotNull(bytes);
         assertTrue(bytes.length > 0);
 
-        @SuppressWarnings("unchecked")
-        Map<String, String> deserialized = (Map<String, String>) SerializationUtils.deserialize(bytes);
+        Object deserialized = SerializationUtils.deserialize(bytes);
         assertNotNull(deserialized);
-        assertNotSame(map, deserialized);
-        assertEquals(map, deserialized);
+        assertNotSame(original, deserialized);
+        assertEquals(original, deserialized);
     }
 
-    // Tests serialize with null object to byte array
+    // Tests serialize to byte array with null object
     @Test
-    public void testSerialize_nullObject_returnsSerializedNull() {
-        byte[] bytes = SerializationUtils.serialize((Serializable) null);
+    public void testSerialize_nullObject_returnsByteArray() {
+        byte[] bytes = SerializationUtils.serialize(null);
         assertNotNull(bytes);
 
-        Object result = SerializationUtils.deserialize(bytes);
-        assertNull(result);
+        Object deserialized = SerializationUtils.deserialize(bytes);
+        assertNull(deserialized);
     }
 
-    // Tests serialize with null OutputStream throws IllegalArgumentException
+    // Tests serialize to stream with null stream throws exception
     @Test(expected = IllegalArgumentException.class)
     public void testSerialize_nullOutputStream_throwsIllegalArgumentException() {
-        SerializationUtils.serialize("test", null);
+        SerializationUtils.serialize(new DummySerializable(1), null);
     }
 
-    // Tests serialize with broken OutputStream throws SerializationException
-    @Test(expected = SerializationException.class)
-    public void testSerialize_brokenOutputStream_throwsSerializationException() {
-        SerializationUtils.serialize("test", new BrokenOutputStream());
-    }
-
-    // Tests serialize with valid OutputStream
+    // Tests serialize to stream with valid stream
     @Test
-    public void testSerialize_validOutputStream_writesSuccessfully() {
+    public void testSerialize_validOutputStream_writesData() {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        SerializationUtils.serialize("testString", baos);
-
+        SerializationUtils.serialize(new DummySerializable(5), baos);
         byte[] bytes = baos.toByteArray();
+
         assertNotNull(bytes);
         assertTrue(bytes.length > 0);
-
-        Object result = SerializationUtils.deserialize(bytes);
-        assertEquals("testString", result);
     }
 
-    // Tests deserialize with null byte array throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testDeserialize_nullByteArray_throwsIllegalArgumentException() {
-        SerializationUtils.deserialize((byte[]) null);
+    // Tests serialize to stream failure
+    @Test(expected = SerializationException.class)
+    public void testSerialize_unserializableObject_throwsSerializationException() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        SerializationUtils.serialize(new NonSerializableFieldClass(), baos);
     }
 
-    // Tests deserialize with null InputStream throws IllegalArgumentException
+    // Tests deserialize from stream with null stream throws exception
     @Test(expected = IllegalArgumentException.class)
     public void testDeserialize_nullInputStream_throwsIllegalArgumentException() {
         SerializationUtils.deserialize((InputStream) null);
     }
 
-    // Tests deserialize with corrupted byte array throws SerializationException
+    // Tests deserialize from byte array with null array throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testDeserialize_nullByteArray_throwsIllegalArgumentException() {
+        SerializationUtils.deserialize((byte[]) null);
+    }
+
+    // Tests deserialize from stream with valid input
+    @Test
+    public void testDeserialize_validInputStream_returnsDeserializedObject() {
+        DummySerializable original = new DummySerializable(77);
+        byte[] bytes = SerializationUtils.serialize(original);
+
+        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+        Object result = SerializationUtils.deserialize(bais);
+
+        assertNotNull(result);
+        assertEquals(original, result);
+    }
+
+    // Tests deserialize with invalid/corrupt stream throws exception
+    @Test(expected = SerializationException.class)
+    public void testDeserialize_corruptedInputStream_throwsSerializationException() {
+        byte[] invalidData = new byte[]{0, 1, 2, 3, 4};
+        ByteArrayInputStream bais = new ByteArrayInputStream(invalidData);
+        SerializationUtils.deserialize(bais);
+    }
+
+    // Tests deserialize with invalid/corrupt byte array throws exception
     @Test(expected = SerializationException.class)
     public void testDeserialize_corruptedByteArray_throwsSerializationException() {
-        byte[] corruptedData = new byte[] { 0, 1, 2, 3, 4, 5 };
-        SerializationUtils.deserialize(corruptedData);
-    }
-
-    // Tests deserialize with broken InputStream throws SerializationException
-    @Test(expected = SerializationException.class)
-    public void testDeserialize_brokenInputStream_throwsSerializationException() {
-        SerializationUtils.deserialize(new BrokenInputStream());
-    }
-
-    // Tests deserialize with valid InputStream
-    @Test
-    public void testDeserialize_validInputStream_returnsObject() {
-        byte[] bytes = SerializationUtils.serialize("hello world");
-        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-
-        Object result = SerializationUtils.deserialize(bais);
-        assertEquals("hello world", result);
+        byte[] invalidData = new byte[]{0, 1, 2, 3, 4};
+        SerializationUtils.deserialize(invalidData);
     }
 }

@@ -1,11 +1,8 @@
 package com.fasterxml.jackson.databind.jsontype.impl;
 
-import java.io.IOException;
-
-import org.junit.Test;
-import static org.junit.Assert.*;
-
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.BeanProperty;
@@ -14,245 +11,283 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.TypeIdResolver;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.fasterxml.jackson.databind.util.TokenBuffer;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+
+import static org.junit.Assert.*;
 
 public class AsPropertyTypeDeserializerTest {
 
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    // Helper classes for testing polymorphic deserialization
-    static abstract class Animal {
-        public String name;
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.PROPERTY, property = "@type")
+    static abstract class Shape {
+        public int id;
     }
 
-    static class Dog extends Animal {
-        public boolean barks;
+    @JsonTypeName("circle")
+    static class Circle extends Shape {
+        public int radius;
     }
 
-    static class Cat extends Animal {
-        public int lives;
+    @JsonTypeName("square")
+    static class Square extends Shape {
+        public int length;
     }
 
-    // Tests constructor and getTypeInclusion
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.PROPERTY, property = "@type", defaultImpl = Circle.class)
+    static abstract class ShapeWithDefault {
+        public int id;
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.PROPERTY, property = "@type", visible = true)
+    static class ShapeWithVisibleId {
+        public String type;
+        public int value;
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.EXISTING_PROPERTY, property = "type")
+    static abstract class ShapeWithExistingProperty {
+        public String type;
+        public int id;
+    }
+
+    @JsonTypeName("circle")
+    static class ExistingCircle extends ShapeWithExistingProperty {
+        public int radius;
+    }
+
+    private ObjectMapper mapper;
+
+    @Before
+    public void setUp() {
+        mapper = new ObjectMapper();
+        mapper.registerSubtypes(Circle.class, Square.class, ExistingCircle.class);
+    }
+
+    // Tests constructor and getTypeInclusion method
     @Test
     public void testGetTypeInclusion_defaultConstructor_returnsPropertyInclusion() {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, null);
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Shape.class);
+        TypeIdResolver idRes = new ClassNameIdResolver(baseType, mapper.getTypeFactory());
+        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(baseType, idRes, "@type", false, null);
 
         assertEquals(As.PROPERTY, deser.getTypeInclusion());
-        assertEquals("type", deser.getPropertyName());
     }
 
-    // Tests constructor with explicit As inclusion
+    // Tests constructor with explicit inclusion type
     @Test
-    public void testGetTypeInclusion_customInclusion_returnsConfiguredInclusion() {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "@class", true, null, As.EXISTING_PROPERTY);
+    public void testGetTypeInclusion_explicitInclusion_returnsConfiguredInclusion() {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Shape.class);
+        TypeIdResolver idRes = new ClassNameIdResolver(baseType, mapper.getTypeFactory());
+        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(baseType, idRes, "@type", false, null, As.EXISTING_PROPERTY);
 
         assertEquals(As.EXISTING_PROPERTY, deser.getTypeInclusion());
-        assertEquals("@class", deser.getPropertyName());
     }
 
-    // Tests forProperty with same property reference returning this
+    // Tests forProperty returning same instance when property matches
     @Test
-    public void testForProperty_sameProperty_returnsSelf() {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, null);
+    public void testForProperty_sameProperty_returnsSameInstance() {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Shape.class);
+        TypeIdResolver idRes = new ClassNameIdResolver(baseType, mapper.getTypeFactory());
+        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(baseType, idRes, "@type", false, null);
 
         assertSame(deser, deser.forProperty(null));
     }
 
-    // Tests forProperty with new property returning new instance
+    // Tests forProperty returning new instance when property is different
     @Test
     public void testForProperty_differentProperty_returnsNewInstance() {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, null);
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Shape.class);
+        TypeIdResolver idRes = new ClassNameIdResolver(baseType, mapper.getTypeFactory());
+        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(baseType, idRes, "@type", false, null);
         BeanProperty.Bogus prop = new BeanProperty.Bogus();
 
-        AsPropertyTypeDeserializer scopedDeser = (AsPropertyTypeDeserializer) deser.forProperty(prop);
-        assertNotSame(deser, scopedDeser);
-        assertEquals(deser.getTypeInclusion(), scopedDeser.getTypeInclusion());
-        assertEquals(deser.getPropertyName(), scopedDeser.getPropertyName());
+        com.fasterxml.jackson.databind.jsontype.TypeDeserializer newDeser = deser.forProperty(prop);
+        assertNotSame(deser, newDeser);
+        assertEquals(As.PROPERTY, newDeser.getTypeInclusion());
     }
 
-    // Tests deserializing typed object when type property is first
+    // Tests deserializing object where type id is the first field
     @Test
-    public void testDeserializeTypedFromObject_typePropertyFirst_deserializesCorrectly() throws IOException {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, null);
+    public void testDeserializeTypedFromObject_typeIdFirst_deserializesCorrectSubtype() throws IOException {
+        String json = "{\"@type\":\"circle\",\"radius\":5,\"id\":1}";
+        Shape shape = mapper.readValue(json, Shape.class);
 
-        String json = "{\"type\":\"" + Dog.class.getName() + "\",\"name\":\"Rex\",\"barks\":true}";
-        JsonParser parser = mapper.getFactory().createParser(json);
-        parser.nextToken(); // point to START_OBJECT
-
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-        Object result = deser.deserializeTypedFromObject(parser, ctxt);
-
-        assertNotNull(result);
-        assertTrue(result instanceof Dog);
-        Dog dog = (Dog) result;
-        assertEquals("Rex", dog.name);
-        assertTrue(dog.barks);
-        parser.close();
+        assertNotNull(shape);
+        assertTrue(shape instanceof Circle);
+        Circle circle = (Circle) shape;
+        assertEquals(5, circle.radius);
+        assertEquals(1, circle.id);
     }
 
-    // Tests deserializing typed object when type property is not first (buffering required)
+    // Tests deserializing object where type id appears after other fields (buffering required)
     @Test
-    public void testDeserializeTypedFromObject_typePropertySecond_buffersAndDeserializesCorrectly() throws IOException {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, null);
+    public void testDeserializeTypedFromObject_typeIdLast_deserializesCorrectSubtype() throws IOException {
+        String json = "{\"length\":10,\"id\":2,\"@type\":\"square\"}";
+        Shape shape = mapper.readValue(json, Shape.class);
 
-        String json = "{\"name\":\"Whiskers\",\"type\":\"" + Cat.class.getName() + "\",\"lives\":9}";
-        JsonParser parser = mapper.getFactory().createParser(json);
-        parser.nextToken(); // point to START_OBJECT
-
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-        Object result = deser.deserializeTypedFromObject(parser, ctxt);
-
-        assertNotNull(result);
-        assertTrue(result instanceof Cat);
-        Cat cat = (Cat) result;
-        assertEquals("Whiskers", cat.name);
-        assertEquals(9, cat.lives);
-        parser.close();
+        assertNotNull(shape);
+        assertTrue(shape instanceof Square);
+        Square square = (Square) shape;
+        assertEquals(10, square.length);
+        assertEquals(2, square.id);
     }
 
-    // Tests deserializeTypedFromObject when typeIdVisible is true
+    // Tests deserializing with typeIdVisible set to true
     @Test
-    public void testDeserializeTypedFromObject_typeIdVisibleTrue_preservesTypeId() throws IOException {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", true, null);
-
-        String json = "{\"type\":\"" + Dog.class.getName() + "\",\"name\":\"Buddy\",\"barks\":false}";
-        JsonParser parser = mapper.getFactory().createParser(json);
-        parser.nextToken(); // point to START_OBJECT
-
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-        Object result = deser.deserializeTypedFromObject(parser, ctxt);
-
+    public void testDeserializeTypedFromObject_typeIdVisible_keepsTypeIdInObject() throws IOException {
+        ObjectMapper localMapper = new ObjectMapper();
+        localMapper.registerSubtypes(ShapeWithVisibleId.class);
+        String json = "{\"value\":42,\"@type\":\"" + ShapeWithVisibleId.class.getName() + "\"}";
+        
+        ShapeWithVisibleId result = localMapper.readValue(json, ShapeWithVisibleId.class);
         assertNotNull(result);
-        assertTrue(result instanceof Dog);
-        Dog dog = (Dog) result;
-        assertEquals("Buddy", dog.name);
-        assertFalse(dog.barks);
-        parser.close();
+        assertEquals(42, result.value);
     }
 
-    // Tests deserializeTypedFromObject falling back to defaultImpl when type id is missing
+    // Tests deserialization using defaultImpl when type id is missing
     @Test
     public void testDeserializeTypedFromObject_missingTypeIdWithDefaultImpl_usesDefaultImpl() throws IOException {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        JavaType defaultImpl = TypeFactory.defaultInstance().constructType(Dog.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, defaultImpl);
+        String json = "{\"id\":3}";
+        ShapeWithDefault shape = mapper.readValue(json, ShapeWithDefault.class);
 
-        String json = "{\"name\":\"Rover\",\"barks\":true}";
-        JsonParser parser = mapper.getFactory().createParser(json);
-        parser.nextToken(); // point to START_OBJECT
-
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-        Object result = deser.deserializeTypedFromObject(parser, ctxt);
-
-        assertNotNull(result);
-        assertTrue(result instanceof Dog);
-        Dog dog = (Dog) result;
-        assertEquals("Rover", dog.name);
-        assertTrue(dog.barks);
-        parser.close();
+        assertNotNull(shape);
+        assertTrue(shape instanceof Circle);
+        assertEquals(3, shape.id);
     }
 
-    // Tests deserializeTypedFromObject with missing type id and no defaultImpl throws exception
+    // Tests exception when type id is missing and no defaultImpl is defined
     @Test(expected = JsonMappingException.class)
     public void testDeserializeTypedFromObject_missingTypeIdWithoutDefaultImpl_throwsException() throws IOException {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, null);
-
-        String json = "{\"name\":\"Rover\"}";
-        JsonParser parser = mapper.getFactory().createParser(json);
-        parser.nextToken(); // point to START_OBJECT
-
-        DeserializationContext ctxt = mapper.getDeserializationContext();
-        deser.deserializeTypedFromObject(parser, ctxt);
-        parser.close();
+        String json = "{\"id\":3,\"radius\":5}";
+        mapper.readValue(json, Shape.class);
     }
 
-    // Tests deserializeTypedFromAny with START_ARRAY token delegates to array deserialization
+    // Tests deserializeTypedFromAny with JSON array token delegating to array deserialization
     @Test
-    public void testDeserializeTypedFromAny_startArray_delegatesToArrayDeserializer() throws IOException {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, null);
+    public void testDeserializeTypedFromAny_arrayToken_delegatesToArrayDeserializer() throws IOException {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Shape.class);
+        TypeIdResolver idRes = new ClassNameIdResolver(baseType, mapper.getTypeFactory());
+        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(baseType, idRes, "@type", false, null);
 
-        String json = "[\"" + Dog.class.getName() + "\",{\"name\":\"Spike\",\"barks\":true}]";
-        JsonParser parser = mapper.getFactory().createParser(json);
-        parser.nextToken(); // point to START_ARRAY
-
+        JsonParser parser = mapper.getFactory().createParser("[\"circle\",{\"radius\":5}]");
+        parser.nextToken(); // Move to START_ARRAY
         DeserializationContext ctxt = mapper.getDeserializationContext();
-        Object result = deser.deserializeTypedFromAny(parser, ctxt);
 
+        Object result = deser.deserializeTypedFromAny(parser, ctxt);
         assertNotNull(result);
-        assertTrue(result instanceof Dog);
-        assertEquals("Spike", ((Dog) result).name);
+        assertTrue(result instanceof Circle);
         parser.close();
     }
 
-    // Tests deserializeTypedFromAny with START_OBJECT delegates to object deserialization
+    // Tests deserializeTypedFromAny with JSON object token delegating to object deserializer
     @Test
-    public void testDeserializeTypedFromAny_startObject_delegatesToObjectDeserializer() throws IOException {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, null);
+    public void testDeserializeTypedFromAny_objectToken_delegatesToObjectDeserializer() throws IOException {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Shape.class);
+        TypeIdResolver idRes = new ClassNameIdResolver(baseType, mapper.getTypeFactory());
+        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(baseType, idRes, "@type", false, null);
 
-        String json = "{\"type\":\"" + Cat.class.getName() + "\",\"name\":\"Kitty\",\"lives\":7}";
-        JsonParser parser = mapper.getFactory().createParser(json);
-        parser.nextToken(); // point to START_OBJECT
-
+        JsonParser parser = mapper.getFactory().createParser("{\"@type\":\"circle\",\"radius\":7}");
+        parser.nextToken(); // Move to START_OBJECT
         DeserializationContext ctxt = mapper.getDeserializationContext();
-        Object result = deser.deserializeTypedFromAny(parser, ctxt);
 
+        Object result = deser.deserializeTypedFromAny(parser, ctxt);
         assertNotNull(result);
-        assertTrue(result instanceof Cat);
-        assertEquals("Kitty", ((Cat) result).name);
+        assertTrue(result instanceof Circle);
         parser.close();
     }
 
-    // Tests deserializeTypedFromObject when empty string is passed with ACCEPT_EMPTY_STRING_AS_NULL_OBJECT
+    // Tests deserializing empty string when ACCEPT_EMPTY_STRING_AS_NULL_OBJECT is enabled (Defects4J 74 bug check)
     @Test
     public void testDeserializeTypedFromObject_emptyStringWithFeatureEnabled_returnsNull() throws IOException {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
-        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
-        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(
-                baseType, idRes, "type", false, null);
+        ObjectMapper configuredMapper = new ObjectMapper();
+        configuredMapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+        configuredMapper.registerSubtypes(Circle.class, Square.class);
 
-        ObjectMapper customMapper = new ObjectMapper();
-        customMapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+        Shape shape = configuredMapper.readValue("\"\"", Shape.class);
+        assertNull(shape);
+    }
 
-        JsonParser parser = customMapper.getFactory().createParser("\"\"");
-        parser.nextToken(); // point to VALUE_STRING
+    // Tests deserialization using As.EXISTING_PROPERTY inclusion
+    @Test
+    public void testDeserializeTypedFromObject_existingProperty_deserializesCorrectly() throws IOException {
+        String json = "{\"type\":\"circle\",\"radius\":12,\"id\":4}";
+        ShapeWithExistingProperty shape = mapper.readValue(json, ShapeWithExistingProperty.class);
 
-        DeserializationContext ctxt = customMapper.getDeserializationContext();
+        assertNotNull(shape);
+        assertTrue(shape instanceof ExistingCircle);
+        ExistingCircle circle = (ExistingCircle) shape;
+        assertEquals(12, circle.radius);
+        assertEquals(4, circle.id);
+        assertEquals("circle", circle.type);
+    }
+
+    // Tests _deserializeTypedUsingDefaultImpl when parser starts with FIELD_NAME
+    @Test
+    public void testDeserializeTypedFromObject_startingAtFieldName_deserializesCorrectly() throws IOException {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Shape.class);
+        TypeIdResolver idRes = new ClassNameIdResolver(baseType, mapper.getTypeFactory());
+        JavaType defaultType = TypeFactory.defaultInstance().constructType(Circle.class);
+        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(baseType, idRes, "@type", false, defaultType);
+
+        JsonParser parser = mapper.getFactory().createParser("{\"radius\":15,\"id\":5}");
+        parser.nextToken(); // START_OBJECT
+        parser.nextToken(); // FIELD_NAME ("radius")
+
+        DeserializationContext ctxt = mapper.getDeserializationContext();
         Object result = deser.deserializeTypedFromObject(parser, ctxt);
 
-        assertNull(result);
+        assertNotNull(result);
+        assertTrue(result instanceof Circle);
+        assertEquals(15, ((Circle) result).radius);
+        assertEquals(5, ((Circle) result).id);
+        parser.close();
+    }
+
+    // Tests _deserializeTypedUsingDefaultImpl directly with a TokenBuffer
+    @Test
+    public void testDeserializeTypedUsingDefaultImpl_withBufferedTokens_success() throws IOException {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Shape.class);
+        TypeIdResolver idRes = new ClassNameIdResolver(baseType, mapper.getTypeFactory());
+        JavaType defaultType = TypeFactory.defaultInstance().constructType(Circle.class);
+        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(baseType, idRes, "@type", false, defaultType);
+
+        JsonParser parser = mapper.getFactory().createParser("{\"radius\":20}");
+        parser.nextToken(); // START_OBJECT
+
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+        TokenBuffer tb = new TokenBuffer(parser, ctxt);
+        tb.writeStartObject();
+        tb.writeFieldName("id");
+        tb.writeNumber(99);
+
+        Object result = deser._deserializeTypedUsingDefaultImpl(parser, ctxt, tb);
+
+        assertNotNull(result);
+        assertTrue(result instanceof Circle);
+        Circle circle = (Circle) result;
+        assertEquals(99, circle.id);
+        assertEquals(20, circle.radius);
+        parser.close();
+        tb.close();
+    }
+
+    // Tests deserializeTypedFromAny with non-object/non-array token throwing exception when no defaultImpl
+    @Test(expected = JsonMappingException.class)
+    public void testDeserializeTypedFromAny_scalarTokenWithoutDefaultImpl_throwsException() throws IOException {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Shape.class);
+        TypeIdResolver idRes = new ClassNameIdResolver(baseType, mapper.getTypeFactory());
+        AsPropertyTypeDeserializer deser = new AsPropertyTypeDeserializer(baseType, idRes, "@type", false, null);
+
+        JsonParser parser = mapper.getFactory().createParser("12345");
+        parser.nextToken(); // VALUE_NUMBER_INT
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        deser.deserializeTypedFromAny(parser, ctxt);
         parser.close();
     }
 }

@@ -3,159 +3,164 @@ package org.jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.parser.Parser;
 import org.jsoup.safety.Whitelist;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class JsoupTest {
 
-    // Tests parsing HTML string without base URI
+    @Rule
+    public TemporaryFolder tempFolder = new TemporaryFolder();
+
+    // Tests parsing simple HTML string
     @Test
-    public void testParse_htmlString_returnsDocument() {
-        Document doc = Jsoup.parse("<p>Hello World</p>");
+    public void testParse_simpleHtml_returnsParsedDocument() {
+        String html = "<html><head><title>Test Title</title></head><body><p>Hello World</p></body></html>";
+        Document doc = Jsoup.parse(html);
+        assertEquals("Test Title", doc.title());
         assertEquals("Hello World", doc.select("p").text());
     }
 
-    // Tests parsing HTML string with base URI to resolve relative links
+    // Tests parsing HTML with base URI
     @Test
-    public void testParse_htmlStringWithBaseUri_resolvesAbsoluteUrl() {
-        String html = "<a href='/path/page.html'>Link</a>";
+    public void testParse_htmlWithBaseUri_resolvesAbsoluteUrl() {
+        String html = "<a href='/test.html'>Link</a>";
         Document doc = Jsoup.parse(html, "http://example.com/");
-        assertEquals("http://example.com/path/page.html", doc.select("a").first().absUrl("href"));
+        assertEquals("http://example.com/test.html", doc.select("a").first().absUrl("href"));
     }
 
-    // Tests parsing XML string using custom XML parser
+    // Tests parsing HTML using custom XML parser
     @Test
-    public void testParse_xmlStringWithXmlParser_preservesXmlStructure() {
-        String xml = "<root><child id='1'/></root>";
+    public void testParse_withXmlParser_parsesXmlStructure() {
+        String xml = "<root><item id='1'>Value</item></root>";
         Document doc = Jsoup.parse(xml, "", Parser.xmlParser());
-        assertEquals(1, doc.select("child").size());
-        assertEquals("1", doc.select("child").attr("id"));
+        assertEquals("Value", doc.select("item").text());
+        assertEquals("1", doc.select("item").attr("id"));
     }
 
-    // Tests parseBodyFragment creates body structure properly
+    // Tests parsing body fragment without base URI
     @Test
-    public void testParseBodyFragment_simpleFragment_createsBody() {
-        Document doc = Jsoup.parseBodyFragment("<div><span>Test</span></div>");
-        assertEquals("Test", doc.body().select("span").text());
+    public void testParseBodyFragment_validFragment_placesInBody() {
+        String fragment = "<div><p>Fragment Paragraph</p></div>";
+        Document doc = Jsoup.parseBodyFragment(fragment);
+        assertEquals("Fragment Paragraph", doc.body().select("p").text());
     }
 
-    // Tests parseBodyFragment with base URI resolves absolute link inside fragment
+    // Tests parsing body fragment with base URI
     @Test
-    public void testParseBodyFragment_withBaseUri_resolvesAbsoluteUrl() {
-        Document doc = Jsoup.parseBodyFragment("<a href='sub/index.html'>Click</a>", "http://example.com/dir/");
-        assertEquals("http://example.com/dir/sub/index.html", doc.body().select("a").first().absUrl("href"));
+    public void testParseBodyFragment_withBaseUri_resolvesRelativeLinks() {
+        String fragment = "<a href='sub/page.html'>Link</a>";
+        Document doc = Jsoup.parseBodyFragment(fragment, "http://example.com/dir/");
+        assertEquals("http://example.com/dir/sub/page.html", doc.body().select("a").first().absUrl("href"));
     }
 
-    // Tests connect returns valid Connection object
+    // Tests cleaning unsafe HTML with basic whitelist
+    @Test
+    public void testClean_unsafeHtml_stripsUnsafeTags() {
+        String unsafeHtml = "<p><a href='http://example.com/' onclick='steal()'>Link</a><script>alert(1);</script></p>";
+        String cleanHtml = Jsoup.clean(unsafeHtml, Whitelist.basic());
+        assertEquals("<p><a href=\"http://example.com/\" rel=\"nofollow\">Link</a></p>", cleanHtml);
+    }
+
+    // Tests cleaning HTML with custom output settings
+    @Test
+    public void testClean_withOutputSettings_preservesSettings() {
+        String html = "<p>&amp; &lt; &gt;</p>";
+        Document.OutputSettings settings = new Document.OutputSettings();
+        settings.prettyPrint(false);
+        String cleanHtml = Jsoup.clean(html, "", Whitelist.basic(), settings);
+        assertEquals("<p>&amp; &lt; &gt;</p>", cleanHtml);
+    }
+
+    // Tests cleaning HTML with base URI to resolve relative links
+    @Test
+    public void testClean_relativeUrlWithBaseUri_resolvesAndCleans() {
+        String html = "<a href='/foo'>Link</a>";
+        String cleanHtml = Jsoup.clean(html, "http://example.com", Whitelist.basic());
+        assertEquals("<a href=\"http://example.com/foo\" rel=\"nofollow\">Link</a>", cleanHtml);
+    }
+
+    // Tests validating safe HTML returns true
+    @Test
+    public void testIsValid_safeHtml_returnsTrue() {
+        String safeHtml = "<p>This is <b>safe</b> text.</p>";
+        assertTrue(Jsoup.isValid(safeHtml, Whitelist.basic()));
+    }
+
+    // Tests validating unsafe HTML returns false
+    @Test
+    public void testIsValid_unsafeHtml_returnsFalse() {
+        String unsafeHtml = "<p>Text <script>alert(1);</script></p>";
+        assertFalse(Jsoup.isValid(unsafeHtml, Whitelist.basic()));
+    }
+
+    // Tests creating connection instance
     @Test
     public void testConnect_validUrl_returnsConnection() {
         Connection con = Jsoup.connect("http://example.com");
         assertNotNull(con);
     }
 
-    // Tests parsing from InputStream
+    // Tests parsing from InputStream with charset and base URI
     @Test
-    public void testParse_inputStream_returnsParsedDocument() throws IOException {
-        String html = "<html><body><h1>Title</h1></body></html>";
-        InputStream in = new ByteArrayInputStream(html.getBytes("UTF-8"));
-        Document doc = Jsoup.parse(in, "UTF-8", "http://example.com");
-        assertEquals("Title", doc.select("h1").text());
+    public void testParse_inputStream_parsesDocumentCorrectly() throws IOException {
+        String html = "<html><head><title>Stream Test</title></head><body><p>Content</p></body></html>";
+        InputStream in = new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8));
+        Document doc = Jsoup.parse(in, "UTF-8", "http://example.com/");
+        assertEquals("Stream Test", doc.title());
+        assertEquals("Content", doc.select("p").text());
     }
 
-    // Tests parsing from InputStream with XML Parser
+    // Tests parsing from InputStream with custom Parser
     @Test
-    public void testParse_inputStreamWithParser_parsesCustomXml() throws IOException {
-        String xml = "<data><item>Value</item></data>";
-        InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
-        Document doc = Jsoup.parse(in, "UTF-8", "http://example.com", Parser.xmlParser());
-        assertEquals("Value", doc.select("item").text());
+    public void testParse_inputStreamWithParser_parsesXmlCorrectly() throws IOException {
+        String xml = "<xml><data>Stream Data</data></xml>";
+        InputStream in = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+        Document doc = Jsoup.parse(in, "UTF-8", "http://example.com/", Parser.xmlParser());
+        assertEquals("Stream Data", doc.select("data").text());
     }
 
-    // Tests parsing from File with default baseUri
+    // Tests parsing from File with charset and base URI
     @Test
-    public void testParse_file_returnsParsedDocument() throws IOException {
-        File tempFile = File.createTempFile("jsoup_test", ".html");
-        tempFile.deleteOnExit();
-        FileOutputStream out = new FileOutputStream(tempFile);
-        try {
-            out.write("<p>File Content</p>".getBytes("UTF-8"));
-        } finally {
-            out.close();
+    public void testParse_fileWithBaseUri_parsesCorrectly() throws IOException {
+        File file = tempFolder.newFile("test.html");
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write("<html><head><title>File Test</title></head><body><p>File Content</p></body></html>".getBytes(StandardCharsets.UTF_8));
         }
 
-        Document doc = Jsoup.parse(tempFile, "UTF-8");
+        Document doc = Jsoup.parse(file, "UTF-8", "http://example.com/");
+        assertEquals("File Test", doc.title());
         assertEquals("File Content", doc.select("p").text());
     }
 
-    // Tests parsing from File with custom baseUri
+    // Tests parsing from File without base URI
     @Test
-    public void testParse_fileWithBaseUri_returnsParsedDocument() throws IOException {
-        File tempFile = File.createTempFile("jsoup_test_base", ".html");
-        tempFile.deleteOnExit();
-        FileOutputStream out = new FileOutputStream(tempFile);
-        try {
-            out.write("<a href='relative.html'>Link</a>".getBytes("UTF-8"));
-        } finally {
-            out.close();
+    public void testParse_fileWithoutBaseUri_usesFileLocationAsBase() throws IOException {
+        File file = tempFolder.newFile("test_nobase.html");
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write("<html><head><title>File No Base</title></head><body><p>Content</p></body></html>".getBytes(StandardCharsets.UTF_8));
         }
 
-        Document doc = Jsoup.parse(tempFile, "UTF-8", "http://example.com/");
-        assertEquals("http://example.com/relative.html", doc.select("a").first().absUrl("href"));
+        Document doc = Jsoup.parse(file, "UTF-8");
+        assertEquals("File No Base", doc.title());
+        assertEquals(file.getAbsolutePath(), doc.baseUri());
     }
 
-    // Tests cleaning unsafe HTML with basic Whitelist
-    @Test
-    public void testClean_unsafeHtml_removesDisallowedTags() {
-        String unsafe = "<p><script>alert('xss');</script>Valid Text</p>";
-        String safe = Jsoup.clean(unsafe, Whitelist.basic());
-        assertEquals("<p>Valid Text</p>", safe);
-    }
-
-    // Tests cleaning HTML with base URI
-    @Test
-    public void testClean_withBaseUri_resolvesRelativeLinks() {
-        String unsafe = "<a href='/wiki/Main_Page'>Link</a>";
-        String safe = Jsoup.clean(unsafe, "http://example.com", Whitelist.basic());
-        assertEquals("<a href=\"http://example.com/wiki/Main_Page\" rel=\"nofollow\">Link</a>", safe);
-    }
-
-    // Tests cleaning HTML with OutputSettings
-    @Test
-    public void testClean_withOutputSettings_appliesSettings() {
-        String html = "<p>Line1\nLine2</p>";
-        Document.OutputSettings settings = new Document.OutputSettings().prettyPrint(false);
-        String safe = Jsoup.clean(html, "", Whitelist.relaxed(), settings);
-        assertEquals("<p>Line1\nLine2</p>", safe);
-    }
-
-    // Tests isValid with completely valid HTML fragment
-    @Test
-    public void testIsValid_validHtml_returnsTrue() {
-        String validHtml = "<p><a href=\"http://example.com/\">Link</a></p>";
-        assertTrue(Jsoup.isValid(validHtml, Whitelist.basic()));
-    }
-
-    // Tests isValid with unsafe HTML containing script tag
-    @Test
-    public void testIsValid_invalidHtmlWithScript_returnsFalse() {
-        String invalidHtml = "<p>Text <script>alert(1);</script></p>";
-        assertFalse(Jsoup.isValid(invalidHtml, Whitelist.basic()));
-    }
-
-    // Tests isValid with disallowed attributes on valid tags
-    @Test
-    public void testIsValid_disallowedAttribute_returnsFalse() {
-        String invalidHtml = "<p onclick=\"alert('click')\">Text</p>";
-        assertFalse(Jsoup.isValid(invalidHtml, Whitelist.basic()));
+    // Tests parsing URL with invalid scheme throws MalformedURLException
+    @Test(expected = MalformedURLException.class)
+    public void testParse_invalidUrlProtocol_throwsMalformedURLException() throws IOException {
+        URL url = new URL("ftp://invalid.example.com");
+        Jsoup.parse(url, 1000);
     }
 }

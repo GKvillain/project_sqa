@@ -5,80 +5,88 @@ import static org.junit.Assert.*;
 
 public class DocumentTypeTest {
 
-    // Tests nodeName implementation
+    // Tests nodeName returns "#doctype"
     @Test
-    public void testNodeName_always_returnsDoctype() {
-        DocumentType docType = new DocumentType("html", "", "", "");
-        assertEquals("#doctype", docType.nodeName());
+    public void testNodeName_default_returnsDoctypeHash() {
+        DocumentType documentType = new DocumentType("html", "", "", "");
+        assertEquals("#doctype", documentType.nodeName());
     }
 
-    // Tests constructor setting attributes correctly
+    // Tests constructor and attribute getters
     @Test
     public void testConstructor_validParameters_setsAttributesCorrectly() {
-        DocumentType docType = new DocumentType("html", "-//W3C//DTD XHTML 1.0 Strict//EN", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd", "http://example.com");
-        assertEquals("html", docType.attr("name"));
-        assertEquals("-//W3C//DTD XHTML 1.0 Strict//EN", docType.attr("publicId"));
-        assertEquals("http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd", docType.attr("systemId"));
-        assertEquals("http://example.com", docType.baseUri());
+        DocumentType documentType = new DocumentType("html", "publicIdVal", "systemIdVal", "http://example.com");
+        assertEquals("html", documentType.attr("name"));
+        assertEquals("publicIdVal", documentType.attr("publicId"));
+        assertEquals("systemIdVal", documentType.attr("systemId"));
+        assertEquals("http://example.com", documentType.baseUri());
     }
 
-    // Tests standard HTML5 doctype without public or system IDs
+    // Tests outerHtml for standard HTML5 doctype
     @Test
-    public void testOuterHtml_html5SimpleDoctype_rendersCorrectHtml() {
-        DocumentType docType = new DocumentType("html", "", "", "");
-        assertEquals("<!DOCTYPE html>", docType.outerHtml());
+    public void testOuterHtml_simpleHtml5_returnsExpectedDoctype() {
+        DocumentType documentType = new DocumentType("html", "", "", "");
+        assertEquals("<!DOCTYPE html>", documentType.outerHtml());
     }
 
-    // Tests custom doctype name (e.g. XML / SVG / lowercase / uppercase)
+    // Tests outerHtml when name is not "html"
     @Test
-    public void testOuterHtml_customName_rendersDoctypeWithCustomName() {
-        DocumentType docType = new DocumentType("svg", "", "", "");
-        assertEquals("<!DOCTYPE svg>", docType.outerHtml());
+    public void testOuterHtml_customName_returnsExpectedDoctypeWithName() {
+        DocumentType documentType = new DocumentType("svg", "", "", "");
+        assertEquals("<!DOCTYPE svg>", documentType.outerHtml());
     }
 
-    // Tests doctype with both publicId and systemId
+    // Tests outerHtml with publicId and systemId
     @Test
-    public void testOuterHtml_publicAndSystemIdentifiers_rendersFullDoctype() {
-        DocumentType docType = new DocumentType("html", "-//W3C//DTD HTML 4.01//EN", "http://www.w3.org/TR/html4/strict.dtd", "");
-        assertEquals("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">", docType.outerHtml());
+    public void testOuterHtml_publicAndSystemId_returnsFormattedDoctype() {
+        DocumentType documentType = new DocumentType(
+                "html",
+                "-//W3C//DTD HTML 4.01//EN",
+                "http://www.w3.org/TR/html4/strict.dtd",
+                ""
+        );
+        assertEquals(
+                "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">",
+                documentType.outerHtml()
+        );
     }
 
-    // Tests doctype with publicId only
+    // Tests outerHtml with only publicId (systemId is empty)
     @Test
-    public void testOuterHtml_publicIdOnly_rendersDoctypeWithPublicId() {
-        DocumentType docType = new DocumentType("html", "-//W3C//DTD HTML 4.01//EN", "", "");
-        assertEquals("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">", docType.outerHtml());
+    public void testOuterHtml_publicIdOnly_returnsFormattedDoctype() {
+        DocumentType documentType = new DocumentType("html", "-//W3C//DTD HTML 4.01//EN", "", "");
+        assertEquals("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">", documentType.outerHtml());
     }
 
-    // Tests doctype with systemId only
+    // Tests outerHtml with only systemId (publicId is empty)
     @Test
-    public void testOuterHtml_systemIdOnly_rendersDoctypeWithSystemId() {
-        DocumentType docType = new DocumentType("html", "", "http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd", "");
-        assertEquals("<!DOCTYPE html SYSTEM \"http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd\">", docType.outerHtml());
+    public void testOuterHtml_systemIdOnly_returnsFormattedDoctype() {
+        DocumentType documentType = new DocumentType("html", "", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd", "");
+        assertEquals("<!DOCTYPE html \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">", documentType.outerHtml());
     }
 
-    // Tests blank/whitespace public and system IDs
+    // Tests outerHtml with whitespace-only publicId and systemId
     @Test
-    public void testOuterHtml_whitespacePublicAndSystemIds_rendersDoctypeWithoutIds() {
-        DocumentType docType = new DocumentType("html", "   ", "   ", "");
-        assertEquals("<!DOCTYPE html>", docType.outerHtml());
+    public void testOuterHtml_blankPublicAndSystemId_ignoresBlankIds() {
+        DocumentType documentType = new DocumentType("html", "   ", "   ", "");
+        assertEquals("<!DOCTYPE html>", documentType.outerHtml());
     }
 
     // Tests outerHtmlHead directly with StringBuilder
     @Test
-    public void testOuterHtmlHead_directCall_appendsCorrectDoctype() {
-        DocumentType docType = new DocumentType("html", "pub", "sys", "");
-        StringBuilder accum = new StringBuilder();
-        docType.outerHtmlHead(accum, 0, new Document.OutputSettings());
-        assertEquals("<!DOCTYPE html PUBLIC \"pub\" \"sys\">", accum.toString());
+    public void testOuterHtmlHead_accumulatesDoctypeString() {
+        DocumentType documentType = new DocumentType("html", "pub", "sys", "");
+        StringBuilder sb = new StringBuilder();
+        documentType.outerHtmlHead(sb, 0, new Document("").outputSettings());
+        assertEquals("<!DOCTYPE html PUBLIC \"pub\" \"sys\">", sb.toString());
     }
 
-    // Tests outerHtmlTail to ensure no characters are appended
+    // Tests outerHtmlTail does not append content
     @Test
-    public void testOuterHtmlTail_directCall_doesNotModifyAccumulator() {
-        DocumentType docType = new DocumentType("html", "", "", "");
-        StringBuilder accum = new StringBuilder();
-        docType.outerHtmlTail(accum, 0, new Document.OutputSettings());
-        assertEquals(0, accum.length());
+    public void testOuterHtmlTail_doesNotAppendAnyContent() {
+        DocumentType documentType = new DocumentType("html", "", "", "");
+        StringBuilder sb = new StringBuilder("content");
+        documentType.outerHtmlTail(sb, 0, new Document("").outputSettings());
+        assertEquals("content", sb.toString());
     }
 }

@@ -5,7 +5,12 @@ import com.google.javascript.rhino.SimpleErrorReporter;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class FunctionBuilderTest {
 
@@ -22,9 +27,9 @@ public class FunctionBuilderTest {
     objectType = registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE);
   }
 
-  // Tests building function with default builder state
+  // Tests building function type with default builder state
   @Test
-  public void testBuild_defaultState_returnsFunctionWithDefaults() {
+  public void testBuild_defaultValues_createsFunctionTypeWithDefaults() {
     FunctionBuilder builder = new FunctionBuilder(registry);
     FunctionType fn = builder.build();
 
@@ -40,80 +45,65 @@ public class FunctionBuilderTest {
 
   // Tests setting function name
   @Test
-  public void testWithName_validName_setsReferenceName() {
+  public void testWithName_validName_setsFunctionName() {
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withName("testFunction").build();
+    builder.withName("myFunction");
+    FunctionType fn = builder.build();
 
-    assertEquals("testFunction", fn.getReferenceName());
+    assertEquals("myFunction", fn.getReferenceName());
   }
 
   // Tests setting function name with null
   @Test
-  public void testWithName_nullName_setsNullReferenceName() {
+  public void testWithName_nullName_setsNullFunctionName() {
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withName("initial").withName(null).build();
+    builder.withName("temp").withName(null);
+    FunctionType fn = builder.build();
 
     assertNull(fn.getReferenceName());
   }
 
   // Tests setting source node
   @Test
-  public void testWithSourceNode_validNode_setsSource() {
-    Node node = new Node(0);
+  public void testWithSourceNode_validNode_setsSourceNode() {
+    Node sourceNode = new Node(0);
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withSourceNode(node).build();
+    builder.withSourceNode(sourceNode);
+    FunctionType fn = builder.build();
 
-    assertSame(node, fn.getSource());
+    assertSame(sourceNode, fn.getSource());
+  }
+
+  // Tests setting parameters using a Node directly
+  @Test
+  public void testWithParamsNode_validNode_setsParametersNode() {
+    Node paramsNode = new Node(0);
+    FunctionBuilder builder = new FunctionBuilder(registry);
+    builder.withParamsNode(paramsNode);
+    FunctionType fn = builder.build();
+
+    assertSame(paramsNode, fn.getParametersNode());
   }
 
   // Tests setting parameters using FunctionParamBuilder
   @Test
   public void testWithParams_paramBuilder_setsParametersNode() {
     FunctionParamBuilder paramBuilder = new FunctionParamBuilder(registry);
-    paramBuilder.addRequiredParams(numberType);
+    paramBuilder.addRequiredParams(stringType);
 
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withParams(paramBuilder).build();
+    builder.withParams(paramBuilder);
+    FunctionType fn = builder.build();
 
     assertNotNull(fn.getParametersNode());
-    assertEquals(1, fn.getParametersNode().getChildCount());
   }
 
-  // Tests setting parameters directly via Node
-  @Test
-  public void testWithParamsNode_directNode_setsParametersNode() {
-    Node paramNode = new Node(0);
-    FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withParamsNode(paramNode).build();
-
-    assertSame(paramNode, fn.getParametersNode());
-  }
-
-  // Tests setting return type without inference
+  // Tests setting standard return type (not inferred)
   @Test
   public void testWithReturnType_validType_setsReturnTypeNotInferred() {
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withReturnType(numberType).build();
-
-    assertEquals(numberType, fn.getReturnType());
-    assertFalse(fn.isReturnTypeInferred());
-  }
-
-  // Tests setting return type with explicit inferred flag (true)
-  @Test
-  public void testWithReturnType_withInferredTrue_setsReturnTypeAndInferredFlag() {
-    FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withReturnType(numberType, true).build();
-
-    assertEquals(numberType, fn.getReturnType());
-    assertTrue(fn.isReturnTypeInferred());
-  }
-
-  // Tests setting return type with explicit inferred flag (false)
-  @Test
-  public void testWithReturnType_withInferredFalse_setsReturnTypeAndNotInferredFlag() {
-    FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withReturnType(numberType, false).build();
+    builder.withReturnType(numberType);
+    FunctionType fn = builder.build();
 
     assertEquals(numberType, fn.getReturnType());
     assertFalse(fn.isReturnTypeInferred());
@@ -123,120 +113,152 @@ public class FunctionBuilderTest {
   @Test
   public void testWithInferredReturnType_validType_setsReturnTypeAndInferredFlag() {
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withInferredReturnType(stringType).build();
+    builder.withInferredReturnType(stringType);
+    FunctionType fn = builder.build();
 
     assertEquals(stringType, fn.getReturnType());
     assertTrue(fn.isReturnTypeInferred());
   }
 
-  // Tests setting type of this
+  // Tests setting type of 'this'
   @Test
-  public void testWithTypeOfThis_objectType_setsTypeOfThis() {
+  public void testWithTypeOfThis_validObjectType_setsTypeOfThis() {
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withTypeOfThis(objectType).build();
+    builder.withTypeOfThis(objectType);
+    FunctionType fn = builder.build();
 
     assertEquals(objectType, fn.getTypeOfThis());
   }
 
   // Tests setting template type name
   @Test
-  public void testWithTemplateName_validName_setsTemplateTypeName() {
+  public void testWithTemplateName_validTemplateName_setsTemplateTypeName() {
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.withTemplateName("T").build();
+    builder.withTemplateName("T");
+    FunctionType fn = builder.build();
 
     assertEquals("T", fn.getTemplateTypeName());
   }
 
-  // Tests constructor flag
+  // Tests marking the function as constructor
   @Test
-  public void testForConstructor_called_setsIsConstructorTrue() {
+  public void testForConstructor_flagSet_isConstructorReturnsTrue() {
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.forConstructor().build();
+    builder.forConstructor();
+    FunctionType fn = builder.build();
 
     assertTrue(fn.isConstructor());
   }
 
-  // Tests native type flag
+  // Tests marking the function as native type
   @Test
-  public void testForNativeType_called_setsIsNativeObjectTypeTrue() {
+  public void testForNativeType_flagSet_isNativeObjectTypeReturnsTrue() {
     FunctionBuilder builder = new FunctionBuilder(registry);
-    FunctionType fn = builder.forNativeType().build();
+    builder.forNativeType();
+    FunctionType fn = builder.build();
 
     assertTrue(fn.isNativeObjectType());
   }
 
-  // Tests copying state from another FunctionType
+  // Tests copying properties from another function type
   @Test
-  public void testCopyFromOtherFunction_copiesAllAttributes() {
+  public void testCopyFromOtherFunction_allProperties_copiesCorrectly() {
     Node sourceNode = new Node(0);
-    Node paramsNode = new Node(0);
-
     FunctionType original = new FunctionBuilder(registry)
         .withName("originalFn")
         .withSourceNode(sourceNode)
-        .withParamsNode(paramsNode)
         .withReturnType(numberType)
         .withTypeOfThis(objectType)
         .withTemplateName("T")
         .forConstructor()
-        .forNativeType()
         .build();
 
-    FunctionType copied = new FunctionBuilder(registry)
-        .copyFromOtherFunction(original)
-        .build();
+    FunctionBuilder builder = new FunctionBuilder(registry);
+    builder.copyFromOtherFunction(original);
+    FunctionType copy = builder.build();
 
-    assertEquals("originalFn", copied.getReferenceName());
-    assertSame(sourceNode, copied.getSource());
-    assertSame(paramsNode, copied.getParametersNode());
-    assertEquals(numberType, copied.getReturnType());
-    assertEquals(objectType, copied.getTypeOfThis());
-    assertEquals("T", copied.getTemplateTypeName());
-    assertTrue(copied.isConstructor());
-    assertTrue(copied.isNativeObjectType());
-    assertFalse(copied.isReturnTypeInferred());
+    assertEquals("originalFn", copy.getReferenceName());
+    assertSame(sourceNode, copy.getSource());
+    assertEquals(numberType, copy.getReturnType());
+    assertEquals(objectType, copy.getTypeOfThis());
+    assertEquals("T", copy.getTemplateTypeName());
+    assertTrue(copy.isConstructor());
   }
 
-  // Tests copying state from another FunctionType with inferred return type
+  // Tests building function with chained fluent setters
   @Test
-  public void testCopyFromOtherFunction_withInferredReturnType_copiesInferredFlag() {
-    FunctionType original = new FunctionBuilder(registry)
-        .withInferredReturnType(stringType)
-        .build();
-
-    FunctionType copied = new FunctionBuilder(registry)
-        .copyFromOtherFunction(original)
-        .build();
-
-    assertEquals(stringType, copied.getReturnType());
-    assertTrue(copied.isReturnTypeInferred());
-  }
-
-  // Tests fluent chaining with multiple configurations
-  @Test
-  public void testChainedConfiguration_allMethods_buildsFullyConfiguredFunction() {
+  public void testBuild_chainedConfiguration_allAttributesSetCorrectly() {
     Node sourceNode = new Node(0);
     Node paramsNode = new Node(0);
 
     FunctionType fn = new FunctionBuilder(registry)
-        .withName("chainTest")
+        .withName("completeFunction")
         .withSourceNode(sourceNode)
         .withParamsNode(paramsNode)
-        .withInferredReturnType(stringType)
+        .withReturnType(stringType)
         .withTypeOfThis(objectType)
         .withTemplateName("U")
         .forConstructor()
-        .forNativeType()
         .build();
 
-    assertEquals("chainTest", fn.getReferenceName());
+    assertEquals("completeFunction", fn.getReferenceName());
     assertSame(sourceNode, fn.getSource());
     assertSame(paramsNode, fn.getParametersNode());
     assertEquals(stringType, fn.getReturnType());
-    assertTrue(fn.isReturnTypeInferred());
     assertEquals(objectType, fn.getTypeOfThis());
     assertEquals("U", fn.getTemplateTypeName());
     assertTrue(fn.isConstructor());
-    assertTrue(fn.isNativeObjectType());
+    assertFalse(fn.isReturnTypeInferred());
+  }
+
+  // Tests setting return type with explicit inferred flag
+  @Test
+  public void testWithReturnType_explicitInferredFlag_setsReturnTypeAndInferredFlagCorrectly() {
+    FunctionBuilder builderInferred = new FunctionBuilder(registry);
+    builderInferred.withReturnType(numberType, true);
+    FunctionType fnInferred = builderInferred.build();
+
+    assertEquals(numberType, fnInferred.getReturnType());
+    assertTrue(fnInferred.isReturnTypeInferred());
+
+    FunctionBuilder builderNotInferred = new FunctionBuilder(registry);
+    builderNotInferred.withReturnType(stringType, false);
+    FunctionType fnNotInferred = builderNotInferred.build();
+
+    assertEquals(stringType, fnNotInferred.getReturnType());
+    assertFalse(fnNotInferred.isReturnTypeInferred());
+  }
+
+  // Tests marking the function as an interface
+  @Test
+  public void testForInterface_flagSet_isInterfaceReturnsTrue() {
+    FunctionBuilder builder = new FunctionBuilder(registry);
+    builder.forInterface();
+    FunctionType fn = builder.build();
+
+    assertTrue(fn.isInterface());
+    assertFalse(fn.isConstructor());
+  }
+
+  // Tests copying properties from another function type including interface, native type, and inferred return
+  @Test
+  public void testCopyFromOtherFunction_interfaceAndInferredReturn_copiesCorrectly() {
+    Node paramsNode = new Node(0);
+    FunctionType original = new FunctionBuilder(registry)
+        .withParamsNode(paramsNode)
+        .withInferredReturnType(stringType)
+        .forInterface()
+        .forNativeType()
+        .build();
+
+    FunctionBuilder builder = new FunctionBuilder(registry);
+    builder.copyFromOtherFunction(original);
+    FunctionType copy = builder.build();
+
+    assertSame(paramsNode, copy.getParametersNode());
+    assertEquals(stringType, copy.getReturnType());
+    assertTrue(copy.isReturnTypeInferred());
+    assertTrue(copy.isInterface());
+    assertTrue(copy.isNativeObjectType());
   }
 }

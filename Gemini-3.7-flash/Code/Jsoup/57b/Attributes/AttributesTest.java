@@ -21,30 +21,29 @@ public class AttributesTest {
     // Tests get and put with standard key-value pairs
     @Test
     public void testGet_existingKey_returnsValue() {
-        attributes.put("key1", "val1");
-        assertEquals("val1", attributes.get("key1"));
-        assertEquals("", attributes.get("nonExistent"));
+        attributes.put("href", "http://example.com");
+        assertEquals("http://example.com", attributes.get("href"));
+        assertEquals("", attributes.get("nonexistent"));
     }
 
-    // Tests getIgnoreCase returns value regardless of key casing
-    @Test
-    public void testGetIgnoreCase_differentCaseKey_returnsValue() {
-        attributes.put("TestKey", "val1");
-        assertEquals("val1", attributes.getIgnoreCase("testkey"));
-        assertEquals("val1", attributes.getIgnoreCase("TESTKEY"));
-        assertEquals("", attributes.getIgnoreCase("nonExistent"));
-    }
-
-    // Tests get and getIgnoreCase when attributes map is empty/uninitialized
+    // Tests get with empty attributes map
     @Test
     public void testGet_emptyAttributes_returnsEmptyString() {
         assertEquals("", attributes.get("key"));
-        assertEquals("", attributes.getIgnoreCase("key"));
     }
 
-    // Tests put with boolean value true sets boolean attribute and false removes it
+    // Tests case-insensitive get
     @Test
-    public void testPut_booleanValue_setsAndRemovesAttribute() {
+    public void testGetIgnoreCase_mixedCaseKey_returnsValue() {
+        attributes.put("HREF", "http://example.com");
+        assertEquals("http://example.com", attributes.getIgnoreCase("href"));
+        assertEquals("http://example.com", attributes.getIgnoreCase("HREF"));
+        assertEquals("", attributes.getIgnoreCase("src"));
+    }
+
+    // Tests boolean attribute addition and removal via put
+    @Test
+    public void testPut_booleanAttribute_addsOrRemoves() {
         attributes.put("disabled", true);
         assertTrue(attributes.hasKey("disabled"));
 
@@ -52,51 +51,34 @@ public class AttributesTest {
         assertFalse(attributes.hasKey("disabled"));
     }
 
-    // Tests put with Attribute object
+    // Tests case-sensitive remove
     @Test
-    public void testPut_attributeObject_addsAttribute() {
-        Attribute attr = new Attribute("href", "http://example.com");
-        attributes.put(attr);
-        assertEquals("http://example.com", attributes.get("href"));
+    public void testRemove_caseSensitive_removesExactMatchOnly() {
+        attributes.put("class", "main");
+        attributes.put("Class", "header");
+
+        attributes.remove("class");
+        assertFalse(attributes.hasKey("class"));
+        assertTrue(attributes.hasKey("Class"));
     }
 
-    // Tests remove removes key case-sensitively
+    // Tests case-insensitive remove with multiple elements (regression test for ConcurrentModificationException)
     @Test
-    public void testRemove_caseSensitiveKey_removesAttribute() {
-        attributes.put("Key", "val");
-        attributes.remove("key");
-        assertTrue(attributes.hasKey("Key"));
-
-        attributes.remove("Key");
-        assertFalse(attributes.hasKey("Key"));
-    }
-
-    // Tests removeIgnoreCase removes key case-insensitively across multiple attributes
-    @Test
-    public void testRemoveIgnoreCase_multipleAttributes_removesKeyWithoutException() {
-        attributes.put("One", "1");
+    public void testRemoveIgnoreCase_multipleAttributes_removesMatchingKeys() {
+        attributes.put("one", "1");
         attributes.put("Two", "2");
-        attributes.put("Three", "3");
+        attributes.put("three", "3");
 
         attributes.removeIgnoreCase("two");
-
         assertFalse(attributes.hasKeyIgnoreCase("two"));
         assertEquals(2, attributes.size());
-        assertEquals("1", attributes.get("One"));
-        assertEquals("3", attributes.get("Three"));
+        assertEquals("1", attributes.get("one"));
+        assertEquals("3", attributes.get("three"));
     }
 
-    // Tests remove and removeIgnoreCase on uninitialized attributes
+    // Tests hasKey and hasKeyIgnoreCase behavior
     @Test
-    public void testRemove_emptyAttributes_noException() {
-        attributes.remove("key");
-        attributes.removeIgnoreCase("key");
-        assertEquals(0, attributes.size());
-    }
-
-    // Tests hasKey and hasKeyIgnoreCase
-    @Test
-    public void testHasKey_caseSensitiveAndInsensitive_returnsCorrectBoolean() {
+    public void testHasKey_andHasKeyIgnoreCase_validatesExistence() {
         assertFalse(attributes.hasKey("title"));
         assertFalse(attributes.hasKeyIgnoreCase("title"));
 
@@ -107,130 +89,122 @@ public class AttributesTest {
         assertTrue(attributes.hasKeyIgnoreCase("TITLE"));
     }
 
-    // Tests size and addAll from another Attributes object
+    // Tests size of attributes
     @Test
-    public void testAddAll_validIncomingAttributes_mergesAllAttributes() {
+    public void testSize_emptyAndPopulated_returnsCorrectCount() {
         assertEquals(0, attributes.size());
-
-        Attributes other = new Attributes();
-        other.put("k1", "v1");
-        other.put("k2", "v2");
-
-        attributes.addAll(other);
-        assertEquals(2, attributes.size());
-        assertEquals("v1", attributes.get("k1"));
-        assertEquals("v2", attributes.get("k2"));
-
-        attributes.addAll(new Attributes());
+        attributes.put("key1", "val1");
+        attributes.put("key2", "val2");
         assertEquals(2, attributes.size());
     }
 
-    // Tests iterator on empty and populated attributes
+    // Tests addAll merging attributes from another instance
     @Test
-    public void testIterator_populatedAttributes_iteratesAll() {
-        Iterator<Attribute> emptyIt = attributes.iterator();
-        assertFalse(emptyIt.hasNext());
+    public void testAddAll_validIncomingAttributes_mergesCorrectly() {
+        attributes.put("a", "1");
 
-        attributes.put("k1", "v1");
-        attributes.put("k2", "v2");
+        Attributes incoming = new Attributes();
+        incoming.put("b", "2");
+        incoming.put("a", "override");
 
-        Iterator<Attribute> it = attributes.iterator();
-        assertTrue(it.hasNext());
-        assertEquals("k1", it.next().getKey());
-        assertTrue(it.hasNext());
-        assertEquals("k2", it.next().getKey());
-        assertFalse(it.hasNext());
+        attributes.addAll(incoming);
+        assertEquals(2, attributes.size());
+        assertEquals("override", attributes.get("a"));
+        assertEquals("2", attributes.get("b"));
     }
 
-    // Tests asList representation of attributes
+    // Tests iteration over attributes
     @Test
-    public void testAsList_emptyAndPopulated_returnsUnmodifiableList() {
+    public void testIterator_iteratesAllAttributes() {
+        attributes.put("a", "1");
+        attributes.put("b", "2");
+
+        int count = 0;
+        for (Attribute attr : attributes) {
+            assertNotNull(attr);
+            count++;
+        }
+        assertEquals(2, count);
+    }
+
+    // Tests asList representation
+    @Test
+    public void testAsList_returnsUnmodifiableList() {
         assertTrue(attributes.asList().isEmpty());
 
-        attributes.put("k1", "v1");
+        attributes.put("key", "value");
         List<Attribute> list = attributes.asList();
         assertEquals(1, list.size());
-        assertEquals("k1", list.get(0).getKey());
+        assertEquals("key", list.get(0).getKey());
+        assertEquals("value", list.get(0).getValue());
     }
 
-    // Tests dataset view for custom HTML5 data-* attributes
+    // Tests HTML dataset functionality
     @Test
-    public void testDataset_dataAttributes_managesDataPrefix() {
-        attributes.put("data-name", "value");
-        attributes.put("class", "button");
+    public void testDataset_customDataAttributes_managesDataPrefix() {
+        attributes.put("data-name", "jsoup");
+        attributes.put("class", "test");
 
         Map<String, String> dataset = attributes.dataset();
         assertEquals(1, dataset.size());
-        assertEquals("value", dataset.get("name"));
+        assertEquals("jsoup", dataset.get("name"));
 
-        dataset.put("custom", "val2");
-        assertEquals("val2", attributes.get("data-custom"));
+        dataset.put("version", "1.0");
+        assertEquals("1.0", attributes.get("data-version"));
     }
 
-    // Tests html and toString representations
+    // Tests HTML generation
     @Test
-    public void testHtml_attributesPresent_formatsHtmlString() {
+    public void testHtml_generatesExpectedHtmlString() {
         assertEquals("", attributes.html());
-        assertEquals("", attributes.toString());
 
         attributes.put("id", "main");
         attributes.put("class", "container");
-
         assertEquals(" id=\"main\" class=\"container\"", attributes.html());
-        assertEquals(" id=\"main\" class=\"container\"", attributes.toString());
+        assertEquals(attributes.html(), attributes.toString());
     }
 
     // Tests equals and hashCode contracts
     @Test
-    public void testEqualsAndHashCode_equivalentAndDifferentObjects_conformsToContract() {
-        assertTrue(attributes.equals(attributes));
-        assertFalse(attributes.equals(null));
-        assertFalse(attributes.equals("not an Attributes"));
+    public void testEqualsAndHashCode_sameAndDifferentContent_evaluatesCorrectly() {
+        Attributes attr1 = new Attributes();
+        Attributes attr2 = new Attributes();
 
-        Attributes other = new Attributes();
-        assertTrue(attributes.equals(other));
-        assertEquals(attributes.hashCode(), other.hashCode());
+        assertEquals(attr1, attr2);
+        assertEquals(attr1.hashCode(), attr2.hashCode());
 
-        attributes.put("k1", "v1");
-        assertFalse(attributes.equals(other));
+        attr1.put("k", "v");
+        assertNotEquals(attr1, attr2);
 
-        other.put("k1", "v1");
-        assertTrue(attributes.equals(other));
-        assertEquals(attributes.hashCode(), other.hashCode());
+        attr2.put("k", "v");
+        assertEquals(attr1, attr2);
+        assertEquals(attr1.hashCode(), attr2.hashCode());
+
+        assertNotEquals(attr1, null);
+        assertNotEquals(attr1, "different_type");
     }
 
-    // Tests deep clone independence
+    // Tests clone functionality creates an independent deep copy
     @Test
-    public void testClone_clonedInstance_isIndependentCopy() {
-        Attributes emptyClone = attributes.clone();
-        assertEquals(0, emptyClone.size());
+    public void testClone_createsIndependentCopy() {
+        attributes.put("key", "original");
+        Attributes cloned = attributes.clone();
 
-        attributes.put("key", "val");
-        Attributes clone = attributes.clone();
-
-        assertEquals(1, clone.size());
-        assertEquals("val", clone.get("key"));
-
-        clone.put("key", "newVal");
-        assertEquals("val", attributes.get("key"));
-        assertEquals("newVal", clone.get("key"));
+        assertEquals(attributes, cloned);
+        cloned.put("key", "modified");
+        assertEquals("original", attributes.get("key"));
+        assertEquals("modified", cloned.get("key"));
     }
 
-    // Tests exception path for empty or null key in get
+    // Tests exception on empty key get
     @Test(expected = IllegalArgumentException.class)
     public void testGet_emptyKey_throwsException() {
         attributes.get("");
     }
 
-    // Tests exception path for null Attribute in put
+    // Tests exception on null attribute put
     @Test(expected = IllegalArgumentException.class)
     public void testPut_nullAttribute_throwsException() {
         attributes.put((Attribute) null);
-    }
-
-    // Tests exception path for null key in remove
-    @Test(expected = IllegalArgumentException.class)
-    public void testRemove_nullKey_throwsException() {
-        attributes.remove(null);
     }
 }

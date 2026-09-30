@@ -1,225 +1,177 @@
 package com.google.javascript.jscomp;
 
 import org.junit.Test;
-import org.junit.Before;
-import static org.junit.Assert.*;
 
-import com.google.javascript.rhino.Node;
-import com.google.javascript.rhino.Token;
+public class PeepholeFoldConstantsTest extends CompilerTestCase {
 
-public class PeepholeFoldConstantsTest {
+  private boolean late = true;
 
-  private PeepholeFoldConstants peephole;
-  private Compiler compiler;
-
-  @Before
-  public void setUp() {
-    peephole = new PeepholeFoldConstants();
-    compiler = new Compiler();
+  @Override
+  protected CompilerPass getProcessor(final Compiler compiler) {
+    return new PeepholeOptimizationsPass(compiler, new PeepholeFoldConstants(late));
   }
 
-  private Node fold(Node root) {
-    Node parent = new Node(Token.EXPR_RESULT, root);
-    Node result = peephole.optimizeSubtree(root);
-    return result;
+  @Override
+  protected void setUp() throws Exception {
+    super.setUp();
   }
 
-  // Tests array element get with in-bounds constant index (Defects4J 161b regression)
+  // Tests array access as an assignment target should not fold (Regression test for Defect 161)
   @Test
-  public void testTryFoldArrayAccess_inBoundsIndex_returnsElement() {
-    Node elem0 = Node.newString("a");
-    Node elem1 = Node.newString("b");
-    Node arrayLit = new Node(Token.ARRAYLIT, elem0, elem1);
-    Node indexNode = Node.newNumber(1.0);
-    Node getElem = new Node(Token.GETELEM, arrayLit, indexNode);
-
-    Node result = fold(getElem);
-    assertEquals(Token.STRING, result.getType());
-    assertEquals("b", result.getString());
+  public void testOptimizeSubtree_arrayAccessAssignmentTarget_doesNotFold() {
+    testSame("[][1] = 1;");
+    testSame("[a, b][0] = 1;");
+    testSame("[a, b][1] = 1;");
   }
 
-  // Tests array element get with out of bounds index (Defects4J 161b regression)
+  // Tests folding array element access
   @Test
-  public void testTryFoldArrayAccess_outOfBoundsIndex_doesNotThrowException() {
-    Node elem0 = Node.newString("a");
-    Node arrayLit = new Node(Token.ARRAYLIT, elem0);
-    Node indexNode = Node.newNumber(2.0);
-    Node getElem = new Node(Token.GETELEM, arrayLit, indexNode);
-
-    Node result = fold(getElem);
-    assertEquals(Token.GETELEM, result.getType());
+  public void testOptimizeSubtree_arrayAccess_foldsElement() {
+    test("x = [1, 2, 3][0]", "x = 1");
+    test("x = [1, 2, 3][1]", "x = 2");
+    test("x = [1, 2, 3][2]", "x = 3");
   }
 
-  // Tests array element get with negative index
+  // Tests typeof operator folding on various literal types
   @Test
-  public void testTryFoldArrayAccess_negativeIndex_doesNotFold() {
-    Node elem0 = Node.newString("a");
-    Node arrayLit = new Node(Token.ARRAYLIT, elem0);
-    Node indexNode = Node.newNumber(-1.0);
-    Node getElem = new Node(Token.GETELEM, arrayLit, indexNode);
-
-    Node result = fold(getElem);
-    assertEquals(Token.GETELEM, result.getType());
+  public void testOptimizeSubtree_typeofLiterals_foldsToTypeName() {
+    test("x = typeof 1", "x = \"number\"");
+    test("x = typeof 'foo'", "x = \"string\"");
+    test("x = typeof true", "x = \"boolean\"");
+    test("x = typeof null", "x = \"object\"");
+    test("x = typeof undefined", "x = \"undefined\"");
   }
 
-  // Tests array element get with non-integer index
+  // Tests unary operators POS, NEG, NOT, and BITNOT
   @Test
-  public void testTryFoldArrayAccess_fractionalIndex_doesNotFold() {
-    Node elem0 = Node.newString("a");
-    Node arrayLit = new Node(Token.ARRAYLIT, elem0);
-    Node indexNode = Node.newNumber(0.5);
-    Node getElem = new Node(Token.GETELEM, arrayLit, indexNode);
-
-    Node result = fold(getElem);
-    assertEquals(Token.GETELEM, result.getType());
+  public void testOptimizeSubtree_unaryOps_foldsConstant() {
+    test("x = - -3", "x = 3");
+    test("x = ~0", "x = -1");
+    test("x = !true", "x = false");
+    test("x = !false", "x = true");
+    test("x = +5", "x = 5");
   }
 
-  // Tests array length property folding
+  // Tests binary arithmetic operators (+, -, *, /, %)
   @Test
-  public void testTryFoldGetProp_arrayLength_foldsToCount() {
-    Node elem0 = Node.newNumber(1.0);
-    Node elem1 = Node.newNumber(2.0);
-    Node arrayLit = new Node(Token.ARRAYLIT, elem0, elem1);
-    Node propNode = Node.newString("length");
-    Node getProp = new Node(Token.GETPROP, arrayLit, propNode);
-
-    Node result = fold(getProp);
-    assertEquals(Token.NUMBER, result.getType());
-    assertEquals(2.0, result.getDouble(), 0.0);
+  public void testOptimizeSubtree_binaryArithmeticOps_foldsNumbers() {
+    test("x = 2 + 3", "x = 5");
+    test("x = 10 - 4", "x = 6");
+    test("x = 3 * 4", "x = 12");
+    test("x = 10 / 2", "x = 5");
+    test("x = 7 % 3", "x = 1");
   }
 
-  // Tests string length property folding
+  // Tests bitwise shift operators (<<, >>, >>>)
   @Test
-  public void testTryFoldGetProp_stringLength_foldsToLength() {
-    Node strNode = Node.newString("hello");
-    Node propNode = Node.newString("length");
-    Node getProp = new Node(Token.GETPROP, strNode, propNode);
-
-    Node result = fold(getProp);
-    assertEquals(Token.NUMBER, result.getType());
-    assertEquals(5.0, result.getDouble(), 0.0);
-  }
-
-  // Tests typeof folding for constant literal
-  @Test
-  public void testTryFoldTypeof_stringLiteral_foldsToString() {
-    Node strNode = Node.newString("hello");
-    Node typeofNode = new Node(Token.TYPEOF, strNode);
-
-    Node result = fold(typeofNode);
-    assertEquals(Token.STRING, result.getType());
-    assertEquals("string", result.getString());
-  }
-
-  // Tests typeof folding for number literal
-  @Test
-  public void testTryFoldTypeof_numberLiteral_foldsToNumber() {
-    Node numNode = Node.newNumber(123.0);
-    Node typeofNode = new Node(Token.TYPEOF, numNode);
-
-    Node result = fold(typeofNode);
-    assertEquals(Token.STRING, result.getType());
-    assertEquals("number", result.getString());
-  }
-
-  // Tests unary NOT on boolean true
-  @Test
-  public void testTryFoldUnaryOperator_notTrue_foldsToFalse() {
-    Node trueNode = new Node(Token.TRUE);
-    Node notNode = new Node(Token.NOT, trueNode);
-
-    Node result = fold(notNode);
-    assertEquals(Token.FALSE, result.getType());
-  }
-
-  // Tests unary NEG on number
-  @Test
-  public void testTryFoldUnaryOperator_negNumber_foldsToNegative() {
-    Node numNode = Node.newNumber(5.0);
-    Node negNode = new Node(Token.NEG, numNode);
-
-    Node result = fold(negNode);
-    assertEquals(Token.NUMBER, result.getType());
-    assertEquals(-5.0, result.getDouble(), 0.0);
-  }
-
-  // Tests binary arithmetic addition
-  @Test
-  public void testTryFoldBinaryOperator_addNumbers_foldsToSum() {
-    Node left = Node.newNumber(3.0);
-    Node right = Node.newNumber(4.0);
-    Node addNode = new Node(Token.ADD, left, right);
-
-    Node result = fold(addNode);
-    assertEquals(Token.NUMBER, result.getType());
-    assertEquals(7.0, result.getDouble(), 0.0);
+  public void testOptimizeSubtree_shiftOps_foldsCorrectResult() {
+    test("x = 1 << 2", "x = 4");
+    test("x = 8 >> 1", "x = 4");
+    test("x = -1 >>> 0", "x = 4294967295");
   }
 
   // Tests string concatenation folding
   @Test
-  public void testTryFoldBinaryOperator_addStrings_foldsToConcatenation() {
-    Node left = Node.newString("foo");
-    Node right = Node.newString("bar");
-    Node addNode = new Node(Token.ADD, left, right);
-
-    Node result = fold(addNode);
-    assertEquals(Token.STRING, result.getType());
-    assertEquals("foobar", result.getString());
+  public void testOptimizeSubtree_stringConcat_foldsStrings() {
+    test("x = 'a' + 'b'", "x = \"ab\"");
+    test("x = 'a' + 'b' + 'c'", "x = \"abc\"");
   }
 
-  // Tests binary comparison equal
+  // Tests comparison operators (==, ===, !=, !==, <, <=, >, >=)
   @Test
-  public void testTryFoldComparison_equalNumbers_foldsToTrue() {
-    Node left = Node.newNumber(10.0);
-    Node right = Node.newNumber(10.0);
-    Node eqNode = new Node(Token.EQ, left, right);
-
-    Node result = fold(eqNode);
-    assertEquals(Token.TRUE, result.getType());
+  public void testOptimizeSubtree_comparisonOps_foldsToBoolean() {
+    test("x = 1 < 2", "x = true");
+    test("x = 2 <= 2", "x = true");
+    test("x = 3 > 5", "x = false");
+    test("x = 'a' === 'a'", "x = true");
+    test("x = 'a' !== 'b'", "x = true");
+    test("x = null === undefined", "x = false");
+    test("x = null == undefined", "x = true");
   }
 
-  // Tests binary comparison strictly not equal
+  // Tests logical AND/OR short-circuit folding
   @Test
-  public void testTryFoldComparison_differentStrings_foldsToTrue() {
-    Node left = Node.newString("a");
-    Node right = Node.newString("b");
-    Node neNode = new Node(Token.NE, left, right);
-
-    Node result = fold(neNode);
-    assertEquals(Token.TRUE, result.getType());
+  public void testOptimizeSubtree_logicalAndOr_foldsShortCircuit() {
+    test("x = true && 1", "x = 1");
+    test("x = false && 1", "x = false");
+    test("x = true || 1", "x = true");
+    test("x = false || 1", "x = 1");
   }
 
-  // Tests bitwise shift operation
+  // Tests instanceof operator folding for immutable literals and Object
   @Test
-  public void testTryFoldShift_leftShift_foldsCorrectly() {
-    Node left = Node.newNumber(2.0);
-    Node right = Node.newNumber(3.0);
-    Node lshNode = new Node(Token.LSH, left, right);
-
-    Node result = fold(lshNode);
-    assertEquals(Token.NUMBER, result.getType());
-    assertEquals(16.0, result.getDouble(), 0.0);
+  public void testOptimizeSubtree_instanceof_foldsLiteral() {
+    test("x = 'hello' instanceof Object", "x = false");
+    test("x = 123 instanceof Object", "x = false");
+    test("x = ({}) instanceof Object", "x = true");
   }
 
-  // Tests logical AND operator with constant false left operand
+  // Tests folding of .length property on arrays and strings
   @Test
-  public void testTryFoldAndOr_andWithFalse_foldsToFalse() {
-    Node left = new Node(Token.FALSE);
-    Node right = Node.newString("unused");
-    Node andNode = new Node(Token.AND, left, right);
-
-    Node result = fold(andNode);
-    assertEquals(Token.FALSE, result.getType());
+  public void testOptimizeSubtree_lengthProperty_foldsLength() {
+    test("x = [1, 2, 3].length", "x = 3");
+    test("x = 'hello'.length", "x = 5");
   }
 
-  // Tests logical OR operator with constant true left operand
+  // Tests object property access folding
   @Test
-  public void testTryFoldAndOr_orWithTrue_foldsToTrue() {
-    Node left = new Node(Token.TRUE);
-    Node right = Node.newString("unused");
-    Node orNode = new Node(Token.OR, left, right);
+  public void testOptimizeSubtree_objectPropAccess_foldsPropertyValue() {
+    test("x = ({a: 1, b: 2}).a", "x = 1");
+    test("x = ({a: 1, b: 2})['b']", "x = 2");
+  }
 
-    Node result = fold(orNode);
-    assertEquals(Token.TRUE, result.getType());
+  // Tests converting x = x + y to compound assignment x += y
+  @Test
+  public void testOptimizeSubtree_assignOp_convertsToCompoundAssign() {
+    test("x = x + 1", "x += 1");
+    test("x = x * 2", "x *= 2");
+    test("x = x - 3", "x -= 3");
+  }
+
+  // Tests reducing void operator operands to 0
+  @Test
+  public void testOptimizeSubtree_voidOp_reducesToVoidZero() {
+    test("x = void 1", "x = void 0");
+    test("x = void 'hello'", "x = void 0");
+  }
+
+  // Tests bitwise operators (AND, OR, XOR)
+  @Test
+  public void testOptimizeSubtree_bitwiseOps_foldsBitwise() {
+    test("x = 5 & 3", "x = 1");
+    test("x = 5 | 3", "x = 7");
+    test("x = 5 ^ 3", "x = 6");
+  }
+
+  // Tests ternary (hook) operator folding on constant conditions
+  @Test
+  public void testOptimizeSubtree_hook_foldsTernary() {
+    test("x = true ? 1 : 2", "x = 1");
+    test("x = false ? 1 : 2", "x = 2");
+    test("x = 1 ? 'a' : 'b'", "x = \"a\"");
+    test("x = 0 ? 'a' : 'b'", "x = \"b\"");
+  }
+
+  // Tests associative string and number concatenation
+  @Test
+  public void testOptimizeSubtree_associativeConcat_foldsPartialConstants() {
+    test("x = 'a' + 'b' + y", "x = \"ab\" + y");
+    test("x = 1 + 2 + y", "x = 3 + y");
+    test("x = 'a' + 1", "x = \"a1\"");
+    test("x = 1 + 'a'", "x = \"1a\"");
+  }
+
+  // Tests empty string and array length folding
+  @Test
+  public void testOptimizeSubtree_emptyLength_foldsToZero() {
+    test("x = ''.length", "x = 0");
+    test("x = [].length", "x = 0");
+  }
+
+  // Tests out of bounds array access should not fold
+  @Test
+  public void testOptimizeSubtree_arrayAccessOutOfBounds_doesNotFold() {
+    testSame("x = [1, 2][-1];");
+    testSame("x = [1, 2][5];");
   }
 }

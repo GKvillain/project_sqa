@@ -2,6 +2,7 @@ package com.google.javascript.jscomp;
 
 import com.google.javascript.rhino.IR;
 import com.google.javascript.rhino.Node;
+import com.google.javascript.rhino.Token;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -16,123 +17,206 @@ public class PeepholeOptimizationsPassTest {
     compiler = new Compiler();
   }
 
-  // Tests constructor and getCompiler getter
+  // Tests getCompiler returns the compiler passed in constructor
   @Test
   public void testGetCompiler_returnsInitializedCompiler() {
     PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler);
     assertSame(compiler, pass.getCompiler());
   }
 
-  // Tests process with an empty script root and no optimizations
+  // Tests process on an empty script node with no optimizations
   @Test
-  public void testProcess_emptyScriptNoOptimizations_doesNotChange() {
-    Node root = IR.script();
+  public void testProcess_emptyScriptWithoutOptimizations_succeeds() {
     PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler);
-    pass.process(null, root);
-    assertEquals(0, root.getChildCount());
-  }
-
-  // Tests process with real peephole optimizations on a simple AST
-  @Test
-  public void testProcess_withRemoveDeadCodeOptimization() {
-    Node root = compiler.parseTestCode("if (false) { var x = 1; }");
-    PeepholeRemoveDeadCode deadCodeOpt = new PeepholeRemoveDeadCode();
-    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, deadCodeOpt);
-    pass.process(null, root);
+    Node root = IR.script();
+    Node externs = IR.script();
+    pass.process(externs, root);
     assertNotNull(root);
   }
 
-  // Tests process with multiple peephole optimizations applied together
+  // Tests process on a simple AST with a dummy optimization that counts visits
   @Test
-  public void testProcess_withMultipleOptimizations() {
-    Node root = compiler.parseTestCode("var x = 1 + 2; if (false) { x = 3; }");
-    PeepholeFoldConstants foldOpt = new PeepholeFoldConstants(true);
-    PeepholeRemoveDeadCode deadCodeOpt = new PeepholeRemoveDeadCode();
-    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, foldOpt, deadCodeOpt);
+  public void testProcess_simpleAst_callsOptimizeSubtree() {
+    TestCountingOptimization opt = new TestCountingOptimization();
+    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, opt);
+
+    Node root = IR.script(IR.var(IR.name("x"), IR.number(1.0)));
     pass.process(null, root);
-    assertNotNull(root);
+
+    assertTrue(opt.traversalBegan);
+    assertTrue(opt.traversalEnded);
+    assertTrue(opt.optimizeCalls > 0);
   }
 
-  // Tests process on nested functions scope traversal
+  // Tests process with an optimization that mutates AST and reports changes to trigger retraversal
   @Test
-  public void testProcess_nestedFunctions() {
-    Node root = compiler.parseTestCode(
-        "function outer() { function inner() { var a = 1 + 1; } }");
-    PeepholeFoldConstants foldOpt = new PeepholeFoldConstants(true);
-    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, foldOpt);
+  public void testProcess_withChangeReporting_retraversesScope() {
+    TestChangeOnceOptimization opt = new TestChangeOnceOptimization();
+    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, opt);
+
+    Node fnNode = IR.function(IR.name("fn"), IR.paramList(), IR.block(IR.exprResult(IR.string("test"))));
+    Node scriptNode = IR.script(fnNode);
+    Node root = IR.root(scriptNode);
+
     pass.process(null, root);
-    assertNotNull(root);
+
+    assertTrue("Optimization should have performed replacement", opt.replaced);
+    assertTrue("Optimization should have visited nodes multiple times", opt.optimizeCalls > 1);
   }
 
-  // Tests process when changes trigger scope retraversal in script and functions
+  // Tests retraverse logic when a function node has no parent (node.getParent() == null)
   @Test
-  public void testProcess_retraversalOnCodeChange() {
-    Node root = compiler.parseTestCode(
-        "function f() { var a = 1; if (false) { a = 2; } return a; }");
-    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(
-        compiler, new PeepholeRemoveDeadCode(), new PeepholeFoldConstants(true));
+  public void testProcess_functionWithoutParent_doesNotThrowNullPointer() {
+    TestChangeOnceOptimization opt = new TestChangeOnceOptimization();
+    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, opt);
+
+    Node fnNode = IR.function(IR.name("orphan"), IR.paramList(), IR.block(IR.exprResult(IR.string("orphanTest"))));
+    pass.process(null, fnNode);
+
+    assertNotNull(fnNode);
+  }
+
+  // Tests visit method when optimization returns null to ensure loop terminates gracefully
+  @Test
+  public void testVisit_optimizationReturnsNull_terminatesGracefully() {
+    AbstractPeepholeOptimization nullReturningOpt = new AbstractPeepholeOptimization() {
+      @Override
+      public Node optimizeSubtree(Node subtree) {
+        return null;
+      }
+    };
+
+    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, nullReturningOpt);
+    Node node = IR.exprResult(IR.number(42));
+    pass.visit(node);
+  }
+
+  // Tests multiple optimizations applied in sequence in a single pass
+  @Test
+  public void testProcess_multipleOptimizations_runsAllOptimizations() {
+    TestCountingOptimization opt1 = new TestCountingOptimization();
+    TestCountingOptimization opt2 = new TestCountingOptimization();
+    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, opt1, opt2);
+
+    Node root = IR.script(IR.exprResult(IR.number(10)));
     pass.process(null, root);
-    assertNotNull(root);
+
+    assertTrue(opt1.traversalBegan);
+    assertTrue(opt1.traversalEnded);
+    assertTrue(opt2.traversalBegan);
+    assertTrue(opt2.traversalEnded);
+    assertEquals(opt1.optimizeCalls, opt2.optimizeCalls);
   }
 
-  // Tests visit directly when optimization modifies the node
+  // Tests nested functions to cover push and pop on StateStack
   @Test
-  public void testVisit_replacesNode() {
-    PeepholeFoldConstants foldOpt = new PeepholeFoldConstants(true);
-    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, foldOpt);
-    Node expr = IR.add(IR.number(1), IR.number(2));
-    pass.visit(expr);
-    assertNotNull(expr);
+  public void testProcess_nestedFunctions_traversesAndMaintainsStackCorrectly() {
+    TestCountingOptimization opt = new TestCountingOptimization();
+    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, opt);
+
+    Node innerFn = IR.function(IR.name("inner"), IR.paramList(), IR.block(IR.returnNode(IR.number(2))));
+    Node outerFn = IR.function(IR.name("outer"), IR.paramList(), IR.block(innerFn, IR.returnNode(IR.number(1))));
+    Node script = IR.script(outerFn);
+    Node root = IR.root(script);
+
+    pass.process(null, root);
+
+    assertTrue(opt.optimizeCalls >= 3);
   }
 
-  // Tests visit directly when optimization does not modify the node
-  @Test
-  public void testVisit_noChangeOnLeafNode() {
-    PeepholeFoldConstants foldOpt = new PeepholeFoldConstants(true);
-    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, foldOpt);
-    Node number = IR.number(42);
-    pass.visit(number);
-    assertEquals(42.0, number.getDouble(), 0.0);
-  }
-
-  // Tests that infinite loop / iteration limit throws IllegalStateException
+  // Tests infinite loop protection: when state repeatedly changes, exception is thrown after 10000 visits
   @Test(expected = IllegalStateException.class)
-  public void testProcess_infiniteRetraversal_throwsIllegalStateException() {
-    Node root = compiler.parseTestCode("function f() { var x = 1; }");
+  public void testProcess_infiniteChanges_throwsIllegalStateException() {
     AbstractPeepholeOptimization infiniteChangeOpt = new AbstractPeepholeOptimization() {
       @Override
-      Node optimizeSubtree(Node subtree) {
-        if (subtree.isName()) {
-          compiler.reportCodeChange();
+      public Node optimizeSubtree(Node subtree) {
+        if (subtree.isScript()) {
+          reportCodeChange();
+          Node newNode = IR.script();
+          return newNode;
         }
         return subtree;
       }
     };
+
     PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, infiniteChangeOpt);
+    Node script = IR.script();
+    Node root = IR.root(script);
     pass.process(null, root);
   }
 
-  // Tests traversal handles node returning null from optimizeSubtree
+  // Tests shouldVisit when child scope traversal is disabled
   @Test
-  public void testVisit_optimizationReturnsNull() {
-    AbstractPeepholeOptimization nullOpt = new AbstractPeepholeOptimization() {
-      @Override
-      Node optimizeSubtree(Node subtree) {
-        return null;
-      }
-    };
-    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, nullOpt);
-    Node node = IR.var(IR.name("x"));
-    pass.visit(node);
+  public void testProcess_childScopesNotRevisited_whenScopeRetraversed() {
+    TestTrackVisitsOptimization tracker = new TestTrackVisitsOptimization();
+    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, tracker);
+
+    Node childFn = IR.function(IR.name("child"), IR.paramList(), IR.block());
+    Node parentFn = IR.function(IR.name("parent"), IR.paramList(), IR.block(childFn));
+    Node script = IR.script(parentFn);
+    Node root = IR.root(script);
+
+    pass.process(null, root);
+
+    assertTrue(tracker.visitedNodes.contains(childFn));
+    assertTrue(tracker.visitedNodes.contains(parentFn));
   }
 
-  // Tests process with script node having no parent (root node)
-  @Test
-  public void testProcess_scriptNodeWithoutParent() {
-    Node script = IR.script(IR.var(IR.name("a"), IR.number(1)));
-    PeepholeFoldConstants foldOpt = new PeepholeFoldConstants(true);
-    PeepholeOptimizationsPass pass = new PeepholeOptimizationsPass(compiler, foldOpt);
-    pass.process(null, script);
-    assertNotNull(script);
+  // Helper class: counts begin/end traversal and optimizeSubtree invocations
+  private static class TestCountingOptimization extends AbstractPeepholeOptimization {
+    int optimizeCalls = 0;
+    boolean traversalBegan = false;
+    boolean traversalEnded = false;
+
+    @Override
+    public void beginTraversal(AbstractCompiler compiler) {
+      super.beginTraversal(compiler);
+      traversalBegan = true;
+    }
+
+    @Override
+    public void endTraversal(AbstractCompiler compiler) {
+      super.endTraversal(compiler);
+      traversalEnded = true;
+    }
+
+    @Override
+    public Node optimizeSubtree(Node subtree) {
+      optimizeCalls++;
+      return subtree;
+    }
+  }
+
+  // Helper class: replaces a string node once and reports code change
+  private static class TestChangeOnceOptimization extends AbstractPeepholeOptimization {
+    boolean replaced = false;
+    int optimizeCalls = 0;
+
+    @Override
+    public Node optimizeSubtree(Node subtree) {
+      optimizeCalls++;
+      if (!replaced && subtree.isString() && "test".equals(subtree.getString())) {
+        replaced = true;
+        Node parent = subtree.getParent();
+        if (parent != null) {
+          Node replacement = IR.string("replaced");
+          parent.replaceChild(subtree, replacement);
+          reportCodeChange();
+          return replacement;
+        }
+      }
+      return subtree;
+    }
+  }
+
+  // Helper class: tracks which nodes were visited
+  private static class TestTrackVisitsOptimization extends AbstractPeepholeOptimization {
+    java.util.List<Node> visitedNodes = new java.util.ArrayList<Node>();
+
+    @Override
+    public Node optimizeSubtree(Node subtree) {
+      visitedNodes.add(subtree);
+      return subtree;
+    }
   }
 }

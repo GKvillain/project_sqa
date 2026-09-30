@@ -1,17 +1,27 @@
 package com.google.javascript.jscomp;
 
+import org.junit.Before;
 import org.junit.Test;
 
-/**
- * Tests for {@link CollapseProperties}.
- */
 public class CollapsePropertiesTest extends CompilerTestCase {
+
+  private static final String EXTERNS =
+      "var window; function alert(s) {} function setTimeout(fn, ms) {}";
 
   private boolean collapsePropertiesOnExternTypes = false;
   private boolean inlineAliases = true;
 
   public CollapsePropertiesTest() {
+    super(EXTERNS);
+  }
+
+  @Override
+  @Before
+  public void setUp() throws Exception {
+    super.setUp();
     enableNormalize();
+    collapsePropertiesOnExternTypes = false;
+    inlineAliases = true;
   }
 
   @Override
@@ -25,120 +35,165 @@ public class CollapsePropertiesTest extends CompilerTestCase {
     return 1;
   }
 
-  @Override
-  protected void setUp() throws Exception {
-    super.setUp();
-    collapsePropertiesOnExternTypes = false;
-    inlineAliases = true;
-  }
-
-  // Tests collapsing a simple global object property assignment
+  // Tests collapsing a simple property assignment
   @Test
-  public void testProcess_simpleGlobalProperty_collapsesToFlattenedVar() {
+  public void testProcess_simpleProperty_collapsesToVar() {
     test("var a = {}; a.b = 1;", "var a$b = 1;");
   }
 
-  // Tests collapsing nested object literal properties
+  // Tests collapsing nested properties and namespaces
   @Test
-  public void testProcess_nestedObjectLiteral_collapsesNestedProperties() {
+  public void testProcess_nestedProperties_collapsesToFlattenedVar() {
+    test("var a = {}; a.b = {}; a.b.c = 1;", "var a$b$c = 1;");
+  }
+
+  // Tests collapsing properties initialized via object literals
+  @Test
+  public void testProcess_objectLiteralKeys_collapsesKeysToVars() {
+    test("var a = {b: 1, c: 2};", "var a$b = 1; var a$c = 2;");
+  }
+
+  // Tests nested object literal collapsing
+  @Test
+  public void testProcess_nestedObjectLiterals_collapsesAllLevels() {
     test("var a = {b: {c: 1}};", "var a$b$c = 1;");
   }
 
-  // Tests collapsing properties added to a function namespace
+  // Tests property access on functions
   @Test
-  public void testProcess_functionNamespaceProperty_collapsesProperty() {
-    test("var a = function() {}; a.b = 1;",
-         "var a = function() {}; var a$b = 1;");
+  public void testProcess_functionWithProperties_collapsesStaticProperty() {
+    test("var a = function() {}; a.b = 1;", "var a = function() {}; var a$b = 1;");
   }
 
-  // Tests inlining local alias of a collapsed property
+  // Tests warning when namespace is aliased unsafely
   @Test
-  public void testProcess_localAliasOfProperty_inlinesAlias() {
-    test("var a = {b: 1}; function f() { var x = a.b; return x; }",
-         "var a$b = 1; function f() { var x = null; return a$b; }");
+  public void testProcess_namespaceAliased_reportsUnsafeNamespaceWarning() {
+    test("var a = {}; var b = a; a.c = 1;",
+        "var a = {}; var b = a; a.c = 1;",
+        CollapseProperties.UNSAFE_NAMESPACE_WARNING);
   }
 
-  // Tests inlining local alias when child properties exist (Defects4J Closure 130 regression)
+  // Tests warning when namespace is redefined
   @Test
-  public void testProcess_localAliasWithChildProperties_inlinesAndCollapsesChildren() {
-    test(
-        "var a = {b: {c: 1}};" +
-        "function f() {" +
-        "  var x = a.b;" +
-        "  return x.c;" +
-        "}",
-        "var a$b$c = 1;" +
-        "function f() {" +
-        "  var x = null;" +
-        "  return a$b$c;" +
-        "}");
+  public void testProcess_namespaceRedefined_reportsNamespaceRedefinedWarning() {
+    test("var a = {}; a = {}; a.b = 1;",
+        "var a = {}; a = {}; a.b = 1;",
+        CollapseProperties.NAMESPACE_REDEFINED_WARNING);
   }
 
-  // Tests that aliased namespace prevents collapsing and triggers warning
+  // Tests warning when 'this' is dangerously referenced in static method
   @Test
-  public void testCheckNamespaces_aliasedNamespace_reportsUnsafeNamespaceWarning() {
-    test("var a = {b: 1}; var c = a;",
-         "var a = {b: 1}; var c = a;",
-         null,
-         CollapseProperties.UNSAFE_NAMESPACE_WARNING);
-  }
-
-  // Tests that redefining an initialized namespace produces a warning
-  @Test
-  public void testCheckNamespaces_redefinedNamespace_reportsRedefinitionWarning() {
-    test("var a = {}; a = {};",
-         "var a = {}; a = {};",
-         null,
-         CollapseProperties.NAMESPACE_REDEFINED_WARNING);
-  }
-
-  // Tests warning on dangerous use of 'this' in a collapsed static method
-  @Test
-  public void testCheckForHosedThisReferences_unsafeThisInFunction_reportsWarning() {
+  public void testProcess_unsafeThisInStaticMethod_reportsUnsafeThisWarning() {
     test("var a = {}; a.b = function() { return this.c; };",
-         "var a$b = function() { return this.c; };",
-         null,
-         CollapseProperties.UNSAFE_THIS);
+        "var a$b = function() { return this.c; };",
+        CollapseProperties.UNSAFE_THIS);
   }
 
-  // Tests that constructor functions with 'this' do not produce UNSAFE_THIS warning
+  // Tests encoding of '$' in property names to prevent collision
   @Test
-  public void testCheckForHosedThisReferences_constructorWithThis_noWarning() {
-    test("var a = {}; /** @constructor */ a.b = function() { this.c = 1; };",
-         "/** @constructor */ var a$b = function() { this.c = 1; };");
-  }
-
-  // Tests that properties containing dollar signs are encoded properly
-  @Test
-  public void testAppendPropForAlias_propertyWithDollarSign_encodesDollarSign() {
-    test("var a = {}; a['$b'] = 1;", "var a = {}; a['$b'] = 1;");
+  public void testProcess_propertyNameWithDollarSign_escapesDollarSign() {
     test("var a = {}; a.$b = 1;", "var a$$0b = 1;");
   }
 
-  // Tests properties initialized in a local scope get stub declarations
+  // Tests inlining of local aliases for global names
   @Test
-  public void testAddStubsForUndeclaredProperties_lateLocalAssignment_createsVarStub() {
+  public void testProcess_localAlias_inlinesAliasAndCollapses() {
+    test("var a = {b: 1}; function f() { var x = a.b; return x; }",
+        "var a$b = 1; function f() { var x = null; return a$b; }");
+  }
+
+  // Tests regression where aliasing 'arguments' in local scope should not inline across inner functions
+  @Test
+  public void testProcess_argumentsAliasedInLocalScope_doesNotInliningIncorrectly() {
+    testSame("function f() { var args = arguments; setTimeout(function() { alert(args); }, 0); }");
+  }
+
+  // Tests stub variable generation for undeclared properties assigned in local scope
+  @Test
+  public void testProcess_undeclaredPropertyAssignedInLocalScope_createsVarStub() {
     test("var a = {}; function f() { a.b = 1; }",
-         "var a$b; function f() { a$b = 1; }");
+        "var a$b; var a = {}; function f() { a$b = 1; }");
   }
 
-  // Tests complex assignment chain maintains correct collapsed variable
+  // Tests property access inside complex assignment (twin references)
   @Test
-  public void testFlattenReferencesTo_complexAssignment_collapsesCorrectly() {
+  public void testProcess_complexAssignment_createsVarStubBeforeStatement() {
     test("var a = {}; var b = (a.c = 1);",
-         "var a$c; var b = (a$c = 1);");
+        "var a$c; var a = {}; var b = (a$c = 1);");
   }
 
-  // Tests that bracket property access is not collapsed
-  @Test
-  public void testProcess_bracketAccess_doesNotCollapse() {
-    testSame("var a = {}; a['b'] = 1;");
-  }
-
-  // Tests that inlineAliases disabled flag preserves local aliases
+  // Tests when inlineAliases is disabled
   @Test
   public void testProcess_inlineAliasesDisabled_doesNotInlineLocalAlias() {
     inlineAliases = false;
     testSame("var a = {b: 1}; function f() { var x = a.b; return x; }");
+  }
+
+  // Tests when collapsePropertiesOnExternTypes is enabled
+  @Test
+  public void testProcess_collapseOnExternTypesEnabled_processesWithoutError() {
+    collapsePropertiesOnExternTypes = true;
+    test("var a = {}; a.b = 1;", "var a$b = 1;");
+  }
+
+  // Tests bracket access prevents property collapsing on the namespace
+  @Test
+  public void testProcess_bracketAccess_preventsCollapsing() {
+    testSame("var a = {}; a['b'] = 1;");
+  }
+
+  // Tests property reassignment
+  @Test
+  public void testProcess_propertyReassigned_collapsesBothAssignments() {
+    test("var a = {}; a.b = 1; a.b = 2;", "var a$b = 1; a$b = 2;");
+  }
+
+  // Tests chained assignment across two namespaces
+  @Test
+  public void testProcess_chainedAssignment_collapsesBothProperties() {
+    test("var a = {}; var b = {}; a.x = b.y = 1;",
+        "var a$x; var b$y; a$x = b$y = 1;");
+  }
+
+  // Tests constructor with prototype method
+  @Test
+  public void testProcess_constructorPrototype_collapsesConstructorAndPreservesPrototype() {
+    test("var a = {}; a.b = function() {}; a.b.prototype.c = 1;",
+        "var a$b = function() {}; a$b.prototype.c = 1;");
+  }
+
+  // Tests increment and decrement operations on collapsed properties
+  @Test
+  public void testProcess_incrementDecrement_collapsesCorrectly() {
+    test("var a = {}; a.b = 1; a.b++; --a.b;",
+        "var a$b = 1; a$b++; --a$b;");
+  }
+
+  // Tests conditional assignment to property
+  @Test
+  public void testProcess_conditionalAssignment_createsVarStub() {
+    test("var a = {}; if (true) { a.b = 1; } else { a.b = 2; }",
+        "var a$b; var a = {}; if (true) { a$b = 1; } else { a$b = 2; }");
+  }
+
+  // Tests reading a property before its assignment
+  @Test
+  public void testProcess_readBeforeAssignment_createsVarStub() {
+    test("var a = {}; var x = a.b; a.b = 1;",
+        "var a$b; var a = {}; var x = a$b; a$b = 1;");
+  }
+
+  // Tests passing collapsed property as a function argument
+  @Test
+  public void testProcess_propertyAsFunctionArgument_collapsesAndPassesVariable() {
+    test("var a = {b: 1}; alert(a.b);",
+        "var a$b = 1; alert(a$b);");
+  }
+
+  // Tests nested object literals mixed with direct property assignments
+  @Test
+  public void testProcess_nestedLiteralWithAssignment_collapsesAll() {
+    test("var a = {b: {}}; a.b.c = {d: 1};",
+        "var a$b$c$d = 1;");
   }
 }

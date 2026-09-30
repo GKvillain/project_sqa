@@ -7,206 +7,251 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class FormElementTest {
 
-    // Tests constructor and elements getter
+    // Tests adding an element to form and retrieving elements list
     @Test
-    public void testElements_initialState_returnsEmptyElements() {
-        FormElement form = new FormElement(Tag.valueOf("form"), "http://example.com", new Attributes());
-        assertNotNull(form.elements());
-        assertEquals(0, form.elements().size());
-    }
-
-    // Tests addElement chaining and element retention
-    @Test
-    public void testAddElement_validElement_addsToElementsList() {
+    public void testElements_addElement_returnsElementsList() {
         FormElement form = new FormElement(Tag.valueOf("form"), "http://example.com", new Attributes());
         Element input = new Element(Tag.valueOf("input"), "http://example.com");
-        FormElement result = form.addElement(input);
+        input.attr("name", "user");
+        input.attr("value", "john");
 
-        assertEquals(form, result);
+        form.addElement(input);
+
         assertEquals(1, form.elements().size());
         assertEquals(input, form.elements().get(0));
     }
 
-    // Tests submit with action URL and POST method
+    // Tests standard text inputs in formData
     @Test
-    public void testSubmit_actionAndPostMethod_createsCorrectConnection() {
-        String html = "<form action='/submit' method='POST'><input name='user' value='john'></form>";
-        Document doc = Jsoup.parse(html, "http://example.com/");
+    public void testFormData_textInput_returnsKeyVal() {
+        String html = "<form action='/submit'><input name='username' value='testuser'/></form>";
+        Document doc = Jsoup.parse(html, "http://example.com");
         FormElement form = (FormElement) doc.select("form").first();
 
-        Connection conn = form.submit();
-        assertEquals("http://example.com/submit", conn.request().url().toExternalForm());
-        assertEquals(Connection.Method.POST, conn.request().method());
-        assertEquals(1, conn.request().data().size());
-        assertEquals("user", conn.request().data().iterator().next().key());
-        assertEquals("john", conn.request().data().iterator().next().value());
+        List<Connection.KeyVal> data = form.formData();
+
+        assertEquals(1, data.size());
+        assertEquals("username", data.get(0).key());
+        assertEquals("testuser", data.get(0).value());
     }
 
-    // Tests submit with default GET method and fallback to baseUri
+    // Tests that elements with disabled attribute are skipped
     @Test
-    public void testSubmit_noActionFallbackToBaseUri_createsGetConnection() {
-        String html = "<form><input name='q' value='jsoup'></form>";
-        Document doc = Jsoup.parse(html, "http://example.com/search");
-        FormElement form = (FormElement) doc.select("form").first();
-
-        Connection conn = form.submit();
-        assertEquals("http://example.com/search", conn.request().url().toExternalForm());
-        assertEquals(Connection.Method.GET, conn.request().method());
-    }
-
-    // Tests submit when action URL cannot be determined
-    @Test(expected = IllegalArgumentException.class)
-    public void testSubmit_missingActionAndBaseUri_throwsIllegalArgumentException() {
-        String html = "<form><input name='q' value='test'></form>";
-        Document doc = Jsoup.parse(html);
-        FormElement form = (FormElement) doc.select("form").first();
-        form.submit();
-    }
-
-    // Tests disabled input and missing name attribute are skipped
-    @Test
-    public void testFormData_disabledOrNamelessInputs_skippedInFormData() {
-        String html = "<form>" +
-                "<input name='' value='no-name'>" +
-                "<input name='disabled-input' value='val' disabled>" +
-                "<input name='valid-input' value='valid-val'>" +
+    public void testFormData_disabledInput_skipped() {
+        String html = "<form action='/submit'>" +
+                "<input name='username' value='testuser' disabled/>" +
+                "<input name='email' value='test@example.com'/>" +
                 "</form>";
         Document doc = Jsoup.parse(html, "http://example.com");
         FormElement form = (FormElement) doc.select("form").first();
 
         List<Connection.KeyVal> data = form.formData();
+
         assertEquals(1, data.size());
-        assertEquals("valid-input", data.get(0).key());
-        assertEquals("valid-val", data.get(0).value());
+        assertEquals("email", data.get(0).key());
+        assertEquals("test@example.com", data.get(0).value());
     }
 
-    // Tests non-submittable tags are skipped
+    // Tests that inputs without a name attribute or empty name are skipped
     @Test
-    public void testFormData_nonSubmittableTags_skippedInFormData() {
+    public void testFormData_emptyNameInput_skipped() {
+        String html = "<form action='/submit'>" +
+                "<input name='' value='noname'/>" +
+                "<input value='unnamed'/>" +
+                "<input name='valid' value='present'/>" +
+                "</form>";
+        Document doc = Jsoup.parse(html, "http://example.com");
+        FormElement form = (FormElement) doc.select("form").first();
+
+        List<Connection.KeyVal> data = form.formData();
+
+        assertEquals(1, data.size());
+        assertEquals("valid", data.get(0).key());
+        assertEquals("present", data.get(0).value());
+    }
+
+    // Tests select element with selected option
+    @Test
+    public void testFormData_selectWithSelectedOption_returnsSelectedValue() {
+        String html = "<form action='/submit'>" +
+                "<select name='city'>" +
+                "<option value='ny'>New York</option>" +
+                "<option value='la' selected>Los Angeles</option>" +
+                "</select>" +
+                "</form>";
+        Document doc = Jsoup.parse(html, "http://example.com");
+        FormElement form = (FormElement) doc.select("form").first();
+
+        List<Connection.KeyVal> data = form.formData();
+
+        assertEquals(1, data.size());
+        assertEquals("city", data.get(0).key());
+        assertEquals("la", data.get(0).value());
+    }
+
+    // Tests select element without explicit selected option (defaults to first option)
+    @Test
+    public void testFormData_selectWithoutSelectedOption_returnsFirstOptionValue() {
+        String html = "<form action='/submit'>" +
+                "<select name='city'>" +
+                "<option value='ny'>New York</option>" +
+                "<option value='la'>Los Angeles</option>" +
+                "</select>" +
+                "</form>";
+        Document doc = Jsoup.parse(html, "http://example.com");
+        FormElement form = (FormElement) doc.select("form").first();
+
+        List<Connection.KeyVal> data = form.formData();
+
+        assertEquals(1, data.size());
+        assertEquals("city", data.get(0).key());
+        assertEquals("ny", data.get(0).value());
+    }
+
+    // Tests select element with multiple selected options
+    @Test
+    public void testFormData_selectMultipleSelectedOptions_returnsAllSelectedValues() {
+        String html = "<form action='/submit'>" +
+                "<select name='color' multiple>" +
+                "<option value='red' selected>Red</option>" +
+                "<option value='green'>Green</option>" +
+                "<option value='blue' selected>Blue</option>" +
+                "</select>" +
+                "</form>";
+        Document doc = Jsoup.parse(html, "http://example.com");
+        FormElement form = (FormElement) doc.select("form").first();
+
+        List<Connection.KeyVal> data = form.formData();
+
+        assertEquals(2, data.size());
+        assertEquals("color", data.get(0).key());
+        assertEquals("red", data.get(0).value());
+        assertEquals("color", data.get(1).key());
+        assertEquals("blue", data.get(1).value());
+    }
+
+    // Tests checkboxes and radios when checked with and without custom values
+    @Test
+    public void testFormData_checkboxAndRadioChecked_returnsValuesOrOn() {
+        String html = "<form action='/submit'>" +
+                "<input type='checkbox' name='agree' checked/>" +
+                "<input type='checkbox' name='subscribe' value='yes' checked/>" +
+                "<input type='radio' name='gender' value='M' checked/>" +
+                "</form>";
+        Document doc = Jsoup.parse(html, "http://example.com");
+        FormElement form = (FormElement) doc.select("form").first();
+
+        List<Connection.KeyVal> data = form.formData();
+
+        assertEquals(3, data.size());
+        assertEquals("agree", data.get(0).key());
+        assertEquals("on", data.get(0).value());
+        assertEquals("subscribe", data.get(1).key());
+        assertEquals("yes", data.get(1).value());
+        assertEquals("gender", data.get(2).key());
+        assertEquals("M", data.get(2).value());
+    }
+
+    // Tests checkboxes and radios when not checked (skipped)
+    @Test
+    public void testFormData_checkboxAndRadioUnchecked_skipped() {
+        String html = "<form action='/submit'>" +
+                "<input type='checkbox' name='agree'/>" +
+                "<input type='radio' name='gender' value='M'/>" +
+                "</form>";
+        Document doc = Jsoup.parse(html, "http://example.com");
+        FormElement form = (FormElement) doc.select("form").first();
+
+        List<Connection.KeyVal> data = form.formData();
+
+        assertTrue(data.isEmpty());
+    }
+
+    // Tests non-submittable elements inside form are ignored in formData
+    @Test
+    public void testFormData_nonSubmittableElement_ignored() {
         FormElement form = new FormElement(Tag.valueOf("form"), "http://example.com", new Attributes());
         Element div = new Element(Tag.valueOf("div"), "http://example.com");
         div.attr("name", "divName");
-        div.val("divVal");
+        div.val("divValue");
+
         form.addElement(div);
 
         List<Connection.KeyVal> data = form.formData();
         assertTrue(data.isEmpty());
     }
 
-    // Tests select element with explicitly selected option
+    // Tests submit() creating a GET connection by default with parsed absolute action URL
     @Test
-    public void testFormData_selectWithSelectedOption_populatesSelectedValue() {
-        String html = "<form><select name='city'>" +
-                "<option value='ny'>New York</option>" +
-                "<option value='lon' selected>London</option>" +
-                "<option value='tok'>Tokyo</option>" +
-                "</select></form>";
+    public void testSubmit_defaultMethodGet_returnsConnection() {
+        String html = "<form action='/submit.php'><input name='q' value='jsoup'/></form>";
         Document doc = Jsoup.parse(html, "http://example.com");
         FormElement form = (FormElement) doc.select("form").first();
 
-        List<Connection.KeyVal> data = form.formData();
-        assertEquals(1, data.size());
-        assertEquals("city", data.get(0).key());
-        assertEquals("lon", data.get(0).value());
+        Connection con = form.submit();
+
+        assertEquals(Connection.Method.GET, con.request().method());
+        assertEquals("http://example.com/submit.php", con.request().url().toExternalForm());
+        assertEquals(1, con.request().data().size());
+        assertEquals("q", con.request().data().iterator().next().key());
+        assertEquals("jsoup", con.request().data().iterator().next().value());
     }
 
-    // Tests select element without selected attribute defaults to first option
+    // Tests submit() with POST method
     @Test
-    public void testFormData_selectWithoutSelectedOption_defaultsToFirstOption() {
-        String html = "<form><select name='color'>" +
-                "<option value='red'>Red</option>" +
-                "<option value='blue'>Blue</option>" +
-                "</select></form>";
+    public void testSubmit_postMethod_returnsPostConnection() {
+        String html = "<form action='/login' method='POST'><input name='user' value='admin'/></form>";
         Document doc = Jsoup.parse(html, "http://example.com");
         FormElement form = (FormElement) doc.select("form").first();
 
-        List<Connection.KeyVal> data = form.formData();
-        assertEquals(1, data.size());
-        assertEquals("color", data.get(0).key());
-        assertEquals("red", data.get(0).value());
+        Connection con = form.submit();
+
+        assertEquals(Connection.Method.POST, con.request().method());
+        assertEquals("http://example.com/login", con.request().url().toExternalForm());
     }
 
-    // Tests select element with no options
+    // Tests submit() when form action is missing, falls back to baseUri
     @Test
-    public void testFormData_selectWithNoOptions_producesNoData() {
-        String html = "<form><select name='emptySelect'></select></form>";
-        Document doc = Jsoup.parse(html, "http://example.com");
+    public void testSubmit_missingAction_usesBaseUri() {
+        String html = "<form><input name='q' value='test'/></form>";
+        Document doc = Jsoup.parse(html, "http://example.com/search");
         FormElement form = (FormElement) doc.select("form").first();
 
-        List<Connection.KeyVal> data = form.formData();
-        assertTrue(data.isEmpty());
+        Connection con = form.submit();
+
+        assertEquals("http://example.com/search", con.request().url().toExternalForm());
     }
 
-    // Tests checkbox and radio button handling for checked vs unchecked
+    // Tests submit() exception when action URL cannot be determined
+    @Test(expected = IllegalArgumentException.class)
+    public void testSubmit_noActionAndEmptyBaseUri_throwsException() {
+        String html = "<form><input name='q' value='test'/></form>";
+        Document doc = Jsoup.parse(html, "");
+        FormElement form = (FormElement) doc.select("form").first();
+
+        form.submit();
+    }
+
+    // Tests removal of form element from DOM to verify form data updates accordingly (Defects4J bug 69)
     @Test
-    public void testFormData_checkboxAndRadio_onlyCheckedIncluded() {
-        String html = "<form>" +
-                "<input type='checkbox' name='cb_checked' value='1' checked>" +
-                "<input type='checkbox' name='cb_unchecked' value='2'>" +
-                "<input type='radio' name='r' value='r1'>" +
-                "<input type='radio' name='r' value='r2' checked>" +
+    public void testFormData_removedElementFromDom_notPresentInFormData() {
+        String html = "<form action='/submit'>" +
+                "<input name='one' value='1'/>" +
+                "<input name='two' value='2'/>" +
                 "</form>";
         Document doc = Jsoup.parse(html, "http://example.com");
         FormElement form = (FormElement) doc.select("form").first();
 
+        Element inputTwo = doc.select("input[name=two]").first();
+        inputTwo.remove();
+
         List<Connection.KeyVal> data = form.formData();
-        assertEquals(2, data.size());
-        assertEquals("cb_checked", data.get(0).key());
+        assertEquals(1, data.size());
+        assertEquals("one", data.get(0).key());
         assertEquals("1", data.get(0).value());
-        assertEquals("r", data.get(1).key());
-        assertEquals("r2", data.get(1).value());
-    }
-
-    // Tests checkbox without value attribute defaults to "on"
-    @Test
-    public void testFormData_checkboxWithoutValue_defaultsToOn() {
-        String html = "<form><input type='checkbox' name='agree' checked></form>";
-        Document doc = Jsoup.parse(html, "http://example.com");
-        FormElement form = (FormElement) doc.select("form").first();
-
-        List<Connection.KeyVal> data = form.formData();
-        assertEquals(1, data.size());
-        assertEquals("agree", data.get(0).key());
-        assertEquals("on", data.get(0).value());
-    }
-
-    // Tests textarea and generic input controls
-    @Test
-    public void testFormData_textareaAndTextInputs_populatesCorrectly() {
-        String html = "<form>" +
-                "<input type='text' name='username' value='admin'>" +
-                "<textarea name='bio'>Hello World</textarea>" +
-                "</form>";
-        Document doc = Jsoup.parse(html, "http://example.com");
-        FormElement form = (FormElement) doc.select("form").first();
-
-        List<Connection.KeyVal> data = form.formData();
-        assertEquals(2, data.size());
-        assertEquals("username", data.get(0).key());
-        assertEquals("admin", data.get(0).value());
-        assertEquals("bio", data.get(1).key());
-        assertEquals("Hello World", data.get(1).value());
-    }
-
-    // Tests removal of form child element from DOM removes it from formData
-    @Test
-    public void testFormData_removedControlFromDom_notIncludedInFormData() {
-        String html = "<form><input name='foo' value='bar'><input name='qux' value='baz'></form>";
-        Document doc = Jsoup.parse(html, "http://example.com");
-        FormElement form = (FormElement) doc.select("form").first();
-
-        Element fooInput = form.select("input[name=foo]").first();
-        fooInput.remove();
-
-        List<Connection.KeyVal> data = form.formData();
-        assertEquals(1, data.size());
-        assertEquals("qux", data.get(0).key());
-        assertEquals("baz", data.get(0).value());
     }
 }

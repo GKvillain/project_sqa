@@ -1,360 +1,317 @@
 package com.google.javascript.jscomp;
 
+import static com.google.javascript.rhino.jstype.JSTypeNative.ARRAY_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.BOOLEAN_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NO_OBJECT_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NULL_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.NUMBER_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.OBJECT_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.STRING_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.UNKNOWN_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.VOID_TYPE;
-import static com.google.javascript.rhino.jstype.JSTypeNative.NULL_TYPE;
-import static org.junit.Assert.*;
 
+import com.google.common.collect.Iterables;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
 import com.google.javascript.rhino.jstype.FunctionType;
 import com.google.javascript.rhino.jstype.JSType;
+import com.google.javascript.rhino.jstype.JSTypeNative;
 import com.google.javascript.rhino.jstype.JSTypeRegistry;
 import com.google.javascript.rhino.jstype.ObjectType;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Iterator;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TypeValidatorTest {
 
   private Compiler compiler;
-  private TypeValidator validator;
   private JSTypeRegistry registry;
+  private TypeValidator validator;
   private NodeTraversal traversal;
-  private Node node;
+  private Node dummyNode;
 
   @Before
   public void setUp() {
     compiler = new Compiler();
-    validator = new TypeValidator(compiler);
     registry = compiler.getTypeRegistry();
+    validator = new TypeValidator(compiler);
     traversal = new NodeTraversal(compiler, null);
-    node = Node.newString(Token.NAME, "testNode");
+    dummyNode = new Node(Token.NAME);
   }
 
-  // Tests expectObject with valid object type returning true
-  @Test
-  public void testExpectObject_withObjectType_returnsTrue() {
-    JSType objectType = registry.getNativeType(OBJECT_TYPE);
-    boolean result = validator.expectObject(traversal, node, objectType, "object expected");
-    assertTrue(result);
-    assertEquals(0, compiler.getWarningCount());
+  private JSType getNativeType(JSTypeNative typeId) {
+    return registry.getNativeType(typeId);
   }
 
-  // Tests expectObject with non-object type returning false and recording warning
+  // Tests expectObject with valid object context and non-object context
   @Test
-  public void testExpectObject_withNumberType_returnsFalseAndReportsWarning() {
-    JSType numberType = registry.getNativeType(NUMBER_TYPE);
-    boolean result = validator.expectObject(traversal, node, numberType, "object expected");
-    assertFalse(result);
-    assertEquals(1, compiler.getWarningCount());
-    Iterator<TypeValidator.TypeMismatch> it = validator.getMismatches().iterator();
-    assertTrue(it.hasNext());
+  public void testExpectObject_validAndInvalidContext_returnsExpectedResult() {
+    JSType objectType = getNativeType(OBJECT_TYPE);
+    JSType numberType = getNativeType(NUMBER_TYPE);
+
+    assertTrue(validator.expectObject(traversal, dummyNode, objectType, "expected object"));
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    assertFalse(validator.expectObject(traversal, dummyNode, numberType, "expected object"));
+    assertEquals(1, Iterables.size(validator.getMismatches()));
   }
 
-  // Tests expectActualObject with primitive type triggering mismatch
+  // Tests expectActualObject with Object and primitive types
   @Test
-  public void testExpectActualObject_withPrimitiveType_recordsMismatch() {
-    JSType stringType = registry.getNativeType(STRING_TYPE);
-    validator.expectActualObject(traversal, node, stringType, "actual object expected");
-    assertEquals(1, compiler.getWarningCount());
+  public void testExpectActualObject_objectAndPrimitive_recordsMismatchWhenNotObject() {
+    JSType objectType = getNativeType(OBJECT_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
+
+    validator.expectActualObject(traversal, dummyNode, objectType, "expected actual object");
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectActualObject(traversal, dummyNode, stringType, "expected actual object");
+    assertEquals(1, Iterables.size(validator.getMismatches()));
   }
 
-  // Tests expectString with string context matching
+  // Tests expectAnyObject matching condition
   @Test
-  public void testExpectString_withStringType_noWarning() {
-    JSType stringType = registry.getNativeType(STRING_TYPE);
-    validator.expectString(traversal, node, stringType, "string expected");
-    assertEquals(0, compiler.getWarningCount());
+  public void testExpectAnyObject_matchingAndNonMatching_recordsMismatch() {
+    JSType objectType = getNativeType(OBJECT_TYPE);
+    JSType numberType = getNativeType(NUMBER_TYPE);
+
+    validator.expectAnyObject(traversal, dummyNode, objectType, "expected any object");
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectAnyObject(traversal, dummyNode, numberType, "expected any object");
+    assertEquals(1, Iterables.size(validator.getMismatches()));
+  }
+
+  // Tests expectString with string and non-string types
+  @Test
+  public void testExpectString_stringAndNumber_recordsMismatchForNumber() {
+    JSType stringType = getNativeType(STRING_TYPE);
+    JSType numberType = getNativeType(NUMBER_TYPE);
+
+    validator.expectString(traversal, dummyNode, stringType, "expected string");
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectString(traversal, dummyNode, numberType, "expected string");
+    assertEquals(1, Iterables.size(validator.getMismatches()));
   }
 
   // Tests expectNumber with number and non-number types
   @Test
-  public void testExpectNumber_withInvalidType_recordsWarning() {
-    JSType boolType = registry.getNativeType(BOOLEAN_TYPE);
-    validator.expectNumber(traversal, node, boolType, "number expected");
-    assertEquals(1, compiler.getWarningCount());
+  public void testExpectNumber_numberAndBoolean_recordsMismatchForBoolean() {
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType booleanType = getNativeType(BOOLEAN_TYPE);
+
+    validator.expectNumber(traversal, dummyNode, numberType, "expected number");
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectNumber(traversal, dummyNode, booleanType, "expected number");
+    assertEquals(1, Iterables.size(validator.getMismatches()));
   }
 
-  // Tests expectBitwiseable with valid primitive and value types
+  // Tests expectBitwiseable with valid primitive and invalid object type
   @Test
-  public void testExpectBitwiseable_withValidNumber_noWarning() {
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    validator.expectBitwiseable(traversal, node, numType, "bitwiseable expected");
-    assertEquals(0, compiler.getWarningCount());
+  public void testExpectBitwiseable_primitiveAndObject_recordsMismatchForObject() {
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType objectType = getNativeType(OBJECT_TYPE);
+
+    validator.expectBitwiseable(traversal, dummyNode, numberType, "expected bitwiseable");
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectBitwiseable(traversal, dummyNode, objectType, "expected bitwiseable");
+    assertEquals(1, Iterables.size(validator.getMismatches()));
   }
 
   // Tests expectStringOrNumber with valid and invalid types
   @Test
-  public void testExpectStringOrNumber_withBoolean_recordsWarning() {
-    JSType boolType = registry.getNativeType(BOOLEAN_TYPE);
-    validator.expectStringOrNumber(traversal, node, boolType, "str or num expected");
+  public void testExpectStringOrNumber_validPrimitivesAndObject_handlesBranches() {
+    JSType stringType = getNativeType(STRING_TYPE);
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType objectType = getNativeType(OBJECT_TYPE);
+
+    validator.expectStringOrNumber(traversal, dummyNode, stringType, "msg");
+    validator.expectStringOrNumber(traversal, dummyNode, numberType, "msg");
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectStringOrNumber(traversal, dummyNode, objectType, "msg");
+    assertEquals(1, Iterables.size(validator.getMismatches()));
+  }
+
+  // Tests expectNotNullOrUndefined with null, void, and string
+  @Test
+  public void testExpectNotNullOrUndefined_nullAndNonNull_returnsExpectedResult() {
+    JSType nullType = getNativeType(NULL_TYPE);
+    JSType voidType = getNativeType(VOID_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
+
+    assertTrue(validator.expectNotNullOrUndefined(
+        traversal, dummyNode, stringType, "not null", stringType));
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    assertFalse(validator.expectNotNullOrUndefined(
+        traversal, dummyNode, nullType, "not null", stringType));
+    assertEquals(1, Iterables.size(validator.getMismatches()));
+
+    assertFalse(validator.expectNotNullOrUndefined(
+        traversal, dummyNode, voidType, "not undefined", stringType));
+    assertEquals(2, Iterables.size(validator.getMismatches()));
+  }
+
+  // Tests expectSwitchMatchesCase with compatible and incompatible types
+  @Test
+  public void testExpectSwitchMatchesCase_matchingAndMismatchingTypes_recordsMismatch() {
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
+    Node switchNode = new Node(Token.SWITCH, new Node(Token.NAME));
+
+    validator.expectSwitchMatchesCase(traversal, switchNode, numberType, numberType);
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectSwitchMatchesCase(traversal, switchNode, numberType, stringType);
+    assertEquals(1, Iterables.size(validator.getMismatches()));
+  }
+
+  // Tests expectIndexMatch across various object and index combinations
+  @Test
+  public void testExpectIndexMatch_arrayAndObject_validatesIndexTypes() {
+    JSType arrayType = getNativeType(ARRAY_TYPE);
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
+    JSType unknownType = getNativeType(UNKNOWN_TYPE);
+    JSType boolType = getNativeType(BOOLEAN_TYPE);
+
+    validator.expectIndexMatch(traversal, dummyNode, unknownType, stringType);
+    validator.expectIndexMatch(traversal, dummyNode, arrayType, numberType);
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectIndexMatch(traversal, dummyNode, boolType, numberType);
+    assertEquals(1, Iterables.size(validator.getMismatches()));
+  }
+
+  // Tests expectCanAssignTo for compatible and incompatible types
+  @Test
+  public void testExpectCanAssignTo_assignmentCompatibility_reportsProperly() {
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
+
+    assertTrue(validator.expectCanAssignTo(traversal, dummyNode, numberType, numberType, "msg"));
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    assertFalse(validator.expectCanAssignTo(traversal, dummyNode, stringType, numberType, "msg"));
+    assertEquals(1, Iterables.size(validator.getMismatches()));
+  }
+
+  // Tests expectCanAssignToPropertyOf
+  @Test
+  public void testExpectCanAssignToPropertyOf_propertyAssignment_verifiesTypes() {
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
+    Node ownerNode = Node.newString(Token.NAME, "myObj");
+
+    assertTrue(validator.expectCanAssignToPropertyOf(
+        traversal, dummyNode, numberType, numberType, ownerNode, "prop"));
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    assertFalse(validator.expectCanAssignToPropertyOf(
+        traversal, dummyNode, stringType, numberType, ownerNode, "prop"));
+    assertEquals(1, Iterables.size(validator.getMismatches()));
+  }
+
+  // Tests expectArgumentMatchesParameter with valid and invalid argument types
+  @Test
+  public void testExpectArgumentMatchesParameter_argumentCompatibility_recordsMismatch() {
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
+    Node callNode = new Node(Token.CALL, Node.newString(Token.NAME, "fn"));
+
+    validator.expectArgumentMatchesParameter(
+        traversal, dummyNode, numberType, numberType, callNode, 1);
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectArgumentMatchesParameter(
+        traversal, dummyNode, stringType, numberType, callNode, 1);
+    assertEquals(1, Iterables.size(validator.getMismatches()));
+  }
+
+  // Tests expectCanOverride property mismatch
+  @Test
+  public void testExpectCanOverride_incompatibleOverride_recordsMismatchAndWarning() {
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
+    JSType objectType = getNativeType(OBJECT_TYPE);
+
+    validator.expectCanOverride(traversal, dummyNode, numberType, numberType, "foo", objectType);
+    assertEquals(0, Iterables.size(validator.getMismatches()));
+
+    validator.expectCanOverride(traversal, dummyNode, stringType, numberType, "foo", objectType);
+    assertEquals(1, Iterables.size(validator.getMismatches()));
     assertEquals(1, compiler.getWarningCount());
   }
 
-  // Tests expectNotNullOrUndefined with null type returning false
+  // Tests expectCanCast with valid and invalid casts
   @Test
-  public void testExpectNotNullOrUndefined_withNullType_returnsFalse() {
-    JSType nullType = registry.getNativeType(NULL_TYPE);
-    JSType expectedType = registry.getNativeType(STRING_TYPE);
-    boolean result = validator.expectNotNullOrUndefined(traversal, node, nullType, "not null", expectedType);
-    assertFalse(result);
-    assertEquals(1, compiler.getWarningCount());
-  }
+  public void testExpectCanCast_validAndInvalidCasts_reportsWarning() {
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
 
-  // Tests expectNotNullOrUndefined with valid object type returning true
-  @Test
-  public void testExpectNotNullOrUndefined_withValidType_returnsTrue() {
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    boolean result = validator.expectNotNullOrUndefined(traversal, node, strType, "not null", strType);
-    assertTrue(result);
+    validator.expectCanCast(traversal, dummyNode, numberType, numberType);
     assertEquals(0, compiler.getWarningCount());
-  }
 
-  // Tests expectCanAssignTo with compatible types
-  @Test
-  public void testExpectCanAssignTo_compatibleTypes_returnsTrue() {
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    boolean result = validator.expectCanAssignTo(traversal, node, numType, numType, "assign");
-    assertTrue(result);
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  // Tests expectCanAssignTo with incompatible types
-  @Test
-  public void testExpectCanAssignTo_incompatibleTypes_returnsFalseAndRecordsMismatch() {
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    boolean result = validator.expectCanAssignTo(traversal, node, numType, strType, "incompatible assign");
-    assertFalse(result);
+    validator.expectCanCast(traversal, dummyNode, numberType, stringType);
     assertEquals(1, compiler.getWarningCount());
+    assertEquals(1, Iterables.size(validator.getMismatches()));
   }
 
-  // Tests expectCanCast with incompatible types
+  // Tests getReadableJSTypeName with various Node types
   @Test
-  public void testExpectCanCast_incompatibleCast_recordsWarning() {
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    JSType boolType = registry.getNativeType(BOOLEAN_TYPE);
-    validator.expectCanCast(traversal, node, numType, boolType);
-    assertEquals(1, compiler.getWarningCount());
+  public void testGetReadableJSTypeName_variousNodes_returnsReadableName() {
+    Node nameNode = Node.newString(Token.NAME, "myVar");
+    nameNode.setJSType(getNativeType(NUMBER_TYPE));
+    assertEquals("number", validator.getReadableJSTypeName(nameNode, false));
+
+    Node getPropNode = new Node(Token.GETPROP,
+        Node.newString(Token.NAME, "a"),
+        Node.newString(Token.STRING, "b"));
+    assertEquals("a.b", validator.getReadableJSTypeName(getPropNode, false));
   }
 
-  // Tests setShouldReport suppression of compiler warnings
+  // Tests setShouldReport toggling
   @Test
-  public void testSetShouldReport_whenFalse_doesNotReportToCompiler() {
+  public void testSetShouldReport_suppressesCompilerWarningsWhenFalse() {
+    JSType numberType = getNativeType(NUMBER_TYPE);
+    JSType stringType = getNativeType(STRING_TYPE);
+
     validator.setShouldReport(false);
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    validator.expectCanAssignTo(traversal, node, numType, strType, "msg");
+    validator.expectCanCast(traversal, dummyNode, numberType, stringType);
     assertEquals(0, compiler.getWarningCount());
-    assertTrue(validator.getMismatches().iterator().hasNext());
+    assertEquals(1, Iterables.size(validator.getMismatches()));
   }
 
-  // Tests getReadableJSTypeName with typed node
+  // Tests TypeMismatch equals, hashCode, and toString
   @Test
-  public void testGetReadableJSTypeName_withAssignedType_returnsTypeName() {
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    node.setJSType(numType);
-    String typeName = validator.getReadableJSTypeName(node, false);
-    assertEquals("number", typeName);
-  }
+  public void testTypeMismatch_symmetryEqualityAndToString() {
+    JSType typeA = getNativeType(NUMBER_TYPE);
+    JSType typeB = getNativeType(STRING_TYPE);
+    JSType typeC = getNativeType(BOOLEAN_TYPE);
 
-  // Tests TypeMismatch equals and hashCode symmetry
-  @Test
-  public void testTypeMismatch_equalsAndHashCode_areSymmetric() {
-    JSType typeA = registry.getNativeType(NUMBER_TYPE);
-    JSType typeB = registry.getNativeType(STRING_TYPE);
     TypeValidator.TypeMismatch mismatch1 = new TypeValidator.TypeMismatch(typeA, typeB);
     TypeValidator.TypeMismatch mismatch2 = new TypeValidator.TypeMismatch(typeB, typeA);
+    TypeValidator.TypeMismatch mismatch3 = new TypeValidator.TypeMismatch(typeA, typeC);
 
     assertEquals(mismatch1, mismatch2);
+    assertEquals(mismatch2, mismatch1);
+    assertNotEquals(mismatch1, mismatch3);
+    assertNotEquals(mismatch1, null);
+    assertNotEquals(mismatch1, "someString");
+
     assertEquals(mismatch1.hashCode(), mismatch2.hashCode());
     assertNotNull(mismatch1.toString());
-    assertFalse(mismatch1.equals("nonMismatchObject"));
-  }
-
-  @Test
-  public void testExpectActualObject_withValidObjectType_noWarning() {
-    JSType objType = registry.getNativeType(OBJECT_TYPE);
-    validator.expectActualObject(traversal, node, objType, "actual object expected");
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectString_withNonStringType_recordsWarning() {
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    validator.expectString(traversal, node, numType, "string expected");
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectNumber_withValidNumber_noWarning() {
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    validator.expectNumber(traversal, node, numType, "number expected");
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectBitwiseable_withInvalidType_recordsWarning() {
-    JSType objType = registry.getNativeType(OBJECT_TYPE);
-    validator.expectBitwiseable(traversal, node, objType, "bitwiseable expected");
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectStringOrNumber_withValidTypes_noWarning() {
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    validator.expectStringOrNumber(traversal, node, strType, "str or num expected");
-    assertEquals(0, compiler.getWarningCount());
-
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    validator.expectStringOrNumber(traversal, node, numType, "str or num expected");
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectNotNullOrUndefined_withVoidType_returnsFalse() {
-    JSType voidType = registry.getNativeType(VOID_TYPE);
-    JSType expectedType = registry.getNativeType(STRING_TYPE);
-    boolean result = validator.expectNotNullOrUndefined(traversal, node, voidType, "not undefined", expectedType);
-    assertFalse(result);
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectCanCast_compatibleCast_noWarning() {
-    JSType objType = registry.getNativeType(OBJECT_TYPE);
-    validator.expectCanCast(traversal, node, objType, objType);
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectArgumentMatchesParameter_matching_noWarning() {
-    Node callNode = new Node(Token.CALL, Node.newString(Token.NAME, "fn"));
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    boolean result = validator.expectArgumentMatchesParameter(traversal, node, strType, strType, callNode, 1);
-    assertTrue(result);
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectArgumentMatchesParameter_mismatch_recordsWarning() {
-    Node callNode = new Node(Token.CALL, Node.newString(Token.NAME, "fn"));
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    boolean result = validator.expectArgumentMatchesParameter(traversal, node, numType, strType, callNode, 1);
-    assertFalse(result);
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectCanAssignToProperty_matching_noWarning() {
-    Node owner = Node.newString(Token.NAME, "ownerObj");
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    boolean result = validator.expectCanAssignToProperty(traversal, node, strType, strType, owner, "myProp");
-    assertTrue(result);
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectCanAssignToProperty_mismatch_recordsWarning() {
-    Node owner = Node.newString(Token.NAME, "ownerObj");
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    boolean result = validator.expectCanAssignToProperty(traversal, node, numType, strType, owner, "myProp");
-    assertFalse(result);
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectIndexMatch_matching_noWarning() {
-    JSType objType = registry.getNativeType(OBJECT_TYPE);
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    validator.expectIndexMatch(traversal, node, objType, strType);
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectIndexMatch_mismatch_recordsWarning() {
-    JSType objType = registry.getNativeType(OBJECT_TYPE);
-    JSType boolType = registry.getNativeType(BOOLEAN_TYPE);
-    validator.expectIndexMatch(traversal, node, objType, boolType);
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectSwitchMatchesCase_matching_noWarning() {
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    validator.expectSwitchMatchesCase(traversal, node, strType, strType);
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectSwitchMatchesCase_mismatch_recordsWarning() {
-    JSType strType = registry.getNativeType(STRING_TYPE);
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    validator.expectSwitchMatchesCase(traversal, node, strType, numType);
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectValidTypeofName_validAndInvalidNames() {
-    validator.expectValidTypeofName(traversal, node, "number");
-    assertEquals(0, compiler.getWarningCount());
-
-    validator.expectValidTypeofName(traversal, node, "invalid_type_name");
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectAnyObject_withObjectType_returnsTrue() {
-    JSType objType = registry.getNativeType(OBJECT_TYPE);
-    boolean result = validator.expectAnyObject(traversal, node, objType, "any object expected");
-    assertTrue(result);
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectAnyObject_withPrimitiveType_returnsFalse() {
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    boolean result = validator.expectAnyObject(traversal, node, numType, "any object expected");
-    assertFalse(result);
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectSuperType_matching_noWarning() {
-    ObjectType objType = registry.getNativeObjectType(OBJECT_TYPE);
-    validator.expectSuperType(traversal, node, objType, objType);
-    assertEquals(0, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testExpectSuperType_mismatch_recordsWarning() {
-    ObjectType objType = registry.getNativeObjectType(OBJECT_TYPE);
-    JSType numType = registry.getNativeType(NUMBER_TYPE);
-    validator.expectSuperType(traversal, node, objType, numType);
-    assertEquals(1, compiler.getWarningCount());
-  }
-
-  @Test
-  public void testGetReadableJSTypeName_withGetpropNode() {
-    Node target = Node.newString(Token.NAME, "a");
-    Node getprop = new Node(Token.GETPROP, target, Node.newString("b"));
-    getprop.setJSType(registry.getNativeType(STRING_TYPE));
-    String typeName = validator.getReadableJSTypeName(getprop, true);
-    assertEquals("string", typeName);
-  }
-
-  @Test
-  public void testGetReadableJSTypeName_withoutNodeJSType_returnsUnknown() {
-    Node unTypedNode = Node.newString(Token.NAME, "x");
-    String typeName = validator.getReadableJSTypeName(unTypedNode, false);
-    assertEquals("unknown", typeName);
+    assertTrue(mismatch1.toString().contains("number"));
+    assertTrue(mismatch1.toString().contains("string"));
   }
 }

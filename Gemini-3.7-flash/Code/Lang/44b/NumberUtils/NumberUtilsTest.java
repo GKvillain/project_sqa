@@ -7,174 +7,164 @@ import static org.junit.Assert.*;
 
 public class NumberUtilsTest {
 
-    // Tests constructor
+    // Tests default constructor
     @Test
-    public void testConstructor_default_instanceNotNull() {
-        assertNotNull(new NumberUtils());
+    public void testConstructor_default_instantiatesSuccessfully() {
+        NumberUtils numUtils = new NumberUtils();
+        assertNotNull(numUtils);
     }
 
-    // Tests stringToInt with valid integer and default value fallback
+    // Tests stringToInt with valid integer string
     @Test
-    public void testStringToInt_validAndInvalidInput_returnsExpectedInt() {
+    public void testStringToInt_validString_returnsInt() {
         assertEquals(123, NumberUtils.stringToInt("123"));
-        assertEquals(0, NumberUtils.stringToInt("invalid"));
-        assertEquals(0, NumberUtils.stringToInt(null));
-        assertEquals(5, NumberUtils.stringToInt("invalid", 5));
-        assertEquals(42, NumberUtils.stringToInt("42", 5));
+        assertEquals(-45, NumberUtils.stringToInt("-45"));
     }
 
-    // Tests createNumber with null, empty, and double negative prefix
+    // Tests stringToInt with invalid string and default value fallback
     @Test
-    public void testCreateNumber_nullAndSpecialPrefix_returnsExpected() {
-        assertNull(NumberUtils.createNumber(null));
-        assertNull(NumberUtils.createNumber("--123"));
+    public void testStringToInt_invalidString_returnsDefault() {
+        assertEquals(0, NumberUtils.stringToInt("invalid"));
+        assertEquals(10, NumberUtils.stringToInt(null, 10));
+        assertEquals(5, NumberUtils.stringToInt("abc", 5));
     }
 
-    // Tests createNumber with empty string throws NumberFormatException
+    // Tests createNumber with null input
+    @Test
+    public void testCreateNumber_nullInput_returnsNull() {
+        assertNull(NumberUtils.createNumber(null));
+    }
+
+    // Tests createNumber with empty string
     @Test(expected = NumberFormatException.class)
-    public void testCreateNumber_emptyString_throwsNumberFormatException() {
+    public void testCreateNumber_emptyString_throwsException() {
         NumberUtils.createNumber("");
     }
 
-    // Tests createNumber with hexadecimal formats
+    // Tests createNumber with invalid single character type qualifier (Lang-44 defect check)
+    @Test(expected = NumberFormatException.class)
+    public void testCreateNumber_singleCharTypeQualifier_throwsException() {
+        NumberUtils.createNumber("L");
+    }
+
+    // Tests createNumber with double negative prefix
     @Test
-    public void testCreateNumber_hexadecimalString_returnsInteger() {
+    public void testCreateNumber_doubleMinus_returnsNull() {
+        assertNull(NumberUtils.createNumber("--123"));
+    }
+
+    // Tests createNumber with hexadecimal input
+    @Test
+    public void testCreateNumber_hexPrefix_returnsInteger() {
         assertEquals(Integer.valueOf(255), NumberUtils.createNumber("0xFF"));
         assertEquals(Integer.valueOf(-255), NumberUtils.createNumber("-0xFF"));
     }
 
-    // Tests createNumber with standard Integer, Long, and BigInteger
+    // Tests createNumber with various numeric formats and type suffixes
     @Test
-    public void testCreateNumber_validIntegers_returnsCorrectType() {
-        assertEquals(Integer.valueOf(12345), NumberUtils.createNumber("12345"));
+    public void testCreateNumber_variousFormats_returnsCorrectNumberTypes() {
+        assertEquals(Integer.valueOf(123), NumberUtils.createNumber("123"));
         assertEquals(Long.valueOf(1234567890123L), NumberUtils.createNumber("1234567890123"));
         assertEquals(new BigInteger("123456789012345678901234567890"), NumberUtils.createNumber("123456789012345678901234567890"));
-    }
 
-    // Tests createNumber with floating point representations
-    @Test
-    public void testCreateNumber_decimalAndExponent_returnsFloatOrDoubleOrBigDecimal() {
-        assertEquals(Float.valueOf("1.23"), NumberUtils.createNumber("1.23"));
-        assertEquals(Double.valueOf("1.2345678901234567"), NumberUtils.createNumber("1.2345678901234567"));
+        assertEquals(Long.valueOf(123L), NumberUtils.createNumber("123L"));
+        assertEquals(Long.valueOf(-123L), NumberUtils.createNumber("-123l"));
+
+        assertEquals(Float.valueOf(12.34f), NumberUtils.createNumber("12.34f"));
+        assertEquals(Double.valueOf(12.34d), NumberUtils.createNumber("12.34d"));
+        assertEquals(Float.valueOf(12.34f), NumberUtils.createNumber("12.34"));
         assertEquals(new BigDecimal("1.23456789012345678901234567890"), NumberUtils.createNumber("1.23456789012345678901234567890"));
     }
 
-    // Tests createNumber with type qualifiers ('l', 'L', 'f', 'F', 'd', 'D')
-    @Test
-    public void testCreateNumber_typeQualifiers_returnsCorrectType() {
-        assertEquals(Long.valueOf(123), NumberUtils.createNumber("123L"));
-        assertEquals(Long.valueOf(-123), NumberUtils.createNumber("-123l"));
-        assertEquals(new BigInteger("123456789012345678901234567890"), NumberUtils.createNumber("123456789012345678901234567890L"));
-        assertEquals(Float.valueOf(1.23f), NumberUtils.createNumber("1.23f"));
-        assertEquals(Float.valueOf(1.23f), NumberUtils.createNumber("1.23F"));
-        assertEquals(Double.valueOf(1.23d), NumberUtils.createNumber("1.23d"));
-        assertEquals(Double.valueOf(1.23d), NumberUtils.createNumber("1.23D"));
-    }
-
-    // Tests createNumber with single qualifier character should throw NumberFormatException (Lang-44)
+    // Tests createNumber with invalid format
     @Test(expected = NumberFormatException.class)
-    public void testCreateNumber_onlyQualifierCharacter_throwsNumberFormatException() {
-        NumberUtils.createNumber("L");
+    public void testCreateNumber_invalidFormat_throwsException() {
+        NumberUtils.createNumber("12.34.56");
     }
 
-    // Tests createNumber with invalid format throws NumberFormatException
-    @Test(expected = NumberFormatException.class)
-    public void testCreateNumber_invalidFormat_throwsNumberFormatException() {
-        NumberUtils.createNumber("1.2.3");
-    }
-
-    // Tests minimum for long and int
+    // Tests individual create methods
     @Test
-    public void testMinimum_variousInputs_returnsMinimum() {
+    public void testCreateHelpers_validInput_returnsConvertedTypes() {
+        assertEquals(Float.valueOf(3.14f), NumberUtils.createFloat("3.14"));
+        assertEquals(Double.valueOf(3.14159), NumberUtils.createDouble("3.14159"));
+        assertEquals(Integer.valueOf(42), NumberUtils.createInteger("42"));
+        assertEquals(Long.valueOf(100L), NumberUtils.createLong("100"));
+        assertEquals(new BigInteger("999999999999"), NumberUtils.createBigInteger("999999999999"));
+        assertEquals(new BigDecimal("123.456"), NumberUtils.createBigDecimal("123.456"));
+    }
+
+    // Tests minimum and maximum methods for int and long
+    @Test
+    public void testMinMax_variousInputs_returnsExpectedExtremes() {
         assertEquals(1, NumberUtils.minimum(1, 2, 3));
-        assertEquals(1, NumberUtils.minimum(2, 1, 3));
-        assertEquals(1, NumberUtils.minimum(3, 2, 1));
-        assertEquals(10L, NumberUtils.minimum(10L, 20L, 30L));
-        assertEquals(10L, NumberUtils.minimum(20L, 10L, 30L));
-        assertEquals(10L, NumberUtils.minimum(30L, 20L, 10L));
-    }
+        assertEquals(1, NumberUtils.minimum(3, 1, 2));
+        assertEquals(1, NumberUtils.minimum(2, 3, 1));
 
-    // Tests maximum for long and int
-    @Test
-    public void testMaximum_variousInputs_returnsMaximum() {
+        assertEquals(1L, NumberUtils.minimum(1L, 2L, 3L));
+        assertEquals(1L, NumberUtils.minimum(3L, 1L, 2L));
+        assertEquals(1L, NumberUtils.minimum(2L, 3L, 1L));
+
         assertEquals(3, NumberUtils.maximum(1, 2, 3));
-        assertEquals(3, NumberUtils.maximum(1, 3, 2));
         assertEquals(3, NumberUtils.maximum(3, 1, 2));
-        assertEquals(30L, NumberUtils.maximum(10L, 20L, 30L));
-        assertEquals(30L, NumberUtils.maximum(10L, 30L, 20L));
-        assertEquals(30L, NumberUtils.maximum(30L, 10L, 20L));
+        assertEquals(3, NumberUtils.maximum(2, 3, 1));
+
+        assertEquals(3L, NumberUtils.maximum(1L, 2L, 3L));
+        assertEquals(3L, NumberUtils.maximum(3L, 1L, 2L));
+        assertEquals(3L, NumberUtils.maximum(2L, 3L, 1L));
     }
 
-    // Tests compare for double values including NaN and negative zero
+    // Tests compare method for double values including special cases (-0.0, +0.0, NaN)
     @Test
     public void testCompare_doubleValues_returnsExpectedOrder() {
-        assertEquals(0, NumberUtils.compare(1.0d, 1.0d));
-        assertEquals(-1, NumberUtils.compare(1.0d, 2.0d));
-        assertEquals(1, NumberUtils.compare(2.0d, 1.0d));
+        assertTrue(NumberUtils.compare(1.0d, 2.0d) < 0);
+        assertTrue(NumberUtils.compare(2.0d, 1.0d) > 0);
+        assertEquals(0, NumberUtils.compare(1.5d, 1.5d));
+        assertTrue(NumberUtils.compare(-0.0d, 0.0d) < 0);
+        assertTrue(NumberUtils.compare(Double.NaN, Double.POSITIVE_INFINITY) > 0);
         assertEquals(0, NumberUtils.compare(Double.NaN, Double.NaN));
-        assertEquals(1, NumberUtils.compare(Double.NaN, 1.0d));
-        assertEquals(-1, NumberUtils.compare(1.0d, Double.NaN));
-        assertEquals(-1, NumberUtils.compare(-0.0d, 0.0d));
-        assertEquals(1, NumberUtils.compare(0.0d, -0.0d));
     }
 
-    // Tests compare for float values including NaN and negative zero
+    // Tests compare method for float values including special cases (-0.0, +0.0, NaN)
     @Test
     public void testCompare_floatValues_returnsExpectedOrder() {
-        assertEquals(0, NumberUtils.compare(1.0f, 1.0f));
-        assertEquals(-1, NumberUtils.compare(1.0f, 2.0f));
-        assertEquals(1, NumberUtils.compare(2.0f, 1.0f));
+        assertTrue(NumberUtils.compare(1.0f, 2.0f) < 0);
+        assertTrue(NumberUtils.compare(2.0f, 1.0f) > 0);
+        assertEquals(0, NumberUtils.compare(1.5f, 1.5f));
+        assertTrue(NumberUtils.compare(-0.0f, 0.0f) < 0);
+        assertTrue(NumberUtils.compare(Float.NaN, Float.POSITIVE_INFINITY) > 0);
         assertEquals(0, NumberUtils.compare(Float.NaN, Float.NaN));
-        assertEquals(1, NumberUtils.compare(Float.NaN, 1.0f));
-        assertEquals(-1, NumberUtils.compare(1.0f, Float.NaN));
-        assertEquals(-1, NumberUtils.compare(-0.0f, 0.0f));
-        assertEquals(1, NumberUtils.compare(0.0f, -0.0f));
     }
 
-    // Tests isDigits with valid, invalid, and null inputs
+    // Tests isDigits method with various strings
     @Test
-    public void testIsDigits_variousInputs_returnsExpectedBoolean() {
-        assertTrue(NumberUtils.isDigits("12345"));
-        assertFalse(NumberUtils.isDigits("123a45"));
-        assertFalse(NumberUtils.isDigits(""));
+    public void testIsDigits_variousStrings_returnsCorrectBoolean() {
         assertFalse(NumberUtils.isDigits(null));
+        assertFalse(NumberUtils.isDigits(""));
+        assertFalse(NumberUtils.isDigits("12a34"));
         assertFalse(NumberUtils.isDigits("-123"));
+        assertTrue(NumberUtils.isDigits("12345"));
     }
 
-    // Tests isNumber with various valid and invalid numerical representations
+    // Tests isNumber method with valid and invalid inputs
     @Test
-    public void testIsNumber_variousFormats_returnsExpectedBoolean() {
-        assertTrue(NumberUtils.isNumber("123"));
-        assertTrue(NumberUtils.isNumber("-123"));
-        assertTrue(NumberUtils.isNumber("0x123"));
-        assertTrue(NumberUtils.isNumber("-0x123"));
-        assertTrue(NumberUtils.isNumber("1.23"));
-        assertTrue(NumberUtils.isNumber("1.23e4"));
-        assertTrue(NumberUtils.isNumber("1.23E-4"));
-        assertTrue(NumberUtils.isNumber("123L"));
-        assertTrue(NumberUtils.isNumber("1.23f"));
-        assertTrue(NumberUtils.isNumber("1.23d"));
-        
+    public void testIsNumber_variousInputs_validatesCorrectly() {
         assertFalse(NumberUtils.isNumber(null));
         assertFalse(NumberUtils.isNumber(""));
-        assertFalse(NumberUtils.isNumber("0x"));
-        assertFalse(NumberUtils.isNumber("0xAG"));
-        assertFalse(NumberUtils.isNumber("1.2.3"));
-        assertFalse(NumberUtils.isNumber("1.2e3e4"));
-        assertFalse(NumberUtils.isNumber("1.2e"));
-        assertFalse(NumberUtils.isNumber("1.2e+"));
-        assertFalse(NumberUtils.isNumber("1.2e+3L"));
         assertFalse(NumberUtils.isNumber("abc"));
-    }
+        assertFalse(NumberUtils.isNumber("0x"));
+        assertFalse(NumberUtils.isNumber("1.2.3"));
+        assertFalse(NumberUtils.isNumber("1e2e3"));
+        assertFalse(NumberUtils.isNumber("1e"));
 
-    // Tests individual helper factory methods
-    @Test
-    public void testFactoryMethods_validStrings_returnsInstances() {
-        assertEquals(Float.valueOf("1.5"), NumberUtils.createFloat("1.5"));
-        assertEquals(Double.valueOf("2.5"), NumberUtils.createDouble("2.5"));
-        assertEquals(Integer.valueOf(10), NumberUtils.createInteger("10"));
-        assertEquals(Long.valueOf(20L), NumberUtils.createLong("20"));
-        assertEquals(new BigInteger("100"), NumberUtils.createBigInteger("100"));
-        assertEquals(new BigDecimal("200.5"), NumberUtils.createBigDecimal("200.5"));
+        assertTrue(NumberUtils.isNumber("0x123"));
+        assertTrue(NumberUtils.isNumber("-0xABCD"));
+        assertTrue(NumberUtils.isNumber("12345"));
+        assertTrue(NumberUtils.isNumber("-12345"));
+        assertTrue(NumberUtils.isNumber("123.45"));
+        assertTrue(NumberUtils.isNumber("-123.45"));
+        assertTrue(NumberUtils.isNumber("1.23e-4"));
+        assertTrue(NumberUtils.isNumber("12345L"));
+        assertTrue(NumberUtils.isNumber("123.45f"));
+        assertTrue(NumberUtils.isNumber("123.45d"));
     }
 }

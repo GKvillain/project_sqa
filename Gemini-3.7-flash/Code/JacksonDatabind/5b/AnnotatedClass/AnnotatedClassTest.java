@@ -1,43 +1,109 @@
 package com.fasterxml.jackson.databind.introspect;
 
-import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Collections;
+import java.lang.annotation.Target;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.AnnotationIntrospector;
 
 import static org.junit.Assert.*;
 
 public class AnnotatedClassTest {
 
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface CustomAnn {
+    @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR, ElementType.PARAMETER})
+    public @interface TestAnn {
         String value() default "";
     }
 
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface CustomAnn2 {
-        String value() default "";
+    @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR, ElementType.PARAMETER})
+    public @interface OtherAnn {
+        int priority() default 0;
+    }
+
+    @TestAnn("base")
+    static class BaseClass {
+        @TestAnn("baseField")
+        public int baseField;
+
+        @TestAnn("baseMethod")
+        public void baseMethod() { }
+
+        public void overriddenMethod() { }
+    }
+
+    interface InterfaceA {
+        @TestAnn("interfaceMethod")
+        void interfaceMethod();
+    }
+
+    @OtherAnn(priority = 1)
+    static class SubClass extends BaseClass implements InterfaceA {
+        @TestAnn("subField")
+        public String subField;
+
+        private int ignoredField;
+
+        public SubClass() { }
+
+        public SubClass(@TestAnn("param") String arg) { }
+
+        @TestAnn("factory")
+        public static SubClass create(String val) {
+            return new SubClass(val);
+        }
+
+        public static void staticNonFactory() { }
+
+        @Override
+        public void interfaceMethod() { }
+
+        @Override
+        public void overriddenMethod() { }
+
+        public void methodWithTwoParams(int a, String b) { }
+    }
+
+    enum TestEnum {
+        A("first"),
+        B("second");
+
+        private final String desc;
+        TestEnum(String desc) {
+            this.desc = desc;
+        }
+    }
+
+    class InnerClass {
+        public InnerClass(@TestAnn("inner") String a) { }
+    }
+
+    abstract static class MixInForBase {
+        @OtherAnn(priority = 99)
+        public int baseField;
+
+        @OtherAnn(priority = 10)
+        public abstract void baseMethod();
+    }
+
+    abstract static class MixInForSub {
+        public MixInForSub(@OtherAnn(priority = 5) String arg) { }
+
+        @OtherAnn(priority = 20)
+        public static SubClass create(String val) { return null; }
     }
 
     static class SimpleMixInResolver implements ClassIntrospector.MixInResolver {
         private final Map<Class<?>, Class<?>> _mixIns = new HashMap<Class<?>, Class<?>>();
 
-        public void addMixIn(Class<?> target, Class<?> mixin) {
-            _mixIns.put(target, mixin);
+        public void addMixIn(Class<?> target, Class<?> mixIn) {
+            _mixIns.put(target, mixIn);
         }
 
         @Override
@@ -45,95 +111,13 @@ public class AnnotatedClassTest {
             return _mixIns.get(cls);
         }
 
+        @Override
         public ClassIntrospector.MixInResolver copy() {
             return this;
         }
     }
 
-    interface BaseInterface {
-        @CustomAnn("interfaceMethod")
-        void doSomething();
-    }
-
-    @CustomAnn("superClass")
-    static class SuperClass implements BaseInterface {
-        public int superField;
-
-        @Override
-        public void doSomething() { }
-
-        public void superMethod() { }
-    }
-
-    @CustomAnn2("subClass")
-    static class SubClass extends SuperClass {
-        public int subField;
-        private int _ignoredField;
-
-        public SubClass() { }
-
-        public SubClass(int value) {
-            this.subField = value;
-        }
-
-        @Override
-        public void doSomething() { }
-
-        public static SubClass create(int v) {
-            return new SubClass(v);
-        }
-
-        @JsonIgnore
-        public static SubClass ignoredFactory(int v) {
-            return new SubClass(v);
-        }
-
-        @JsonIgnore
-        public void ignoredMethod() { }
-    }
-
-    @CustomAnn("classMixIn")
-    static class MixInForSubClass {
-        @JsonProperty("prop")
-        public int subField;
-
-        @CustomAnn("mixInCtor")
-        public MixInForSubClass(@JsonProperty("val") int value) { }
-
-        @CustomAnn("mixInMethod")
-        public void doSomething() { }
-
-        @CustomAnn("mixInFactory")
-        public static SubClass create(@JsonProperty("val") int v) {
-            return null;
-        }
-    }
-
-    static class InnerClassHolder {
-        class InnerClass {
-            public InnerClass(@CustomAnn("param") String name) { }
-        }
-    }
-
-    enum SampleEnum {
-        A("first"),
-        B("second");
-
-        private final String desc;
-        SampleEnum(@CustomAnn("enumParam") String desc) {
-            this.desc = desc;
-        }
-    }
-
-    static class ObjectMixIn {
-        @CustomAnn("hashCodeMixIn")
-        @Override
-        public int hashCode() {
-            return 0;
-        }
-    }
-
-    private AnnotationIntrospector _introspector;
+    private JacksonAnnotationIntrospector _introspector;
     private SimpleMixInResolver _mixInResolver;
 
     @Before
@@ -142,214 +126,175 @@ public class AnnotatedClassTest {
         _mixInResolver = new SimpleMixInResolver();
     }
 
-    // Tests construction and generic type/modifier accessors
+    // Tests construct with supertypes resolving annotations and member methods
     @Test
-    public void testBasicProperties_validClass_returnsCorrectMetadata() {
+    public void testConstruct_withSuperTypes_resolvesAnnotationsAndMembers() {
         AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
+
         assertEquals(SubClass.class, ac.getAnnotated());
         assertEquals(SubClass.class, ac.getRawType());
         assertEquals(SubClass.class, ac.getGenericType());
         assertEquals(SubClass.class.getName(), ac.getName());
-        assertEquals(SubClass.class.getModifiers(), ac.getModifiers());
+        assertTrue(ac.hasAnnotations());
+        assertTrue(ac.hasAnnotation(OtherAnn.class));
+        assertNotNull(ac.getAnnotation(OtherAnn.class));
+        assertNotNull(ac.getAnnotation(TestAnn.class));
         assertEquals("[AnnotedClass " + SubClass.class.getName() + "]", ac.toString());
     }
 
-    // Tests class-level annotation resolution including hierarchy and mix-in overrides
+    // Tests constructWithoutSuperTypes excludes superclass annotations
     @Test
-    public void testClassAnnotations_withMixInAndSuperType_resolvesCombinedAnnotations() {
-        _mixInResolver.addMixIn(SubClass.class, MixInForSubClass.class);
-        AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
-
-        assertTrue(ac.hasAnnotations());
-        assertEquals(2, ac.getAnnotations().size());
-        assertNotNull(ac.getAllAnnotations());
-
-        CustomAnn ann1 = ac.getAnnotation(CustomAnn.class);
-        assertNotNull(ann1);
-        assertEquals("classMixIn", ann1.value());
-
-        CustomAnn2 ann2 = ac.getAnnotation(CustomAnn2.class);
-        assertNotNull(ann2);
-        assertEquals("subClass", ann2.value());
-
-        int count = 0;
-        for (Annotation a : ac.annotations()) {
-            assertNotNull(a);
-            count++;
-        }
-        assertEquals(2, count);
-    }
-
-    // Tests constructWithoutSuperTypes factory method
-    @Test
-    public void testConstructWithoutSuperTypes_superAnnotationsIgnored() {
+    public void testConstructWithoutSuperTypes_excludesSuperAnnotations() {
         AnnotatedClass ac = AnnotatedClass.constructWithoutSuperTypes(SubClass.class, _introspector, _mixInResolver);
-        CustomAnn superAnn = ac.getAnnotation(CustomAnn.class);
-        assertNull(superAnn);
-        assertNotNull(ac.getAnnotation(CustomAnn2.class));
+
+        assertNotNull(ac.getAnnotation(OtherAnn.class));
+        assertNull(ac.getAnnotation(TestAnn.class));
+        assertTrue(ac.hasAnnotations());
     }
 
-    // Tests withAnnotations creating a shallow copy with replaced AnnotationMap
+    // Tests null AnnotationIntrospector leaves annotations empty
     @Test
-    public void testWithAnnotations_replacesAnnotationMap() {
+    public void testConstruct_nullIntrospector_doesNotProcessAnnotations() {
+        AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, null, _mixInResolver);
+
+        assertFalse(ac.hasAnnotations());
+        assertNull(ac.getAnnotation(OtherAnn.class));
+        assertFalse(ac.annotations().iterator().hasNext());
+        assertNotNull(ac.getDefaultConstructor());
+        assertNotNull(ac.getConstructors());
+    }
+
+    // Tests withAnnotations creates a new instance with specified AnnotationMap
+    @Test
+    public void testWithAnnotations_returnsNewInstanceWithProvidedAnnotations() {
         AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
-        AnnotationMap newMap = new AnnotationMap();
-        AnnotatedClass ac2 = ac.withAnnotations(newMap);
-        assertNotSame(ac, ac2);
-        assertFalse(ac2.hasAnnotations());
+        AnnotationMap map = new AnnotationMap();
+        AnnotatedClass modified = ac.withAnnotations(map);
+
+        assertNotNull(modified);
+        assertEquals(ac.getAnnotated(), modified.getAnnotated());
+        assertFalse(modified.hasAnnotations());
     }
 
-    // Tests constructor resolution including default constructor and single argument constructor
+    // Tests constructors and static creator methods resolution
     @Test
-    public void testCreators_constructorsResolvedCorrectly() {
+    public void testResolveCreators_findsDefaultAndSingleArgConstructorsAndFactory() {
         AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
 
         AnnotatedConstructor defaultCtor = ac.getDefaultConstructor();
         assertNotNull(defaultCtor);
         assertEquals(0, defaultCtor.getParameterCount());
 
-        List<AnnotatedConstructor> ctors = ac.getConstructors();
-        assertNotNull(ctors);
-        assertEquals(1, ctors.size());
-        assertEquals(1, ctors.get(0).getParameterCount());
+        assertEquals(1, ac.getConstructors().size());
+        AnnotatedConstructor singleArgCtor = ac.getConstructors().get(0);
+        assertEquals(1, singleArgCtor.getParameterCount());
+        assertNotNull(singleArgCtor.getAnnotation(TestAnn.class));
+
+        assertEquals(1, ac.getStaticMethods().size());
+        AnnotatedMethod factory = ac.getStaticMethods().get(0);
+        assertEquals("create", factory.getName());
+        assertTrue(Modifier.isStatic(factory.getModifiers()));
     }
 
-    // Tests constructor mix-in annotations and parameter annotations
+    // Tests non-static inner class constructor parameter count handling
     @Test
-    public void testConstructors_withMixIn_mixesOverAnnotations() {
-        _mixInResolver.addMixIn(SubClass.class, MixInForSubClass.class);
+    public void testConstructConstructor_innerClass_handlesSyntheticThisParameter() {
+        AnnotatedClass ac = AnnotatedClass.construct(InnerClass.class, _introspector, _mixInResolver);
+
+        assertEquals(1, ac.getConstructors().size());
+        AnnotatedConstructor ctor = ac.getConstructors().get(0);
+        assertEquals(2, ctor.getParameterCount());
+    }
+
+    // Tests enum constructor parameter count handling
+    @Test
+    public void testConstructConstructor_enumType_handlesImplicitParameters() {
+        AnnotatedClass ac = AnnotatedClass.construct(TestEnum.class, _introspector, _mixInResolver);
+
+        assertFalse(ac.getConstructors().isEmpty());
+        AnnotatedConstructor ctor = ac.getConstructors().get(0);
+        assertEquals(3, ctor.getParameterCount());
+    }
+
+    // Tests member method resolution including inherited and interface methods
+    @Test
+    public void testResolveMemberMethods_includesInheritedAndInterfaceMethods() {
         AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
 
-        List<AnnotatedConstructor> ctors = ac.getConstructors();
-        assertEquals(1, ctors.size());
-        AnnotatedConstructor ctor = ctors.get(0);
-        assertTrue(ctor.hasAnnotation(CustomAnn.class));
+        assertTrue(ac.getMemberMethodCount() > 0);
+        AnnotatedMethod baseMethod = ac.findMethod("baseMethod", new Class<?>[0]);
+        assertNotNull(baseMethod);
+        assertNotNull(baseMethod.getAnnotation(TestAnn.class));
+
+        AnnotatedMethod ifaceMethod = ac.findMethod("interfaceMethod", new Class<?>[0]);
+        assertNotNull(ifaceMethod);
+
+        AnnotatedMethod twoParamMethod = ac.findMethod("methodWithTwoParams", new Class<?>[]{int.class, String.class});
+        assertNotNull(twoParamMethod);
+        assertNotNull(ac.memberMethods());
     }
 
-    // Tests static creator methods and ignored creator methods filtering
+    // Tests field resolution including super class fields
     @Test
-    public void testStaticMethods_creatorMethodsAndIgnoreFiltering() {
-        AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
-        List<AnnotatedMethod> staticMethods = ac.getStaticMethods();
-        assertNotNull(staticMethods);
-        assertEquals(1, staticMethods.size());
-        assertEquals("create", staticMethods.get(0).getName());
-    }
-
-    // Tests static factory mix-ins
-    @Test
-    public void testStaticMethods_withMixIn_mixesOverAnnotations() {
-        _mixInResolver.addMixIn(SubClass.class, MixInForSubClass.class);
-        AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
-        List<AnnotatedMethod> staticMethods = ac.getStaticMethods();
-        assertEquals(1, staticMethods.size());
-        AnnotatedMethod factory = staticMethods.get(0);
-        assertTrue(factory.hasAnnotation(CustomAnn.class));
-    }
-
-    // Tests member methods collection, hierarchy traversal, and findMethod
-    @Test
-    public void testMemberMethods_methodsResolvedWithHierarchy() {
-        AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
-
-        assertTrue(ac.getMemberMethodCount() >= 2);
-        AnnotatedMethod found = ac.findMethod("doSomething", new Class<?>[0]);
-        assertNotNull(found);
-        assertEquals(SubClass.class, found.getDeclaringClass());
-        assertTrue(found.hasAnnotation(CustomAnn.class));
-
-        AnnotatedMethod superM = ac.findMethod("superMethod", new Class<?>[0]);
-        assertNotNull(superM);
-
-        AnnotatedMethod notFound = ac.findMethod("nonExistent", new Class<?>[0]);
-        assertNull(notFound);
-
-        int count = 0;
-        for (AnnotatedMethod m : ac.memberMethods()) {
-            assertNotNull(m);
-            count++;
-        }
-        assertEquals(ac.getMemberMethodCount(), count);
-    }
-
-    // Tests member method mix-ins
-    @Test
-    public void testMemberMethods_withMixIn_appliesMixInAnnotations() {
-        _mixInResolver.addMixIn(SubClass.class, MixInForSubClass.class);
-        AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
-
-        AnnotatedMethod found = ac.findMethod("doSomething", new Class<?>[0]);
-        assertNotNull(found);
-        CustomAnn ann = found.getAnnotation(CustomAnn.class);
-        assertNotNull(ann);
-        assertEquals("mixInMethod", ann.value());
-    }
-
-    // Tests Object.class mix-in resolution
-    @Test
-    public void testMemberMethods_withObjectMixIn_augmentsObjectMethods() {
-        _mixInResolver.addMixIn(Object.class, ObjectMixIn.class);
-        AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
-
-        AnnotatedMethod hashM = ac.findMethod("hashCode", new Class<?>[0]);
-        assertNotNull(hashM);
-        assertTrue(hashM.hasAnnotation(CustomAnn.class));
-    }
-
-    // Tests field resolution including super class fields and mix-in overrides
-    @Test
-    public void testFields_withHierarchyAndMixIns_resolvesFields() {
-        _mixInResolver.addMixIn(SubClass.class, MixInForSubClass.class);
+    public void testResolveFields_collectsDeclaredAndInheritedFields() {
         AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
 
         assertTrue(ac.getFieldCount() >= 2);
+        boolean foundBaseField = false;
         boolean foundSubField = false;
-        boolean foundSuperField = false;
-
         for (AnnotatedField f : ac.fields()) {
-            if ("subField".equals(f.getName())) {
+            if ("baseField".equals(f.getName())) {
+                foundBaseField = true;
+                assertNotNull(f.getAnnotation(TestAnn.class));
+            } else if ("subField".equals(f.getName())) {
                 foundSubField = true;
-                assertTrue(f.hasAnnotation(JsonProperty.class));
-            } else if ("superField".equals(f.getName())) {
-                foundSuperField = true;
+                assertNotNull(f.getAnnotation(TestAnn.class));
             }
         }
+        assertTrue(foundBaseField);
         assertTrue(foundSubField);
-        assertTrue(foundSuperField);
     }
 
-    // Tests handling with null AnnotationIntrospector
+    // Tests class, method, constructor and field mix-in overrides
     @Test
-    public void testNullAnnotationIntrospector_disablesAnnotationsWithoutErrors() {
-        AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, null, null);
-        assertFalse(ac.hasAnnotations());
-        assertNull(ac.getAnnotation(CustomAnn.class));
-        assertNotNull(ac.getDefaultConstructor());
-        assertEquals(1, ac.getConstructors().size());
-        assertEquals(2, ac.getStaticMethods().size());
-        assertTrue(ac.getFieldCount() >= 2);
-        assertTrue(ac.getMemberMethodCount() >= 2);
+    public void testMixIns_overridesAnnotationsCorrectly() {
+        _mixInResolver.addMixIn(BaseClass.class, MixInForBase.class);
+        _mixInResolver.addMixIn(SubClass.class, MixInForSub.class);
+
+        AnnotatedClass ac = AnnotatedClass.construct(SubClass.class, _introspector, _mixInResolver);
+
+        AnnotatedMethod baseMethod = ac.findMethod("baseMethod", new Class<?>[0]);
+        assertNotNull(baseMethod);
+        assertNotNull(baseMethod.getAnnotation(OtherAnn.class));
+
+        AnnotatedConstructor ctor = ac.getConstructors().get(0);
+        assertNotNull(ctor.getParameterAnnotations(0));
+        assertNotNull(ctor.getParameterAnnotations(0).get(OtherAnn.class));
+
+        AnnotatedMethod factory = ac.getStaticMethods().get(0);
+        assertNotNull(factory.getAnnotation(OtherAnn.class));
+
+        for (AnnotatedField f : ac.fields()) {
+            if ("baseField".equals(f.getName())) {
+                assertNotNull(f.getAnnotation(OtherAnn.class));
+            }
+        }
     }
 
-    // Tests constructor of inner member class with implicit outer 'this' param
+    // Tests Object.class mix-in resolution for hashCode/toString
     @Test
-    public void testInnerClassConstructor_resolvesParamAnnotationsCorrectly() {
-        AnnotatedClass ac = AnnotatedClass.construct(InnerClassHolder.InnerClass.class, _introspector, _mixInResolver);
-        List<AnnotatedConstructor> ctors = ac.getConstructors();
-        assertEquals(1, ctors.size());
-        AnnotatedConstructor ctor = ctors.get(0);
-        assertEquals(1, ctor.getParameterCount());
-        assertNotNull(ctor.getParameter(0).getAnnotation(CustomAnn.class));
-    }
+    public void testObjectMixIn_appliesToClassMethods() {
+        abstract class ObjectMixIn {
+            @TestAnn("hashCodeMixIn")
+            @Override
+            public abstract int hashCode();
+        }
 
-    // Tests enum constructor parameter annotations handling extra synthetic arguments
-    @Test
-    public void testEnumConstructor_resolvesParamAnnotationsCorrectly() {
-        AnnotatedClass ac = AnnotatedClass.construct(SampleEnum.class, _introspector, _mixInResolver);
-        List<AnnotatedConstructor> ctors = ac.getConstructors();
-        assertEquals(1, ctors.size());
-        AnnotatedConstructor ctor = ctors.get(0);
-        assertEquals(1, ctor.getParameterCount());
-        assertNotNull(ctor.getParameter(0).getAnnotation(CustomAnn.class));
+        _mixInResolver.addMixIn(Object.class, ObjectMixIn.class);
+        AnnotatedClass ac = AnnotatedClass.construct(BaseClass.class, _introspector, _mixInResolver);
+
+        AnnotatedMethod hashMethod = ac.findMethod("hashCode", new Class<?>[0]);
+        assertNotNull(hashMethod);
+        assertNotNull(hashMethod.getAnnotation(TestAnn.class));
     }
 }

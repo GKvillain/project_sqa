@@ -1,13 +1,12 @@
 package com.google.javascript.jscomp;
 
 import com.google.javascript.rhino.Node;
-import com.google.javascript.rhino.Token;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
-/**
- * Unit tests for {@link Normalize}.
- */
 public class NormalizeTest extends CompilerTestCase {
+
+  private boolean assertOnChange = false;
 
   public NormalizeTest() {
     super();
@@ -15,7 +14,7 @@ public class NormalizeTest extends CompilerTestCase {
 
   @Override
   protected CompilerPass getProcessor(final Compiler compiler) {
-    return new Normalize(compiler, false);
+    return new Normalize(compiler, assertOnChange);
   }
 
   @Override
@@ -23,117 +22,186 @@ public class NormalizeTest extends CompilerTestCase {
     return 1;
   }
 
-  // Tests splitting multiple variable declarations in a single var statement
-  @Test
-  public void testSplitVarDeclarations_multipleVars_splitsIntoSeparateStatements() {
-    test("var a = 1, b = 2, c = 3;", "var a = 1; var b = 2; var c = 3;");
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    assertOnChange = false;
   }
 
-  // Tests splitting multiple uninitialized variable declarations
+  // Tests converting WHILE loops to FOR loops
   @Test
-  public void testSplitVarDeclarations_uninitializedVars_splitsIntoSeparateStatements() {
-    test("var a, b, c;", "var a; var b; var c;");
-  }
-
-  // Tests conversion of while loop to for loop
-  @Test
-  public void testWhileToFor_simpleWhile_convertsToForLoop() {
+  public void testVisit_whileLoop_convertedToForLoop() {
     test("while (a < 10) { a++; }", "for (; a < 10;) { a++; }");
   }
 
-  // Tests extraction of for loop var initializer
+  // Tests splitting multiple VAR declarations into separate statements
   @Test
-  public void testExtractForInitializer_varInit_movesBeforeForLoop() {
-    test("for (var a = 0; a < 10; a++) {}", "var a = 0; for (; a < 10; a++) {}");
+  public void testSplitVarDeclarations_multipleDeclarations_splitsIntoSeparateVars() {
+    test("var a = 1, b = 2, c = 3;", "var a = 1; var b = 2; var c = 3;");
   }
 
-  // Tests extraction of for loop expression initializer
+  // Tests splitting uninitialized multiple VAR declarations
   @Test
-  public void testExtractForInitializer_exprInit_movesBeforeForLoop() {
-    test("for (a = 0; a < 10; a++) {}", "a = 0; for (; a < 10; a++) {}");
+  public void testSplitVarDeclarations_uninitializedVars_splitsIntoSeparateVars() {
+    test("var x, y;", "var x; var y;");
   }
 
-  // Tests extraction of for loop initializer inside labeled statement
+  // Tests extracting VAR initializer from FOR loop
   @Test
-  public void testExtractForInitializer_labeledFor_movesBeforeLabel() {
-    test("label: for (var a = 0; a < 10; a++) {}", "var a = 0; label: for (; a < 10; a++) {}");
+  public void testExtractForInitializer_varInit_extractedBeforeFor() {
+    test("for (var i = 0; i < 10; i++) {}", "var i = 0; for (; i < 10; i++) {}");
   }
 
-  // Tests that for-in loops do not have their initializers extracted
+  // Tests extracting expression initializer from FOR loop
   @Test
-  public void testExtractForInitializer_forIn_preservesForIn() {
-    testSame("for (var a in obj) {}");
+  public void testExtractForInitializer_expressionInit_extractedBeforeFor() {
+    test("for (i = 0; i < 10; i++) {}", "i = 0; for (; i < 10; i++) {}");
   }
 
-  // Tests label normalization wrapping non-block/non-loop statements in blocks
+  // Tests that FOR-IN loop initializer is not extracted
   @Test
-  public void testNormalizeLabels_nonBlockBody_wrapsInBlock() {
-    test("label: a = 1;", "label: { a = 1; }");
+  public void testExtractForInitializer_forInLoop_remainsUnextracted() {
+    testSame("for (var prop in obj) {}");
   }
 
-  // Tests duplicate var declaration removal with assignment conversion
+  // Tests extracting FOR initializer inside labeled statement
   @Test
-  public void testRemoveDuplicateDeclarations_withInitializer_convertsToAssign() {
+  public void testExtractForInitializer_insideLabel_extractedBeforeLabel() {
+    test("lab: for (var j = 0; j < 5; j++) {}", "var j = 0; lab: for (; j < 5; j++) {}");
+  }
+
+  // Tests removing simple duplicate VAR declarations without initializers
+  @Test
+  public void testRemoveDuplicateDeclarations_duplicateUninitializedVar_removesDuplicate() {
+    test("var x = 1; var x;", "var x = 1;");
+  }
+
+  // Tests converting duplicate VAR with initializer to ASSIGN statement
+  @Test
+  public void testRemoveDuplicateDeclarations_duplicateVarWithInit_convertsToAssignment() {
     test("var a = 1; var a = 2;", "var a = 1; a = 2;");
   }
 
-  // Tests duplicate uninitialized var declaration removal
+  // Tests duplicate VAR removal in FOR-IN loop
   @Test
-  public void testRemoveDuplicateDeclarations_uninitialized_removesDuplicate() {
-    test("var a = 1; var a;", "var a = 1;");
+  public void testRemoveDuplicateDeclarations_duplicateVarInForIn_removesVarKeyword() {
+    test("var k; for (var k in obj) {}", "var k; for (k in obj) {}");
   }
 
-  // Tests duplicate var declaration in for-in loop header
+  // Tests handling duplicate declaration of arguments in function scope (Closure-102 regression)
   @Test
-  public void testRemoveDuplicateDeclarations_forInVar_removesVarKeyword() {
-    test("var a; for (var a in obj) {}", "var a; for (a in obj) {}");
+  public void testRemoveDuplicateDeclarations_duplicateArgumentsVar_convertsToAssignment() {
+    test("function f() { var arguments = 1; }", "function f() { arguments = 1; }");
   }
 
-  // Tests duplicate var declaration within label
+  // Tests moving named function declarations to the top of the function body
   @Test
-  public void testRemoveDuplicateDeclarations_inLabel_replacesWithEmpty() {
-    test("var a = 1; label: var a;", "var a = 1; label: ;");
+  public void testMoveNamedFunctions_functionDeclarationAfterStatement_movedToTop() {
+    test("function outer() { var x = 1; function inner() {} }",
+         "function outer() { function inner() {} var x = 1; }");
   }
 
-  // Tests handling of duplicate declaration of arguments variable
+  // Tests preserving function declarations already at the top
   @Test
-  public void testRemoveDuplicateDeclarations_varArguments_handlesRedeclaration() {
-    test("function f() { var arguments = 1; }", "function f() { var arguments = 1; }");
+  public void testMoveNamedFunctions_functionsAlreadyAtTop_orderingPreserved() {
+    testSame("function outer() { function f1() {} function f2() {} var x = 1; }");
   }
 
-  // Tests moving inner named function declarations to top of enclosing function body
+  // Tests normalizing labels wrapping non-block/non-loop statements
   @Test
-  public void testMoveNamedFunctions_nestedFunctionDeclaration_hoistedToTop() {
-    test("function f() { var a = 1; function g() {} var b = 2; }",
-         "function f() { function g() {} var a = 1; var b = 2; }");
+  public void testNormalizeLabels_statementUnderLabel_wrappedInBlock() {
+    test("foo: a = 1;", "foo: { a = 1; }");
   }
 
-  // Tests that function declarations already at the beginning are kept in order
+  // Tests constant propagation from JSDoc @const annotation
   @Test
-  public void testMoveNamedFunctions_alreadyAtTop_preservesOrder() {
-    testSame("function f() { function g() {} function h() {} var a = 1; }");
-  }
-
-  // Tests assertOnChange flag throwing IllegalStateException on modification
-  @Test(expected = IllegalStateException.class)
-  public void testProcess_assertOnChangeTrue_throwsExceptionOnModification() {
+  public void testPropagateConstantAnnotations_jsdocConstant_marksConstantProp() {
     Compiler compiler = new Compiler();
-    Node root = compiler.parseTestCode("while (true) {}");
-    Node externs = new Node(Token.BLOCK);
-    Normalize normalize = new Normalize(compiler, true);
+    Node root = compiler.parseTestCode("/** @const */ var FOO = 1; var bar = FOO;");
+    Node externs = new Node(com.google.javascript.rhino.Token.BLOCK);
+
+    Normalize normalize = new Normalize(compiler, false);
     normalize.process(externs, root);
+
+    Node nameNode = root.getFirstChild().getFirstChild();
+    assertTrue(nameNode.getBooleanProp(Node.IS_CONSTANT_NAME));
   }
 
-  // Tests VerifyConstants helper pass
+  // Tests VerifyConstants pass when constants are consistently annotated
   @Test
-  public void testVerifyConstants_validConstantAnnotations_passesVerification() {
+  public void testVerifyConstants_validConstants_passesVerification() {
     Compiler compiler = new Compiler();
-    Node externs = new Node(Token.BLOCK);
-    Node root = compiler.parseTestCode("var A = 1;");
-    Node rootParent = new Node(Token.BLOCK, externs, root);
+    Node root = compiler.parseTestCode("var a = 1; var b = 2;");
+    Node externs = new Node(com.google.javascript.rhino.Token.BLOCK);
 
     Normalize.VerifyConstants verifier = new Normalize.VerifyConstants(compiler, false);
     verifier.process(externs, root);
-    assertNotNull(rootParent);
+  }
+
+  // Tests assertOnChange flag throwing exception on unexpected AST modifications
+  @Test(expected = IllegalStateException.class)
+  public void testAssertOnChange_unexpectedChange_throwsException() {
+    assertOnChange = true;
+    test("while (true) {}", "for (; true;) {}");
+  }
+
+  // Tests duplicate var declaration shadowing function parameter without initialization
+  @Test
+  public void testRemoveDuplicateDeclarations_paramShadowUninitialized_removesVar() {
+    test("function f(x) { var x; }", "function f(x) {}");
+  }
+
+  // Tests duplicate var declaration shadowing function parameter with initialization
+  @Test
+  public void testRemoveDuplicateDeclarations_paramShadowWithInit_convertsToAssignment() {
+    test("function f(x) { var x = 1; }", "function f(x) { x = 1; }");
+  }
+
+  // Tests duplicate var declaration shadowing catch block parameter
+  @Test
+  public void testRemoveDuplicateDeclarations_catchParamShadow_removesVar() {
+    test("try {} catch (e) { var e; }", "try {} catch (e) {}");
+    test("try {} catch (e) { var e = 1; }", "try {} catch (e) { e = 1; }");
+  }
+
+  // Tests duplicate var declaration with existing function name
+  @Test
+  public void testRemoveDuplicateDeclarations_functionNameShadowWithInit_convertsToAssignment() {
+    test("function f() {} var f = 1;", "function f() {} f = 1;");
+    test("var f = 1; function f() {}", "function f() {} f = 1;");
+  }
+
+  // Tests hoisting multiple function declarations interspersed between statements
+  @Test
+  public void testMoveNamedFunctions_multipleFunctionsInterspersed_hoistedToTopInOrder() {
+    test("function outer() { var a = 1; function f1() {} var b = 2; function f2() {} }",
+         "function outer() { function f1() {} function f2() {} var a = 1; var b = 2; }");
+  }
+
+  // Tests nested labels wrapping a loop with var initializer extraction
+  @Test
+  public void testExtractForInitializer_nestedLabels_extractedBeforeOuterLabel() {
+    test("l1: l2: for (var i = 0; i < 10; i++) {}",
+         "var i = 0; l1: l2: for (; i < 10; i++) {}");
+  }
+
+  // Tests constant propagation to references across nested function scopes
+  @Test
+  public void testPropagateConstantAnnotations_referencesInInnerScope_markedConstant() {
+    Compiler compiler = new Compiler();
+    Node root = compiler.parseTestCode("/** @const */ var C = 1; function f() { return C; }");
+    Node externs = new Node(com.google.javascript.rhino.Token.BLOCK);
+
+    Normalize normalize = new Normalize(compiler, false);
+    normalize.process(externs, root);
+
+    Node constVarName = root.getFirstChild().getFirstChild();
+    assertTrue(constVarName.getBooleanProp(Node.IS_CONSTANT_NAME));
+  }
+
+  // Tests empty statement under label wrapped in empty block
+  @Test
+  public void testNormalizeLabels_emptyStatementUnderLabel_wrappedInBlock() {
+    test("lab: ;", "lab: {}");
   }
 }

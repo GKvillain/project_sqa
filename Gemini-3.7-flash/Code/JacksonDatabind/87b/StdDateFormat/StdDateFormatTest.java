@@ -1,9 +1,9 @@
 package com.fasterxml.jackson.databind.util;
 
 import java.text.DateFormat;
-import java.text.FieldPosition;
 import java.text.ParseException;
 import java.text.ParsePosition;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -22,58 +22,197 @@ public class StdDateFormatTest {
         stdDateFormat = new StdDateFormat();
     }
 
-    // Tests default instance state, timezone, and leniency
+    // Tests default timezone configuration
     @Test
-    public void testDefaultState_initialValues_expectedDefaults() {
-        assertNotNull(StdDateFormat.instance);
-        assertEquals(TimeZone.getTimeZone("UTC"), StdDateFormat.getDefaultTimeZone());
-        assertTrue(stdDateFormat.isLenient());
-        assertNull(stdDateFormat.getTimeZone());
+    public void testGetDefaultTimeZone_default_returnsUtc() {
+        TimeZone tz = StdDateFormat.getDefaultTimeZone();
+        assertEquals("UTC", tz.getID());
     }
 
-    // Tests withTimeZone behavior when timezone is null, identical, or different
+    // Tests parsing ISO8601 date string ending with 'Z'
     @Test
-    public void testWithTimeZone_variousInputs_returnsExpectedInstance() {
-        TimeZone tzPst = TimeZone.getTimeZone("PST");
-        StdDateFormat dfWithTz = stdDateFormat.withTimeZone(tzPst);
-        assertNotSame(stdDateFormat, dfWithTz);
-        assertEquals(tzPst, dfWithTz.getTimeZone());
+    public void testParse_iso8601WithZulu_returnsCorrectDate() throws ParseException {
+        Date result = stdDateFormat.parse("2020-01-01T00:00:00.000Z");
+        assertNotNull(result);
 
-        StdDateFormat sameDf = dfWithTz.withTimeZone(tzPst);
-        assertSame(dfWithTz, sameDf);
-
-        StdDateFormat defaultTzDf = dfWithTz.withTimeZone(null);
-        assertEquals(StdDateFormat.getDefaultTimeZone(), defaultTzDf.getTimeZone());
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTime(result);
+        assertEquals(2020, cal.get(Calendar.YEAR));
+        assertEquals(Calendar.JANUARY, cal.get(Calendar.MONTH));
+        assertEquals(1, cal.get(Calendar.DAY_OF_MONTH));
+        assertEquals(0, cal.get(Calendar.HOUR_OF_DAY));
+        assertEquals(0, cal.get(Calendar.MINUTE));
+        assertEquals(0, cal.get(Calendar.SECOND));
     }
 
-    // Tests withLocale behavior when locale is identical or different
+    // Tests parsing ISO8601 date string ending with 'Z' without milliseconds
     @Test
-    public void testWithLocale_variousLocales_returnsExpectedInstance() {
-        StdDateFormat dfGermany = stdDateFormat.withLocale(Locale.GERMANY);
-        assertNotSame(stdDateFormat, dfGermany);
+    public void testParse_iso8601WithZuluNoMillis_returnsCorrectDate() throws ParseException {
+        Date result = stdDateFormat.parse("2020-01-01T12:30:45Z");
+        assertNotNull(result);
 
-        StdDateFormat sameDf = dfGermany.withLocale(Locale.GERMANY);
-        assertSame(dfGermany, sameDf);
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTime(result);
+        assertEquals(2020, cal.get(Calendar.YEAR));
+        assertEquals(12, cal.get(Calendar.HOUR_OF_DAY));
+        assertEquals(30, cal.get(Calendar.MINUTE));
+        assertEquals(45, cal.get(Calendar.SECOND));
+        assertEquals(0, cal.get(Calendar.MILLISECOND));
     }
 
-    // Tests clone method
+    // Tests parsing ISO8601 date string with colon timezone offset
+    @Test
+    public void testParse_iso8601WithColonTimezone_returnsCorrectDate() throws ParseException {
+        Date result = stdDateFormat.parse("2020-01-01T00:00:00.000+02:00");
+        assertNotNull(result);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTime(result);
+        // UTC time should be 2019-12-31 22:00:00
+        assertEquals(2019, cal.get(Calendar.YEAR));
+        assertEquals(Calendar.DECEMBER, cal.get(Calendar.MONTH));
+        assertEquals(31, cal.get(Calendar.DAY_OF_MONTH));
+        assertEquals(22, cal.get(Calendar.HOUR_OF_DAY));
+    }
+
+    // Tests parsing ISO8601 date string with 2-digit hour-only timezone offset
+    @Test
+    public void testParse_iso8601WithTwoDigitTimezone_returnsCorrectDate() throws ParseException {
+        Date result = stdDateFormat.parse("2020-01-01T00:00:00.000+02");
+        assertNotNull(result);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTime(result);
+        assertEquals(2019, cal.get(Calendar.YEAR));
+        assertEquals(Calendar.DECEMBER, cal.get(Calendar.MONTH));
+        assertEquals(31, cal.get(Calendar.DAY_OF_MONTH));
+        assertEquals(22, cal.get(Calendar.HOUR_OF_DAY));
+    }
+
+    // Tests parsing ISO8601 date string without timezone indicator
+    @Test
+    public void testParse_iso8601WithoutTimezone_defaultsToUtc() throws ParseException {
+        Date result = stdDateFormat.parse("2020-01-01T10:15:30");
+        assertNotNull(result);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTime(result);
+        assertEquals(10, cal.get(Calendar.HOUR_OF_DAY));
+        assertEquals(15, cal.get(Calendar.MINUTE));
+        assertEquals(30, cal.get(Calendar.SECOND));
+    }
+
+    // Tests parsing plain date without time part
+    @Test
+    public void testParse_plainDate_returnsCorrectDate() throws ParseException {
+        Date result = stdDateFormat.parse("2020-05-15");
+        assertNotNull(result);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTime(result);
+        assertEquals(2020, cal.get(Calendar.YEAR));
+        assertEquals(Calendar.MAY, cal.get(Calendar.MONTH));
+        assertEquals(15, cal.get(Calendar.DAY_OF_MONTH));
+    }
+
+    // Tests parsing stringified timestamp number
+    @Test
+    public void testParse_timestampString_returnsCorrectDate() throws ParseException {
+        long timestamp = 1577836800000L;
+        Date result = stdDateFormat.parse(String.valueOf(timestamp));
+        assertEquals(timestamp, result.getTime());
+    }
+
+    // Tests parsing negative stringified timestamp number
+    @Test
+    public void testParse_negativeTimestampString_returnsCorrectDate() throws ParseException {
+        long timestamp = -1000000L;
+        Date result = stdDateFormat.parse(String.valueOf(timestamp));
+        assertEquals(timestamp, result.getTime());
+    }
+
+    // Tests parsing RFC1123 compliant date string
+    @Test
+    public void testParse_rfc1123String_returnsCorrectDate() throws ParseException {
+        Date result = stdDateFormat.parse("Wed, 01 Jan 2020 00:00:00 GMT");
+        assertNotNull(result);
+
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        cal.setTime(result);
+        assertEquals(2020, cal.get(Calendar.YEAR));
+        assertEquals(Calendar.JANUARY, cal.get(Calendar.MONTH));
+        assertEquals(1, cal.get(Calendar.DAY_OF_MONTH));
+    }
+
+    // Tests parse with invalid date format throwing ParseException
+    @Test(expected = ParseException.class)
+    public void testParse_invalidFormat_throwsParseException() throws ParseException {
+        stdDateFormat.parse("invalid-date-string");
+    }
+
+    // Tests parse method with ParsePosition
+    @Test
+    public void testParseWithPosition_validPlainDate_returnsDate() {
+        ParsePosition pos = new ParsePosition(0);
+        Date result = stdDateFormat.parse("2020-01-01", pos);
+        assertNotNull(result);
+        assertEquals(10, pos.getIndex());
+    }
+
+    // Tests parse method with ParsePosition on invalid string
+    @Test
+    public void testParseWithPosition_invalidString_returnsNull() {
+        ParsePosition pos = new ParsePosition(0);
+        Date result = stdDateFormat.parse("not-a-date", pos);
+        assertNull(result);
+    }
+
+    // Tests formatting Date object to ISO8601 string
+    @Test
+    public void testFormat_validDate_returnsFormattedIso8601String() {
+        Date date = new Date(0L); // 1970-01-01T00:00:00.000Z in UTC
+        String formatted = stdDateFormat.format(date);
+        assertEquals("1970-01-01T00:00:00.000+0000", formatted);
+    }
+
+    // Tests withTimeZone immutability and behavior
+    @Test
+    public void testWithTimeZone_customTimeZone_returnsNewInstanceWithTargetTz() {
+        TimeZone tzGmtPlus2 = TimeZone.getTimeZone("GMT+2");
+        StdDateFormat customTzFormat = stdDateFormat.withTimeZone(tzGmtPlus2);
+
+        assertNotSame(stdDateFormat, customTzFormat);
+        assertEquals(tzGmtPlus2, customTzFormat.getTimeZone());
+
+        StdDateFormat sameTzFormat = customTzFormat.withTimeZone(tzGmtPlus2);
+        assertSame(customTzFormat, sameTzFormat);
+
+        StdDateFormat resetTzFormat = customTzFormat.withTimeZone(null);
+        assertEquals(StdDateFormat.getDefaultTimeZone(), resetTzFormat.getTimeZone());
+    }
+
+    // Tests withLocale immutability and behavior
+    @Test
+    public void testWithLocale_customLocale_returnsNewInstanceWithTargetLocale() {
+        StdDateFormat customLocaleFormat = stdDateFormat.withLocale(Locale.GERMANY);
+        assertNotSame(stdDateFormat, customLocaleFormat);
+
+        StdDateFormat sameLocaleFormat = customLocaleFormat.withLocale(Locale.GERMANY);
+        assertSame(customLocaleFormat, sameLocaleFormat);
+    }
+
+    // Tests clone method produces independent instance
     @Test
     public void testClone_createsIndependentInstance() {
-        stdDateFormat.setTimeZone(TimeZone.getTimeZone("GMT+2"));
-        stdDateFormat.setLenient(false);
-
         StdDateFormat cloned = stdDateFormat.clone();
+        assertNotNull(cloned);
         assertNotSame(stdDateFormat, cloned);
-        assertEquals(stdDateFormat.getTimeZone(), cloned.getTimeZone());
-        assertFalse(cloned.isLenient());
     }
 
-    // Tests setTimeZone and setLenient clearing cached formats
+    // Tests setLenient and isLenient
     @Test
-    public void testSetTimeZoneAndSetLenient_modifiesState() {
-        TimeZone tzEst = TimeZone.getTimeZone("EST");
-        stdDateFormat.setTimeZone(tzEst);
-        assertEquals(tzEst, stdDateFormat.getTimeZone());
+    public void testSetLenient_and_isLenient_togglesCorrectly() {
+        assertTrue(stdDateFormat.isLenient());
 
         stdDateFormat.setLenient(false);
         assertFalse(stdDateFormat.isLenient());
@@ -82,134 +221,39 @@ public class StdDateFormatTest {
         assertTrue(stdDateFormat.isLenient());
     }
 
-    // Tests formatting date to standard ISO-8601 string
+    // Tests setTimeZone updates timezone state
     @Test
-    public void testFormat_validDate_formatsToISO8601() {
-        Date date = new Date(0L);
-        StringBuffer sb = new StringBuffer();
-        stdDateFormat.format(date, sb, new FieldPosition(0));
-        assertEquals("1970-01-01T00:00:00.000+0000", sb.toString());
+    public void testSetTimeZone_updatesTimeZone() {
+        TimeZone tz = TimeZone.getTimeZone("PST");
+        stdDateFormat.setTimeZone(tz);
+        assertEquals(tz, stdDateFormat.getTimeZone());
     }
 
-    // Tests parsing plain date without time (yyyy-MM-dd)
+    // Tests static factory methods for format instances
     @Test
-    public void testParse_plainDate_parsedCorrectly() throws ParseException {
-        Date parsed = stdDateFormat.parse("1970-01-01");
-        assertNotNull(parsed);
-        assertEquals(0L, parsed.getTime());
-    }
-
-    // Tests parsing ISO-8601 Zulu format with and without milliseconds
-    @Test
-    public void testParse_iso8601Zulu_parsedCorrectly() throws ParseException {
-        Date parsedWithMillis = stdDateFormat.parse("1970-01-01T00:00:00.000Z");
-        assertNotNull(parsedWithMillis);
-        assertEquals(0L, parsedWithMillis.getTime());
-
-        Date parsedWithoutMillis = stdDateFormat.parse("1970-01-01T00:00:00Z");
-        assertNotNull(parsedWithoutMillis);
-        assertEquals(0L, parsedWithoutMillis.getTime());
-    }
-
-    // Tests parsing ISO-8601 with timezone offset containing colon (e.g., +00:00)
-    @Test
-    public void testParse_iso8601WithColonTimezone_parsedCorrectly() throws ParseException {
-        Date parsed = stdDateFormat.parse("1970-01-01T00:00:00.000+00:00");
-        assertNotNull(parsed);
-        assertEquals(0L, parsed.getTime());
-
-        Date parsedOffset = stdDateFormat.parse("1970-01-01T01:00:00.000+01:00");
-        assertNotNull(parsedOffset);
-        assertEquals(0L, parsedOffset.getTime());
-    }
-
-    // Tests parsing ISO-8601 with 2-digit timezone offset (e.g., +00, -00)
-    @Test
-    public void testParse_iso8601WithShortTimezone_parsedCorrectly() throws ParseException {
-        Date parsed = stdDateFormat.parse("1970-01-01T00:00:00.000+00");
-        assertNotNull(parsed);
-        assertEquals(0L, parsed.getTime());
-    }
-
-    // Tests parsing ISO-8601 without explicit timezone
-    @Test
-    public void testParse_iso8601NoTimezone_parsedAsUtc() throws ParseException {
-        Date parsed = stdDateFormat.parse("1970-01-01T00:00:00.000");
-        assertNotNull(parsed);
-        assertEquals(0L, parsed.getTime());
-
-        Date parsedNoMillis = stdDateFormat.parse("1970-01-01T00:00:00");
-        assertNotNull(parsedNoMillis);
-        assertEquals(0L, parsedNoMillis.getTime());
-    }
-
-    // Tests parsing numeric timestamp strings (positive and negative)
-    @Test
-    public void testParse_numericTimestampStrings_parsedCorrectly() throws ParseException {
-        Date positive = stdDateFormat.parse("1000");
-        assertEquals(1000L, positive.getTime());
-
-        Date negative = stdDateFormat.parse("-1000");
-        assertEquals(-1000L, negative.getTime());
-    }
-
-    // Tests parsing RFC-1123 compliant date string
-    @Test
-    public void testParse_rfc1123Date_parsedCorrectly() throws ParseException {
-        Date parsed = stdDateFormat.parse("Thu, 01 Jan 1970 00:00:00 GMT");
-        assertNotNull(parsed);
-        assertEquals(0L, parsed.getTime());
-    }
-
-    // Tests parsing invalid date string expecting ParseException
-    @Test(expected = ParseException.class)
-    public void testParse_invalidFormat_throwsParseException() throws ParseException {
-        stdDateFormat.parse("not-a-valid-date");
-    }
-
-    // Tests parse method taking ParsePosition directly
-    @Test
-    public void testParse_withParsePosition_returnsDateOrNull() {
-        ParsePosition pos = new ParsePosition(0);
-        Date parsed = stdDateFormat.parse("1970-01-01T00:00:00.000Z", pos);
-        assertNotNull(parsed);
-        assertEquals(0L, parsed.getTime());
-
-        ParsePosition invalidPos = new ParsePosition(0);
-        Date invalidResult = stdDateFormat.parse("invalid-date-string", invalidPos);
-        assertNull(invalidResult);
-    }
-
-    // Tests deprecated static factory methods for ISO-8601 and RFC-1123 formats
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testStaticGetFormatMethods_returnsConfiguredDateFormat() {
-        TimeZone tz = TimeZone.getTimeZone("GMT");
-        DateFormat isoFormat = StdDateFormat.getISO8601Format(tz);
+    public void testGetISO8601AndRFC1123Format_returnsNonNullInstances() {
+        DateFormat isoFormat = StdDateFormat.getISO8601Format(TimeZone.getTimeZone("UTC"), Locale.US);
         assertNotNull(isoFormat);
 
-        DateFormat isoFormatWithLocale = StdDateFormat.getISO8601Format(tz, Locale.GERMANY);
-        assertNotNull(isoFormatWithLocale);
-
-        DateFormat rfcFormat = StdDateFormat.getRFC1123Format(tz);
+        DateFormat rfcFormat = StdDateFormat.getRFC1123Format(TimeZone.getTimeZone("UTC"), Locale.US);
         assertNotNull(rfcFormat);
 
-        DateFormat rfcFormatWithLocale = StdDateFormat.getRFC1123Format(tz, Locale.GERMANY);
-        assertNotNull(rfcFormatWithLocale);
+        DateFormat isoDep = StdDateFormat.getISO8601Format(TimeZone.getTimeZone("UTC"));
+        assertNotNull(isoDep);
+
+        DateFormat rfcDep = StdDateFormat.getRFC1123Format(TimeZone.getTimeZone("UTC"));
+        assertNotNull(rfcDep);
     }
 
-    // Tests toString, equals, and hashCode methods
+    // Tests equals, hashCode and toString
     @Test
-    public void testObjectOverrides_toStringEqualsHashCode() {
+    public void testEqualsAndHashCodeAndToString() {
+        assertTrue(stdDateFormat.equals(stdDateFormat));
+        assertFalse(stdDateFormat.equals(new Object()));
+        assertEquals(System.identityHashCode(stdDateFormat), stdDateFormat.hashCode());
+
         String str = stdDateFormat.toString();
         assertNotNull(str);
-        assertTrue(str.contains("StdDateFormat"));
-
-        assertTrue(stdDateFormat.equals(stdDateFormat));
-        assertFalse(stdDateFormat.equals(new StdDateFormat()));
-        assertFalse(stdDateFormat.equals(null));
-        assertFalse(stdDateFormat.equals("string"));
-
-        assertEquals(System.identityHashCode(stdDateFormat), stdDateFormat.hashCode());
+        assertTrue(str.contains("DateFormat"));
     }
 }

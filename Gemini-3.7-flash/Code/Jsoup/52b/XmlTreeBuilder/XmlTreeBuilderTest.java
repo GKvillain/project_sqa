@@ -1,5 +1,6 @@
 package org.jsoup.parser;
 
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Comment;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.DocumentType;
@@ -7,6 +8,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.nodes.XmlDeclaration;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -14,199 +16,218 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 public class XmlTreeBuilderTest {
+    private XmlTreeBuilder treeBuilder;
 
-    // Tests normal XML parsing creating elements and text nodes
+    @Before
+    public void setUp() {
+        treeBuilder = new XmlTreeBuilder();
+    }
+
+    // Tests normal XML parsing with XML syntax output
     @Test
-    public void testParse_simpleXml_createsCorrectDocumentTree() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<root><child attr=\"val\">hello</child></root>", "http://example.com/");
+    public void testParse_simpleXml_createsXmlDocumentStructure() {
+        String xml = "<root><child id=\"1\">Text</child></root>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
 
         assertNotNull(doc);
-        assertEquals(1, doc.children().size());
-        Element root = doc.child(0);
-        assertEquals("root", root.nodeName());
-        assertEquals(1, root.children().size());
-        Element child = root.child(0);
-        assertEquals("child", child.nodeName());
-        assertEquals("val", child.attr("attr"));
-        assertEquals("hello", child.text());
-        assertEquals("http://example.com/", child.baseUri());
-    }
-
-    // Tests XML syntax setting on document outputSettings
-    @Test
-    public void testInitialiseParse_configuresXmlOutputSyntax() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<root/>", "");
-
         assertEquals(Document.OutputSettings.Syntax.xml, doc.outputSettings().syntax());
+        Element root = doc.select("root").first();
+        assertNotNull(root);
+        Element child = root.select("child").first();
+        assertNotNull(child);
+        assertEquals("1", child.attr("id"));
+        assertEquals("Text", child.text());
     }
 
-    // Tests self-closing tag handling for unknown XML tags
+    // Tests parsing standard XML declaration starting with '?'
     @Test
-    public void testParse_selfClosingTags_correctlyParsed() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<root><customTag id=\"1\"/><sibling>text</sibling></root>", "");
+    public void testParse_xmlDeclarationWithQuestionMark_createsXmlDeclarationNode() {
+        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root/>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
 
-        Element root = doc.child(0);
-        assertEquals(2, root.children().size());
-        assertEquals("customTag", root.child(0).nodeName());
-        assertEquals("1", root.child(0).attr("id"));
-        assertEquals("sibling", root.child(1).nodeName());
-        assertEquals("text", root.child(1).text());
+        List<Node> nodes = doc.childNodes();
+        assertTrue(nodes.size() >= 2);
+        assertTrue(nodes.get(0) instanceof XmlDeclaration);
+        XmlDeclaration decl = (XmlDeclaration) nodes.get(0);
+        assertEquals("xml version=\"1.0\" encoding=\"UTF-8\"", decl.getWholeDeclaration());
+        assertFalse(decl.name().startsWith("!"));
     }
 
-    // Tests comment node insertion
+    // Tests parsing bogus comment starting with '!' as XML declaration
     @Test
-    public void testParse_standardComment_insertsCommentNode() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<root><!-- this is a comment --></root>", "");
+    public void testParse_xmlDeclarationWithExclamationMark_createsXmlDeclarationNode() {
+        String xml = "<!DECL test=\"val\"><root/>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
 
-        Element root = doc.child(0);
-        assertEquals(1, root.childNodeSize());
-        assertTrue(root.childNode(0) instanceof Comment);
-        Comment comment = (Comment) root.childNode(0);
-        assertEquals(" this is a comment ", comment.getData());
-        assertFalse(comment.getData().startsWith("?"));
+        List<Node> nodes = doc.childNodes();
+        assertTrue(nodes.size() >= 2);
+        assertTrue(nodes.get(0) instanceof XmlDeclaration);
+        XmlDeclaration decl = (XmlDeclaration) nodes.get(0);
+        assertEquals("DECL test=\"val\"", decl.getWholeDeclaration());
     }
 
-    // Tests XML declaration (bogus comment starting with ?)
+    // Tests parsing DOCTYPE token branch
     @Test
-    public void testParse_xmlDeclarationBogusComment_createsXmlDeclarationNode() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<?xml version=\"1.0\" encoding=\"UTF-8\"?><root/>", "http://example.com/");
+    public void testParse_doctypeToken_createsDocumentTypeNode() {
+        String xml = "<!DOCTYPE html SYSTEM \"about:legacy-compat\"><root/>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
 
-        assertTrue(doc.childNode(0) instanceof XmlDeclaration);
-        XmlDeclaration decl = (XmlDeclaration) doc.childNode(0);
-        assertEquals("xml version=\"1.0\" encoding=\"UTF-8\"", decl.name());
-        assertEquals("http://example.com/", decl.baseUri());
-    }
-
-    // Tests declaration starting with ! (bogus comment starting with !)
-    @Test
-    public void testParse_exclamationBogusComment_createsXmlDeclaration() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<![CDATA[raw text]]><root/>", "http://example.com/");
-
-        assertTrue(doc.childNode(0) instanceof XmlDeclaration);
-        XmlDeclaration decl = (XmlDeclaration) doc.childNode(0);
-        assertEquals("[CDATA[raw text]]", decl.name());
-    }
-
-    // Tests DocumentType token parsing
-    @Test
-    public void testParse_docType_insertsDocumentTypeNode() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<!DOCTYPE html SYSTEM \"about:legacy-compat\"><root/>", "http://example.com/");
-
-        assertTrue(doc.childNode(0) instanceof DocumentType);
-        DocumentType doctype = (DocumentType) doc.childNode(0);
+        List<Node> nodes = doc.childNodes();
+        assertTrue(nodes.size() >= 2);
+        assertTrue(nodes.get(0) instanceof DocumentType);
+        DocumentType doctype = (DocumentType) nodes.get(0);
         assertEquals("html", doctype.attr("name"));
         assertEquals("about:legacy-compat", doctype.attr("systemId"));
-        assertEquals("http://example.com/", doctype.baseUri());
+    }
+
+    // Tests parsing normal comment token branch
+    @Test
+    public void testParse_commentToken_createsCommentNode() {
+        String xml = "<root><!-- this is a comment --></root>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
+
+        Element root = doc.select("root").first();
+        assertNotNull(root);
+        List<Node> childNodes = root.childNodes();
+        assertEquals(1, childNodes.size());
+        assertTrue(childNodes.get(0) instanceof Comment);
+        Comment comment = (Comment) childNodes.get(0);
+        assertEquals(" this is a comment ", comment.getData());
+    }
+
+    // Tests self-closing tag handling for unknown tags
+    @Test
+    public void testInsert_selfClosingUnknownTag_remembersSelfClosing() {
+        String xml = "<root><custom-tag attr=\"val\"/></root>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
+
+        Element root = doc.select("root").first();
+        assertNotNull(root);
+        Element customTag = root.select("custom-tag").first();
+        assertNotNull(customTag);
+        assertEquals("val", customTag.attr("attr"));
+        assertTrue(customTag.tag().isSelfClosing());
+    }
+
+    // Tests non-self-closing tag pushed and popped from stack
+    @Test
+    public void testParse_nestedElements_correctHierarchy() {
+        String xml = "<a><b><c>data</c></b></a>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
+
+        Element a = doc.select("a").first();
+        assertNotNull(a);
+        Element b = a.select("b").first();
+        assertNotNull(b);
+        Element c = b.select("c").first();
+        assertNotNull(c);
+        assertEquals("data", c.text());
+    }
+
+    // Tests popStackToClose when closing tag is matched across multiple unclosed elements
+    @Test
+    public void testPopStackToClose_unclosedNestedTags_popsInterveningElements() {
+        String xml = "<root><outer><inner>text</outer></root>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
+
+        Element root = doc.select("root").first();
+        assertNotNull(root);
+        Element outer = root.select("outer").first();
+        assertNotNull(outer);
+        Element inner = outer.select("inner").first();
+        assertNotNull(inner);
+        assertEquals("text", inner.text());
+    }
+
+    // Tests popStackToClose when end tag does not exist on stack
+    @Test
+    public void testPopStackToClose_nonExistentEndTag_skipsWithoutError() {
+        String xml = "<root><child>text</unknown></child></root>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
+
+        Element child = doc.select("child").first();
+        assertNotNull(child);
+        assertEquals("text", child.text());
     }
 
     // Tests character token insertion
     @Test
-    public void testParse_characterData_insertsTextNode() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<root>plain text</root>", "http://example.com/");
+    public void testInsert_characterToken_appendsTextNodes() {
+        String xml = "<root>First<!-- comment -->Second</root>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
 
-        Element root = doc.child(0);
-        assertEquals(1, root.childNodeSize());
-        assertTrue(root.childNode(0) instanceof TextNode);
-        TextNode text = (TextNode) root.childNode(0);
-        assertEquals("plain text", text.text());
-        assertEquals("http://example.com/", text.baseUri());
+        Element root = doc.select("root").first();
+        assertNotNull(root);
+        List<Node> nodes = root.childNodes();
+        assertEquals(3, nodes.size());
+        assertTrue(nodes.get(0) instanceof TextNode);
+        assertEquals("First", ((TextNode) nodes.get(0)).getWholeText());
+        assertTrue(nodes.get(1) instanceof Comment);
+        assertTrue(nodes.get(2) instanceof TextNode);
+        assertEquals("Second", ((TextNode) nodes.get(2)).getWholeText());
     }
 
-    // Tests closing tag popping stack correctly
+    // Tests parseFragment method returns child nodes of parsed fragment
     @Test
-    public void testParse_closingTag_popsStackToMatchingElement() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<root><a><b>content</b></a><c>after</c></root>", "");
-
-        Element root = doc.child(0);
-        assertEquals(2, root.children().size());
-        assertEquals("a", root.child(0).nodeName());
-        assertEquals("c", root.child(1).nodeName());
-        assertEquals("content", root.child(0).child(0).text());
-        assertEquals("after", root.child(1).text());
-    }
-
-    // Tests unmatched end tag does not pop stack
-    @Test
-    public void testParse_unmatchedEndTag_isSafelyIgnored() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<root><p>text</nonexistent></p></root>", "");
-
-        Element root = doc.child(0);
-        assertEquals(1, root.children().size());
-        Element p = root.child(0);
-        assertEquals("p", p.nodeName());
-        assertEquals("text", p.text());
-    }
-
-    // Tests out-of-order end tag closing parent and intermediate elements
-    @Test
-    public void testParse_outOfOrderEndTag_popsStackUpToMatchedElement() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<root><a><b><c>text</a></root>", "");
-
-        Element root = doc.child(0);
-        assertEquals(1, root.children().size());
-        assertEquals("a", root.child(0).nodeName());
-        Element a = root.child(0);
-        assertEquals("b", a.child(0).nodeName());
-        assertEquals("c", a.child(0).child(0).nodeName());
-    }
-
-    // Tests unclosed tags at EOF
-    @Test
-    public void testParse_unclosedTags_preservesStructureAtEof() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        Document doc = tb.parse("<root><unclosed>text", "");
-
-        Element root = doc.child(0);
-        assertEquals(1, root.children().size());
-        Element unclosed = root.child(0);
-        assertEquals("unclosed", unclosed.nodeName());
-        assertEquals("text", unclosed.text());
-    }
-
-    // Tests parseFragment method
-    @Test
-    public void testParseFragment_validXmlFragment_returnsListOfNodes() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        List<Node> nodes = tb.parseFragment("<one>1</one><two>2</two>", "http://example.com/", ParseErrorList.noTracking());
+    public void testParseFragment_validFragment_returnsListOfNodes() {
+        String fragment = "<one/><two>text</two>";
+        List<Node> nodes = treeBuilder.parseFragment(fragment, "http://example.com", ParseErrorList.noTracking());
 
         assertNotNull(nodes);
         assertEquals(2, nodes.size());
         assertTrue(nodes.get(0) instanceof Element);
-        assertTrue(nodes.get(1) instanceof Element);
         assertEquals("one", nodes.get(0).nodeName());
+        assertTrue(nodes.get(1) instanceof Element);
         assertEquals("two", nodes.get(1).nodeName());
-        assertEquals("1", ((Element) nodes.get(0)).text());
-        assertEquals("2", ((Element) nodes.get(1)).text());
+        assertEquals("text", ((Element) nodes.get(1)).text());
     }
 
-    // Tests empty string parseFragment
+    // Tests parseFragment with empty string returns empty node list
     @Test
     public void testParseFragment_emptyString_returnsEmptyList() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        List<Node> nodes = tb.parseFragment("", "http://example.com/", ParseErrorList.noTracking());
+        List<Node> nodes = treeBuilder.parseFragment("", "http://example.com", ParseErrorList.noTracking());
 
         assertNotNull(nodes);
         assertEquals(0, nodes.size());
     }
 
-    // Tests process EOF token directly
+    // Tests case preservation in XML parsing
     @Test
-    public void testProcess_eofToken_returnsTrue() {
-        XmlTreeBuilder tb = new XmlTreeBuilder();
-        tb.initialiseParse("<root/>", "", ParseErrorList.noTracking());
-        boolean result = tb.process(new Token.EOF());
+    public void testParse_caseSensitiveTags_preservesCase() {
+        String xml = "<CaseSensitiveTag><ChildNode/></CaseSensitiveTag>";
+        Document doc = treeBuilder.parse(xml, "http://example.com");
 
-        assertTrue(result);
+        Element el = doc.select("CaseSensitiveTag").first();
+        assertNotNull(el);
+        assertEquals("CaseSensitiveTag", el.tagName());
+        Element child = el.select("ChildNode").first();
+        assertNotNull(child);
+        assertEquals("ChildNode", child.tagName());
+    }
+
+    // Tests EOF token handling during process
+    @Test
+    public void testProcess_eofToken_completesParsingSuccessfully() {
+        Token.EOF eofToken = new Token.EOF();
+        treeBuilder.initialiseParse("<root>", "http://example.com", ParseErrorList.noTracking());
+        boolean processed = treeBuilder.process(eofToken);
+
+        assertTrue(processed);
+    }
+
+    // Tests bogus comment without '!' or '?' prefix remains standard Comment
+    @Test
+    public void testInsert_bogusCommentWithoutDeclarationPrefix_treatedAsComment() {
+        Token.Comment commentToken = new Token.Comment();
+        commentToken.bogus = true;
+        commentToken.getData().append("plain bogus data");
+
+        treeBuilder.initialiseParse("<root/>", "http://example.com", ParseErrorList.noTracking());
+        treeBuilder.insert(commentToken);
+
+        Element root = treeBuilder.doc;
+        List<Node> nodes = root.childNodes();
+        assertTrue(nodes.get(nodes.size() - 1) instanceof Comment);
+        assertFalse(nodes.get(nodes.size() - 1) instanceof XmlDeclaration);
     }
 }

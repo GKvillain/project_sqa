@@ -1,199 +1,222 @@
 package com.fasterxml.jackson.databind.jsontype.impl;
 
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyMetadata;
-import com.fasterxml.jackson.databind.PropertyName;
-import com.fasterxml.jackson.databind.deser.DefaultDeserializationContext;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.junit.Assert.*;
 
 public class AsWrapperTypeDeserializerTest {
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
-    @JsonTypeName("base")
-    static class BaseObject {
-        public int id;
-    }
+    private ObjectMapper mapper;
 
-    @JsonTypeName("subObject")
-    static class SubObject extends BaseObject {
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = Dog.class, name = "dog"),
+        @JsonSubTypes.Type(value = Cat.class, name = "cat")
+    })
+    static abstract class Animal {
         public String name;
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT, visible = true, property = "type")
-    @JsonTypeName("subVisible")
-    static class SubObjectWithVisibleTypeId extends BaseObject {
+    @JsonTypeName("dog")
+    static class Dog extends Animal {
+        public boolean barks;
+    }
+
+    @JsonTypeName("cat")
+    static class Cat extends Animal {
+        public boolean purrs;
+    }
+
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT, property = "type", visible = true)
+    @JsonSubTypes({
+        @JsonSubTypes.Type(value = VisibleTypeBean.class, name = "vbean")
+    })
+    static class VisibleTypeBean {
         public String type;
-        public String name;
+        public int value;
     }
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.WRAPPER_OBJECT)
-    static abstract class BaseWrapper<T> {
-        public T value;
-    }
-
-    @JsonTypeName("arrayWrapper")
-    static class ArrayWrapper extends BaseWrapper<List<String>> {
-    }
-
-    @JsonTypeName("scalarWrapper")
-    static class ScalarWrapper extends BaseWrapper<String> {
+    @Before
+    public void setUp() {
+        mapper = new ObjectMapper();
     }
 
     // Tests getTypeInclusion returns WRAPPER_OBJECT
     @Test
-    public void testGetTypeInclusion_default_returnsWrapperObject() {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(BaseObject.class);
-        AsWrapperTypeDeserializer deser = new AsWrapperTypeDeserializer(baseType, null, "type", false, null);
+    public void testGetTypeInclusion_returnsWrapperObject() {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
+        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
+        AsWrapperTypeDeserializer deser = new AsWrapperTypeDeserializer(baseType, idRes, "type", false, null);
+
         assertEquals(JsonTypeInfo.As.WRAPPER_OBJECT, deser.getTypeInclusion());
     }
 
-    // Tests forProperty with same property returns same instance
+    // Tests forProperty with same property returns this instance
     @Test
     public void testForProperty_sameProperty_returnsThis() {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(BaseObject.class);
-        AsWrapperTypeDeserializer deser = new AsWrapperTypeDeserializer(baseType, null, "type", false, null);
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
+        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
+        AsWrapperTypeDeserializer deser = new AsWrapperTypeDeserializer(baseType, idRes, "type", false, null);
+
         assertSame(deser, deser.forProperty(null));
     }
 
-    // Tests forProperty with different property returns new instance
+    // Tests normal deserialization of WRAPPER_OBJECT format
     @Test
-    public void testForProperty_newProperty_returnsNewInstance() {
-        JavaType baseType = TypeFactory.defaultInstance().constructType(BaseObject.class);
-        AsWrapperTypeDeserializer deser = new AsWrapperTypeDeserializer(baseType, null, "type", false, null);
-        BeanProperty prop = new BeanProperty.Std(PropertyName.construct("testProp"), baseType, null, null, null, PropertyMetadata.STD_OPTIONAL);
-        com.fasterxml.jackson.databind.jsontype.TypeDeserializer result = deser.forProperty(prop);
-        assertNotNull(result);
-        assertNotSame(deser, result);
-        assertTrue(result instanceof AsWrapperTypeDeserializer);
+    public void testDeserialize_validWrapperObject_success() throws Exception {
+        String json = "{\"dog\":{\"name\":\"Rex\",\"barks\":true}}";
+        Animal animal = mapper.readValue(json, Animal.class);
+
+        assertNotNull(animal);
+        assertTrue(animal instanceof Dog);
+        Dog dog = (Dog) animal;
+        assertEquals("Rex", dog.name);
+        assertTrue(dog.barks);
     }
 
-    // Tests normal deserialization of an object wrapped in WRAPPER_OBJECT format
+    // Tests deserialization with another subtype
     @Test
-    public void testDeserializeTypedFromObject_validObjectJson_deserializesSuccessfully() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerSubtypes(SubObject.class);
+    public void testDeserialize_anotherSubtype_success() throws Exception {
+        String json = "{\"cat\":{\"name\":\"Whiskers\",\"purrs\":true}}";
+        Animal animal = mapper.readValue(json, Animal.class);
 
-        String json = "{\"subObject\":{\"id\":10,\"name\":\"testName\"}}";
-        BaseObject result = mapper.readValue(json, BaseObject.class);
-
-        assertNotNull(result);
-        assertTrue(result instanceof SubObject);
-        SubObject sub = (SubObject) result;
-        assertEquals(10, sub.id);
-        assertEquals("testName", sub.name);
+        assertNotNull(animal);
+        assertTrue(animal instanceof Cat);
+        Cat cat = (Cat) animal;
+        assertEquals("Whiskers", cat.name);
+        assertTrue(cat.purrs);
     }
 
-    // Tests deserialization when type id is configured to be visible in the target object
+    // Tests deserialization when typeId is visible in bean property
     @Test
-    public void testDeserializeTypedFromObject_typeIdVisible_populatesTypeIdProperty() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerSubtypes(SubObjectWithVisibleTypeId.class);
+    public void testDeserialize_typeIdVisible_propertyPopulated() throws Exception {
+        String json = "{\"vbean\":{\"value\":42}}";
+        VisibleTypeBean bean = mapper.readValue(json, VisibleTypeBean.class);
 
-        String json = "{\"subVisible\":{\"id\":20,\"name\":\"visibleTest\"}}";
-        BaseObject result = mapper.readValue(json, BaseObject.class);
-
-        assertNotNull(result);
-        assertTrue(result instanceof SubObjectWithVisibleTypeId);
-        SubObjectWithVisibleTypeId sub = (SubObjectWithVisibleTypeId) result;
-        assertEquals(20, sub.id);
-        assertEquals("visibleTest", sub.name);
-        assertEquals("subVisible", sub.type);
+        assertNotNull(bean);
+        assertEquals(42, bean.value);
+        assertEquals("vbean", bean.type);
     }
 
-    // Tests deserialization of an array payload wrapped with type id
-    @Test
-    public void testDeserializeTypedFromArray_validArrayJson_deserializesSuccessfully() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerSubtypes(ArrayWrapper.class);
-
-        String json = "{\"arrayWrapper\":{\"value\":[\"a\",\"b\",\"c\"]}}";
-        BaseWrapper<?> result = mapper.readValue(json, BaseWrapper.class);
-
-        assertNotNull(result);
-        assertTrue(result instanceof ArrayWrapper);
-        ArrayWrapper wrapper = (ArrayWrapper) result;
-        assertNotNull(wrapper.value);
-        assertEquals(3, wrapper.value.size());
-        assertEquals("a", wrapper.value.get(0));
-    }
-
-    // Tests deserialization of a scalar payload wrapped with type id
-    @Test
-    public void testDeserializeTypedFromScalar_validScalarJson_deserializesSuccessfully() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerSubtypes(ScalarWrapper.class);
-
-        String json = "{\"scalarWrapper\":{\"value\":\"helloScalar\"}}";
-        BaseWrapper<?> result = mapper.readValue(json, BaseWrapper.class);
-
-        assertNotNull(result);
-        assertTrue(result instanceof ScalarWrapper);
-        ScalarWrapper wrapper = (ScalarWrapper) result;
-        assertEquals("helloScalar", wrapper.value);
-    }
-
-    // Tests exception path when root token is not START_OBJECT
+    // Tests exception thrown when JSON starts with array token instead of START_OBJECT
     @Test(expected = JsonMappingException.class)
-    public void testDeserialize_notStartObject_throwsException() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerSubtypes(SubObject.class);
-
-        String json = "[\"subObject\", {\"id\":1}]";
-        mapper.readValue(json, BaseObject.class);
+    public void testDeserialize_arrayToken_throwsException() throws Exception {
+        String json = "[\"dog\",{\"name\":\"Rex\"}]";
+        mapper.readValue(json, Animal.class);
     }
 
-    // Tests exception path when root object is empty and missing type id field
+    // Tests exception thrown when JSON starts with scalar token instead of START_OBJECT
+    @Test(expected = JsonMappingException.class)
+    public void testDeserialize_scalarToken_throwsException() throws Exception {
+        String json = "\"dog\"";
+        mapper.readValue(json, Animal.class);
+    }
+
+    // Tests exception thrown when wrapper object is empty
     @Test(expected = JsonMappingException.class)
     public void testDeserialize_emptyObject_throwsException() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerSubtypes(SubObject.class);
-
         String json = "{}";
-        mapper.readValue(json, BaseObject.class);
+        mapper.readValue(json, Animal.class);
     }
 
-    // Tests exception path when trailing content prevents expected END_OBJECT
+    // Tests exception thrown when unknown type id is encountered
     @Test(expected = JsonMappingException.class)
-    public void testDeserialize_extraFieldAfterValue_throwsException() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerSubtypes(SubObject.class);
-
-        String json = "{\"subObject\":{\"id\":1}, \"extra\":\"field\"}";
-        mapper.readValue(json, BaseObject.class);
+    public void testDeserialize_unknownTypeId_throwsException() throws Exception {
+        String json = "{\"unknown\":{\"name\":\"Rex\"}}";
+        mapper.readValue(json, Animal.class);
     }
 
-    // Tests direct invocation of deserializeTypedFromAny
+    // Tests exception thrown when wrapper object has extra tokens after deserialized value
+    @Test(expected = JsonMappingException.class)
+    public void testDeserialize_extraFieldInWrapper_throwsException() throws Exception {
+        String json = "{\"dog\":{\"name\":\"Rex\"},\"extra\":1}";
+        mapper.readValue(json, Animal.class);
+    }
+
+    // Tests deserializeTypedFromArray calls internal deserializer correctly
     @Test
-    public void testDeserializeTypedFromAny_validJson_deserializesSuccessfully() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerSubtypes(SubObject.class);
+    public void testDeserializeTypedFromArray_validWrapper_success() throws Exception {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
+        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
+        idRes.registerSubtype(Dog.class, "dog");
+        AsWrapperTypeDeserializer deser = new AsWrapperTypeDeserializer(baseType, idRes, "type", false, null);
 
-        String json = "{\"subObject\":{\"id\":99,\"name\":\"anyTest\"}}";
-        JsonParser parser = mapper.getFactory().createParser(json);
-        parser.nextToken();
+        String json = "{\"dog\":{\"name\":\"Rex\",\"barks\":true}}";
+        JsonParser p = mapper.getFactory().createParser(json);
+        p.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
 
-        JavaType baseType = mapper.constructType(BaseObject.class);
-        DefaultDeserializationContext ctxt = ((DefaultDeserializationContext) mapper.getDeserializationContext())
-                .createInstance(mapper.getDeserializationConfig(), parser, mapper.getInjectableValues());
-        AsWrapperTypeDeserializer deser = (AsWrapperTypeDeserializer) mapper.getDeserializationConfig()
-                .findTypeDeserializer(baseType);
-
-        Object result = deser.deserializeTypedFromAny(parser, ctxt);
+        Object result = deser.deserializeTypedFromArray(p, ctxt);
         assertNotNull(result);
-        assertTrue(result instanceof SubObject);
-        assertEquals(99, ((SubObject) result).id);
-        assertEquals("anyTest", ((SubObject) result).name);
+        assertTrue(result instanceof Dog);
+    }
+
+    // Tests deserializeTypedFromScalar calls internal deserializer correctly
+    @Test
+    public void testDeserializeTypedFromScalar_validWrapper_success() throws Exception {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
+        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
+        idRes.registerSubtype(Dog.class, "dog");
+        AsWrapperTypeDeserializer deser = new AsWrapperTypeDeserializer(baseType, idRes, "type", false, null);
+
+        String json = "{\"dog\":{\"name\":\"Rex\",\"barks\":true}}";
+        JsonParser p = mapper.getFactory().createParser(json);
+        p.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        Object result = deser.deserializeTypedFromScalar(p, ctxt);
+        assertNotNull(result);
+        assertTrue(result instanceof Dog);
+    }
+
+    // Tests deserializeTypedFromAny calls internal deserializer correctly
+    @Test
+    public void testDeserializeTypedFromAny_validWrapper_success() throws Exception {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
+        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
+        idRes.registerSubtype(Dog.class, "dog");
+        AsWrapperTypeDeserializer deser = new AsWrapperTypeDeserializer(baseType, idRes, "type", false, null);
+
+        String json = "{\"dog\":{\"name\":\"Rex\",\"barks\":true}}";
+        JsonParser p = mapper.getFactory().createParser(json);
+        p.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        Object result = deser.deserializeTypedFromAny(p, ctxt);
+        assertNotNull(result);
+        assertTrue(result instanceof Dog);
+    }
+
+    // Tests deserialize when parser has not yet advanced to START_OBJECT (Defects4J bug 35)
+    @Test
+    public void testDeserialize_parserAtStart_handlesUnadvancedParser() throws Exception {
+        JavaType baseType = TypeFactory.defaultInstance().constructType(Animal.class);
+        ClassNameIdResolver idRes = new ClassNameIdResolver(baseType, TypeFactory.defaultInstance());
+        idRes.registerSubtype(Dog.class, "dog");
+        AsWrapperTypeDeserializer deser = new AsWrapperTypeDeserializer(baseType, idRes, "type", false, null);
+
+        String json = "{\"dog\":{\"name\":\"Rex\",\"barks\":true}}";
+        JsonParser p = mapper.getFactory().createParser(json);
+        // parser is not advanced (p.getCurrentToken() is null)
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        Object result = deser.deserializeTypedFromObject(p, ctxt);
+        assertNotNull(result);
+        assertTrue(result instanceof Dog);
+        assertEquals("Rex", ((Dog) result).name);
     }
 }

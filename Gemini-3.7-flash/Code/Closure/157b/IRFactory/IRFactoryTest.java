@@ -2,19 +2,17 @@ package com.google.javascript.jscomp.parsing;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.javascript.jscomp.mozilla.rhino.CompilerEnvirons;
+import com.google.javascript.jscomp.mozilla.rhino.Context;
 import com.google.javascript.jscomp.mozilla.rhino.ErrorReporter;
 import com.google.javascript.jscomp.mozilla.rhino.EvaluatorException;
 import com.google.javascript.jscomp.mozilla.rhino.Parser;
 import com.google.javascript.jscomp.mozilla.rhino.ast.AstRoot;
-import com.google.javascript.jscomp.parsing.Config.LanguageMode;
-import com.google.javascript.rhino.JSDocInfo;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -29,11 +27,15 @@ public class IRFactoryTest {
   private List<String> errors;
   private List<String> warnings;
   private ErrorReporter errorReporter;
+  private Set<String> extraAnnotations;
+  private Set<String> extraSuppressions;
 
   @Before
   public void setUp() {
     errors = new ArrayList<String>();
     warnings = new ArrayList<String>();
+    extraAnnotations = ImmutableSet.of();
+    extraSuppressions = ImmutableSet.of();
     errorReporter = new ErrorReporter() {
       @Override
       public void warning(String message, String sourceName, int line, String lineSource, int lineOffset) {
@@ -47,64 +49,74 @@ public class IRFactoryTest {
 
       @Override
       public EvaluatorException runtimeError(String message, String sourceName, int line, String lineSource, int lineOffset) {
-        return new EvaluatorException(message, sourceName, line, lineSource, lineOffset);
+        errors.add(message);
+        return new EvaluatorException(message);
       }
     };
   }
 
-  private Node parse(String source, LanguageMode mode, boolean acceptConst) {
+  private Node parse(String source, Config.LanguageMode languageMode) {
     CompilerEnvirons env = new CompilerEnvirons();
+    env.setLanguageVersion(Context.VERSION_1_8);
     env.setRecordingComments(true);
     env.setRecordingLocalJsDocComments(true);
-    env.setWarnTrailingComma(true);
-    if (mode == LanguageMode.ECMASCRIPT3) {
-      env.setLanguageVersion(com.google.javascript.jscomp.mozilla.rhino.Context.VERSION_1_5);
-    } else {
-      env.setLanguageVersion(com.google.javascript.jscomp.mozilla.rhino.Context.VERSION_1_8);
-    }
+
     Parser parser = new Parser(env, errorReporter);
     AstRoot astRoot = parser.parse(source, "testcode", 1);
-    Set<String> emptySet = Collections.emptySet();
-    Config config = new Config(emptySet, emptySet, true, mode, acceptConst);
+    Config config = new Config(extraAnnotations, extraSuppressions, false, languageMode, true);
     return IRFactory.transformTree(astRoot, source, config, errorReporter);
   }
 
   private Node parse(String source) {
-    return parse(source, LanguageMode.ECMASCRIPT5, false);
+    return parse(source, Config.LanguageMode.ECMASCRIPT5);
   }
 
-  // Tests transformation of basic variable declaration and assignment
+  // Tests transformation of basic variable declaration and literal types
   @Test
-  public void testTransformTree_varDeclaration_createsVarNode() {
-    Node script = parse("var x = 10;");
-    assertEquals(Token.SCRIPT, script.getType());
-    Node varNode = script.getFirstChild();
+  public void testTransformTree_variableDeclarationAndLiterals_returnsCorrectTree() {
+    String source = "var a = 1, b = 'hello', c = true, d = null;";
+    Node root = parse(source);
+
+    assertEquals(Token.SCRIPT, root.getType());
+    Node varNode = root.getFirstChild();
     assertEquals(Token.VAR, varNode.getType());
-    Node nameNode = varNode.getFirstChild();
-    assertEquals(Token.NAME, nameNode.getType());
-    assertEquals("x", nameNode.getString());
-    Node numNode = nameNode.getFirstChild();
-    assertEquals(Token.NUMBER, numNode.getType());
-    assertEquals(10.0, numNode.getDouble(), 0.0);
+
+    Node varA = varNode.getFirstChild();
+    assertEquals(Token.NAME, varA.getType());
+    assertEquals("a", varA.getString());
+    assertEquals(1.0, varA.getFirstChild().getDouble(), 0.0);
+
+    Node varB = varA.getNext();
+    assertEquals("b", varB.getString());
+    assertEquals("hello", varB.getFirstChild().getString());
+
+    Node varC = varB.getNext();
+    assertEquals("c", varC.getString());
+    assertEquals(Token.TRUE, varC.getFirstChild().getType());
+
+    Node varD = varC.getNext();
+    assertEquals("d", varD.getString());
+    assertEquals(Token.NULL, varD.getFirstChild().getType());
   }
 
-  // Tests object literal properties with quoted and unquoted keys
+  // Tests object literal property keys quoting and types
   @Test
-  public void testTransformTree_objectLiteralKeys_marksQuotedCorrectly() {
-    Node script = parse("var obj = {a: 1, 'b': 2, 3: 4};");
-    Node varNode = script.getFirstChild();
-    Node objLit = varNode.getFirstChild().getFirstChild();
+  public void testTransformTree_objectLiteralKeys_preservesQuotingAndTypes() {
+    String source = "var obj = {a: 1, 'b': 2, 3: 4};";
+    Node root = parse(source);
+
+    Node objLit = root.getFirstChild().getFirstChild().getFirstChild();
     assertEquals(Token.OBJECTLIT, objLit.getType());
 
     Node keyA = objLit.getFirstChild();
     assertEquals(Token.STRING, keyA.getType());
     assertEquals("a", keyA.getString());
-    assertFalse(keyA.getBooleanProp(Node.QUOTED_PROP));
+    assertFalse(keyA.isQuotedString());
 
     Node keyB = keyA.getNext();
     assertEquals(Token.STRING, keyB.getType());
     assertEquals("b", keyB.getString());
-    assertTrue(keyB.getBooleanProp(Node.QUOTED_PROP));
+    assertTrue(keyB.isQuotedString());
 
     Node keyC = keyB.getNext();
     assertEquals(Token.NUMBER, keyC.getType());
@@ -113,119 +125,115 @@ public class IRFactoryTest {
 
   // Tests ES5 getter and setter in object literal
   @Test
-  public void testTransformTree_getterSetter_createsGetAndSetNodes() {
-    Node script = parse("var o = { get x() { return 1; }, set x(v) { this._x = v; } };", LanguageMode.ECMASCRIPT5, false);
-    Node objLit = script.getFirstChild().getFirstChild().getFirstChild();
-    assertEquals(Token.OBJECTLIT, objLit.getType());
+  public void testTransformTree_gettersAndSetters_createsGetAndSetNodes() {
+    String source = "var obj = { get x() { return 1; }, set x(v) { this.x = v; } };";
+    Node root = parse(source, Config.LanguageMode.ECMASCRIPT5);
 
-    Node getProp = objLit.getFirstChild();
-    assertEquals(Token.GET, getProp.getType());
-    assertEquals("x", getProp.getString());
-    Node fnGet = getProp.getFirstChild();
-    assertEquals(Token.FUNCTION, fnGet.getType());
+    Node objLit = root.getFirstChild().getFirstChild().getFirstChild();
+    Node getter = objLit.getFirstChild();
+    assertEquals(Token.GET, getter.getType());
+    assertEquals("x", getter.getString());
+    assertEquals(Token.FUNCTION, getter.getFirstChild().getType());
 
-    Node setProp = getProp.getNext();
-    assertEquals(Token.SET, setProp.getType());
-    assertEquals("x", setProp.getString());
-    Node fnSet = setProp.getFirstChild();
-    assertEquals(Token.FUNCTION, fnSet.getType());
+    Node setter = getter.getNext();
+    assertEquals(Token.SET, setter.getType());
+    assertEquals("x", setter.getString());
+    assertEquals(Token.FUNCTION, setter.getFirstChild().getType());
     assertTrue(errors.isEmpty());
   }
 
-  // Tests ES3 mode reports error on getter and setter
+  // Tests ES3 mode reporting errors on getters and setters
   @Test
-  public void testTransformTree_getterSetterInES3_reportsError() {
-    parse("var o = { get x() { return 1; } };", LanguageMode.ECMASCRIPT3, false);
-    assertFalse(errors.isEmpty());
-    assertTrue(errors.get(0).contains("getters are not supported in Internet Explorer"));
+  public void testTransformTree_gettersAndSettersInES3_reportsErrors() {
+    String source = "var obj = { get x() { return 1; }, set x(v) { } };";
+    parse(source, Config.LanguageMode.ECMASCRIPT3);
+
+    assertEquals(2, errors.size());
+    assertTrue(errors.get(0).contains("getters are not supported"));
+    assertTrue(errors.get(1).contains("setters are not supported"));
   }
 
-  // Tests unary negation of number literal collapses value
+  // Tests parsing and encoding directives like 'use strict'
   @Test
-  public void testTransformTree_unaryNegationOnNumber_invertsNumber() {
-    Node script = parse("var x = -5;");
-    Node nameNode = script.getFirstChild().getFirstChild();
-    Node numNode = nameNode.getFirstChild();
-    assertEquals(Token.NUMBER, numNode.getType());
-    assertEquals(-5.0, numNode.getDouble(), 0.0);
+  public void testTransformTree_useStrictDirective_encodesInScriptNode() {
+    String source = "'use strict'; var x = 1;";
+    Node root = parse(source);
+
+    assertNotNull(root.getDirectives());
+    assertTrue(root.getDirectives().contains("use strict"));
+    assertEquals(Token.VAR, root.getFirstChild().getType());
   }
 
-  // Tests increment and decrement on invalid target reports error
+  // Tests function declarations with named and unnamed function expressions
   @Test
-  public void testTransformTree_invalidIncTarget_reportsError() {
-    parse("1++;");
-    assertFalse(errors.isEmpty());
-    assertTrue(errors.get(0).contains("invalid increment target"));
+  public void testTransformTree_functionDeclarationAndExpression_createsFunctionNodes() {
+    String source = "function foo(a, b) { return a + b; } var bar = function() {};";
+    Node root = parse(source);
+
+    Node fnDecl = root.getFirstChild();
+    assertEquals(Token.FUNCTION, fnDecl.getType());
+    Node fnName = fnDecl.getFirstChild();
+    assertEquals("foo", fnName.getString());
+    Node fnParams = fnName.getNext();
+    assertEquals(Token.LP, fnParams.getType());
+    assertEquals(2, fnParams.getChildCount());
+
+    Node varBar = fnDecl.getNext();
+    Node fnExpr = varBar.getFirstChild().getFirstChild();
+    assertEquals(Token.FUNCTION, fnExpr.getType());
+    assertEquals("", fnExpr.getFirstChild().getString());
   }
 
-  // Tests invalid assignment target reports error
+  // Tests control structures: if, while, do-while, and for loops
   @Test
-  public void testTransformTree_invalidAssignTarget_reportsError() {
-    parse("1 = 2;");
-    assertFalse(errors.isEmpty());
-    assertTrue(errors.get(0).contains("invalid assignment target"));
+  public void testTransformTree_controlStructures_createsValidNodes() {
+    String source = "if (true) { while (false) {} } else { do {} while(false); } for (var i = 0; i < 10; i++) {}";
+    Node root = parse(source);
+
+    Node ifNode = root.getFirstChild();
+    assertEquals(Token.IF, ifNode.getType());
+    assertEquals(Token.TRUE, ifNode.getFirstChild().getType());
+    assertEquals(Token.BLOCK, ifNode.getFirstChild().getNext().getType());
+    assertEquals(Token.BLOCK, ifNode.getLastChild().getType());
+
+    Node forNode = ifNode.getNext();
+    assertEquals(Token.FOR, forNode.getType());
   }
 
-  // Tests function declarations named and unnamed
+  // Tests for-in loop transformation
   @Test
-  public void testTransformTree_functionDeclaration_setsProperties() {
-    Node script = parse("function foo(a, b) { return a + b; }");
-    Node fnNode = script.getFirstChild();
-    assertEquals(Token.FUNCTION, fnNode.getType());
-    Node nameNode = fnNode.getFirstChild();
-    assertEquals("foo", nameNode.getString());
-    Node lpNode = nameNode.getNext();
-    assertEquals(Token.LP, lpNode.getType());
-    assertEquals(2, lpNode.getChildCount());
-    Node bodyNode = lpNode.getNext();
-    assertEquals(Token.BLOCK, bodyNode.getType());
+  public void testTransformTree_forInLoop_createsForInNode() {
+    String source = "for (var key in obj) { }";
+    Node root = parse(source);
+
+    Node forNode = root.getFirstChild();
+    assertEquals(Token.FOR, forNode.getType());
+    assertEquals(Token.VAR, forNode.getFirstChild().getType());
+    assertEquals(Token.NAME, forNode.getFirstChild().getNext().getType());
   }
 
-  // Tests function expression inside parenthesized expression
+  // Tests try-catch-finally block transformation
   @Test
-  public void testTransformTree_parenthesizedExpression_setsParenProp() {
-    Node script = parse("(1 + 2);");
-    Node exprResult = script.getFirstChild();
-    assertEquals(Token.EXPR_RESULT, exprResult.getType());
-    Node addNode = exprResult.getFirstChild();
-    assertEquals(Token.ADD, addNode.getType());
-    assertTrue(addNode.getBooleanProp(Node.PARENTHESIZED_PROP));
+  public void testTransformTree_tryCatchFinally_createsTryCatchFinallyNodes() {
+    String source = "try { throw 1; } catch (e) { } finally { }";
+    Node root = parse(source);
+
+    Node tryNode = root.getFirstChild();
+    assertEquals(Token.TRY, tryNode.getType());
+    assertEquals(3, tryNode.getChildCount());
+    Node catchBlock = tryNode.getFirstChild().getNext();
+    assertEquals(Token.BLOCK, catchBlock.getType());
+    Node catchClause = catchBlock.getFirstChild();
+    assertEquals(Token.CATCH, catchClause.getType());
   }
 
-  // Tests directives parsing in script and function bodies
+  // Tests switch-case and default statements
   @Test
-  public void testTransformTree_directives_attachesToNode() {
-    Node script = parse("'use strict'; var x = 1;");
-    Set<String> directives = script.getDirectives();
-    assertNotNull(directives);
-    assertTrue(directives.contains("use strict"));
-    assertEquals(Token.VAR, script.getFirstChild().getType());
-  }
+  public void testTransformTree_switchStatement_createsSwitchCases() {
+    String source = "switch (x) { case 1: break; default: break; }";
+    Node root = parse(source);
 
-  // Tests labeled statements and break with label
-  @Test
-  public void testTransformTree_labeledStatementAndBreak_transformsCorrectly() {
-    Node script = parse("loop: while(true) { break loop; }");
-    Node labelNode = script.getFirstChild();
-    assertEquals(Token.LABEL, labelNode.getType());
-    Node labelName = labelNode.getFirstChild();
-    assertEquals(Token.LABEL_NAME, labelName.getType());
-    assertEquals("loop", labelName.getString());
-
-    Node whileNode = labelName.getNext();
-    assertEquals(Token.WHILE, whileNode.getType());
-    Node blockNode = whileNode.getLastChild();
-    Node breakNode = blockNode.getFirstChild();
-    assertEquals(Token.BREAK, breakNode.getType());
-    assertEquals("loop", breakNode.getFirstChild().getString());
-    assertEquals(Token.LABEL_NAME, breakNode.getFirstChild().getType());
-  }
-
-  // Tests switch statement with cases and default clause
-  @Test
-  public void testTransformTree_switchStatement_createsCaseAndDefaultBlocks() {
-    Node script = parse("switch (x) { case 1: break; default: break; }");
-    Node switchNode = script.getFirstChild();
+    Node switchNode = root.getFirstChild();
     assertEquals(Token.SWITCH, switchNode.getType());
     Node caseNode = switchNode.getFirstChild().getNext();
     assertEquals(Token.CASE, caseNode.getType());
@@ -233,83 +241,246 @@ public class IRFactoryTest {
     assertEquals(Token.DEFAULT, defaultNode.getType());
   }
 
-  // Tests try catch finally statement
+  // Tests unary expressions including negation folding and postfix increment
   @Test
-  public void testTransformTree_tryCatchFinally_createsTryStructure() {
-    Node script = parse("try { throw 'err'; } catch (e) { } finally { }");
-    Node tryNode = script.getFirstChild();
-    assertEquals(Token.TRY, tryNode.getType());
-    assertEquals(3, tryNode.getChildCount());
-    Node tryBlock = tryNode.getFirstChild();
-    assertEquals(Token.BLOCK, tryBlock.getType());
-    Node catchBlock = tryBlock.getNext();
-    assertEquals(Token.BLOCK, catchBlock.getType());
-    Node catchNode = catchBlock.getFirstChild();
-    assertEquals(Token.CATCH, catchNode.getType());
-    Node finallyBlock = catchBlock.getNext();
-    assertEquals(Token.BLOCK, finallyBlock.getType());
+  public void testTransformTree_unaryExpressions_foldsNumberAndHandlesIncDec() {
+    String source = "var x = -5; x++; ++x; !x; ~x; typeof x; void 0; delete x.a;";
+    Node root = parse(source);
+
+    Node varNode = root.getFirstChild();
+    Node negNum = varNode.getFirstChild().getFirstChild();
+    assertEquals(Token.NUMBER, negNum.getType());
+    assertEquals(-5.0, negNum.getDouble(), 0.0);
+
+    Node expr1 = varNode.getNext();
+    assertEquals(Token.EXPR_RESULT, expr1.getType());
+    Node incNode = expr1.getFirstChild();
+    assertEquals(Token.INC, incNode.getType());
+    assertEquals(Boolean.TRUE, incNode.getProp(Node.INCRDECR_PROP));
   }
 
-  // Tests for-in loop and standard for loop
+  // Tests infix, binary, and ternary expressions
   @Test
-  public void testTransformTree_loops_createsForAndDoWhileNodes() {
-    Node scriptFor = parse("for (var k in obj) {}");
-    assertEquals(Token.FOR, scriptFor.getFirstChild().getType());
+  public void testTransformTree_binaryAndConditionalExpressions_createsExpectedTokens() {
+    String source = "var r = (a ? b : c) + (x && y) || (m == n);";
+    Node root = parse(source);
 
-    Node scriptDo = parse("do {} while (false);");
-    assertEquals(Token.DO, scriptDo.getFirstChild().getType());
-
-    Node scriptForLoop = parse("for (var i = 0; i < 10; i++) {}");
-    assertEquals(Token.FOR, scriptForLoop.getFirstChild().getType());
+    Node expr = root.getFirstChild().getFirstChild().getFirstChild();
+    assertEquals(Token.OR, expr.getType());
+    Node addNode = expr.getFirstChild();
+    assertEquals(Token.ADD, addNode.getType());
+    Node hookNode = addNode.getFirstChild();
+    assertEquals(Token.HOOK, hookNode.getType());
+    assertEquals(Boolean.TRUE, hookNode.getProp(Node.PARENTHESIZED_PROP));
   }
 
-  // Tests regex literal with flags
+  // Tests labeled statements, break and continue with labels
   @Test
-  public void testTransformTree_regExpLiteral_createsRegExpNode() {
-    Node script = parse("var re = /abc/gi;");
-    Node regExpNode = script.getFirstChild().getFirstChild().getFirstChild();
+  public void testTransformTree_labeledStatements_createsLabelAndBreakNodes() {
+    String source = "outer: while(true) { break outer; continue outer; }";
+    Node root = parse(source);
+
+    Node labelNode = root.getFirstChild();
+    assertEquals(Token.LABEL, labelNode.getType());
+    Node labelName = labelNode.getFirstChild();
+    assertEquals(Token.LABEL_NAME, labelName.getType());
+    assertEquals("outer", labelName.getString());
+
+    Node whileNode = labelName.getNext();
+    Node block = whileNode.getFirstChild().getNext();
+    Node breakNode = block.getFirstChild().getFirstChild();
+    assertEquals(Token.BREAK, breakNode.getType());
+    assertEquals("outer", breakNode.getFirstChild().getString());
+  }
+
+  // Tests array literals and regexp literals
+  @Test
+  public void testTransformTree_arrayAndRegExpLiterals_createsArrayLitAndRegExp() {
+    String source = "var arr = [1, 'str']; var re = /abc/gi;";
+    Node root = parse(source);
+
+    Node arrLit = root.getFirstChild().getFirstChild().getFirstChild();
+    assertEquals(Token.ARRAYLIT, arrLit.getType());
+    assertEquals(2, arrLit.getChildCount());
+
+    Node regExpNode = root.getFirstChild().getNext().getFirstChild().getFirstChild();
     assertEquals(Token.REGEXP, regExpNode.getType());
     assertEquals("abc", regExpNode.getFirstChild().getString());
-    assertEquals("gi", regExpNode.getLastChild().getString());
+    assertEquals("gi", regExpNode.getFirstChild().getNext().getString());
   }
 
-  // Tests JSDoc fileoverview and license handling
+  // Tests ES5 reserved keyword detection
   @Test
-  public void testTransformTree_jsdocFileOverviewAndComments_attachesJSDocInfo() {
-    String source = "/** @fileoverview Test file\n * @license Apache 2.0 */\nvar a = 1;";
-    Node script = parse(source);
-    JSDocInfo info = script.getJSDocInfo();
-    assertNotNull(info);
-    assertNotNull(info.getLicense());
-    assertTrue(info.getLicense().contains("Apache 2.0"));
-  }
+  public void testTransformTree_es5ReservedKeyword_reportsError() {
+    String source = "var class = 1;";
+    parse(source, Config.LanguageMode.ECMASCRIPT5);
 
-  // Tests ES5 reserved keywords detection
-  @Test
-  public void testTransformTree_es5ReservedKeyword_reportsErrorInES5() {
-    parse("var implements = 1;", LanguageMode.ECMASCRIPT5_STRICT, false);
     assertFalse(errors.isEmpty());
-    assertTrue(errors.get(0).contains("identifier is a reserved word"));
+    assertTrue(errors.get(0).contains("reserved word"));
   }
 
-  // Tests const keyword acceptance based on config
+  // Tests ES5 strict reserved keyword detection
   @Test
-  public void testTransformTree_constKeyword_handledByConfig() {
-    parse("const x = 1;", LanguageMode.ECMASCRIPT5, false);
+  public void testTransformTree_es5StrictReservedKeyword_reportsError() {
+    String source = "var let = 1;";
+    parse(source, Config.LanguageMode.ECMASCRIPT5_STRICT);
+
     assertFalse(errors.isEmpty());
-    assertTrue(errors.get(0).contains("Unsupported syntax: const"));
+    assertTrue(errors.get(0).contains("reserved word"));
   }
 
-  // Tests if-else statement and conditional hook expression
+  // Tests file-level JSDoc parsing and attachment
   @Test
-  public void testTransformTree_ifStatementAndHook_createsCorrectNodes() {
-    Node script = parse("if (a) { b(); } else { c(); } var d = a ? b : c;");
-    Node ifNode = script.getFirstChild();
-    assertEquals(Token.IF, ifNode.getType());
-    assertEquals(3, ifNode.getChildCount());
+  public void testTransformTree_fileOverviewJsDoc_attachesToFileOverviewInfo() {
+    String source = "/** @fileoverview Test overview */ var x = 1;";
+    Node root = parse(source);
 
-    Node varNode = ifNode.getNext();
-    Node hookNode = varNode.getFirstChild().getFirstChild();
-    assertEquals(Token.HOOK, hookNode.getType());
+    assertNotNull(root.getJSDocInfo());
+    assertEquals("Test overview", root.getJSDocInfo().getFileOverview());
+  }
+
+  // Tests call and new expressions transformation
+  @Test
+  public void testTransformTree_callAndNewExpressions_createsExpectedNodes() {
+    String source = "var x = new Foo(1, 2); bar('test');";
+    Node root = parse(source);
+
+    Node varNode = root.getFirstChild();
+    Node newExpr = varNode.getFirstChild().getFirstChild();
+    assertEquals(Token.NEW, newExpr.getType());
+    assertEquals("Foo", newExpr.getFirstChild().getString());
+    assertEquals(1.0, newExpr.getFirstChild().getNext().getDouble(), 0.0);
+
+    Node callExpr = varNode.getNext().getFirstChild();
+    assertEquals(Token.CALL, callExpr.getType());
+    assertEquals("bar", callExpr.getFirstChild().getString());
+    assertEquals("test", callExpr.getFirstChild().getNext().getString());
+  }
+
+  // Tests property and element access expressions (GETPROP, GETELEM)
+  @Test
+  public void testTransformTree_propertyAndElementAccess_createsGetPropAndGetElem() {
+    String source = "var a = obj.prop; var b = obj['prop'];";
+    Node root = parse(source);
+
+    Node getPropNode = root.getFirstChild().getFirstChild().getFirstChild();
+    assertEquals(Token.GETPROP, getPropNode.getType());
+    assertEquals("obj", getPropNode.getFirstChild().getString());
+    assertEquals("prop", getPropNode.getLastChild().getString());
+
+    Node getElemNode = root.getLastChild().getFirstChild().getFirstChild();
+    assertEquals(Token.GETELEM, getElemNode.getType());
+    assertEquals("obj", getElemNode.getFirstChild().getString());
+    assertEquals("prop", getElemNode.getLastChild().getString());
+  }
+
+  // Tests comma operator expression transformation
+  @Test
+  public void testTransformTree_commaOperator_createsCommaNode() {
+    String source = "var x = (1, 2, 3);";
+    Node root = parse(source);
+
+    Node commaNode = root.getFirstChild().getFirstChild().getFirstChild();
+    assertEquals(Token.COMMA, commaNode.getType());
+    assertEquals(Token.COMMA, commaNode.getFirstChild().getType());
+  }
+
+  // Tests sparse array literal containing empty elements
+  @Test
+  public void testTransformTree_sparseArrayLiteral_containsEmptyNodes() {
+    String source = "var arr = [1, , 3];";
+    Node root = parse(source);
+
+    Node arrLit = root.getFirstChild().getFirstChild().getFirstChild();
+    assertEquals(Token.ARRAYLIT, arrLit.getType());
+    assertEquals(Token.NUMBER, arrLit.getFirstChild().getType());
+    assertEquals(Token.EMPTY, arrLit.getFirstChild().getNext().getType());
+    assertEquals(Token.NUMBER, arrLit.getLastChild().getType());
+  }
+
+  // Tests debugger and with statements
+  @Test
+  public void testTransformTree_debuggerAndWithStatements_createsExpectedNodes() {
+    String source = "debugger; with (obj) { var x = 1; }";
+    Node root = parse(source);
+
+    Node dbgNode = root.getFirstChild();
+    assertEquals(Token.DEBUGGER, dbgNode.getType());
+
+    Node withNode = dbgNode.getNext();
+    assertEquals(Token.WITH, withNode.getType());
+    assertEquals("obj", withNode.getFirstChild().getString());
+  }
+
+  // Tests empty statement transformation
+  @Test
+  public void testTransformTree_emptyStatement_createsEmptyNode() {
+    String source = ";";
+    Node root = parse(source);
+
+    assertEquals(Token.EMPTY, root.getFirstChild().getType());
+  }
+
+  // Tests ES5 keywords as object keys in ES5 mode vs ES3 mode
+  @Test
+  public void testTransformTree_keywordsAsObjectKeys_allowedInES5AndRejectedInES3() {
+    String source = "var obj = { delete: 1, class: 2, default: 3 };";
+
+    Node rootES5 = parse(source, Config.LanguageMode.ECMASCRIPT5);
+    assertTrue(errors.isEmpty());
+    assertEquals(Token.OBJECTLIT, rootES5.getFirstChild().getFirstChild().getFirstChild().getType());
+
+    parse(source, Config.LanguageMode.ECMASCRIPT3);
+    assertFalse(errors.isEmpty());
+  }
+
+  // Tests JSDoc info attachment to function and its parameter
+  @Test
+  public void testTransformTree_jsdocOnFunctionAndParameters_attachesJSDocInfo() {
+    String source = "/** @param {number} x */ function f(x) {}";
+    Node root = parse(source);
+
+    Node fnNode = root.getFirstChild();
+    assertNotNull(fnNode.getJSDocInfo());
+    assertNotNull(fnNode.getJSDocInfo().getParameterType("x"));
+  }
+
+  // Tests extra annotations and suppressions configuration
+  @Test
+  public void testTransformTree_extraAnnotationsAndSuppressions_recognizedWithoutWarnings() {
+    extraAnnotations = ImmutableSet.of("customAnnotation");
+    extraSuppressions = ImmutableSet.of("customSuppression");
+    String source = "/** @customAnnotation \n * @suppress {customSuppression} */ var x = 1;";
+    Node root = parse(source);
+
+    assertNotNull(root.getFirstChild().getJSDocInfo());
+    assertTrue(warnings.isEmpty());
+  }
+
+  // Tests suspect comment warning for non-JSDoc comment with annotations
+  @Test
+  public void testTransformTree_suspectComment_emitsWarning() {
+    String source = "/* @type {number} */ var x = 1;";
+    parse(source);
+
+    assertFalse(warnings.isEmpty());
+  }
+
+  // Tests duplicate parameter detection in ES5 strict mode
+  @Test
+  public void testTransformTree_duplicateParamInES5Strict_reportsError() {
+    String source = "function f(a, a) { 'use strict'; }";
+    parse(source, Config.LanguageMode.ECMASCRIPT5_STRICT);
+
+    assertFalse(errors.isEmpty());
+  }
+
+  // Tests delete of unqualified identifier in ES5 strict mode
+  @Test
+  public void testTransformTree_deleteUnqualifiedIdentifierInES5Strict_reportsError() {
+    String source = "'use strict'; delete x;";
+    parse(source, Config.LanguageMode.ECMASCRIPT5_STRICT);
+
+    assertFalse(errors.isEmpty());
   }
 }

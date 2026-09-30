@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 public class SameTest {
 
-    // Tests matches with identical object reference
+    // Tests that matches returns true when actual is the identical object reference
     @Test
     public void testMatches_sameInstance_returnsTrue() {
         Object obj = new Object();
@@ -17,72 +17,67 @@ public class SameTest {
         assertTrue(matcher.matches(obj));
     }
 
-    // Tests matches with different object instances having equal content
+    // Tests that matches returns false when actual is a different instance with equal content
     @Test
-    public void testMatches_differentInstanceSameContent_returnsFalse() {
-        String str1 = new String("test");
-        String str2 = new String("test");
-        Same matcher = new Same(str1);
-        assertFalse(matcher.matches(str2));
+    public void testMatches_differentInstanceEqualValue_returnsFalse() {
+        String wanted = new String("test");
+        String actual = new String("test");
+        Same matcher = new Same(wanted);
+        assertFalse(matcher.matches(actual));
     }
 
-    // Tests matches with null actual value when wanted is non-null
+    // Tests that matches returns true when both wanted and actual are null
     @Test
-    public void testMatches_nullActualNonNullWanted_returnsFalse() {
-        Same matcher = new Same("expected");
-        assertFalse(matcher.matches(null));
-    }
-
-    // Tests matches with non-null actual value when wanted is null
-    @Test
-    public void testMatches_nonNullActualNullWanted_returnsFalse() {
-        Same matcher = new Same(null);
-        assertFalse(matcher.matches("actual"));
-    }
-
-    // Tests matches when both wanted and actual values are null
-    @Test
-    public void testMatches_nullActualAndNullWanted_returnsTrue() {
+    public void testMatches_bothNull_returnsTrue() {
         Same matcher = new Same(null);
         assertTrue(matcher.matches(null));
     }
 
-    // Tests describeTo with String object (quoted with double quotes)
+    // Tests that matches returns false when wanted is null but actual is non-null
     @Test
-    public void testDescribeTo_stringWanted_appendsDoubleQuotedString() {
+    public void testMatches_wantedNullActualNonNull_returnsFalse() {
+        Same matcher = new Same(null);
+        assertFalse(matcher.matches(new Object()));
+    }
+
+    // Tests that matches returns false when wanted is non-null but actual is null
+    @Test
+    public void testMatches_wantedNonNullActualNull_returnsFalse() {
+        Same matcher = new Same(new Object());
+        assertFalse(matcher.matches(null));
+    }
+
+    // Tests describeTo formatting when wanted is a String (branch: wanted instanceof String)
+    @Test
+    public void testDescribeTo_stringWanted_appendsQuotedString() {
         Same matcher = new Same("hello");
         StringDescription description = new StringDescription();
         matcher.describeTo(description);
         assertEquals("same(\"hello\")", description.toString());
     }
 
-    // Tests describeTo with Character object (quoted with single quotes)
+    // Tests describeTo formatting when wanted is a Character (branch: wanted instanceof Character)
     @Test
-    public void testDescribeTo_characterWanted_appendsSingleQuotedCharacter() {
-        Same matcher = new Same('c');
+    public void testDescribeTo_characterWanted_appendsQuotedChar() {
+        Same matcher = new Same('x');
         StringDescription description = new StringDescription();
         matcher.describeTo(description);
-        assertEquals("same('c')", description.toString());
+        assertEquals("same('x')", description.toString());
     }
 
-    // Tests describeTo with general Object (no quotes)
+    // Tests describeTo formatting when wanted is a general Object (branch: false for String and Character)
     @Test
     public void testDescribeTo_objectWanted_appendsToStringWithoutQuotes() {
-        Object obj = new Object() {
-            @Override
-            public String toString() {
-                return "customObject";
-            }
-        };
-        Same matcher = new Same(obj);
+        Integer wanted = Integer.valueOf(123);
+        Same matcher = new Same(wanted);
         StringDescription description = new StringDescription();
         matcher.describeTo(description);
-        assertEquals("same(customObject)", description.toString());
+        assertEquals("same(123)", description.toString());
     }
 
-    // Tests describeTo with null wanted value (triggers defect in Mockito 29b)
+    // Tests describeTo when wanted is null (regression test for Defects4J Mockito-29)
     @Test
-    public void testDescribeTo_nullWanted_appendsNullString() {
+    public void testDescribeTo_nullWanted_appendsNullSafely() {
         Same matcher = new Same(null);
         StringDescription description = new StringDescription();
         matcher.describeTo(description);

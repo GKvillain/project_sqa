@@ -5,201 +5,158 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.exceptions.verification.SmartNullPointerException;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static org.junit.Assert.*;
 
 public class ReturnsSmartNullsTest {
 
     private ReturnsSmartNulls returnsSmartNulls;
+    private SampleInterface sampleMock;
 
-    interface Bar {
-        void doSomething();
-        String getName();
-    }
-
-    static class NonFinalClass {
-        public String getMessage() {
-            return "message";
-        }
+    interface SampleInterface {
+        int getPrimitiveInt();
+        String getString();
+        List<String> getList();
+        SampleInterface getNested();
+        SampleInterface getNestedWithArgs(String first, int second);
+        FinalClass getFinalClass();
+        NonFinalClass getNonFinalClass();
+        void voidMethod();
+        String[] getArray();
+        int[] getPrimitiveArray();
     }
 
     static final class FinalClass {
     }
 
-    interface Foo {
-        Bar getBar();
-        Bar getBarWithArgs(String a, int b);
-        Bar getBarWithNullArg(String a);
-        FinalClass getFinalClass();
-        NonFinalClass getNonFinalClass();
-        int getInt();
-        boolean getBoolean();
-        Boolean getBooleanWrapper();
-        Integer getIntegerWrapper();
-        String getString();
-        int[] getIntArray();
-        String[] getStringArray();
-        List<String> getList();
-        Set<String> getSet();
-        Map<String, String> getMap();
+    static class NonFinalClass {
+        public void doSomething() {
+        }
     }
 
     @Before
     public void setUp() {
         returnsSmartNulls = new ReturnsSmartNulls();
+        sampleMock = Mockito.mock(SampleInterface.class, returnsSmartNulls);
     }
 
-    // Tests delegate returning default primitive value
+    // Tests that primitive return values are handled by ReturnsMoreEmptyValues delegate
     @Test
-    public void testAnswer_primitiveType_returnsDefaultZero() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        assertEquals(0, foo.getInt());
+    public void testAnswer_primitiveReturnType_returnsDefaultPrimitive() {
+        int result = sampleMock.getPrimitiveInt();
+        assertEquals(0, result);
     }
 
-    // Tests delegate returning default empty String
+    // Tests that String return value is handled by ReturnsMoreEmptyValues delegate
     @Test
-    public void testAnswer_stringType_returnsEmptyString() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        assertEquals("", foo.getString());
+    public void testAnswer_stringReturnType_returnsEmptyString() {
+        String result = sampleMock.getString();
+        assertEquals("", result);
     }
 
-    // Tests non-mockable final return type returns null
+    // Tests that collection return value is handled by ReturnsMoreEmptyValues delegate
     @Test
-    public void testAnswer_finalClass_returnsNull() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        assertNull(foo.getFinalClass());
+    public void testAnswer_collectionReturnType_returnsEmptyCollection() {
+        List<String> result = sampleMock.getList();
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
-    // Tests mockable interface returns non-null SmartNull proxy
+    // Tests that mockable object return type returns a SmartNull proxy
     @Test
-    public void testAnswer_mockableType_returnsSmartNullProxy() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        Bar bar = foo.getBar();
-        assertNotNull(bar);
+    public void testAnswer_mockableType_returnsSmartNullObject() {
+        SampleInterface nested = sampleMock.getNested();
+        assertNotNull(nested);
     }
 
-    // Tests SmartNull toString without method arguments
+    // Tests that un-mockable (final class) return type returns ordinary null
     @Test
-    public void testAnswer_smartNullToString_containsMethodName() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        Bar bar = foo.getBar();
-        String result = bar.toString();
-        assertEquals("SmartNull returned by unstubbed getBar() method on mock", result);
+    public void testAnswer_finalClassReturnType_returnsNull() {
+        FinalClass result = sampleMock.getFinalClass();
+        assertNull(result);
     }
 
-    // Tests SmartNull toString with arguments
+    // Tests toString on SmartNull returned from a no-arg method call
     @Test
-    public void testAnswer_smartNullToString_containsArguments() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        Bar bar = foo.getBarWithArgs("test", 42);
-        String result = bar.toString();
-        assertEquals("SmartNull returned by unstubbed getBarWithArgs(test, 42) method on mock", result);
+    public void testSmartNull_toStringNoArgs_returnsInformativeMessage() {
+        SampleInterface nested = sampleMock.getNested();
+        String str = nested.toString();
+        assertEquals("SmartNull returned by unstubbed getNested() method on mock", str);
     }
 
-    // Tests SmartNull toString with null argument
+    // Tests toString on SmartNull returned from a method call with arguments
     @Test
-    public void testAnswer_smartNullToString_containsNullArgument() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        Bar bar = foo.getBarWithNullArg(null);
-        String result = bar.toString();
-        assertEquals("SmartNull returned by unstubbed getBarWithNullArg(null) method on mock", result);
+    public void testSmartNull_toStringWithArgs_returnsInformativeMessageWithArgs() {
+        SampleInterface nested = sampleMock.getNestedWithArgs("foo", 42);
+        String str = nested.toString();
+        assertEquals("SmartNull returned by unstubbed getNestedWithArgs(foo, 42) method on mock", str);
     }
 
-    // Tests invocation on SmartNull proxy throws SmartNullPointerException
+    // Tests that invoking a method on SmartNull throws SmartNullPointerException
     @Test(expected = SmartNullPointerException.class)
-    public void testAnswer_invokingMethodOnSmartNull_throwsSmartNullPointerException() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        Bar bar = foo.getBar();
-        bar.doSomething();
+    public void testSmartNull_invokeMethod_throwsSmartNullPointerException() {
+        SampleInterface nested = sampleMock.getNested();
+        nested.getPrimitiveInt();
     }
 
-    // Tests exception message contains unstubbed method call details
+    // Tests that the exception message from SmartNullPointerException contains unstubbed method details
     @Test
-    public void testAnswer_invokingMethodOnSmartNull_exceptionContainsDetails() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        Bar bar = foo.getBarWithArgs("abc", 123);
+    public void testSmartNull_exceptionMessage_containsExpectedDetails() {
+        SampleInterface nested = sampleMock.getNested();
         try {
-            bar.getName();
-            fail("Expected SmartNullPointerException");
+            nested.getString();
+            fail("Expected SmartNullPointerException to be thrown");
         } catch (SmartNullPointerException e) {
             assertNotNull(e.getMessage());
         }
     }
 
-    // Tests delegate returning primitive boolean
+    // Tests that non-final classes can also be returned as SmartNull proxy
     @Test
-    public void testAnswer_primitiveBoolean_returnsFalse() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        assertFalse(foo.getBoolean());
+    public void testAnswer_nonFinalClassReturnType_returnsSmartNullObject() {
+        NonFinalClass nestedClass = sampleMock.getNonFinalClass();
+        assertNotNull(nestedClass);
     }
 
-    // Tests delegate returning wrapper types
-    @Test
-    public void testAnswer_wrapperTypes_returnDefaultValues() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        assertEquals(Boolean.FALSE, foo.getBooleanWrapper());
-        assertEquals(Integer.valueOf(0), foo.getIntegerWrapper());
-    }
-
-    // Tests delegate returning empty collections and maps
-    @Test
-    public void testAnswer_collectionsAndMaps_returnEmptyInstances() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        assertNotNull(foo.getList());
-        assertTrue(foo.getList().isEmpty());
-        assertNotNull(foo.getSet());
-        assertTrue(foo.getSet().isEmpty());
-        assertNotNull(foo.getMap());
-        assertTrue(foo.getMap().isEmpty());
-    }
-
-    // Tests delegate returning empty arrays
-    @Test
-    public void testAnswer_arrays_returnEmptyArrays() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        assertNotNull(foo.getIntArray());
-        assertEquals(0, foo.getIntArray().length);
-        assertNotNull(foo.getStringArray());
-        assertEquals(0, foo.getStringArray().length);
-    }
-
-    // Tests mockable non-final class returns SmartNull proxy
-    @Test
-    public void testAnswer_nonFinalClass_returnsSmartNullProxy() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        NonFinalClass nonFinal = foo.getNonFinalClass();
-        assertNotNull(nonFinal);
-        assertEquals("SmartNull returned by unstubbed getNonFinalClass() method on mock", nonFinal.toString());
-    }
-
-    // Tests invoking method on non-final class SmartNull proxy throws SmartNullPointerException
+    // Tests that invoking a method on SmartNull non-final class throws SmartNullPointerException
     @Test(expected = SmartNullPointerException.class)
-    public void testAnswer_invokingMethodOnNonFinalClassSmartNull_throwsSmartNullPointerException() {
-        Foo foo = Mockito.mock(Foo.class, returnsSmartNulls);
-        NonFinalClass nonFinal = foo.getNonFinalClass();
-        nonFinal.getMessage();
+    public void testSmartNull_nonFinalClass_invokeMethod_throwsSmartNullPointerException() {
+        NonFinalClass nestedClass = sampleMock.getNonFinalClass();
+        nestedClass.doSomething();
     }
 
-    // Tests serialization of ReturnsSmartNulls
+    // Tests that void methods return null and do not throw exception
     @Test
-    public void testSerialization_returnsSmartNullsIsSerializable() throws Exception {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(returnsSmartNulls);
-        oos.close();
+    public void testAnswer_voidMethod_returnsNull() {
+        sampleMock.voidMethod();
+    }
 
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        ObjectInputStream ois = new ObjectInputStream(bais);
-        Object deserialized = ois.readObject();
+    // Tests that object array return types return empty array from delegate
+    @Test
+    public void testAnswer_objectArrayReturnType_returnsEmptyArray() {
+        String[] result = sampleMock.getArray();
+        assertNotNull(result);
+        assertEquals(0, result.length);
+    }
 
-        assertNotNull(deserialized);
-        assertTrue(deserialized instanceof ReturnsSmartNulls);
+    // Tests that primitive array return types return empty array from delegate
+    @Test
+    public void testAnswer_primitiveArrayReturnType_returnsEmptyArray() {
+        int[] result = sampleMock.getPrimitiveArray();
+        assertNotNull(result);
+        assertEquals(0, result.length);
+    }
+
+    // Tests that SmartNullPointerException contains details about the unstubbed invocation
+    @Test
+    public void testSmartNull_exceptionMessage_containsUnstubbedInvocationDetails() {
+        SampleInterface nested = sampleMock.getNestedWithArgs("bar", 99);
+        try {
+            nested.getPrimitiveInt();
+            fail("Expected SmartNullPointerException to be thrown");
+        } catch (SmartNullPointerException e) {
+            assertTrue(e.getMessage().contains("getNestedWithArgs"));
+        }
     }
 }

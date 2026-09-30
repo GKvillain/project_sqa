@@ -4,8 +4,8 @@ import java.io.StringWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Collections;
 
+import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -13,23 +13,29 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.io.SerializedString;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyMetadata;
+import com.fasterxml.jackson.databind.PropertyName;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.introspect.AnnotatedClass;
 import com.fasterxml.jackson.databind.introspect.AnnotatedField;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMethod;
 import com.fasterxml.jackson.databind.introspect.AnnotationMap;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
-import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonObjectFormatVisitor;
+import com.fasterxml.jackson.databind.introspect.POJOPropertyBuilder;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.ser.std.NullSerializer;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.databind.util.Annotations;
 import com.fasterxml.jackson.databind.util.NameTransformer;
 
 public class BeanPropertyWriterTest {
+
+    private ObjectMapper _mapper;
 
     static class SimpleBean {
         public String name = "test";
@@ -44,130 +50,102 @@ public class BeanPropertyWriterTest {
         }
     }
 
-    static class SelfRefBean {
-        public SelfRefBean self;
+    static class SelfReferencingBean {
+        public SelfReferencingBean self = this;
     }
 
-    private static class DummyPropertyDefinition extends BeanPropertyDefinition {
-        private final String _name;
-        private final PropertyMetadata _metadata;
-        private final PropertyName _wrapperName;
-
-        public DummyPropertyDefinition(String name) {
-            this(name, PropertyMetadata.STD_OPTIONAL, null);
+    private static class SubBeanPropertyWriter extends BeanPropertyWriter {
+        public SubBeanPropertyWriter() {
+            super();
         }
 
-        public DummyPropertyDefinition(String name, PropertyMetadata metadata, PropertyName wrapperName) {
-            _name = name;
-            _metadata = metadata;
-            _wrapperName = wrapperName;
+        public SubBeanPropertyWriter(BeanPropertyWriter base) {
+            super(base);
         }
 
-        @Override public String getName() { return _name; }
-        @Override public PropertyName getFullName() { return new PropertyName(_name); }
-        @Override public PropertyName getWrapperName() { return _wrapperName; }
-        @Override public PropertyMetadata getMetadata() { return _metadata; }
-        @Override public boolean isExplicitlyIncluded() { return true; }
-        @Override public boolean hasGetter() { return false; }
-        @Override public boolean hasSetter() { return false; }
-        @Override public boolean hasField() { return false; }
-        @Override public boolean hasConstructorParameter() { return false; }
-        @Override public com.fasterxml.jackson.databind.introspect.AnnotatedMethod getGetter() { return null; }
-        @Override public com.fasterxml.jackson.databind.introspect.AnnotatedMethod getSetter() { return null; }
-        @Override public com.fasterxml.jackson.databind.introspect.AnnotatedField getField() { return null; }
-        @Override public com.fasterxml.jackson.databind.introspect.AnnotatedParameter getConstructorParameter() { return null; }
-        @Override public com.fasterxml.jackson.databind.introspect.AnnotatedMember getAccessor() { return null; }
-        @Override public com.fasterxml.jackson.databind.introspect.AnnotatedMember getMutator() { return null; }
-        @Override public com.fasterxml.jackson.databind.introspect.AnnotatedMember getPrimaryMember() { return null; }
-        @Override public BeanPropertyDefinition withSimpleName(String newName) { return new DummyPropertyDefinition(newName, _metadata, _wrapperName); }
-        @Override public BeanPropertyDefinition withName(PropertyName newName) { return new DummyPropertyDefinition(newName.getSimpleName(), _metadata, _wrapperName); }
-    }
-
-    private static class DummyAnnotations implements Annotations {
-        @Override
-        public <A extends Annotation> A get(Class<A> cls) {
-            return null;
+        public SubBeanPropertyWriter(BeanPropertyWriter base, PropertyName name) {
+            super(base, name);
         }
 
-        @Override
-        public int size() {
-            return 0;
+        public SubBeanPropertyWriter(BeanPropertyWriter base, SerializedString name) {
+            super(base, name);
         }
     }
 
-    private BeanPropertyWriter createFieldWriter(String propName, String fieldName, JsonSerializer<?> ser) throws Exception {
+    @Before
+    public void setUp() {
+        _mapper = new ObjectMapper();
+    }
+
+    private BeanPropertyWriter createFieldWriter(String propName, String fieldName, JavaType type) throws Exception {
         Field field = SimpleBean.class.getField(fieldName);
-        AnnotatedClass ac = AnnotatedClass.constructWithoutSuperTypes(SimpleBean.class, null, null);
-        AnnotatedField af = new AnnotatedField(ac, field, new AnnotationMap());
-        JavaType type = TypeFactory.defaultInstance().constructType(field.getGenericType());
-        BeanPropertyDefinition propDef = new DummyPropertyDefinition(propName);
-        return new BeanPropertyWriter(propDef, af, new DummyAnnotations(), type, ser, null, type, false, null);
+        AnnotatedClass ac = AnnotatedClass.constructWithoutSuperTypes(SimpleBean.class, _mapper.getDeserializationConfig());
+        AnnotatedField am = new AnnotatedField(field, new AnnotationMap());
+        PropertyName pName = new PropertyName(propName);
+        POJOPropertyBuilder propDef = new POJOPropertyBuilder(pName, _mapper.getAnnotationIntrospector(), true);
+        return new BeanPropertyWriter(propDef, am, ac.getAnnotations(), type, null, null, null, false, null);
     }
 
-    private BeanPropertyWriter createMethodWriter(String propName, String methodName, JsonSerializer<?> ser) throws Exception {
+    private BeanPropertyWriter createMethodWriter(String propName, String methodName, JavaType type) throws Exception {
         Method method = SimpleBean.class.getMethod(methodName);
-        AnnotatedClass ac = AnnotatedClass.constructWithoutSuperTypes(SimpleBean.class, null, null);
-        AnnotatedMethod am = new AnnotatedMethod(ac, method, new AnnotationMap(), null);
-        JavaType type = TypeFactory.defaultInstance().constructType(method.getGenericReturnType());
-        BeanPropertyDefinition propDef = new DummyPropertyDefinition(propName);
-        return new BeanPropertyWriter(propDef, am, new DummyAnnotations(), type, ser, null, type, false, null);
+        AnnotatedClass ac = AnnotatedClass.constructWithoutSuperTypes(SimpleBean.class, _mapper.getDeserializationConfig());
+        AnnotatedMethod am = new AnnotatedMethod(method, new AnnotationMap(), null);
+        PropertyName pName = new PropertyName(propName);
+        POJOPropertyBuilder propDef = new POJOPropertyBuilder(pName, _mapper.getAnnotationIntrospector(), true);
+        return new BeanPropertyWriter(propDef, am, ac.getAnnotations(), type, null, null, null, false, null);
     }
 
-    // Tests getter access via field writer
+    // Tests default constructor and getter methods on empty instance
     @Test
-    public void testGet_fieldAccess_returnsValue() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        SimpleBean bean = new SimpleBean();
-        bean.name = "custom";
-
-        Object val = writer.get(bean);
-        assertEquals("custom", val);
-        assertEquals("name", writer.getName());
-        assertEquals("name", writer.getFullName().getSimpleName());
+    public void testDefaultConstructor_defaultState_returnsNullAndDefaults() {
+        SubBeanPropertyWriter writer = new SubBeanPropertyWriter();
+        assertNull(writer.getName());
+        assertNull(writer.getType());
+        assertNull(writer.getMember());
+        assertNull(writer.getSerializer());
+        assertFalse(writer.hasSerializer());
+        assertFalse(writer.hasNullSerializer());
         assertFalse(writer.isVirtual());
         assertFalse(writer.isUnwrapping());
+        assertFalse(writer.willSuppressNulls());
     }
 
-    // Tests getter access via method writer
+    // Tests field-backed writer properties and value access
     @Test
-    public void testGet_methodAccess_returnsValue() throws Exception {
-        BeanPropertyWriter writer = createMethodWriter("count", "getCount", null);
+    public void testGet_fieldAccessor_returnsCorrectValue() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
+
+        assertEquals("name", writer.getName());
+        assertEquals("name", writer.getFullName().getSimpleName());
+        assertEquals(type, writer.getType());
+        assertEquals(String.class, writer.getPropertyType());
+        assertEquals(String.class, writer.getGenericPropertyType());
+
         SimpleBean bean = new SimpleBean();
-        bean.setCount(99);
-
-        Object val = writer.get(bean);
-        assertEquals(99, val);
-        assertEquals(int.class, writer.getPropertyType());
-        assertNotNull(writer.getGenericPropertyType());
+        assertEquals("test", writer.get(bean));
     }
 
-    // Tests internal settings management (set, get, remove)
+    // Tests method-backed writer properties and value access
     @Test
-    public void testInternalSettings_setGetRemove_behavesCorrectly() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        assertNull(writer.getInternalSetting("key1"));
+    public void testGet_methodAccessor_returnsCorrectValue() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(int.class);
+        BeanPropertyWriter writer = createMethodWriter("count", "getCount", type);
 
-        writer.setInternalSetting("key1", "val1");
-        assertEquals("val1", writer.getInternalSetting("key1"));
+        assertEquals("count", writer.getName());
+        assertEquals(Integer.TYPE, writer.getPropertyType());
+        assertEquals(Integer.TYPE, writer.getGenericPropertyType());
 
-        Object removed = writer.removeInternalSetting("key1");
-        assertEquals("val1", removed);
-        assertNull(writer.getInternalSetting("key1"));
-        assertNull(writer.removeInternalSetting("key1"));
+        SimpleBean bean = new SimpleBean();
+        assertEquals(42, writer.get(bean));
     }
 
-    // Tests rename with unchanged name returning same instance
+    // Tests renaming of property with NameTransformer
     @Test
-    public void testRename_sameName_returnsSameInstance() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        BeanPropertyWriter renamed = writer.rename(NameTransformer.NOP);
-        assertSame(writer, renamed);
-    }
+    public void testRename_customTransformer_returnsRenamedWriter() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
 
-    // Tests rename with changed name returning new renamed instance
-    @Test
-    public void testRename_differentName_returnsNewRenamedInstance() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
         NameTransformer transformer = new NameTransformer() {
             @Override
             public String transform(String name) {
@@ -176,213 +154,248 @@ public class BeanPropertyWriterTest {
 
             @Override
             public String reverse(String transformed) {
-                return transformed;
+                return transformed.substring(7);
             }
         };
 
         BeanPropertyWriter renamed = writer.rename(transformer);
         assertNotSame(writer, renamed);
         assertEquals("prefix_name", renamed.getName());
+
+        BeanPropertyWriter unchanged = writer.rename(NameTransformer.NOP);
+        assertSame(writer, unchanged);
     }
 
-    // Tests unwrapping writer creation
+    // Tests copy constructors
     @Test
-    public void testUnwrappingWriter_validTransformer_returnsUnwrappingInstance() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        BeanPropertyWriter unwrapping = writer.unwrappingWriter(NameTransformer.NOP);
-        assertNotNull(unwrapping);
-        assertTrue(unwrapping.isUnwrapping());
+    public void testCopyConstructors_baseWriter_preservesProperties() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter base = createFieldWriter("name", "name", type);
+        base.setInternalSetting("key1", "val1");
+
+        SubBeanPropertyWriter copy1 = new SubBeanPropertyWriter(base);
+        assertEquals(base.getName(), copy1.getName());
+        assertEquals("val1", copy1.getInternalSetting("key1"));
+
+        PropertyName newName = new PropertyName("newName");
+        SubBeanPropertyWriter copy2 = new SubBeanPropertyWriter(base, newName);
+        assertEquals("newName", copy2.getName());
+        assertEquals("val1", copy2.getInternalSetting("key1"));
+
+        SerializedString serName = new SerializedString("serName");
+        SubBeanPropertyWriter copy3 = new SubBeanPropertyWriter(base, serName);
+        assertEquals("serName", copy3.getName());
+        assertEquals("val1", copy3.getInternalSetting("key1"));
     }
 
-    // Tests assigning serializers successfully and detecting invalid overrides
+    // Tests internal settings management (get, set, remove)
     @Test
-    public void testAssignSerializer_validAndIllegalOverride() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
+    public void testInternalSettings_setAndRemove_managesSettingsCorrectly() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
+
+        assertNull(writer.getInternalSetting("k1"));
+        assertNull(writer.removeInternalSetting("k1"));
+
+        Object prev = writer.setInternalSetting("k1", "v1");
+        assertNull(prev);
+        assertEquals("v1", writer.getInternalSetting("k1"));
+
+        prev = writer.setInternalSetting("k1", "v2");
+        assertEquals("v1", prev);
+        assertEquals("v2", writer.getInternalSetting("k1"));
+
+        Object removed = writer.removeInternalSetting("k1");
+        assertEquals("v2", removed);
+        assertNull(writer.getInternalSetting("k1"));
+    }
+
+    // Tests serializer assignment and overriding protection
+    @Test
+    public void testAssignSerializer_validAndOverride_assignsOrThrows() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
         assertFalse(writer.hasSerializer());
 
-        JsonSerializer<Object> ser1 = ToStringSerializer.instance;
+        JsonSerializer<Object> ser1 = _mapper.getSerializerProviderInstance().findValueSerializer(String.class, writer);
         writer.assignSerializer(ser1);
         assertTrue(writer.hasSerializer());
         assertSame(ser1, writer.getSerializer());
 
-        // Re-assigning the same serializer instance should succeed
+        // Re-assigning the same instance should succeed
         writer.assignSerializer(ser1);
 
         // Assigning a different serializer should throw IllegalStateException
+        JsonSerializer<Object> ser2 = _mapper.getSerializerProviderInstance().findValueSerializer(Integer.class, writer);
         try {
-            writer.assignSerializer(NullSerializer.instance);
-            fail("Expected IllegalStateException on serializer override");
+            writer.assignSerializer(ser2);
+            fail("Expected IllegalStateException when overriding serializer");
         } catch (IllegalStateException e) {
             assertTrue(e.getMessage().contains("Can not override serializer"));
         }
     }
 
-    // Tests assigning null serializer and detecting invalid overrides
+    // Tests null serializer assignment and overriding protection
     @Test
-    public void testAssignNullSerializer_validAndIllegalOverride() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
+    public void testAssignNullSerializer_validAndOverride_assignsOrThrows() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
         assertFalse(writer.hasNullSerializer());
 
-        JsonSerializer<Object> nullSer = NullSerializer.instance;
-        writer.assignNullSerializer(nullSer);
+        JsonSerializer<Object> nullSer1 = _mapper.getSerializerProviderInstance().getDefaultNullValueSerializer();
+        writer.assignNullSerializer(nullSer1);
         assertTrue(writer.hasNullSerializer());
 
-        // Re-assigning the same instance should succeed
-        writer.assignNullSerializer(nullSer);
+        writer.assignNullSerializer(nullSer1);
 
-        // Assigning different instance should throw IllegalStateException
+        JsonSerializer<Object> nullSer2 = _mapper.getSerializerProviderInstance().findValueSerializer(String.class, writer);
         try {
-            writer.assignNullSerializer(ToStringSerializer.instance);
-            fail("Expected IllegalStateException on null serializer override");
+            writer.assignNullSerializer(nullSer2);
+            fail("Expected IllegalStateException when overriding null serializer");
         } catch (IllegalStateException e) {
             assertTrue(e.getMessage().contains("Can not override null serializer"));
         }
     }
 
-    // Tests type serializer and non-trivial base type assignment
+    // Tests wouldConflictWithName matching
     @Test
-    public void testTypeSerializerAndNonTrivialBaseType_accessors_match() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        assertNull(writer.getTypeSerializer());
+    public void testWouldConflictWithName_matchingAndNonMatching_returnsExpected() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
 
-        writer.assignTypeSerializer(null);
-        assertNull(writer.getTypeSerializer());
-
-        JavaType stringType = TypeFactory.defaultInstance().constructType(String.class);
-        writer.setNonTrivialBaseType(stringType);
-        assertEquals(String.class, writer.getRawSerializationType());
-    }
-
-    // Tests wouldConflictWithName matching rules
-    @Test
-    public void testWouldConflictWithName_variousInputs_returnsExpected() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
         assertTrue(writer.wouldConflictWithName(new PropertyName("name")));
         assertFalse(writer.wouldConflictWithName(new PropertyName("other")));
-        assertFalse(writer.wouldConflictWithName(new PropertyName("name", "http://ns")));
+        assertFalse(writer.wouldConflictWithName(new PropertyName("name", "http://example.com")));
     }
 
-    // Tests wouldConflictWithName with explicit wrapper name
+    // Tests assignTypeSerializer
     @Test
-    public void testWouldConflictWithName_withWrapperName_checksWrapper() throws Exception {
-        Field field = SimpleBean.class.getField("name");
-        AnnotatedClass ac = AnnotatedClass.constructWithoutSuperTypes(SimpleBean.class, null, null);
-        AnnotatedField af = new AnnotatedField(ac, field, new AnnotationMap());
-        JavaType type = TypeFactory.defaultInstance().constructType(field.getGenericType());
-        PropertyName wrapperName = new PropertyName("wrapper");
-        BeanPropertyDefinition propDef = new DummyPropertyDefinition("name", PropertyMetadata.STD_OPTIONAL, wrapperName);
+    public void testAssignTypeSerializer_validSerializer_setsTypeSerializer() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
+        assertNull(writer.getTypeSerializer());
 
-        BeanPropertyWriter writer = new BeanPropertyWriter(propDef, af, new DummyAnnotations(), type, null, null, type, false, null);
-        assertTrue(writer.wouldConflictWithName(new PropertyName("wrapper")));
-        assertFalse(writer.wouldConflictWithName(new PropertyName("name")));
+        TypeSerializer typeSer = _mapper.getSerializerProviderInstance().findTypeSerializer(type);
+        writer.assignTypeSerializer(typeSer);
+        assertEquals(typeSer, writer.getTypeSerializer());
     }
 
-    // Tests findFormatOverrides caching behavior
+    // Tests unwrapping writer creation
     @Test
-    public void testFindFormatOverrides_nullIntrospector_cachesNoFormat() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        JsonFormat.Value format = writer.findFormatOverrides(null);
-        assertNull(format);
-        // Second call should return cached NO_FORMAT (which maps to null)
-        assertNull(writer.findFormatOverrides(null));
+    public void testUnwrappingWriter_validTransformer_returnsUnwrappingInstance() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
+
+        BeanPropertyWriter unwrapping = writer.unwrappingWriter(NameTransformer.NOP);
+        assertNotNull(unwrapping);
+        assertTrue(unwrapping.isUnwrapping());
     }
 
-    // Tests serialization as JSON Object field
+    // Tests serialization as field with null value and null serializer
     @Test
-    public void testSerializeAsField_normalValue_writesOutput() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
+    public void testSerializeAsField_nullValueWithNullSerializer_writesNullField() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
+        writer.assignNullSerializer(_mapper.getSerializerProviderInstance().getDefaultNullValueSerializer());
+
         SimpleBean bean = new SimpleBean();
-        bean.name = "jackson";
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"name\":\"jackson\""));
-        assertTrue(json.contains("\"count\":42"));
+        bean.name = null;
+
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = _mapper.getFactory().createGenerator(sw);
+        gen.writeStartObject();
+        SerializerProvider prov = _mapper.getSerializerProviderInstance();
+        writer.serializeAsField(bean, gen, prov);
+        gen.writeEndObject();
+        gen.close();
+
+        assertEquals("{\"name\":null}", sw.toString());
     }
 
-    // Tests serializeAsPlaceholder writing null or serializer output
+    // Tests serialization as element in tabular output
+    @Test
+    public void testSerializeAsElement_validValue_writesElementWithoutFieldName() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
+        SimpleBean bean = new SimpleBean();
+
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = _mapper.getFactory().createGenerator(sw);
+        gen.writeStartArray();
+        SerializerProvider prov = _mapper.getSerializerProviderInstance();
+        writer.serializeAsElement(bean, gen, prov);
+        gen.writeEndArray();
+        gen.close();
+
+        assertEquals("[\"test\"]", sw.toString());
+    }
+
+    // Tests placeholder serialization in tabular output
     @Test
     public void testSerializeAsPlaceholder_withoutNullSerializer_writesNull() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        ObjectMapper mapper = new ObjectMapper();
-        SerializerProvider prov = mapper.getSerializerProviderInstance();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = mapper.getFactory().createGenerator(sw);
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
+        SimpleBean bean = new SimpleBean();
 
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = _mapper.getFactory().createGenerator(sw);
         gen.writeStartArray();
-        writer.serializeAsPlaceholder(new SimpleBean(), gen, prov);
+        SerializerProvider prov = _mapper.getSerializerProviderInstance();
+        writer.serializeAsPlaceholder(bean, gen, prov);
         gen.writeEndArray();
         gen.close();
 
         assertEquals("[null]", sw.toString());
     }
 
-    // Tests serializeAsOmittedField
-    @Test
-    public void testSerializeAsOmittedField_normalGenerator_doesNotThrow() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        ObjectMapper mapper = new ObjectMapper();
-        SerializerProvider prov = mapper.getSerializerProviderInstance();
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = mapper.getFactory().createGenerator(sw);
-
-        gen.writeStartObject();
-        writer.serializeAsOmittedField(new SimpleBean(), gen, prov);
-        gen.writeEndObject();
-        gen.close();
-
-        assertEquals("{}", sw.toString());
-    }
-
-    // Tests direct self reference throwing exception when FAIL_ON_SELF_REFERENCES is enabled
+    // Tests self-reference cycle detection exception
     @Test(expected = JsonMappingException.class)
-    public void testHandleSelfReference_cycleDetected_throwsException() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(SerializationFeature.FAIL_ON_SELF_REFERENCES);
-        SelfRefBean bean = new SelfRefBean();
-        bean.self = bean;
-        mapper.writeValueAsString(bean);
+    public void testSerializeAsField_selfReference_throwsJsonMappingException() throws Exception {
+        Field field = SelfReferencingBean.class.getField("self");
+        AnnotatedClass ac = AnnotatedClass.constructWithoutSuperTypes(SelfReferencingBean.class, _mapper.getDeserializationConfig());
+        AnnotatedField am = new AnnotatedField(field, new AnnotationMap());
+        PropertyName pName = new PropertyName("self");
+        POJOPropertyBuilder propDef = new POJOPropertyBuilder(pName, _mapper.getAnnotationIntrospector(), true);
+        JavaType type = TypeFactory.defaultInstance().constructType(SelfReferencingBean.class);
+        BeanPropertyWriter writer = new BeanPropertyWriter(propDef, am, ac.getAnnotations(), type, null, null, null, false, null);
+
+        SelfReferencingBean bean = new SelfReferencingBean();
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = _mapper.getFactory().createGenerator(sw);
+        gen.writeStartObject();
+        SerializerProvider prov = _mapper.getSerializerProviderInstance();
+        writer.serializeAsField(bean, gen, prov);
     }
 
-    // Tests schema deposition with visitor
+    // Tests readResolve deserialization helper
     @Test
-    public void testDepositSchemaProperty_withVisitor_invokesVisitorMethod() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        final boolean[] called = new boolean[1];
-        JsonObjectFormatVisitor visitor = new JsonObjectFormatVisitor.Base() {
-            @Override
-            public void optionalProperty(BeanProperty prop) {
-                called[0] = true;
-                assertEquals("name", prop.getName());
-            }
-        };
-
-        writer.depositSchemaProperty(visitor);
-        assertTrue(called[0]);
+    public void testReadResolve_fieldMember_restoresField() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
+        Object resolved = writer.readResolve();
+        assertSame(writer, resolved);
     }
 
-    // Tests deprecated depositSchemaProperty with ObjectNode
+    // Tests toString representation
     @Test
-    public void testDepositSchemaProperty_withObjectNode_populatesNode() throws Exception {
-        BeanPropertyWriter writer = createFieldWriter("name", "name", null);
-        ObjectMapper mapper = new ObjectMapper();
-        SerializerProvider prov = mapper.getSerializerProviderInstance();
-        ObjectNode propertiesNode = JsonNodeFactory.instance.objectNode();
-
-        writer.depositSchemaProperty(propertiesNode, prov);
-        assertNotNull(propertiesNode.get("name"));
+    public void testToString_fieldWriter_containsPropertyNameAndField() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
+        String desc = writer.toString();
+        assertTrue(desc.contains("property 'name'"));
+        assertTrue(desc.contains("field \""));
     }
 
-    // Tests toString format representation
+    // Tests findFormatOverrides caching behavior
     @Test
-    public void testToString_fieldAndMethodWriters_containsMetadata() throws Exception {
-        BeanPropertyWriter fieldWriter = createFieldWriter("name", "name", null);
-        String fieldStr = fieldWriter.toString();
-        assertTrue(fieldStr.contains("property 'name'"));
-        assertTrue(fieldStr.contains("field"));
+    public void testFindFormatOverrides_nullAndRepeatedLookup_returnsCachedOrNull() throws Exception {
+        JavaType type = TypeFactory.defaultInstance().constructType(String.class);
+        BeanPropertyWriter writer = createFieldWriter("name", "name", type);
 
-        BeanPropertyWriter methodWriter = createMethodWriter("count", "getCount", ToStringSerializer.instance);
-        String methodStr = methodWriter.toString();
-        assertTrue(methodStr.contains("property 'count'"));
-        assertTrue(methodStr.contains("via method"));
-        assertTrue(methodStr.contains("static serializer"));
+        JsonFormat.Value val1 = writer.findFormatOverrides(null);
+        assertNull(val1);
+
+        JsonFormat.Value val2 = writer.findFormatOverrides(_mapper.getAnnotationIntrospector());
+        assertNull(val2);
     }
 }

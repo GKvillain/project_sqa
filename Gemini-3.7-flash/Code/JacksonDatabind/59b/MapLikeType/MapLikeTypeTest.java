@@ -1,67 +1,54 @@
 package com.fasterxml.jackson.databind.type;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.junit.Before;
 import org.junit.Test;
-
 import static org.junit.Assert.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import com.fasterxml.jackson.databind.JavaType;
 
 public class MapLikeTypeTest {
 
-    private TypeFactory _typeFactory;
-    private JavaType _keyType;
-    private JavaType _valueType;
-    private MapLikeType _mapLikeType;
+    private final JavaType stringType = SimpleType.constructUnsafe(String.class);
+    private final JavaType integerType = SimpleType.constructUnsafe(Integer.class);
+    private final JavaType longType = SimpleType.constructUnsafe(Long.class);
 
-    @Before
-    public void setUp() {
-        _typeFactory = TypeFactory.defaultInstance();
-        _keyType = _typeFactory.constructType(String.class);
-        _valueType = _typeFactory.constructType(Integer.class);
-        _mapLikeType = MapLikeType.construct(Map.class, _keyType, _valueType);
-    }
-
-    // Tests basic construction and property getters
+    // Tests construct factory method and basic property getters
     @Test
     public void testConstruct_validTypes_returnsConfiguredInstance() {
-        assertNotNull(_mapLikeType);
-        assertEquals(Map.class, _mapLikeType.getRawClass());
-        assertEquals(_keyType, _mapLikeType.getKeyType());
-        assertEquals(_valueType, _mapLikeType.getContentType());
-        assertTrue(_mapLikeType.isContainerType());
-        assertTrue(_mapLikeType.isMapLikeType());
-        assertTrue(_mapLikeType.isTrueMapType());
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        assertNotNull(type);
+        assertEquals(Map.class, type.getRawClass());
+        assertEquals(stringType, type.getKeyType());
+        assertEquals(integerType, type.getContentType());
+        assertTrue(type.isContainerType());
+        assertTrue(type.isMapLikeType());
+        assertTrue(type.isTrueMapType());
     }
 
-    // Tests isTrueMapType on non-Map class
+    // Tests isTrueMapType with non-Map class
     @Test
     public void testIsTrueMapType_nonMapClass_returnsFalse() {
-        MapLikeType nonMap = MapLikeType.construct(String.class, _keyType, _valueType);
-        assertFalse(nonMap.isTrueMapType());
+        MapLikeType type = MapLikeType.construct(String.class, stringType, integerType);
+        assertFalse(type.isTrueMapType());
     }
 
     // Tests upgradeFrom with TypeBase instance
     @Test
-    public void testUpgradeFrom_typeBase_returnsMapLikeType() {
-        JavaType baseType = SimpleType.constructUnsafe(Object.class);
-        MapLikeType upgraded = MapLikeType.upgradeFrom(baseType, _keyType, _valueType);
-
+    public void testUpgradeFrom_validBaseType_returnsUpgradedMapLikeType() {
+        JavaType baseType = SimpleType.constructUnsafe(Map.class);
+        MapLikeType upgraded = MapLikeType.upgradeFrom(baseType, stringType, integerType);
         assertNotNull(upgraded);
-        assertEquals(Object.class, upgraded.getRawClass());
-        assertEquals(_keyType, upgraded.getKeyType());
-        assertEquals(_valueType, upgraded.getContentType());
+        assertEquals(Map.class, upgraded.getRawClass());
+        assertEquals(stringType, upgraded.getKeyType());
+        assertEquals(integerType, upgraded.getContentType());
     }
 
-    // Tests upgradeFrom with non-TypeBase instance expecting exception
+    // Tests upgradeFrom throws IllegalArgumentException when baseType is not TypeBase
     @Test(expected = IllegalArgumentException.class)
     public void testUpgradeFrom_nonTypeBase_throwsIllegalArgumentException() {
         JavaType customType = new JavaType(Object.class, 0, null, null, false) {
             private static final long serialVersionUID = 1L;
-
             @Override
             public JavaType withContentType(JavaType contentType) { return this; }
             @Override
@@ -77,153 +64,215 @@ public class MapLikeTypeTest {
             @Override
             public JavaType refine(Class<?> rawType, TypeBindings bindings, JavaType superClass, JavaType[] superInterfaces) { return this; }
             @Override
-            protected String buildCanonicalName() { return ""; }
+            protected String buildCanonicalName() { return null; }
             @Override
             public StringBuilder getGenericSignature(StringBuilder sb) { return sb; }
             @Override
             public StringBuilder getErasedSignature(StringBuilder sb) { return sb; }
             @Override
-            public JavaType _narrow(Class<?> subclass) { return this; }
+            public JavaType getContentType() { return null; }
             @Override
             public JavaType getKeyType() { return null; }
-            @Override
-            public JavaType getContentType() { return null; }
             @Override
             public boolean isContainerType() { return false; }
             @Override
             public String toString() { return ""; }
             @Override
-            public boolean equals(Object o) { return o == this; }
+            public boolean equals(Object o) { return false; }
         };
-
-        MapLikeType.upgradeFrom(customType, _keyType, _valueType);
+        MapLikeType.upgradeFrom(customType, stringType, integerType);
     }
 
-    // Tests withKeyType with same and new key types
+    // Tests withKeyType with same key returns this
     @Test
-    public void testWithKeyType_sameAndDifferent_returnsExpectedInstances() {
-        assertSame(_mapLikeType, _mapLikeType.withKeyType(_keyType));
-
-        JavaType newKeyType = _typeFactory.constructType(Long.class);
-        MapLikeType modified = _mapLikeType.withKeyType(newKeyType);
-
-        assertNotSame(_mapLikeType, modified);
-        assertEquals(newKeyType, modified.getKeyType());
-        assertEquals(_valueType, modified.getContentType());
+    public void testWithKeyType_sameKey_returnsSameInstance() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        MapLikeType result = type.withKeyType(stringType);
+        assertSame(type, result);
     }
 
-    // Tests withContentType with same and new content types
+    // Tests withKeyType with different key returns new instance
+    @Test
+    public void testWithKeyType_differentKey_returnsNewInstance() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        MapLikeType result = type.withKeyType(longType);
+        assertNotSame(type, result);
+        assertEquals(longType, result.getKeyType());
+    }
+
+    // Tests withContentType with same and different value types
     @Test
     public void testWithContentType_sameAndDifferent_returnsExpectedInstances() {
-        assertSame(_mapLikeType, _mapLikeType.withContentType(_valueType));
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        JavaType sameResult = type.withContentType(integerType);
+        assertSame(type, sameResult);
 
-        JavaType newContentType = _typeFactory.constructType(Double.class);
-        JavaType modified = _mapLikeType.withContentType(newContentType);
-
-        assertNotSame(_mapLikeType, modified);
-        assertEquals(_keyType, ((MapLikeType) modified).getKeyType());
-        assertEquals(newContentType, modified.getContentType());
+        JavaType diffResult = type.withContentType(longType);
+        assertNotSame(type, diffResult);
+        assertEquals(longType, diffResult.getContentType());
     }
 
-    // Tests handler assignments and hasHandlers condition
+    // Tests type handlers and value handlers on MapLikeType
     @Test
-    public void testHandlers_setAndRetrieve_handlersPresent() {
-        assertFalse(_mapLikeType.hasHandlers());
-        assertNull(_mapLikeType.getContentValueHandler());
-        assertNull(_mapLikeType.getContentTypeHandler());
+    public void testWithHandlers_setProperHandlers() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        assertFalse(type.hasHandlers());
 
-        Object typeHandler = "typeHandler";
-        Object valHandler = "valHandler";
-        Object keyTypeHandler = "keyTypeHandler";
-        Object keyValHandler = "keyValHandler";
+        String typeHandler = "typeHandler";
+        String valueHandler = "valueHandler";
+        String contentHandler = "contentHandler";
+        String contentValueHandler = "contentValHandler";
 
-        MapLikeType withHandlers = _mapLikeType
-                .withTypeHandler(typeHandler)
-                .withValueHandler(valHandler)
-                .withContentTypeHandler(typeHandler)
-                .withContentValueHandler(valHandler)
-                .withKeyTypeHandler(keyTypeHandler)
-                .withKeyValueHandler(keyValHandler);
+        MapLikeType withTH = type.withTypeHandler(typeHandler);
+        assertEquals(typeHandler, withTH.getTypeHandler());
+        assertTrue(withTH.hasHandlers());
 
-        assertNotNull(withHandlers.getTypeHandler());
-        assertNotNull(withHandlers.getValueHandler());
-        assertEquals(valHandler, withHandlers.getContentValueHandler());
-        assertEquals(typeHandler, withHandlers.getContentTypeHandler());
-        assertTrue(withHandlers.hasHandlers());
+        MapLikeType withVH = type.withValueHandler(valueHandler);
+        assertEquals(valueHandler, withVH.getValueHandler());
+        assertTrue(withVH.hasHandlers());
+
+        MapLikeType withCTH = type.withContentTypeHandler(contentHandler);
+        assertEquals(contentHandler, withCTH.getContentTypeHandler());
+        assertTrue(withCTH.hasHandlers());
+
+        MapLikeType withCVH = type.withContentValueHandler(contentValueHandler);
+        assertEquals(contentValueHandler, withCVH.getContentValueHandler());
+        assertTrue(withCVH.hasHandlers());
+
+        MapLikeType withKTH = type.withKeyTypeHandler(contentHandler);
+        assertEquals(contentHandler, withKTH.getKeyType().getTypeHandler());
+        assertTrue(withKTH.hasHandlers());
+
+        MapLikeType withKVH = type.withKeyValueHandler(contentValueHandler);
+        assertEquals(contentValueHandler, withKVH.getKeyType().getValueHandler());
+        assertTrue(withKVH.hasHandlers());
     }
 
-    // Tests withStaticTyping when already static and when not static
+    // Tests withStaticTyping on dynamic and static instances
     @Test
-    public void testWithStaticTyping_stateTransitions_returnsExpectedInstance() {
-        assertFalse(_mapLikeType.useStaticType());
+    public void testWithStaticTyping_togglesStaticCorrectly() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        assertFalse(type.useStaticType());
 
-        MapLikeType staticType = _mapLikeType.withStaticTyping();
+        MapLikeType staticType = type.withStaticTyping();
         assertTrue(staticType.useStaticType());
         assertSame(staticType, staticType.withStaticTyping());
     }
 
-    // Tests refine method
+    // Tests refine method returns refined MapLikeType
     @Test
     public void testRefine_validParameters_returnsRefinedInstance() {
-        TypeBindings bindings = TypeBindings.create(HashMap.class, _keyType, _valueType);
-        JavaType superClass = _typeFactory.constructType(Object.class);
-        JavaType refined = _mapLikeType.refine(HashMap.class, bindings, superClass, new JavaType[0]);
-
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        JavaType refined = type.refine(HashMap.class, TypeBindings.emptyBindings(), null, null);
         assertNotNull(refined);
         assertEquals(HashMap.class, refined.getRawClass());
-        assertEquals(_keyType, refined.getKeyType());
-        assertEquals(_valueType, refined.getContentType());
+        assertEquals(stringType, ((MapLikeType) refined).getKeyType());
+        assertEquals(integerType, refined.getContentType());
     }
 
-    // Tests narrow method
+    // Tests canonical name construction
     @Test
-    public void testNarrow_subclass_returnsNarrowedMapLikeType() {
-        JavaType narrowed = _mapLikeType._narrow(HashMap.class);
+    public void testBuildCanonicalName_returnsCanonicalRepresentation() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        assertEquals("java.util.Map<java.lang.String,java.lang.Integer>", type.toCanonical());
+    }
 
-        assertNotNull(narrowed);
+    // Tests generic and erased signatures
+    @Test
+    public void testSignatures_returnsExpectedFormat() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        StringBuilder erased = new StringBuilder();
+        type.getErasedSignature(erased);
+        assertEquals("Ljava/util/Map;", erased.toString());
+
+        StringBuilder generic = new StringBuilder();
+        type.getGenericSignature(generic);
+        assertEquals("Ljava/util/Map<Ljava/lang/String;Ljava/lang/Integer;>;", generic.toString());
+    }
+
+    // Tests toString format
+    @Test
+    public void testToString_returnsFormattedString() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        String str = type.toString();
+        assertTrue(str.startsWith("[map-like type; class java.util.Map,"));
+        assertTrue(str.contains(stringType.toString()));
+        assertTrue(str.contains(integerType.toString()));
+    }
+
+    // Tests equals and identity equality
+    @Test
+    public void testEquals_variousScenarios_returnsExpectedResults() {
+        MapLikeType type1 = MapLikeType.construct(Map.class, stringType, integerType);
+        MapLikeType type2 = MapLikeType.construct(Map.class, stringType, integerType);
+        MapLikeType typeDiffKey = MapLikeType.construct(Map.class, longType, integerType);
+        MapLikeType typeDiffValue = MapLikeType.construct(Map.class, stringType, longType);
+        MapLikeType typeDiffClass = MapLikeType.construct(HashMap.class, stringType, integerType);
+
+        assertTrue(type1.equals(type1));
+        assertTrue(type1.equals(type2));
+        assertFalse(type1.equals(null));
+        assertFalse(type1.equals("not-a-type"));
+        assertFalse(type1.equals(typeDiffKey));
+        assertFalse(type1.equals(typeDiffValue));
+        assertFalse(type1.equals(typeDiffClass));
+    }
+
+    // Tests deprecated _narrow method
+    @Test
+    public void testNarrow_returnsNarrowedType() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        JavaType narrowed = type._narrow(HashMap.class);
         assertEquals(HashMap.class, narrowed.getRawClass());
-        assertEquals(_keyType, narrowed.getKeyType());
-        assertEquals(_valueType, narrowed.getContentType());
+        assertEquals(stringType, ((MapLikeType) narrowed).getKeyType());
+        assertEquals(integerType, narrowed.getContentType());
     }
 
-    // Tests canonical name and signatures
+    // Tests upgradeFrom when baseType is already a MapLikeType instance
     @Test
-    public void testCanonicalNameAndSignatures_validMap_matchesExpectedFormats() {
-        String canonical = _mapLikeType.toCanonical();
-        assertEquals("java.util.Map<java.lang.String,java.lang.Integer>", canonical);
-
-        StringBuilder erasedSb = new StringBuilder();
-        _mapLikeType.getErasedSignature(erasedSb);
-        assertEquals("Ljava/util/Map;", erasedSb.toString());
-
-        StringBuilder genericSb = new StringBuilder();
-        _mapLikeType.getGenericSignature(genericSb);
-        assertEquals("Ljava/util/Map<Ljava/lang/String;Ljava/lang/Integer;>;", genericSb.toString());
+    public void testUpgradeFrom_alreadyMapLikeType_returnsSameInstance() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        MapLikeType upgraded = MapLikeType.upgradeFrom(type, longType, longType);
+        assertSame(type, upgraded);
     }
 
-    // Tests equals, hashCode, and toString methods
+    // Tests withTypeHandler and withValueHandler when setting the same handler returns this
     @Test
-    public void testEqualsAndToString_variousCases_returnsExpectedResults() {
-        assertTrue(_mapLikeType.equals(_mapLikeType));
-        assertFalse(_mapLikeType.equals(null));
-        assertFalse(_mapLikeType.equals("string"));
+    public void testWithHandlers_sameHandler_returnsSameInstance() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
 
-        MapLikeType equalType = MapLikeType.construct(Map.class, _keyType, _valueType);
-        assertTrue(_mapLikeType.equals(equalType));
-        assertEquals(_mapLikeType.hashCode(), equalType.hashCode());
+        String th = "th";
+        MapLikeType withTH = type.withTypeHandler(th);
+        assertSame(withTH, withTH.withTypeHandler(th));
 
-        MapLikeType diffKey = MapLikeType.construct(Map.class, _typeFactory.constructType(Long.class), _valueType);
-        assertFalse(_mapLikeType.equals(diffKey));
+        String vh = "vh";
+        MapLikeType withVH = type.withValueHandler(vh);
+        assertSame(withVH, withVH.withValueHandler(vh));
 
-        MapLikeType diffVal = MapLikeType.construct(Map.class, _keyType, _typeFactory.constructType(Long.class));
-        assertFalse(_mapLikeType.equals(diffVal));
+        String cth = "cth";
+        MapLikeType withCTH = type.withContentTypeHandler(cth);
+        assertSame(withCTH, withCTH.withContentTypeHandler(cth));
 
-        MapLikeType diffClass = MapLikeType.construct(HashMap.class, _keyType, _valueType);
-        assertFalse(_mapLikeType.equals(diffClass));
+        String cvh = "cvh";
+        MapLikeType withCVH = type.withContentValueHandler(cvh);
+        assertSame(withCVH, withCVH.withContentValueHandler(cvh));
 
-        String str = _mapLikeType.toString();
-        assertTrue(str.contains("java.util.Map"));
-        assertTrue(str.contains("java.lang.String"));
-        assertTrue(str.contains("java.lang.Integer"));
+        String kth = "kth";
+        MapLikeType withKTH = type.withKeyTypeHandler(kth);
+        assertSame(withKTH, withKTH.withKeyTypeHandler(kth));
+
+        String kvh = "kvh";
+        MapLikeType withKVH = type.withKeyValueHandler(kvh);
+        assertSame(withKVH, withKVH.withKeyValueHandler(kvh));
+    }
+
+    // Tests initial handler getters return null
+    @Test
+    public void testGetContentHandlers_initialNull() {
+        MapLikeType type = MapLikeType.construct(Map.class, stringType, integerType);
+        assertNull(type.getContentValueHandler());
+        assertNull(type.getContentTypeHandler());
+        assertNull(type.getKeyType().getValueHandler());
+        assertNull(type.getKeyType().getTypeHandler());
     }
 }

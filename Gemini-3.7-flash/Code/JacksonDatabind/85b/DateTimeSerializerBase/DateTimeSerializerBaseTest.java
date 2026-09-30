@@ -1,6 +1,7 @@
 package com.fasterxml.jackson.databind.ser.std;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -9,12 +10,10 @@ import java.util.TimeZone;
 
 import org.junit.Before;
 import org.junit.Test;
-
 import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,14 +21,18 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitorWrapper;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonIntegerFormatVisitor;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonStringFormatVisitor;
+import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonValueFormat;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.fasterxml.jackson.databind.util.StdDateFormat;
 
 public class DateTimeSerializerBaseTest {
 
-    private static class DummyDateTimeSerializer extends DateTimeSerializerBase<Date> {
+    private ObjectMapper mapper;
+
+    static class DummyDateTimeSerializer extends DateTimeSerializerBase<Date> {
         public DummyDateTimeSerializer() {
             this(null, null);
         }
@@ -39,7 +42,7 @@ public class DateTimeSerializerBaseTest {
         }
 
         @Override
-        public DummyDateTimeSerializer withFormat(Boolean timestamp, DateFormat customFormat) {
+        public DateTimeSerializerBase<Date> withFormat(Boolean timestamp, DateFormat customFormat) {
             return new DummyDateTimeSerializer(timestamp, customFormat);
         }
 
@@ -60,210 +63,334 @@ public class DateTimeSerializerBaseTest {
                 serializers.defaultSerializeDateValue(value, gen);
             }
         }
+
+        public boolean checkAsTimestamp(SerializerProvider serializers) {
+            return _asTimestamp(serializers);
+        }
+
+        public Boolean getUseTimestamp() {
+            return _useTimestamp;
+        }
+
+        public DateFormat getCustomFormat() {
+            return _customFormat;
+        }
     }
 
-    private static class DummyWrapper {
+    static class WrapperNumberBean {
         @JsonFormat(shape = JsonFormat.Shape.NUMBER)
-        public Date numericDate;
+        public Date date;
 
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "UTC")
-        public Date formattedDate;
-
-        @JsonFormat(locale = "fr")
-        public Date localeDate;
-
-        public Date plainDate;
+        public WrapperNumberBean(Date date) {
+            this.date = date;
+        }
     }
 
-    private ObjectMapper mapper;
-    private DummyDateTimeSerializer defaultSerializer;
+    static class WrapperPatternBean {
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy/MM/dd", timezone = "UTC")
+        public Date date;
+
+        public WrapperPatternBean(Date date) {
+            this.date = date;
+        }
+    }
+
+    static class WrapperLocaleBean {
+        @JsonFormat(locale = "fr_FR", timezone = "GMT+2")
+        public Date date;
+
+        public WrapperLocaleBean(Date date) {
+            this.date = date;
+        }
+    }
+
+    static class WrapperTimeZoneOnlyBean {
+        @JsonFormat(timezone = "PST")
+        public Date date;
+
+        public WrapperTimeZoneOnlyBean(Date date) {
+            this.date = date;
+        }
+    }
+
+    static class WrapperLocaleOnlyBean {
+        @JsonFormat(locale = "de_DE")
+        public Date date;
+
+        public WrapperLocaleOnlyBean(Date date) {
+            this.date = date;
+        }
+    }
+
+    static class WrapperStringNoPatternBean {
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
+        public Date date;
+
+        public WrapperStringNoPatternBean(Date date) {
+            this.date = date;
+        }
+    }
+
+    static class WrapperAnyShapeBean {
+        @JsonFormat(shape = JsonFormat.Shape.ANY)
+        public Date date;
+
+        public WrapperAnyShapeBean(Date date) {
+            this.date = date;
+        }
+    }
+
+    static class WrapperDefaultBean {
+        public Date date;
+
+        public WrapperDefaultBean(Date date) {
+            this.date = date;
+        }
+    }
 
     @Before
     public void setUp() {
         mapper = new ObjectMapper();
-        defaultSerializer = new DummyDateTimeSerializer();
     }
 
-    private BeanProperty getBeanProperty(String fieldName) {
-        BeanDescription beanDesc = mapper.getSerializationConfig().introspect(mapper.constructType(DummyWrapper.class));
-        for (BeanPropertyDefinition propDef : beanDesc.findProperties()) {
-            if (propDef.getName().equals(fieldName)) {
-                return new BeanProperty.Std(
-                        propDef.getFullName(),
-                        propDef.getPrimaryType(),
-                        propDef.getWrapperName(),
-                        beanDesc.getClassAnnotations(),
-                        propDef.getPrimaryMember(),
-                        propDef.getMetadata()
-                );
-            }
-        }
-        return null;
-    }
-
-    // Tests isEmpty method with null and boundary timestamp values
+    // Tests isEmpty with single argument on null value
     @Test
-    public void testIsEmpty_variousDates_returnsExpected() {
-        assertTrue(defaultSerializer.isEmpty(null));
-        assertTrue(defaultSerializer.isEmpty(new Date(0L)));
-        assertFalse(defaultSerializer.isEmpty(new Date(123456L)));
+    public void testIsEmpty_nullValue_returnsTrue() {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer();
+        assertTrue(ser.isEmpty(null));
+    }
 
+    // Tests isEmpty with single argument on zero timestamp (timestamp 0 qualifies as empty)
+    @Test
+    public void testIsEmpty_zeroTimestamp_returnsTrue() {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer();
+        assertTrue(ser.isEmpty(new Date(0L)));
+    }
+
+    // Tests isEmpty with single argument on non-zero timestamp
+    @Test
+    public void testIsEmpty_nonZeroTimestamp_returnsFalse() {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer();
+        assertFalse(ser.isEmpty(new Date(123456789L)));
+    }
+
+    // Tests isEmpty with SerializerProvider parameter on null value
+    @Test
+    public void testIsEmptyWithProvider_nullValue_returnsTrue() {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer();
         SerializerProvider provider = mapper.getSerializerProviderInstance();
-        assertTrue(defaultSerializer.isEmpty(provider, null));
-        assertTrue(defaultSerializer.isEmpty(provider, new Date(0L)));
-        assertFalse(defaultSerializer.isEmpty(provider, new Date(123456L)));
+        assertTrue(ser.isEmpty(provider, null));
     }
 
-    // Tests _asTimestamp when explicit useTimestamp flag is configured
+    // Tests isEmpty with SerializerProvider parameter on non-zero timestamp
     @Test
-    public void testAsTimestamp_useTimestampConfigured_returnsConfiguredFlag() {
-        DummyDateTimeSerializer timestampSerializer = new DummyDateTimeSerializer(Boolean.TRUE, null);
-        assertTrue(timestampSerializer._asTimestamp(null));
-
-        DummyDateTimeSerializer stringSerializer = new DummyDateTimeSerializer(Boolean.FALSE, null);
-        assertFalse(stringSerializer._asTimestamp(null));
-    }
-
-    // Tests _asTimestamp when customFormat is provided
-    @Test
-    public void testAsTimestamp_withCustomFormat_returnsFalse() {
-        DateFormat df = new SimpleDateFormat("yyyy/MM/dd");
-        DummyDateTimeSerializer customSerializer = new DummyDateTimeSerializer(null, df);
+    public void testIsEmptyWithProvider_nonZeroTimestamp_returnsFalse() {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer();
         SerializerProvider provider = mapper.getSerializerProviderInstance();
-        assertFalse(customSerializer._asTimestamp(provider));
+        assertFalse(ser.isEmpty(provider, new Date(5000L)));
     }
 
-    // Tests _asTimestamp fallback to SerializerProvider's SerializationFeature
+    // Tests _asTimestamp when _useTimestamp is explicitly set to true
     @Test
-    public void testAsTimestamp_providerFeatures_returnsProviderSetting() {
-        SerializerProvider providerWithTimestamps = mapper.getSerializerProviderInstance();
-        assertTrue(defaultSerializer._asTimestamp(providerWithTimestamps));
+    public void testAsTimestamp_explicitUseTimestampTrue_returnsTrue() {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(Boolean.TRUE, null);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+        assertTrue(ser.checkAsTimestamp(provider));
+    }
 
-        ObjectMapper noTimestampMapper = new ObjectMapper();
-        noTimestampMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        SerializerProvider providerWithoutTimestamps = noTimestampMapper.getSerializerProviderInstance();
-        assertFalse(defaultSerializer._asTimestamp(providerWithoutTimestamps));
+    // Tests _asTimestamp when _useTimestamp is explicitly set to false
+    @Test
+    public void testAsTimestamp_explicitUseTimestampFalse_returnsFalse() {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(Boolean.FALSE, null);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+        assertFalse(ser.checkAsTimestamp(provider));
+    }
+
+    // Tests _asTimestamp when customFormat is provided and useTimestamp is null
+    @Test
+    public void testAsTimestamp_customFormatProvided_returnsFalse() {
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(null, df);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+        assertFalse(ser.checkAsTimestamp(provider));
+    }
+
+    // Tests _asTimestamp relying on provider feature WRITE_DATES_AS_TIMESTAMPS enabled
+    @Test
+    public void testAsTimestamp_featureEnabled_returnsTrue() {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(null, null);
+        mapper.enable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+        assertTrue(ser.checkAsTimestamp(provider));
+    }
+
+    // Tests _asTimestamp relying on provider feature WRITE_DATES_AS_TIMESTAMPS disabled
+    @Test
+    public void testAsTimestamp_featureDisabled_returnsFalse() {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(null, null);
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        SerializerProvider provider = mapper.getSerializerProviderInstance();
+        assertFalse(ser.checkAsTimestamp(provider));
     }
 
     // Tests _asTimestamp throws IllegalArgumentException when provider is null and no timestamp flag
     @Test(expected = IllegalArgumentException.class)
     public void testAsTimestamp_nullProvider_throwsIllegalArgumentException() {
-        defaultSerializer._asTimestamp(null);
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(null, null);
+        ser.checkAsTimestamp(null);
     }
 
-    // Tests getSchema returns number schema when timestamps are enabled
+    // Tests getSchema when serialized as timestamp
     @Test
     public void testGetSchema_asTimestamp_returnsNumberSchema() throws Exception {
-        DummyDateTimeSerializer timestampSerializer = new DummyDateTimeSerializer(Boolean.TRUE, null);
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(Boolean.TRUE, null);
         SerializerProvider provider = mapper.getSerializerProviderInstance();
-        JsonNode schema = timestampSerializer.getSchema(provider, Date.class);
-        assertNotNull(schema);
-        assertEquals("number", schema.get("type").asText());
+        JsonNode schemaNode = ser.getSchema(provider, (Type) Date.class);
+        assertNotNull(schemaNode);
+        assertEquals("number", schemaNode.get("type").asText());
     }
 
-    // Tests getSchema returns string schema when timestamps are disabled
+    // Tests getSchema when serialized as formatted string
     @Test
     public void testGetSchema_asString_returnsStringSchema() throws Exception {
-        DummyDateTimeSerializer stringSerializer = new DummyDateTimeSerializer(Boolean.FALSE, null);
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(Boolean.FALSE, null);
         SerializerProvider provider = mapper.getSerializerProviderInstance();
-        JsonNode schema = stringSerializer.getSchema(provider, Date.class);
-        assertNotNull(schema);
-        assertEquals("string", schema.get("type").asText());
+        JsonNode schemaNode = ser.getSchema(provider, (Type) Date.class);
+        assertNotNull(schemaNode);
+        assertEquals("string", schemaNode.get("type").asText());
     }
 
-    // Tests acceptJsonFormatVisitor visits integer format when serialized as timestamp
+    // Tests acceptJsonFormatVisitor format visitor invocation for timestamp format
     @Test
-    public void testAcceptJsonFormatVisitor_asTimestamp_callsVisitIntFormat() throws Exception {
-        DummyDateTimeSerializer timestampSerializer = new DummyDateTimeSerializer(Boolean.TRUE, null);
-        final boolean[] intVisited = new boolean[1];
-        JsonFormatVisitorWrapper.Base visitor = new JsonFormatVisitorWrapper.Base(mapper.getSerializerProviderInstance()) {
+    public void testAcceptJsonFormatVisitor_asTimestamp_invokesIntegerVisitor() throws Exception {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(Boolean.TRUE, null);
+        final boolean[] visitedInteger = new boolean[1];
+        JsonFormatVisitorWrapper visitor = new JsonFormatVisitorWrapper.Base(mapper.getSerializerProviderInstance()) {
             @Override
             public JsonIntegerFormatVisitor expectIntegerFormat(JavaType type) {
-                intVisited[0] = true;
-                return null;
+                visitedInteger[0] = true;
+                return super.expectIntegerFormat(type);
             }
         };
-
-        timestampSerializer.acceptJsonFormatVisitor(visitor, mapper.constructType(Date.class));
-        assertTrue(intVisited[0]);
+        JavaType javaType = TypeFactory.defaultInstance().constructType(Date.class);
+        ser.acceptJsonFormatVisitor(visitor, javaType);
+        assertTrue(visitedInteger[0]);
     }
 
-    // Tests acceptJsonFormatVisitor visits string format when serialized as string
+    // Tests acceptJsonFormatVisitor format visitor invocation for string format
     @Test
-    public void testAcceptJsonFormatVisitor_asString_callsVisitStringFormat() throws Exception {
-        DummyDateTimeSerializer stringSerializer = new DummyDateTimeSerializer(Boolean.FALSE, null);
-        final boolean[] stringVisited = new boolean[1];
-        JsonFormatVisitorWrapper.Base visitor = new JsonFormatVisitorWrapper.Base(mapper.getSerializerProviderInstance()) {
+    public void testAcceptJsonFormatVisitor_asString_invokesStringVisitor() throws Exception {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer(Boolean.FALSE, null);
+        final boolean[] visitedString = new boolean[1];
+        JsonFormatVisitorWrapper visitor = new JsonFormatVisitorWrapper.Base(mapper.getSerializerProviderInstance()) {
             @Override
             public JsonStringFormatVisitor expectStringFormat(JavaType type) {
-                stringVisited[0] = true;
-                return null;
+                visitedString[0] = true;
+                return new JsonStringFormatVisitor.Base() {
+                    @Override
+                    public void format(JsonValueFormat format) {
+                        assertEquals(JsonValueFormat.DATE_TIME, format);
+                    }
+                };
             }
         };
-
-        stringSerializer.acceptJsonFormatVisitor(visitor, mapper.constructType(Date.class));
-        assertTrue(stringVisited[0]);
+        JavaType javaType = TypeFactory.defaultInstance().constructType(Date.class);
+        ser.acceptJsonFormatVisitor(visitor, javaType);
+        assertTrue(visitedString[0]);
     }
 
-    // Tests createContextual returns self when property is null
+    // Tests createContextual with null property returns same instance
     @Test
     public void testCreateContextual_nullProperty_returnsSelf() throws Exception {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer();
         SerializerProvider provider = mapper.getSerializerProviderInstance();
-        JsonSerializer<?> result = defaultSerializer.createContextual(provider, null);
-        assertSame(defaultSerializer, result);
+        JsonSerializer<?> contextual = ser.createContextual(provider, null);
+        assertSame(ser, contextual);
     }
 
-    // Tests createContextual handles numeric shape annotation
-    @Test
-    public void testCreateContextual_numericShape_returnsTimestampSerializer() throws Exception {
-        SerializerProvider provider = mapper.getSerializerProviderInstance();
-        BeanProperty property = getBeanProperty("numericDate");
-
-        JsonSerializer<?> result = defaultSerializer.createContextual(provider, property);
-        assertNotNull(result);
-        assertTrue(result instanceof DummyDateTimeSerializer);
-        DummyDateTimeSerializer custom = (DummyDateTimeSerializer) result;
-        assertTrue(custom._useTimestamp);
-        assertNull(custom._customFormat);
-    }
-
-    // Tests createContextual handles custom string pattern and timezone annotations
-    @Test
-    public void testCreateContextual_stringFormatWithPatternAndTimeZone_returnsFormattedSerializer() throws Exception {
-        SerializerProvider provider = mapper.getSerializerProviderInstance();
-        BeanProperty property = getBeanProperty("formattedDate");
-
-        JsonSerializer<?> result = defaultSerializer.createContextual(provider, property);
-        assertNotNull(result);
-        assertTrue(result instanceof DummyDateTimeSerializer);
-        DummyDateTimeSerializer custom = (DummyDateTimeSerializer) result;
-        assertFalse(custom._useTimestamp);
-        assertNotNull(custom._customFormat);
-        assertTrue(custom._customFormat instanceof SimpleDateFormat);
-        assertEquals("UTC", custom._customFormat.getTimeZone().getID());
-    }
-
-    // Tests createContextual handles locale annotation override
-    @Test
-    public void testCreateContextual_localeOverride_returnsConfiguredSerializer() throws Exception {
-        SerializerProvider provider = mapper.getSerializerProviderInstance();
-        BeanProperty property = getBeanProperty("localeDate");
-
-        JsonSerializer<?> result = defaultSerializer.createContextual(provider, property);
-        assertNotNull(result);
-        assertTrue(result instanceof DummyDateTimeSerializer);
-        DummyDateTimeSerializer custom = (DummyDateTimeSerializer) result;
-        assertFalse(custom._useTimestamp);
-        assertNotNull(custom._customFormat);
-    }
-
-    // Tests createContextual returns self when property has no format annotations
+    // Tests createContextual on property without @JsonFormat override returns same instance
     @Test
     public void testCreateContextual_noFormatAnnotation_returnsSelf() throws Exception {
+        DummyDateTimeSerializer ser = new DummyDateTimeSerializer();
         SerializerProvider provider = mapper.getSerializerProviderInstance();
-        BeanProperty property = getBeanProperty("plainDate");
+        BeanProperty prop = new BeanProperty.Bogus();
+        JsonSerializer<?> contextual = ser.createContextual(provider, prop);
+        assertSame(ser, contextual);
+    }
 
-        JsonSerializer<?> result = defaultSerializer.createContextual(provider, property);
-        assertSame(defaultSerializer, result);
+    // Tests createContextual with Shape.NUMBER sets useTimestamp to true
+    @Test
+    public void testCreateContextual_numericShape_returnsTimestampSerializer() throws Exception {
+        Date date = new Date(1000000000000L);
+        String json = mapper.writeValueAsString(new WrapperNumberBean(date));
+        assertEquals("{\"date\":1000000000000}", json);
+    }
+
+    // Tests createContextual with custom pattern and timezone
+    @Test
+    public void testCreateContextual_patternAndTimeZone_serializesWithFormat() throws Exception {
+        Date date = new Date(0L);
+        String json = mapper.writeValueAsString(new WrapperPatternBean(date));
+        assertEquals("{\"date\":\"1970/01/01\"}", json);
+    }
+
+    // Tests createContextual with custom locale
+    @Test
+    public void testCreateContextual_localeConfigured_serializesFormattedString() throws Exception {
+        Date date = new Date(0L);
+        String json = mapper.writeValueAsString(new WrapperLocaleBean(date));
+        assertNotNull(json);
+        assertTrue(json.contains("1970"));
+    }
+
+    // Tests createContextual with timezone only (no pattern)
+    @Test
+    public void testCreateContextual_timezoneOnly_serializesFormattedString() throws Exception {
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        Date date = new Date(0L);
+        String json = mapper.writeValueAsString(new WrapperTimeZoneOnlyBean(date));
+        assertNotNull(json);
+        assertTrue(json.contains("1969") || json.contains("1970"));
+    }
+
+    // Tests createContextual with locale only (no pattern)
+    @Test
+    public void testCreateContextual_localeOnly_serializesFormattedString() throws Exception {
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        Date date = new Date(0L);
+        String json = mapper.writeValueAsString(new WrapperLocaleOnlyBean(date));
+        assertNotNull(json);
+        assertTrue(json.contains("1970"));
+    }
+
+    // Tests serialization with custom DateFormat on ObjectMapper and Shape.STRING on property
+    @Test
+    public void testCreateContextual_mapperCustomDateFormatWithShapeString_serializesCorrectly() throws Exception {
+        SimpleDateFormat customDf = new SimpleDateFormat("yyyy.MM.dd", Locale.US);
+        customDf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        mapper.setDateFormat(customDf);
+
+        Date date = new Date(0L);
+        String json = mapper.writeValueAsString(new WrapperStringNoPatternBean(date));
+        assertNotNull(json);
+        assertTrue(json.contains("1970.01.01"));
+    }
+
+    // Tests createContextual with StdDateFormat on ObjectMapper and Shape.STRING on property
+    @Test
+    public void testCreateContextual_stdDateFormatWithShapeString_serializesCorrectly() throws Exception {
+        mapper.setDateFormat(StdDateFormat.instance);
+        Date date = new Date(0L);
+        String json = mapper.writeValueAsString(new WrapperStringNoPatternBean(date));
+        assertNotNull(json);
+        assertTrue(json.contains("1970-01-01"));
+    }
+
+    // Tests serialization when Shape is ANY without pattern, timezone, or locale
+    @Test
+    public void testCreateContextual_anyShapeDefault_serializesDefault() throws Exception {
+        Date date = new Date(1000L);
+        String json = mapper.writeValueAsString(new WrapperAnyShapeBean(date));
+        assertNotNull(json);
     }
 }

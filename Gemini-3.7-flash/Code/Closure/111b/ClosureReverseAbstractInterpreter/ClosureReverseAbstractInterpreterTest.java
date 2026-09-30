@@ -5,350 +5,345 @@ import static com.google.javascript.rhino.jstype.JSTypeNative.ARRAY_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.BOOLEAN_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.NO_OBJECT_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.NULL_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NULL_VOID;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NUMBER_STRING_BOOLEAN;
 import static com.google.javascript.rhino.jstype.JSTypeNative.NUMBER_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.OBJECT_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.STRING_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.UNKNOWN_TYPE;
 import static com.google.javascript.rhino.jstype.JSTypeNative.VOID_TYPE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 
-import com.google.javascript.jscomp.ClosureCodingConvention;
 import com.google.javascript.jscomp.CodingConvention;
+import com.google.javascript.jscomp.GoogleCodingConvention;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
+import com.google.javascript.rhino.jstype.FunctionType;
 import com.google.javascript.rhino.jstype.JSType;
 import com.google.javascript.rhino.jstype.JSTypeRegistry;
 import com.google.javascript.rhino.jstype.ObjectType;
+
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class ClosureReverseAbstractInterpreterTest {
 
   private JSTypeRegistry registry;
   private CodingConvention convention;
   private ClosureReverseAbstractInterpreter interpreter;
+  private FlowScope blindScope;
 
   @Before
   public void setUp() {
     registry = new JSTypeRegistry(null);
-    convention = new ClosureCodingConvention();
+    convention = new GoogleCodingConvention();
     interpreter = new ClosureReverseAbstractInterpreter(convention, registry);
+    blindScope = new SemanticReverseAbstractInterpreter(convention, registry).getPreciserScopeKnowingConditionOutcome(
+        new Node(Token.TRUE), null, true);
   }
 
-  private Node createCallNode(String methodName, String varName) {
-    Node goog = Node.newString(Token.NAME, "goog");
-    Node prop = Node.newString(Token.STRING, methodName);
-    Node callee = new Node(Token.GETPROP, goog, prop);
-    Node param = Node.newString(Token.NAME, varName);
+  private Node createGoogCall(String fnName, String paramName) {
+    Node callee = new Node(Token.GETPROP, Node.newString(Token.NAME, "goog"), Node.newString(Token.STRING, fnName));
+    Node param = Node.newString(Token.NAME, paramName);
     return new Node(Token.CALL, callee, param);
   }
 
-  // Tests goog.isDef when outcome is true
-  @Test
-  public void testGetPreciserScope_googIsDef_outcomeTrue_removesUndefined() {
-    Node call = createCallNode("isDef", "x");
-    JSType unionType = registry.createUnionType(
-        registry.getNativeType(STRING_TYPE),
-        registry.getNativeType(VOID_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(registry.getNativeType(STRING_TYPE), resultScope.getSlot("x").getType());
+  private FlowScope createScopeWithVar(String name, JSType type) {
+    FlowScope scope = blindScope.createChildFlowScope();
+    scope.inferSlotType(name, type);
+    return scope;
   }
 
-  // Tests goog.isDef when outcome is false
+  // Tests goog.isArray when true outcome
   @Test
-  public void testGetPreciserScope_googIsDef_outcomeFalse_restrictsToUndefined() {
-    Node call = createCallNode("isDef", "x");
-    JSType unionType = registry.createUnionType(
-        registry.getNativeType(STRING_TYPE),
-        registry.getNativeType(VOID_TYPE));
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsArray_trueOutcome() {
+    JSType targetType = registry.getNativeType(OBJECT_TYPE);
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isArray", "x");
 
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
-    assertEquals(registry.getNativeType(VOID_TYPE), resultScope.getSlot("x").getType());
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(ARRAY_TYPE), result.getSlot("x").getType());
   }
 
-  // Tests goog.isNull when outcome is true
+  // Tests goog.isArray when false outcome
   @Test
-  public void testGetPreciserScope_googIsNull_outcomeTrue_restrictsToNull() {
-    Node call = createCallNode("isNull", "x");
-    JSType unionType = registry.createUnionType(
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsArray_falseOutcome() {
+    JSType targetType = registry.getNativeType(ARRAY_TYPE);
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isArray", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
+    assertNotNull(result);
+  }
+
+  // Tests goog.isObject when true outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsObject_trueOutcome() {
+    JSType targetType = registry.getNativeType(ALL_TYPE);
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isObject", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(NO_OBJECT_TYPE), result.getSlot("x").getType());
+  }
+
+  // Tests goog.isObject when false outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsObject_falseOutcome() {
+    JSType targetType = registry.getNativeType(ALL_TYPE);
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isObject", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
+    assertNotNull(result);
+    JSType expected = registry.createUnionType(
+        registry.getNativeType(NUMBER_STRING_BOOLEAN),
+        registry.getNativeType(NULL_VOID));
+    assertEquals(expected, result.getSlot("x").getType());
+  }
+
+  // Tests goog.isDef when true outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsDef_trueOutcome() {
+    JSType targetType = registry.createUnionType(
+        registry.getNativeType(STRING_TYPE),
+        registry.getNativeType(VOID_TYPE));
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isDef", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(STRING_TYPE), result.getSlot("x").getType());
+  }
+
+  // Tests goog.isDef when false outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsDef_falseOutcome() {
+    JSType targetType = registry.createUnionType(
+        registry.getNativeType(STRING_TYPE),
+        registry.getNativeType(VOID_TYPE));
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isDef", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(VOID_TYPE), result.getSlot("x").getType());
+  }
+
+  // Tests goog.isNull when true outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsNull_trueOutcome() {
+    JSType targetType = registry.createUnionType(
         registry.getNativeType(STRING_TYPE),
         registry.getNativeType(NULL_TYPE));
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isNull", "x");
 
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(registry.getNativeType(NULL_TYPE), resultScope.getSlot("x").getType());
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(NULL_TYPE), result.getSlot("x").getType());
   }
 
-  // Tests goog.isNull when outcome is false
+  // Tests goog.isNull when false outcome
   @Test
-  public void testGetPreciserScope_googIsNull_outcomeFalse_removesNull() {
-    Node call = createCallNode("isNull", "x");
-    JSType unionType = registry.createUnionType(
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsNull_falseOutcome() {
+    JSType targetType = registry.createUnionType(
         registry.getNativeType(STRING_TYPE),
         registry.getNativeType(NULL_TYPE));
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isNull", "x");
 
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
-    assertEquals(registry.getNativeType(STRING_TYPE), resultScope.getSlot("x").getType());
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(STRING_TYPE), result.getSlot("x").getType());
   }
 
-  // Tests goog.isDefAndNotNull when outcome is true
+  // Tests goog.isDefAndNotNull when true outcome
   @Test
-  public void testGetPreciserScope_googIsDefAndNotNull_outcomeTrue_removesNullAndUndefined() {
-    Node call = createCallNode("isDefAndNotNull", "x");
-    JSType unionType = registry.createUnionType(
-        registry.getNativeType(STRING_TYPE),
-        registry.getNativeType(NULL_TYPE),
-        registry.getNativeType(VOID_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(registry.getNativeType(STRING_TYPE), resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isDefAndNotNull when outcome is false
-  @Test
-  public void testGetPreciserScope_googIsDefAndNotNull_outcomeFalse_restrictsToNullOrUndefined() {
-    Node call = createCallNode("isDefAndNotNull", "x");
-    JSType unionType = registry.createUnionType(
-        registry.getNativeType(STRING_TYPE),
-        registry.getNativeType(NULL_TYPE),
-        registry.getNativeType(VOID_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
-    JSType expected = registry.createUnionType(
-        registry.getNativeType(NULL_TYPE),
-        registry.getNativeType(VOID_TYPE));
-    assertEquals(expected, resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isString when outcome is true
-  @Test
-  public void testGetPreciserScope_googIsString_outcomeTrue_restrictsToString() {
-    Node call = createCallNode("isString", "x");
-    JSType unionType = registry.createUnionType(
-        registry.getNativeType(STRING_TYPE),
-        registry.getNativeType(NUMBER_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(registry.getNativeType(STRING_TYPE), resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isBoolean when outcome is true
-  @Test
-  public void testGetPreciserScope_googIsBoolean_outcomeTrue_restrictsToBoolean() {
-    Node call = createCallNode("isBoolean", "x");
-    JSType unionType = registry.createUnionType(
-        registry.getNativeType(BOOLEAN_TYPE),
-        registry.getNativeType(NUMBER_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(registry.getNativeType(BOOLEAN_TYPE), resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isNumber when outcome is true
-  @Test
-  public void testGetPreciserScope_googIsNumber_outcomeTrue_restrictsToNumber() {
-    Node call = createCallNode("isNumber", "x");
-    JSType unionType = registry.createUnionType(
-        registry.getNativeType(BOOLEAN_TYPE),
-        registry.getNativeType(NUMBER_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(registry.getNativeType(NUMBER_TYPE), resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isFunction when outcome is true
-  @Test
-  public void testGetPreciserScope_googIsFunction_outcomeTrue_restrictsToFunction() {
-    Node call = createCallNode("isFunction", "x");
-    JSType functionType = registry.createFunctionType(registry.getNativeType(VOID_TYPE));
-    JSType unionType = registry.createUnionType(
-        functionType,
-        registry.getNativeType(STRING_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(functionType, resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isArray when outcome is true
-  @Test
-  public void testGetPreciserScope_googIsArray_outcomeTrue_restrictsToArray() {
-    Node call = createCallNode("isArray", "x");
-    JSType arrayType = registry.getNativeType(ARRAY_TYPE);
-    JSType unionType = registry.createUnionType(
-        arrayType,
-        registry.getNativeType(STRING_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(arrayType, resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isArray when outcome is false
-  @Test
-  public void testGetPreciserScope_googIsArray_outcomeFalse_removesArray() {
-    Node call = createCallNode("isArray", "x");
-    JSType arrayType = registry.getNativeType(ARRAY_TYPE);
-    JSType unionType = registry.createUnionType(
-        arrayType,
-        registry.getNativeType(STRING_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
-    assertEquals(registry.getNativeType(STRING_TYPE), resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isArray with top/all type when outcome is true
-  @Test
-  public void testGetPreciserScope_googIsArray_topTypeOutcomeTrue_returnsTopType() {
-    Node call = createCallNode("isArray", "x");
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", registry.getNativeType(ALL_TYPE));
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(registry.getNativeType(ALL_TYPE), resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isArray when parameter type is null/untyped
-  @Test
-  public void testGetPreciserScope_googIsArray_nullType_infersArray() {
-    Node call = createCallNode("isArray", "x");
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertNotNull(resultScope.getSlot("x"));
-    assertEquals(registry.getNativeType(ARRAY_TYPE), resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isObject when outcome is true
-  @Test
-  public void testGetPreciserScope_googIsObject_outcomeTrue_restrictsToObject() {
-    Node call = createCallNode("isObject", "x");
-    ObjectType objType = registry.getNativeObjectType(OBJECT_TYPE);
-    JSType unionType = registry.createUnionType(
-        objType,
-        registry.getNativeType(NUMBER_TYPE));
-
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", unionType);
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(objType, resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isObject with top type when outcome is true
-  @Test
-  public void testGetPreciserScope_googIsObject_topTypeOutcomeTrue_returnsNoObjectType() {
-    Node call = createCallNode("isObject", "x");
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", registry.getNativeType(ALL_TYPE));
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertEquals(registry.getNativeType(NO_OBJECT_TYPE), resultScope.getSlot("x").getType());
-  }
-
-  // Tests goog.isObject with all type when outcome is false
-  @Test
-  public void testGetPreciserScope_googIsObject_allTypeOutcomeFalse_returnsPrimitiveAndNullVoid() {
-    Node call = createCallNode("isObject", "x");
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", registry.getNativeType(ALL_TYPE));
-
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
-    JSType expected = registry.createUnionType(
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsDefAndNotNull_trueOutcome() {
+    JSType targetType = registry.createUnionType(
         registry.getNativeType(NUMBER_TYPE),
-        registry.getNativeType(STRING_TYPE),
-        registry.getNativeType(BOOLEAN_TYPE),
         registry.getNativeType(NULL_TYPE),
         registry.getNativeType(VOID_TYPE));
-    assertEquals(expected, resultScope.getSlot("x").getType());
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isDefAndNotNull", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(NUMBER_TYPE), result.getSlot("x").getType());
   }
 
-  // Tests goog.isObject when parameter type is null/untyped
+  // Tests goog.isDefAndNotNull when false outcome
   @Test
-  public void testGetPreciserScope_googIsObject_nullType_infersObject() {
-    Node call = createCallNode("isObject", "x");
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsDefAndNotNull_falseOutcome() {
+    JSType targetType = registry.createUnionType(
+        registry.getNativeType(NUMBER_TYPE),
+        registry.getNativeType(NULL_TYPE),
+        registry.getNativeType(VOID_TYPE));
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isDefAndNotNull", "x");
 
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertNotNull(resultScope.getSlot("x"));
-    assertEquals(registry.getNativeType(OBJECT_TYPE), resultScope.getSlot("x").getType());
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(NULL_VOID), result.getSlot("x").getType());
   }
 
-  // Tests non-call node delegates to next interpreter
+  // Tests goog.isString when true outcome
   @Test
-  public void testGetPreciserScope_nonCallNode_delegatesToNext() {
-    Node nameNode = Node.newString(Token.NAME, "x");
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsString_trueOutcome() {
+    JSType targetType = registry.getNativeType(ALL_TYPE);
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isString", "x");
 
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(nameNode, scope, true);
-    assertSame(scope, resultScope);
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(STRING_TYPE), result.getSlot("x").getType());
   }
 
-  // Tests unknown function call does not restrict
+  // Tests goog.isBoolean when true outcome
   @Test
-  public void testGetPreciserScope_unknownFunctionName_returnsBlindScope() {
-    Node call = createCallNode("unknownFunction", "x");
-    FlowScope scope = new LinkedFlowScope.FlowScopeJoinOp(
-        new SemanticReverseAbstractInterpreter(convention, registry).new BlankFlowScope());
-    scope.inferSlotType("x", registry.getNativeType(STRING_TYPE));
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsBoolean_trueOutcome() {
+    JSType targetType = registry.getNativeType(ALL_TYPE);
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isBoolean", "x");
 
-    FlowScope resultScope = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
-    assertSame(scope, resultScope);
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(BOOLEAN_TYPE), result.getSlot("x").getType());
+  }
+
+  // Tests goog.isNumber when true outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsNumber_trueOutcome() {
+    JSType targetType = registry.getNativeType(ALL_TYPE);
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isNumber", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(NUMBER_TYPE), result.getSlot("x").getType());
+  }
+
+  // Tests goog.isFunction when true outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsFunction_trueOutcome() {
+    FlowScope scope = createScopeWithVar("x", registry.getNativeType(ALL_TYPE));
+    Node call = createGoogCall("isFunction", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+    assertTrue(result.getSlot("x").getType().isFunctionType() ||
+               result.getSlot("x").getType().isSubtype(registry.getNativeType(OBJECT_TYPE)));
+  }
+
+  // Tests non-goog call returns unmodified scope from next interpreter
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_nonGoogCall_fallsThrough() {
+    Node callee = new Node(Token.GETPROP, Node.newString(Token.NAME, "other"), Node.newString(Token.STRING, "isDef"));
+    Node param = Node.newString(Token.NAME, "x");
+    Node call = new Node(Token.CALL, callee, param);
+
+    FlowScope scope = createScopeWithVar("x", registry.getNativeType(STRING_TYPE));
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+  }
+
+  // Tests non-call condition node falls through
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_nonCallNode_fallsThrough() {
+    Node condition = Node.newString(Token.NAME, "x");
+    FlowScope scope = createScopeWithVar("x", registry.getNativeType(STRING_TYPE));
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(condition, scope, true);
+    assertNotNull(result);
+  }
+
+  // Tests goog.isString when false outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsString_falseOutcome() {
+    JSType targetType = registry.createUnionType(
+        registry.getNativeType(STRING_TYPE),
+        registry.getNativeType(NUMBER_TYPE));
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isString", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(NUMBER_TYPE), result.getSlot("x").getType());
+  }
+
+  // Tests goog.isBoolean when false outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsBoolean_falseOutcome() {
+    JSType targetType = registry.createUnionType(
+        registry.getNativeType(BOOLEAN_TYPE),
+        registry.getNativeType(NUMBER_TYPE));
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isBoolean", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(NUMBER_TYPE), result.getSlot("x").getType());
+  }
+
+  // Tests goog.isNumber when false outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsNumber_falseOutcome() {
+    JSType targetType = registry.createUnionType(
+        registry.getNativeType(NUMBER_TYPE),
+        registry.getNativeType(STRING_TYPE));
+    FlowScope scope = createScopeWithVar("x", targetType);
+    Node call = createGoogCall("isNumber", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
+    assertNotNull(result);
+    assertEquals(registry.getNativeType(STRING_TYPE), result.getSlot("x").getType());
+  }
+
+  // Tests goog.isFunction when false outcome
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googIsFunction_falseOutcome() {
+    FlowScope scope = createScopeWithVar("x", registry.getNativeType(ALL_TYPE));
+    Node call = createGoogCall("isFunction", "x");
+
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, false);
+    assertNotNull(result);
+  }
+
+  // Tests goog call without arguments
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_googCallNoArgs() {
+    Node callee = new Node(Token.GETPROP, Node.newString(Token.NAME, "goog"), Node.newString(Token.STRING, "isDef"));
+    Node call = new Node(Token.CALL, callee);
+
+    FlowScope scope = createScopeWithVar("x", registry.getNativeType(STRING_TYPE));
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+  }
+
+  // Tests direct call node with simple function name (not GETPROP)
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_simpleCallName() {
+    Node callee = Node.newString(Token.NAME, "isDef");
+    Node param = Node.newString(Token.NAME, "x");
+    Node call = new Node(Token.CALL, callee, param);
+
+    FlowScope scope = createScopeWithVar("x", registry.getNativeType(STRING_TYPE));
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
+  }
+
+  // Tests goog call with qualified name property parameter like a.b
+  @Test
+  public void testGetPreciserScopeKnowingConditionOutcome_qualifiedNameParam() {
+    Node callee = new Node(Token.GETPROP, Node.newString(Token.NAME, "goog"), Node.newString(Token.STRING, "isString"));
+    Node param = new Node(Token.GETPROP, Node.newString(Token.NAME, "a"), Node.newString(Token.STRING, "b"));
+    Node call = new Node(Token.CALL, callee, param);
+
+    FlowScope scope = createScopeWithVar("a.b", registry.getNativeType(ALL_TYPE));
+    FlowScope result = interpreter.getPreciserScopeKnowingConditionOutcome(call, scope, true);
+    assertNotNull(result);
   }
 }

@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,93 +15,100 @@ public class GenericMasterTest {
 
     private GenericMaster genericMaster;
 
-    public String nonGenericString;
-    public int primitiveInt;
-    public List rawList;
-    public List<String> stringList;
-    public Set<Integer> integerSet;
-    public List<GenericMasterTest> customTypeList;
-    public Set<List<String>> nestedGeneric;
-    public Map<Set<String>, Integer> mapNestedKey;
-    public Map<String, List<Integer>> mapSimpleKeyNestedVal;
-    public Comparable<Double> comparableDouble;
+    public static class Container {
+        public String nonGenericField;
+        public int primitiveField;
+        @SuppressWarnings("rawtypes")
+        public List rawListField;
+        public List<String> stringListField;
+        public Set<Integer> integerSetField;
+        public Map<Double, String> mapField;
+        public Collection<Boolean> booleanCollectionField;
+        public Set<List<String>> nestedGenericField;
+        public Map<Set<Integer>, String> nestedMapKeyField;
+        public List<Map<String, Object>> nestedListMapField;
+        public List<Comparable<String>> nestedComparableField;
+    }
 
     @Before
     public void setUp() {
         genericMaster = new GenericMaster();
     }
 
-    private Field getField(String fieldName) throws NoSuchFieldException {
-        return getClass().getField(fieldName);
-    }
-
-    // Tests non-generic reference type field
+    // Tests non-generic Object field returns Object.class
     @Test
-    public void testGetGenericType_nonGenericField_returnsObjectClass() throws NoSuchFieldException {
-        Field field = getField("nonGenericString");
+    public void testGetGenericType_nonGenericField_returnsObjectClass() throws Exception {
+        Field field = Container.class.getField("nonGenericField");
         assertEquals(Object.class, genericMaster.getGenericType(field));
     }
 
-    // Tests primitive type field
+    // Tests primitive field returns Object.class
     @Test
-    public void testGetGenericType_primitiveField_returnsObjectClass() throws NoSuchFieldException {
-        Field field = getField("primitiveInt");
+    public void testGetGenericType_primitiveField_returnsObjectClass() throws Exception {
+        Field field = Container.class.getField("primitiveField");
         assertEquals(Object.class, genericMaster.getGenericType(field));
     }
 
-    // Tests raw type field without generics
+    // Tests raw type generic field returns Object.class
     @Test
-    public void testGetGenericType_rawTypeField_returnsObjectClass() throws NoSuchFieldException {
-        Field field = getField("rawList");
+    public void testGetGenericType_rawTypeField_returnsObjectClass() throws Exception {
+        Field field = Container.class.getField("rawListField");
         assertEquals(Object.class, genericMaster.getGenericType(field));
     }
 
-    // Tests simple parameterized generic list
+    // Tests single parameterized generic field with String
     @Test
-    public void testGetGenericType_simpleGenericList_returnsTypeArgument() throws NoSuchFieldException {
-        Field field = getField("stringList");
+    public void testGetGenericType_stringListField_returnsStringClass() throws Exception {
+        Field field = Container.class.getField("stringListField");
         assertEquals(String.class, genericMaster.getGenericType(field));
     }
 
-    // Tests simple parameterized generic set
+    // Tests single parameterized generic field with Integer
     @Test
-    public void testGetGenericType_simpleGenericSet_returnsTypeArgument() throws NoSuchFieldException {
-        Field field = getField("integerSet");
+    public void testGetGenericType_integerSetField_returnsIntegerClass() throws Exception {
+        Field field = Container.class.getField("integerSetField");
         assertEquals(Integer.class, genericMaster.getGenericType(field));
     }
 
-    // Tests generic field with custom class parameter
+    // Tests single parameterized generic field with Boolean
     @Test
-    public void testGetGenericType_customTypeGeneric_returnsCustomClass() throws NoSuchFieldException {
-        Field field = getField("customTypeList");
-        assertEquals(GenericMasterTest.class, genericMaster.getGenericType(field));
+    public void testGetGenericType_booleanCollectionField_returnsBooleanClass() throws Exception {
+        Field field = Container.class.getField("booleanCollectionField");
+        assertEquals(Boolean.class, genericMaster.getGenericType(field));
     }
 
-    // Tests parameterized generic interface
+    // Tests multi-parameter generic field returns first type argument
     @Test
-    public void testGetGenericType_genericInterface_returnsTypeArgument() throws NoSuchFieldException {
-        Field field = getField("comparableDouble");
+    public void testGetGenericType_mapField_returnsFirstTypeArgument() throws Exception {
+        Field field = Container.class.getField("mapField");
         assertEquals(Double.class, genericMaster.getGenericType(field));
     }
 
-    // Tests nested generic parameterized type
+    // Tests nested generic type field returns raw type of inner generic
     @Test
-    public void testGetGenericType_nestedGenericCollection_returnsRawType() throws NoSuchFieldException {
-        Field field = getField("nestedGeneric");
+    public void testGetGenericType_nestedGenericField_returnsRawTypeOfInnerGeneric() throws Exception {
+        Field field = Container.class.getField("nestedGenericField");
         assertEquals(List.class, genericMaster.getGenericType(field));
     }
 
-    // Tests nested generic in first type argument of map
+    // Tests nested generic map key field returns raw type of inner generic
     @Test
-    public void testGetGenericType_nestedGenericMapKey_returnsRawType() throws NoSuchFieldException {
-        Field field = getField("mapNestedKey");
+    public void testGetGenericType_nestedMapKeyField_returnsRawTypeOfInnerGeneric() throws Exception {
+        Field field = Container.class.getField("nestedMapKeyField");
         assertEquals(Set.class, genericMaster.getGenericType(field));
     }
 
-    // Tests map with simple key and nested generic value
+    // Tests nested generic list map field returns raw type of inner generic
     @Test
-    public void testGetGenericType_mapSimpleKey_returnsFirstTypeArgument() throws NoSuchFieldException {
-        Field field = getField("mapSimpleKeyNestedVal");
-        assertEquals(String.class, genericMaster.getGenericType(field));
+    public void testGetGenericType_nestedListMapField_returnsRawTypeOfInnerGeneric() throws Exception {
+        Field field = Container.class.getField("nestedListMapField");
+        assertEquals(Map.class, genericMaster.getGenericType(field));
+    }
+
+    // Tests nested generic interface field returns raw type of inner generic
+    @Test
+    public void testGetGenericType_nestedComparableField_returnsRawTypeOfInnerGeneric() throws Exception {
+        Field field = Container.class.getField("nestedComparableField");
+        assertEquals(Comparable.class, genericMaster.getGenericType(field));
     }
 }

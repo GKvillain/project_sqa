@@ -5,29 +5,86 @@ import static org.junit.Assert.*;
 
 public class TokeniserTest {
 
-    // Tests reading simple text tokens
+    // Tests reading simple character data
     @Test
-    public void testRead_plainText_returnsCharacterTokens() {
-        CharacterReader reader = new CharacterReader("Hello world");
+    public void testRead_simpleCharacterData_emitsCharacterTokens() {
+        CharacterReader reader = new CharacterReader("hello");
         Tokeniser tokeniser = new Tokeniser(reader);
         Token token = tokeniser.read();
         assertEquals(Token.TokenType.Character, token.type);
-        assertEquals("Hello world", ((Token.Character) token).getData());
+        assertEquals("hello", ((Token.Character) token).getData());
     }
 
-    // Tests consuming hex character references
+    // Tests reading tag tokens
     @Test
-    public void testConsumeCharacterReference_hexNumber_returnsDecodedChar() {
-        CharacterReader reader = new CharacterReader("#x41;");
+    public void testRead_startAndEndTag_emitsTagsCorrectly() {
+        CharacterReader reader = new CharacterReader("<p>text</p>");
+        Tokeniser tokeniser = new Tokeniser(reader);
+
+        Token t1 = tokeniser.read();
+        assertEquals(Token.TokenType.StartTag, t1.type);
+        assertEquals("p", ((Token.StartTag) t1).name());
+
+        Token t2 = tokeniser.read();
+        assertEquals(Token.TokenType.Character, t2.type);
+        assertEquals("text", ((Token.Character) t2).getData());
+
+        Token t3 = tokeniser.read();
+        assertEquals(Token.TokenType.EndTag, t3.type);
+        assertEquals("p", ((Token.EndTag) t3).name());
+
+        Token t4 = tokeniser.read();
+        assertEquals(Token.TokenType.EOF, t4.type);
+    }
+
+    // Tests reading a comment token
+    @Test
+    public void testRead_comment_emitsCommentToken() {
+        CharacterReader reader = new CharacterReader("<!-- a comment -->");
+        Tokeniser tokeniser = new Tokeniser(reader);
+        Token token = tokeniser.read();
+        assertEquals(Token.TokenType.Comment, token.type);
+        assertEquals(" a comment ", ((Token.Comment) token).getData());
+    }
+
+    // Tests reading a doctype token
+    @Test
+    public void testRead_doctype_emitsDoctypeToken() {
+        CharacterReader reader = new CharacterReader("<!DOCTYPE html>");
+        Tokeniser tokeniser = new Tokeniser(reader);
+        Token token = tokeniser.read();
+        assertEquals(Token.TokenType.Doctype, token.type);
+        assertEquals("html", ((Token.Doctype) token).getName());
+    }
+
+    // Tests state transitions and getters
+    @Test
+    public void testTransition_stateChange_updatesState() {
+        CharacterReader reader = new CharacterReader("test");
+        Tokeniser tokeniser = new Tokeniser(reader);
+        assertEquals(TokeniserState.Data, tokeniser.getState());
+
+        tokeniser.transition(TokeniserState.TagOpen);
+        assertEquals(TokeniserState.TagOpen, tokeniser.getState());
+
+        tokeniser.advanceTransition(TokeniserState.TagName);
+        assertEquals(TokeniserState.TagName, tokeniser.getState());
+        assertEquals('e', reader.current());
+    }
+
+    // Tests consume named character reference
+    @Test
+    public void testConsumeCharacterReference_namedEntity_returnsCharacter() {
+        CharacterReader reader = new CharacterReader("amp;");
         Tokeniser tokeniser = new Tokeniser(reader);
         Character c = tokeniser.consumeCharacterReference(null, false);
         assertNotNull(c);
-        assertEquals(Character.valueOf('A'), c);
+        assertEquals(Character.valueOf('&'), c);
     }
 
-    // Tests consuming decimal character references
+    // Tests consume decimal character reference
     @Test
-    public void testConsumeCharacterReference_decNumber_returnsDecodedChar() {
+    public void testConsumeCharacterReference_decimalEntity_returnsCharacter() {
         CharacterReader reader = new CharacterReader("#65;");
         Tokeniser tokeniser = new Tokeniser(reader);
         Character c = tokeniser.consumeCharacterReference(null, false);
@@ -35,17 +92,26 @@ public class TokeniserTest {
         assertEquals(Character.valueOf('A'), c);
     }
 
-    // Tests consuming hex character references without semi-colon
+    // Tests consume hex character reference
     @Test
-    public void testConsumeCharacterReference_hexNumberWithoutSemi_returnsDecodedChar() {
-        CharacterReader reader = new CharacterReader("#x41");
+    public void testConsumeCharacterReference_hexEntity_returnsCharacter() {
+        CharacterReader reader = new CharacterReader("#x42;");
         Tokeniser tokeniser = new Tokeniser(reader);
         Character c = tokeniser.consumeCharacterReference(null, false);
         assertNotNull(c);
-        assertEquals(Character.valueOf('A'), c);
+        assertEquals(Character.valueOf('B'), c);
     }
 
-    // Tests consuming character reference with empty input
+    // Tests consume character reference with invalid prefix
+    @Test
+    public void testConsumeCharacterReference_invalidEntity_returnsNull() {
+        CharacterReader reader = new CharacterReader("#xyz;");
+        Tokeniser tokeniser = new Tokeniser(reader);
+        Character c = tokeniser.consumeCharacterReference(null, false);
+        assertNull(c);
+    }
+
+    // Tests consume character reference on empty reader
     @Test
     public void testConsumeCharacterReference_emptyReader_returnsNull() {
         CharacterReader reader = new CharacterReader("");
@@ -54,56 +120,27 @@ public class TokeniserTest {
         assertNull(c);
     }
 
-    // Tests consuming character reference when next char is additionalAllowedCharacter
+    // Tests consume character reference matching additional allowed character
     @Test
-    public void testConsumeCharacterReference_additionalAllowedCharMatch_returnsNull() {
-        CharacterReader reader = new CharacterReader("=");
+    public void testConsumeCharacterReference_additionalAllowedChar_returnsNull() {
+        CharacterReader reader = new CharacterReader("\"");
         Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference('=', false);
+        Character c = tokeniser.consumeCharacterReference('\"', true);
         assertNull(c);
     }
 
-    // Tests consuming character reference with invalid prefix characters
+    // Tests consume character reference in attribute followed by equal sign
     @Test
-    public void testConsumeCharacterReference_invalidPrefix_returnsNull() {
-        CharacterReader reader = new CharacterReader("\t");
+    public void testConsumeCharacterReference_inAttributeWithEquals_returnsNull() {
+        CharacterReader reader = new CharacterReader("notanentity=123");
         Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, false);
+        Character c = tokeniser.consumeCharacterReference(null, true);
         assertNull(c);
     }
 
-    // Tests consuming named character reference like &lt;
+    // Tests consume out-of-range character reference returning replacement character
     @Test
-    public void testConsumeCharacterReference_namedEntity_returnsDecodedChar() {
-        CharacterReader reader = new CharacterReader("lt;");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, false);
-        assertNotNull(c);
-        assertEquals(Character.valueOf('<'), c);
-    }
-
-    // Tests consuming named character reference without semicolon
-    @Test
-    public void testConsumeCharacterReference_namedEntityWithoutSemi_returnsDecodedChar() {
-        CharacterReader reader = new CharacterReader("gt");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, false);
-        assertNotNull(c);
-        assertEquals(Character.valueOf('>'), c);
-    }
-
-    // Tests consuming invalid named entity
-    @Test
-    public void testConsumeCharacterReference_invalidNamedEntity_returnsNull() {
-        CharacterReader reader = new CharacterReader("invalidentityname;");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, false);
-        assertNull(c);
-    }
-
-    // Tests numeric character reference out of valid unicode range
-    @Test
-    public void testConsumeCharacterReference_invalidCodePoint_returnsReplacementChar() {
+    public void testConsumeCharacterReference_outOfRangeCodePoint_returnsReplacementChar() {
         CharacterReader reader = new CharacterReader("#xD800;");
         Tokeniser tokeniser = new Tokeniser(reader);
         Character c = tokeniser.consumeCharacterReference(null, false);
@@ -111,220 +148,140 @@ public class TokeniserTest {
         assertEquals(Character.valueOf(Tokeniser.replacementChar), c);
     }
 
-    // Tests numeric character reference with no digits
+    // Tests tag pending creation and appropriate end tag check
     @Test
-    public void testConsumeCharacterReference_noDigits_returnsNull() {
-        CharacterReader reader = new CharacterReader("#;");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, false);
-        assertNull(c);
-    }
-
-    // Tests creating and emitting start tag pending
-    @Test
-    public void testEmitTagPending_startTag_emitsCorrectToken() {
-        CharacterReader reader = new CharacterReader("");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Token.Tag tag = tokeniser.createTagPending(true);
-        tag.name("div");
-        tokeniser.emitTagPending();
-
-        Token token = tokeniser.read();
-        assertEquals(Token.TokenType.StartTag, token.type);
-        assertEquals("div", ((Token.StartTag) token).name());
-    }
-
-    // Tests appropriate end tag comparison
-    @Test
-    public void testIsAppropriateEndTagToken_matchingTag_returnsTrue() {
+    public void testIsAppropriateEndTagToken_matchingAndMismatchedTags_returnsExpected() {
         CharacterReader reader = new CharacterReader("");
         Tokeniser tokeniser = new Tokeniser(reader);
 
         Token.Tag startTag = tokeniser.createTagPending(true);
-        startTag.name("script");
+        startTag.name("div");
         tokeniser.emitTagPending();
 
         Token.Tag endTag = tokeniser.createTagPending(false);
-        endTag.name("script");
-
+        endTag.name("div");
         assertTrue(tokeniser.isAppropriateEndTagToken());
-    }
 
-    // Tests appropriate end tag comparison when mismatched
-    @Test
-    public void testIsAppropriateEndTagToken_mismatchedTag_returnsFalse() {
-        CharacterReader reader = new CharacterReader("");
-        Tokeniser tokeniser = new Tokeniser(reader);
-
-        Token.Tag startTag = tokeniser.createTagPending(true);
-        startTag.name("title");
-        tokeniser.emitTagPending();
-
-        Token.Tag endTag = tokeniser.createTagPending(false);
-        endTag.name("style");
-
+        endTag.name("span");
         assertFalse(tokeniser.isAppropriateEndTagToken());
     }
 
-    // Tests creating and emitting comment token
+    // Tests acknowledge self closing flag
     @Test
-    public void testEmitCommentPending_validComment_emitsCommentToken() {
+    public void testAcknowledgeSelfClosingFlag_unacknowledgedFlag_resetsState() {
+        CharacterReader reader = new CharacterReader("<img />");
+        Tokeniser tokeniser = new Tokeniser(reader);
+        Token token = tokeniser.read();
+        assertEquals(Token.TokenType.StartTag, token.type);
+        assertTrue(((Token.StartTag) token).isSelfClosing());
+
+        tokeniser.acknowledgeSelfClosingFlag();
+        Token nextToken = tokeniser.read();
+        assertEquals(Token.TokenType.EOF, nextToken.type);
+    }
+
+    // Tests error tracking flag
+    @Test
+    public void testTrackErrors_toggleFlag_updatesTrackErrors() {
         CharacterReader reader = new CharacterReader("");
         Tokeniser tokeniser = new Tokeniser(reader);
-        tokeniser.createCommentPending();
-        tokeniser.commentPending.data.append("test comment");
-        tokeniser.emitCommentPending();
+        assertTrue(tokeniser.isTrackErrors());
 
-        Token token = tokeniser.read();
-        assertEquals(Token.TokenType.Comment, token.type);
-        assertEquals("test comment", ((Token.Comment) token).getData());
+        tokeniser.setTrackErrors(false);
+        assertFalse(tokeniser.isTrackErrors());
+
+        tokeniser.error(TokeniserState.Data);
+        tokeniser.eofError(TokeniserState.Data);
     }
 
-    // Tests creating and emitting doctype token
+    // Tests temp data buffer creation and html namespace check
     @Test
-    public void testEmitDoctypePending_validDoctype_emitsDoctypeToken() {
+    public void testCreateTempBufferAndCurrentNodeInHtmlNS_basic_success() {
         CharacterReader reader = new CharacterReader("");
         Tokeniser tokeniser = new Tokeniser(reader);
-        tokeniser.createDoctypePending();
-        tokeniser.doctypePending.name.append("html");
-        tokeniser.emitDoctypePending();
 
-        Token token = tokeniser.read();
-        assertEquals(Token.TokenType.Doctype, token.type);
-        assertEquals("html", ((Token.Doctype) token).getName());
+        tokeniser.createTempBuffer();
+        assertNotNull(tokeniser.dataBuffer);
+        assertTrue(tokeniser.currentNodeInHtmlNS());
     }
 
-    // Tests state transition
-    @Test
-    public void testTransition_validState_changesState() {
-        CharacterReader reader = new CharacterReader("test");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        assertEquals(TokeniserState.Data, tokeniser.getState());
-        tokeniser.transition(TokeniserState.TagOpen);
-        assertEquals(TokeniserState.TagOpen, tokeniser.getState());
-    }
-
-    // Tests advance transition
-    @Test
-    public void testAdvanceTransition_validState_advancesReaderAndChangesState() {
-        CharacterReader reader = new CharacterReader("abc");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        tokeniser.advanceTransition(TokeniserState.TagOpen);
-        assertEquals(TokeniserState.TagOpen, tokeniser.getState());
-        assertEquals('b', reader.current());
-    }
-
-    // Tests exception when emitting multiple pending tokens without reading
+    // Tests emitPending conflict throwing exception
     @Test(expected = IllegalArgumentException.class)
     public void testEmit_duplicatePendingToken_throwsException() {
         CharacterReader reader = new CharacterReader("");
         Tokeniser tokeniser = new Tokeniser(reader);
-        Token.StartTag tag1 = new Token.StartTag();
-        tag1.name("div");
-        Token.StartTag tag2 = new Token.StartTag();
-        tag2.name("p");
-
-        tokeniser.emit(tag1);
-        tokeniser.emit(tag2);
+        tokeniser.emit(new Token.Character("a"));
+        tokeniser.emit(new Token.Character("b"));
     }
 
-    // Tests consuming uppercase hex character references
+    // Tests emit overloads (String, char[], char, int[])
     @Test
-    public void testConsumeCharacterReference_uppercaseHex_returnsDecodedChar() {
-        CharacterReader reader = new CharacterReader("#X41;");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, false);
-        assertNotNull(c);
-        assertEquals(Character.valueOf('A'), c);
-    }
-
-    // Tests consuming windows-1252 specific character reference mapping
-    @Test
-    public void testConsumeCharacterReference_win1252Entity_returnsMappedChar() {
-        CharacterReader reader = new CharacterReader("#x80;");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, false);
-        assertNotNull(c);
-        assertEquals(Character.valueOf('\u20AC'), c);
-    }
-
-    // Tests consuming null character reference (0x00) maps to replacement character
-    @Test
-    public void testConsumeCharacterReference_zeroCodePoint_returnsReplacementChar() {
-        CharacterReader reader = new CharacterReader("#x00;");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, false);
-        assertNotNull(c);
-        assertEquals(Character.valueOf(Tokeniser.replacementChar), c);
-    }
-
-    // Tests consuming character reference beyond 0x10FFFF
-    @Test
-    public void testConsumeCharacterReference_aboveMaxCodePoint_returnsReplacementChar() {
-        CharacterReader reader = new CharacterReader("#x110000;");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, false);
-        assertNotNull(c);
-        assertEquals(Character.valueOf(Tokeniser.replacementChar), c);
-    }
-
-    // Tests named entity in attribute when followed by '=' or alphanumeric without semicolon
-    @Test
-    public void testConsumeCharacterReference_inAttributeFollowedByEquals_returnsNullAndRewinds() {
-        CharacterReader reader = new CharacterReader("amp=123");
-        Tokeniser tokeniser = new Tokeniser(reader);
-        Character c = tokeniser.consumeCharacterReference(null, true);
-        assertNull(c);
-        assertEquals('a', reader.current());
-    }
-
-    // Tests emitting string tokens directly
-    @Test
-    public void testEmit_string_emitsCharacterToken() {
+    public void testEmit_variousTypes_emitsCharactersCorrectly() {
         CharacterReader reader = new CharacterReader("");
         Tokeniser tokeniser = new Tokeniser(reader);
-        tokeniser.emit("sample string");
-        Token token = tokeniser.read();
-        assertEquals(Token.TokenType.Character, token.type);
-        assertEquals("sample string", ((Token.Character) token).getData());
-    }
 
-    // Tests emitting single character
-    @Test
-    public void testEmit_char_emitsCharacterToken() {
-        CharacterReader reader = new CharacterReader("");
-        Tokeniser tokeniser = new Tokeniser(reader);
+        tokeniser.emit("sample");
+        Token token1 = tokeniser.read();
+        assertEquals(Token.TokenType.Character, token1.type);
+        assertEquals("sample", ((Token.Character) token1).getData());
+
+        tokeniser.emit(new char[]{'a', 'b', 'c'});
+        Token token2 = tokeniser.read();
+        assertEquals(Token.TokenType.Character, token2.type);
+        assertEquals("abc", ((Token.Character) token2).getData());
+
         tokeniser.emit('z');
-        Token token = tokeniser.read();
-        assertEquals(Token.TokenType.Character, token.type);
-        assertEquals("z", ((Token.Character) token).getData());
+        Token token3 = tokeniser.read();
+        assertEquals(Token.TokenType.Character, token3.type);
+        assertEquals("z", ((Token.Character) token3).getData());
+
+        tokeniser.emit(new int[]{0x1F600});
+        Token token4 = tokeniser.read();
+        assertEquals(Token.TokenType.Character, token4.type);
+        assertEquals(new String(Character.toChars(0x1F600)), ((Token.Character) token4).getData());
     }
 
-    // Tests emitting char array
+    // Tests createCommentPending and emitCommentPending
     @Test
-    public void testEmit_charArray_emitsCharacterToken() {
+    public void testCommentPending_lifecycle_createsAndEmitsComment() {
         CharacterReader reader = new CharacterReader("");
         Tokeniser tokeniser = new Tokeniser(reader);
-        tokeniser.emit(new char[]{'f', 'o', 'o'});
+
+        tokeniser.createCommentPending();
+        tokeniser.commentPending.append("manual comment");
+        tokeniser.emitCommentPending();
+
         Token token = tokeniser.read();
-        assertEquals(Token.TokenType.Character, token.type);
-        assertEquals("foo", ((Token.Character) token).getData());
+        assertEquals(Token.TokenType.Comment, token.type);
+        assertEquals("manual comment", ((Token.Comment) token).getData());
     }
 
-    // Tests reading until EOF token
+    // Tests createDoctypePending and emitDoctypePending
     @Test
-    public void testRead_emptyReader_returnsEOFToken() {
+    public void testDoctypePending_lifecycle_createsAndEmitsDoctype() {
         CharacterReader reader = new CharacterReader("");
         Tokeniser tokeniser = new Tokeniser(reader);
+
+        tokeniser.createDoctypePending();
+        tokeniser.doctypePending.name.append("html");
+        tokeniser.doctypePending.forceQuirks = true;
+        tokeniser.emitDoctypePending();
+
         Token token = tokeniser.read();
-        assertEquals(Token.TokenType.EOF, token.type);
+        assertEquals(Token.TokenType.Doctype, token.type);
+        Token.Doctype doctype = (Token.Doctype) token;
+        assertEquals("html", doctype.getName());
+        assertTrue(doctype.isForceQuirks());
     }
 
     // Tests appropriateEndTagName method
     @Test
-    public void testAppropriateEndTagName_afterStartTag_returnsTagName() {
+    public void testAppropriateEndTagName_withAndWithoutLastStartTag_returnsCorrectName() {
         CharacterReader reader = new CharacterReader("");
         Tokeniser tokeniser = new Tokeniser(reader);
+
+        assertNull(tokeniser.appropriateEndTagName());
+
         Token.Tag startTag = tokeniser.createTagPending(true);
         startTag.name("textarea");
         tokeniser.emitTagPending();
@@ -332,32 +289,65 @@ public class TokeniserTest {
         assertEquals("textarea", tokeniser.appropriateEndTagName());
     }
 
-    // Tests isAppropriateEndTagToken when lastStartTag is null
+    // Tests consume windows-1252 character reference mapping
     @Test
-    public void testIsAppropriateEndTagToken_nullLastStartTag_returnsFalse() {
-        CharacterReader reader = new CharacterReader("");
+    public void testConsumeCharacterReference_windows1252Entity_mapsCorrectly() {
+        CharacterReader reader = new CharacterReader("#x80;");
         Tokeniser tokeniser = new Tokeniser(reader);
-        tokeniser.createTagPending(false).name("div");
-        assertFalse(tokeniser.isAppropriateEndTagToken());
+        Character c = tokeniser.consumeCharacterReference(null, false);
+        assertNotNull(c);
+        assertEquals(Character.valueOf('\u20AC'), c);
     }
 
-    // Tests createTempBuffer and currentNodeInHtmlNS
+    // Tests consume numeric character reference without closing semicolon
     @Test
-    public void testCreateTempBufferAndCurrentNodeInHtmlNS() {
-        CharacterReader reader = new CharacterReader("");
+    public void testConsumeCharacterReference_missingSemicolon_tracksErrorAndConsumes() {
+        CharacterReader reader = new CharacterReader("#65 ");
         Tokeniser tokeniser = new Tokeniser(reader);
-        tokeniser.createTempBuffer();
-        assertNotNull(tokeniser.dataBuffer);
-        assertTrue(tokeniser.currentNodeInHtmlNS());
+        Character c = tokeniser.consumeCharacterReference(null, false);
+        assertNotNull(c);
+        assertEquals(Character.valueOf('A'), c);
     }
 
-    // Tests error logging methods execution without exceptions
+    // Tests consume numeric character reference with code point > 0x10FFFF
     @Test
-    public void testErrorMethods_executeWithoutException() {
+    public void testConsumeCharacterReference_excessiveCodePoint_returnsReplacementChar() {
+        CharacterReader reader = new CharacterReader("#x110000;");
+        Tokeniser tokeniser = new Tokeniser(reader);
+        Character c = tokeniser.consumeCharacterReference(null, false);
+        assertNotNull(c);
+        assertEquals(Character.valueOf(Tokeniser.replacementChar), c);
+    }
+
+    // Tests unacknowledged self-closing tag emits error on next read
+    @Test
+    public void testRead_unacknowledgedSelfClosingFlag_emitsErrorOnNextRead() {
+        CharacterReader reader = new CharacterReader("<div/><span></span>");
+        Tokeniser tokeniser = new Tokeniser(reader);
+        Token t1 = tokeniser.read();
+        assertEquals(Token.TokenType.StartTag, t1.type);
+        assertTrue(((Token.StartTag) t1).isSelfClosing());
+
+        // Read next token without acknowledging self closing flag
+        Token t2 = tokeniser.read();
+        assertEquals(Token.TokenType.StartTag, t2.type);
+        assertEquals("span", ((Token.StartTag) t2).name());
+    }
+
+    // Tests custom error and character reference error methods
+    @Test
+    public void testCustomErrors_explicitCalls_invokesWithoutException() {
         CharacterReader reader = new CharacterReader("");
         Tokeniser tokeniser = new Tokeniser(reader);
-        tokeniser.error(TokeniserState.Data);
         tokeniser.error("custom error message");
-        tokeniser.eofError(TokeniserState.TagOpen);
+        tokeniser.characterReferenceError("character ref error message");
+    }
+
+    // Tests appropriateEndTagToken check when tagPending is null
+    @Test
+    public void testIsAppropriateEndTagToken_nullTagPending_returnsFalse() {
+        CharacterReader reader = new CharacterReader("");
+        Tokeniser tokeniser = new Tokeniser(reader);
+        assertFalse(tokeniser.isAppropriateEndTagToken());
     }
 }

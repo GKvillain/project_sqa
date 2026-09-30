@@ -6,7 +6,6 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import static org.junit.Assert.*;
 
@@ -14,250 +13,230 @@ public class MapTypeTest {
 
     private JavaType stringType;
     private JavaType integerType;
-    private JavaType booleanType;
-    private MapType baseMapType;
+    private JavaType objectType;
+    private MapType mapType;
 
     @Before
     public void setUp() {
-        TypeFactory tf = TypeFactory.defaultInstance();
-        stringType = tf.constructType(String.class);
-        integerType = tf.constructType(Integer.class);
-        booleanType = tf.constructType(Boolean.class);
-        baseMapType = MapType.construct(HashMap.class, TypeBindings.emptyBindings(), null, null, stringType, integerType);
+        stringType = SimpleType.constructUnsafe(String.class);
+        integerType = SimpleType.constructUnsafe(Integer.class);
+        objectType = SimpleType.constructUnsafe(Object.class);
+        mapType = MapType.construct(Map.class, stringType, integerType);
     }
 
-    // Tests MapType construction with full arguments
+    // Tests 3-argument construct method
     @Test
-    public void testConstruct_withFullParameters_createsValidInstance() {
+    public void testConstruct_threeArgs_createsValidMapType() {
+        MapType type = MapType.construct(Map.class, stringType, integerType);
+        assertNotNull(type);
+        assertEquals(Map.class, type.getRawClass());
+        assertEquals(stringType, type.getKeyType());
+        assertEquals(integerType, type.getContentType());
+        assertFalse(type.useStaticType());
+    }
+
+    // Tests 6-argument construct method
+    @Test
+    public void testConstruct_sixArgs_createsValidMapType() {
         TypeBindings bindings = TypeBindings.create(Map.class, new JavaType[]{stringType, integerType});
-        MapType mapType = MapType.construct(Map.class, bindings, null, null, stringType, integerType);
-
-        assertNotNull(mapType);
-        assertEquals(Map.class, mapType.getRawClass());
-        assertEquals(stringType, mapType.getKeyType());
-        assertEquals(integerType, mapType.getContentType());
-        assertFalse(mapType.useStaticType());
+        MapType type = MapType.construct(Map.class, bindings, objectType, null, stringType, integerType);
+        assertNotNull(type);
+        assertEquals(Map.class, type.getRawClass());
+        assertEquals(stringType, type.getKeyType());
+        assertEquals(integerType, type.getContentType());
+        assertEquals(objectType, type.getSuperClass());
+        assertEquals(bindings, type.getBindings());
     }
 
-    // Tests deprecated MapType construct method
-    @SuppressWarnings("deprecation")
+    // Tests withTypeHandler method
     @Test
-    public void testConstruct_deprecatedMethod_createsValidInstance() {
-        MapType mapType = MapType.construct(HashMap.class, stringType, integerType);
+    public void testWithTypeHandler_validHandler_setsTypeHandler() {
+        Object handler = "customTypeHandler";
+        MapType result = mapType.withTypeHandler(handler);
 
-        assertNotNull(mapType);
-        assertEquals(HashMap.class, mapType.getRawClass());
-        assertEquals(stringType, mapType.getKeyType());
-        assertEquals(integerType, mapType.getContentType());
-    }
-
-    // Tests setting type handler on the MapType
-    @Test
-    public void testWithTypeHandler_customHandler_returnsNewInstanceWithHandler() {
-        String handler = "customTypeHandler";
-        MapType result = baseMapType.withTypeHandler(handler);
-
-        assertNotSame(baseMapType, result);
+        assertNotSame(mapType, result);
         assertEquals(handler, result.getTypeHandler());
-        assertNull(baseMapType.getTypeHandler());
+        assertEquals(mapType.getKeyType(), result.getKeyType());
+        assertEquals(mapType.getContentType(), result.getContentType());
     }
 
-    // Tests setting content type handler on the value type
+    // Tests withContentTypeHandler method
     @Test
-    public void testWithContentTypeHandler_customHandler_setsHandlerOnValueType() {
-        String handler = "customContentTypeHandler";
-        MapType result = baseMapType.withContentTypeHandler(handler);
+    public void testWithContentTypeHandler_validHandler_setsContentTypeHandler() {
+        Object handler = "customContentTypeHandler";
+        MapType result = mapType.withContentTypeHandler(handler);
 
-        assertNotSame(baseMapType, result);
+        assertNotSame(mapType, result);
         assertEquals(handler, result.getContentType().getTypeHandler());
-        assertNull(baseMapType.getContentType().getTypeHandler());
     }
 
-    // Tests setting value handler on the MapType
+    // Tests withValueHandler method
     @Test
-    public void testWithValueHandler_customHandler_returnsNewInstanceWithValueHandler() {
-        String handler = "customValueHandler";
-        MapType result = baseMapType.withValueHandler(handler);
+    public void testWithValueHandler_validHandler_setsValueHandler() {
+        Object handler = "customValueHandler";
+        MapType result = mapType.withValueHandler(handler);
 
-        assertNotSame(baseMapType, result);
+        assertNotSame(mapType, result);
         assertEquals(handler, result.getValueHandler());
-        assertNull(baseMapType.getValueHandler());
     }
 
-    // Tests setting content value handler on the value type
+    // Tests withContentValueHandler method
     @Test
-    public void testWithContentValueHandler_customHandler_setsHandlerOnValueType() {
-        String handler = "customContentValueHandler";
-        MapType result = baseMapType.withContentValueHandler(handler);
+    public void testWithContentValueHandler_validHandler_setsContentValueHandler() {
+        Object handler = "customContentValueHandler";
+        MapType result = mapType.withContentValueHandler(handler);
 
-        assertNotSame(baseMapType, result);
+        assertNotSame(mapType, result);
         assertEquals(handler, result.getContentType().getValueHandler());
-        assertNull(baseMapType.getContentType().getValueHandler());
     }
 
-    // Tests setting key type handler
+    // Tests withKeyTypeHandler method
     @Test
-    public void testWithKeyTypeHandler_customHandler_setsHandlerOnKeyType() {
-        String handler = "customKeyTypeHandler";
-        MapType result = baseMapType.withKeyTypeHandler(handler);
+    public void testWithKeyTypeHandler_validHandler_setsKeyTypeHandler() {
+        Object handler = "customKeyTypeHandler";
+        MapType result = mapType.withKeyTypeHandler(handler);
 
-        assertNotSame(baseMapType, result);
+        assertNotSame(mapType, result);
         assertEquals(handler, result.getKeyType().getTypeHandler());
-        assertNull(baseMapType.getKeyType().getTypeHandler());
     }
 
-    // Tests setting key value handler
+    // Tests withKeyValueHandler method
     @Test
-    public void testWithKeyValueHandler_customHandler_setsHandlerOnKeyType() {
-        String handler = "customKeyValueHandler";
-        MapType result = baseMapType.withKeyValueHandler(handler);
+    public void testWithKeyValueHandler_validHandler_setsKeyValueHandler() {
+        Object handler = "customKeyValueHandler";
+        MapType result = mapType.withKeyValueHandler(handler);
 
-        assertNotSame(baseMapType, result);
+        assertNotSame(mapType, result);
         assertEquals(handler, result.getKeyType().getValueHandler());
-        assertNull(baseMapType.getKeyType().getValueHandler());
     }
 
-    // Tests withStaticTyping when instance is not yet static
+    // Tests withStaticTyping when false branch of _asStatic is executed
     @Test
-    public void testWithStaticTyping_nonStatic_returnsStaticInstance() {
-        assertFalse(baseMapType.useStaticType());
-        MapType staticMapType = baseMapType.withStaticTyping();
+    public void testWithStaticTyping_whenNotStatic_returnsStaticInstance() {
+        assertFalse(mapType.useStaticType());
+        MapType result = mapType.withStaticTyping();
 
-        assertNotSame(baseMapType, staticMapType);
-        assertTrue(staticMapType.useStaticType());
+        assertNotSame(mapType, result);
+        assertTrue(result.useStaticType());
+        assertTrue(result.getKeyType().useStaticType());
+        assertTrue(result.getContentType().useStaticType());
     }
 
-    // Tests withStaticTyping when instance is already static (branch coverage)
+    // Tests withStaticTyping when true branch of _asStatic is executed
     @Test
-    public void testWithStaticTyping_alreadyStatic_returnsSameInstance() {
-        MapType staticMapType = baseMapType.withStaticTyping();
-        MapType sameType = staticMapType.withStaticTyping();
+    public void testWithStaticTyping_whenAlreadyStatic_returnsSameInstance() {
+        MapType staticMapType = mapType.withStaticTyping();
+        MapType result = staticMapType.withStaticTyping();
 
-        assertSame(staticMapType, sameType);
+        assertSame(staticMapType, result);
     }
 
-    // Tests withContentType with identical content type (branch coverage)
-    @Test
-    public void testWithContentType_sameType_returnsSameInstance() {
-        JavaType result = baseMapType.withContentType(integerType);
-
-        assertSame(baseMapType, result);
-    }
-
-    // Tests withContentType with different content type (branch coverage)
+    // Tests withContentType when new content type is supplied
     @Test
     public void testWithContentType_differentType_returnsNewInstance() {
-        JavaType result = baseMapType.withContentType(booleanType);
+        JavaType newContentType = SimpleType.constructUnsafe(Double.class);
+        MapType result = (MapType) mapType.withContentType(newContentType);
 
-        assertNotSame(baseMapType, result);
-        assertEquals(booleanType, result.getContentType());
-        assertEquals(stringType, result.getKeyType());
+        assertNotSame(mapType, result);
+        assertEquals(newContentType, result.getContentType());
+        assertEquals(mapType.getKeyType(), result.getKeyType());
     }
 
-    // Tests withKeyType with identical key type (branch coverage)
+    // Tests withContentType when same content type is supplied
     @Test
-    public void testWithKeyType_sameType_returnsSameInstance() {
-        MapType result = baseMapType.withKeyType(stringType);
+    public void testWithContentType_sameType_returnsSameInstance() {
+        JavaType result = mapType.withContentType(integerType);
 
-        assertSame(baseMapType, result);
+        assertSame(mapType, result);
     }
 
-    // Tests withKeyType with different key type (branch coverage)
+    // Tests withKeyType when new key type is supplied
     @Test
     public void testWithKeyType_differentType_returnsNewInstance() {
-        MapType result = baseMapType.withKeyType(booleanType);
+        JavaType newKeyType = SimpleType.constructUnsafe(Long.class);
+        MapType result = mapType.withKeyType(newKeyType);
 
-        assertNotSame(baseMapType, result);
-        assertEquals(booleanType, result.getKeyType());
-        assertEquals(integerType, result.getContentType());
+        assertNotSame(mapType, result);
+        assertEquals(newKeyType, result.getKeyType());
+        assertEquals(mapType.getContentType(), result.getContentType());
     }
 
-    // Tests refine method updating class and bindings
+    // Tests withKeyType when same key type is supplied
     @Test
-    public void testRefine_subclassAndNewBindings_returnsRefinedInstance() {
-        TypeBindings newBindings = TypeBindings.create(TreeMap.class, new JavaType[]{stringType, integerType});
-        JavaType refined = baseMapType.refine(TreeMap.class, newBindings, null, null);
+    public void testWithKeyType_sameType_returnsSameInstance() {
+        MapType result = mapType.withKeyType(stringType);
+
+        assertSame(mapType, result);
+    }
+
+    // Tests refine method
+    @Test
+    public void testRefine_validArguments_returnsRefinedMapType() {
+        TypeBindings bindings = TypeBindings.create(HashMap.class, new JavaType[]{stringType, integerType});
+        JavaType[] superInterfaces = new JavaType[]{mapType};
+        JavaType refined = mapType.refine(HashMap.class, bindings, objectType, superInterfaces);
 
         assertNotNull(refined);
-        assertEquals(TreeMap.class, refined.getRawClass());
-        assertEquals(stringType, refined.getKeyType());
+        assertTrue(refined instanceof MapType);
+        assertEquals(HashMap.class, refined.getRawClass());
+        assertEquals(bindings, refined.getBindings());
+        assertEquals(objectType, refined.getSuperClass());
+        assertEquals(stringType, ((MapType) refined).getKeyType());
         assertEquals(integerType, refined.getContentType());
     }
 
-    // Tests _narrow method changing raw subclass
-    @SuppressWarnings("deprecation")
+    // Tests _narrow method
     @Test
-    public void testNarrow_subclass_returnsNarrowedType() {
-        JavaType narrowed = baseMapType._narrow(TreeMap.class);
+    public void testNarrow_subclass_returnsNarrowedMapType() {
+        JavaType narrowed = mapType._narrow(HashMap.class);
 
         assertNotNull(narrowed);
-        assertEquals(TreeMap.class, narrowed.getRawClass());
-        assertEquals(stringType, narrowed.getKeyType());
-        assertEquals(integerType, narrowed.getContentType());
+        assertTrue(narrowed instanceof MapType);
+        assertEquals(HashMap.class, narrowed.getRawClass());
+        assertEquals(mapType.getKeyType(), ((MapType) narrowed).getKeyType());
+        assertEquals(mapType.getContentType(), narrowed.getContentType());
     }
 
-    // Tests toString formatting
+    // Tests toString method
     @Test
     public void testToString_validMapType_returnsExpectedFormat() {
-        String representation = baseMapType.toString();
-
-        assertTrue(representation.startsWith("[map type; class java.util.HashMap, "));
-        assertTrue(representation.contains(" -> "));
-        assertTrue(representation.endsWith("]"));
+        String result = mapType.toString();
+        assertNotNull(result);
+        assertTrue(result.contains("[map type; class java.util.Map"));
+        assertTrue(result.contains(stringType.toString()));
+        assertTrue(result.contains(integerType.toString()));
     }
 
-    // Tests construct with non-null superClass and superInterfaces
+    // Additional tests for complete branch coverage
+
     @Test
-    public void testConstruct_withSuperClassAndSuperInterfaces_createsValidInstance() {
-        TypeFactory tf = TypeFactory.defaultInstance();
-        JavaType superClass = tf.constructType(Object.class);
-        JavaType[] superInterfaces = new JavaType[]{tf.constructType(Cloneable.class)};
+    public void testConstruct_withSuperInterfaces_createsValidMapType() {
         TypeBindings bindings = TypeBindings.create(HashMap.class, new JavaType[]{stringType, integerType});
+        JavaType[] superInterfaces = new JavaType[]{mapType};
+        MapType type = MapType.construct(HashMap.class, bindings, objectType, superInterfaces, stringType, integerType);
 
-        MapType mapType = MapType.construct(HashMap.class, bindings, superClass, superInterfaces, stringType, integerType);
-
-        assertNotNull(mapType);
-        assertEquals(HashMap.class, mapType.getRawClass());
-        assertEquals(superClass, mapType.getSuperClass());
-        assertEquals(1, mapType.getInterfaces().size());
-        assertEquals(superInterfaces[0], mapType.getInterfaces().get(0));
+        assertNotNull(type);
+        assertEquals(HashMap.class, type.getRawClass());
+        assertNotNull(type.getInterfaces());
+        assertEquals(1, type.getInterfaces().length);
+        assertEquals(mapType, type.getInterfaces()[0]);
     }
 
-    // Tests protected MapType(TypeBase, JavaType, JavaType) constructor
     @Test
-    public void testProtectedConstructor_withTypeBase_createsValidInstance() {
-        MapType copy = new MapType(baseMapType, booleanType, stringType);
+    public void testWithTypeHandler_sameHandler_returnsSameInstance() {
+        Object handler = "customTypeHandler";
+        MapType withHandler = mapType.withTypeHandler(handler);
+        MapType result = withHandler.withTypeHandler(handler);
 
-        assertNotNull(copy);
-        assertEquals(HashMap.class, copy.getRawClass());
-        assertEquals(booleanType, copy.getKeyType());
-        assertEquals(stringType, copy.getContentType());
+        assertSame(withHandler, result);
     }
 
-    // Tests refine with non-null superClass and superInterfaces
     @Test
-    public void testRefine_withSuperClassAndSuperInterfaces_preservesHierarchy() {
-        TypeFactory tf = TypeFactory.defaultInstance();
-        JavaType superClass = tf.constructType(Object.class);
-        JavaType[] superInterfaces = new JavaType[]{tf.constructType(Cloneable.class)};
-        TypeBindings bindings = TypeBindings.create(TreeMap.class, new JavaType[]{stringType, integerType});
+    public void testWithValueHandler_sameHandler_returnsSameInstance() {
+        Object handler = "customValueHandler";
+        MapType withHandler = mapType.withValueHandler(handler);
+        MapType result = withHandler.withValueHandler(handler);
 
-        JavaType refined = baseMapType.refine(TreeMap.class, bindings, superClass, superInterfaces);
-
-        assertNotNull(refined);
-        assertEquals(TreeMap.class, refined.getRawClass());
-        assertEquals(superClass, refined.getSuperClass());
-        assertEquals(1, refined.getInterfaces().size());
-        assertEquals(superInterfaces[0], refined.getInterfaces().get(0));
-    }
-
-    // Tests that withStaticTyping propagates static typing to key and value types
-    @Test
-    public void testWithStaticTyping_propagatesToKeyAndValueTypes() {
-        MapType staticMapType = baseMapType.withStaticTyping();
-
-        assertTrue(staticMapType.useStaticType());
-        assertTrue(staticMapType.getKeyType().useStaticType());
-        assertTrue(staticMapType.getContentType().useStaticType());
+        assertSame(withHandler, result);
     }
 }

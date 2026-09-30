@@ -6,6 +6,7 @@ import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -19,7 +20,10 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class ReturnsEmptyValuesTest {
 
@@ -30,81 +34,137 @@ public class ReturnsEmptyValuesTest {
         returnsEmptyValues = new ReturnsEmptyValues();
     }
 
-    // Tests primitive and primitive wrapper types return their default values
+    // Tests primitive int return value
     @Test
-    public void testReturnValueFor_primitiveAndWrapperTypes_returnsDefaultValues() {
+    public void testReturnValueFor_primitiveInt_returnsZero() {
         assertEquals(0, returnsEmptyValues.returnValueFor(int.class));
-        assertEquals(0, returnsEmptyValues.returnValueFor(Integer.class));
+    }
+
+    // Tests primitive boolean return value
+    @Test
+    public void testReturnValueFor_primitiveBoolean_returnsFalse() {
         assertEquals(false, returnsEmptyValues.returnValueFor(boolean.class));
+    }
+
+    // Tests primitive wrapper Integer return value
+    @Test
+    public void testReturnValueFor_wrapperInteger_returnsZero() {
+        assertEquals(0, returnsEmptyValues.returnValueFor(Integer.class));
+    }
+
+    // Tests primitive wrapper Boolean return value
+    @Test
+    public void testReturnValueFor_wrapperBoolean_returnsFalse() {
         assertEquals(false, returnsEmptyValues.returnValueFor(Boolean.class));
-        assertEquals((byte) 0, returnsEmptyValues.returnValueFor(byte.class));
-        assertEquals((short) 0, returnsEmptyValues.returnValueFor(short.class));
-        assertEquals(0L, returnsEmptyValues.returnValueFor(long.class));
-        assertEquals(0.0f, returnsEmptyValues.returnValueFor(float.class));
-        assertEquals(0.0d, returnsEmptyValues.returnValueFor(double.class));
-        assertEquals('\u0000', returnsEmptyValues.returnValueFor(char.class));
     }
 
-    // Tests collection interfaces return appropriate empty collection instances
+    // Tests Collection interface return value
     @Test
-    public void testReturnValueFor_collectionInterfaces_returnsEmptyCollections() {
-        assertTrue(returnsEmptyValues.returnValueFor(Collection.class) instanceof LinkedList);
-        assertTrue(returnsEmptyValues.returnValueFor(List.class) instanceof LinkedList);
-        assertTrue(returnsEmptyValues.returnValueFor(Set.class) instanceof HashSet);
-        assertTrue(returnsEmptyValues.returnValueFor(SortedSet.class) instanceof TreeSet);
-        assertTrue(returnsEmptyValues.returnValueFor(Map.class) instanceof HashMap);
-        assertTrue(returnsEmptyValues.returnValueFor(SortedMap.class) instanceof TreeMap);
+    public void testReturnValueFor_collectionInterface_returnsEmptyLinkedList() {
+        Object result = returnsEmptyValues.returnValueFor(Collection.class);
+        assertTrue(result instanceof LinkedList);
+        assertTrue(((Collection<?>) result).isEmpty());
     }
 
-    // Tests concrete collection classes return appropriate empty collection instances
+    // Tests List interface return value
     @Test
-    public void testReturnValueFor_concreteCollectionClasses_returnsEmptyInstances() {
-        assertTrue(returnsEmptyValues.returnValueFor(LinkedList.class) instanceof LinkedList);
-        assertTrue(returnsEmptyValues.returnValueFor(ArrayList.class) instanceof ArrayList);
-        assertTrue(returnsEmptyValues.returnValueFor(HashSet.class) instanceof HashSet);
-        assertTrue(returnsEmptyValues.returnValueFor(TreeSet.class) instanceof TreeSet);
-        assertTrue(returnsEmptyValues.returnValueFor(LinkedHashSet.class) instanceof LinkedHashSet);
-        assertTrue(returnsEmptyValues.returnValueFor(HashMap.class) instanceof HashMap);
-        assertTrue(returnsEmptyValues.returnValueFor(TreeMap.class) instanceof TreeMap);
-        assertTrue(returnsEmptyValues.returnValueFor(LinkedHashMap.class) instanceof LinkedHashMap);
+    public void testReturnValueFor_listInterface_returnsEmptyLinkedList() {
+        Object result = returnsEmptyValues.returnValueFor(List.class);
+        assertTrue(result instanceof LinkedList);
+        assertTrue(((List<?>) result).isEmpty());
     }
 
-    // Tests unhandled reference types return null
+    // Tests ArrayList concrete class return value
     @Test
-    public void testReturnValueFor_nonCollectionTypes_returnsNull() {
+    public void testReturnValueFor_arrayListClass_returnsEmptyArrayList() {
+        Object result = returnsEmptyValues.returnValueFor(ArrayList.class);
+        assertTrue(result instanceof ArrayList);
+        assertTrue(((ArrayList<?>) result).isEmpty());
+    }
+
+    // Tests Set interface return value
+    @Test
+    public void testReturnValueFor_setInterface_returnsEmptyHashSet() {
+        Object result = returnsEmptyValues.returnValueFor(Set.class);
+        assertTrue(result instanceof HashSet);
+        assertTrue(((Set<?>) result).isEmpty());
+    }
+
+    // Tests SortedSet interface return value
+    @Test
+    public void testReturnValueFor_sortedSetInterface_returnsEmptyTreeSet() {
+        Object result = returnsEmptyValues.returnValueFor(SortedSet.class);
+        assertTrue(result instanceof TreeSet);
+        assertTrue(((SortedSet<?>) result).isEmpty());
+    }
+
+    // Tests LinkedHashSet concrete class return value
+    @Test
+    public void testReturnValueFor_linkedHashSetClass_returnsEmptyLinkedHashSet() {
+        Object result = returnsEmptyValues.returnValueFor(LinkedHashSet.class);
+        assertTrue(result instanceof LinkedHashSet);
+        assertTrue(((LinkedHashSet<?>) result).isEmpty());
+    }
+
+    // Tests Map interface return value
+    @Test
+    public void testReturnValueFor_mapInterface_returnsEmptyHashMap() {
+        Object result = returnsEmptyValues.returnValueFor(Map.class);
+        assertTrue(result instanceof HashMap);
+        assertTrue(((Map<?, ?>) result).isEmpty());
+    }
+
+    // Tests SortedMap interface return value
+    @Test
+    public void testReturnValueFor_sortedMapInterface_returnsEmptyTreeMap() {
+        Object result = returnsEmptyValues.returnValueFor(SortedMap.class);
+        assertTrue(result instanceof TreeMap);
+        assertTrue(((SortedMap<?, ?>) result).isEmpty());
+    }
+
+    // Tests LinkedHashMap concrete class return value
+    @Test
+    public void testReturnValueFor_linkedHashMapClass_returnsEmptyLinkedHashMap() {
+        Object result = returnsEmptyValues.returnValueFor(LinkedHashMap.class);
+        assertTrue(result instanceof LinkedHashMap);
+        assertTrue(((LinkedHashMap<?, ?>) result).isEmpty());
+    }
+
+    // Tests unsupported non-collection return type
+    @Test
+    public void testReturnValueFor_unsupportedClass_returnsNull() {
         assertNull(returnsEmptyValues.returnValueFor(String.class));
         assertNull(returnsEmptyValues.returnValueFor(Object.class));
     }
 
-    // Tests compareTo method returns 0 when comparing a mock to itself
+    // Tests compareTo method when comparing mock to itself (Defects4J Mockito-24 regression test)
+    @SuppressWarnings("unchecked")
     @Test
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public void testAnswer_compareToSameMock_returnsZero() {
-        Comparable mock = Mockito.mock(Comparable.class);
+    public void testAnswer_compareToSelf_returnsZero() {
+        Comparable<Object> mock = Mockito.mock(Comparable.class);
         assertEquals(0, mock.compareTo(mock));
     }
 
-    // Tests compareTo method returns non-zero when comparing a mock to another object
+    // Tests compareTo method when comparing mock to a different object
+    @SuppressWarnings("unchecked")
     @Test
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public void testAnswer_compareToDifferentMock_returnsNonZero() {
-        Comparable mock1 = Mockito.mock(Comparable.class);
-        Comparable mock2 = Mockito.mock(Comparable.class);
-        assertTrue(mock1.compareTo(mock2) != 0);
+    public void testAnswer_compareToDifferentObject_returnsNonZero() {
+        Comparable<Object> mock = Mockito.mock(Comparable.class);
+        assertEquals(1, mock.compareTo(new Object()));
     }
 
-    // Tests toString on mock with default name returns default description
+    // Tests toString method with default mock name
     @Test
     public void testAnswer_toStringDefaultName_returnsDefaultDescription() {
-        List<?> mockList = Mockito.mock(List.class);
-        String expected = "Mock for List, hashCode: " + mockList.hashCode();
-        assertEquals(expected, mockList.toString());
+        Date mock = Mockito.mock(Date.class);
+        assertNotNull(mock.toString());
+        assertTrue(mock.toString().startsWith("Mock for Date, hashCode: "));
     }
 
-    // Tests toString on mock with custom name returns custom name
+    // Tests toString method with custom mock name
     @Test
     public void testAnswer_toStringCustomName_returnsCustomName() {
-        List<?> mockList = Mockito.mock(List.class, Mockito.withSettings().name("customList"));
-        assertEquals("customList", mockList.toString());
+        Date mock = Mockito.mock(Date.class, Mockito.withSettings().name("customMockName"));
+        assertEquals("customMockName", mock.toString());
     }
 }

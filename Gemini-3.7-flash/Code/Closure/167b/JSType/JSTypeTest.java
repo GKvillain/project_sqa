@@ -1,89 +1,69 @@
 package com.google.javascript.rhino.jstype;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
-import com.google.common.base.Predicate;
-import com.google.javascript.rhino.jstype.JSType.TypePair;
+import com.google.javascript.rhino.SimpleErrorReporter;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.*;
+
 public class JSTypeTest {
+
   private JSTypeRegistry registry;
   private JSType numberType;
   private JSType stringType;
   private JSType booleanType;
-  private JSType nullType;
-  private JSType voidType;
   private JSType objectType;
   private JSType allType;
   private JSType unknownType;
   private JSType noType;
-  private JSType noObjectType;
-  private JSType noResolvedType;
+  private JSType nullType;
+  private JSType voidType;
 
   @Before
   public void setUp() {
-    registry = new JSTypeRegistry(null);
+    registry = new JSTypeRegistry(new SimpleErrorReporter());
     numberType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
     stringType = registry.getNativeType(JSTypeNative.STRING_TYPE);
     booleanType = registry.getNativeType(JSTypeNative.BOOLEAN_TYPE);
-    nullType = registry.getNativeType(JSTypeNative.NULL_TYPE);
-    voidType = registry.getNativeType(JSTypeNative.VOID_TYPE);
     objectType = registry.getNativeType(JSTypeNative.OBJECT_TYPE);
     allType = registry.getNativeType(JSTypeNative.ALL_TYPE);
     unknownType = registry.getNativeType(JSTypeNative.UNKNOWN_TYPE);
     noType = registry.getNativeType(JSTypeNative.NO_TYPE);
-    noObjectType = registry.getNativeType(JSTypeNative.NO_OBJECT_TYPE);
-    noResolvedType = registry.getNativeType(JSTypeNative.NO_RESOLVED_TYPE);
+    nullType = registry.getNativeType(JSTypeNative.NULL_TYPE);
+    voidType = registry.getNativeType(JSTypeNative.VOID_TYPE);
   }
 
-  // Tests isString and isNumber classifications
+  // Tests null-safe equivalence method with both null and non-null arguments
   @Test
-  public void testIsStringAndIsNumber_primitiveAndObjectTypes_returnsExpectedResults() {
-    assertTrue(stringType.isString());
-    assertFalse(stringType.isNumber());
-    assertTrue(numberType.isNumber());
-    assertFalse(numberType.isString());
-    assertFalse(booleanType.isString());
-    assertFalse(booleanType.isNumber());
-
-    JSType stringObjType = registry.getNativeType(JSTypeNative.STRING_OBJECT_TYPE);
-    JSType numberObjType = registry.getNativeType(JSTypeNative.NUMBER_OBJECT_TYPE);
-    assertTrue(stringObjType.isString());
-    assertTrue(numberObjType.isNumber());
+  public void testIsEquivalent_nullAndNonNullInputs_returnsExpectedResult() {
+    assertTrue(JSType.isEquivalent(null, null));
+    assertFalse(JSType.isEquivalent(numberType, null));
+    assertFalse(JSType.isEquivalent(null, numberType));
+    assertTrue(JSType.isEquivalent(numberType, numberType));
+    assertFalse(JSType.isEquivalent(numberType, stringType));
   }
 
-  // Tests isEmptyType method with bottom types
+  // Tests equals and hashCode contract on base types
   @Test
-  public void testIsEmptyType_bottomTypes_returnsTrue() {
-    assertTrue(noType.isEmptyType());
-    assertTrue(noObjectType.isEmptyType());
-    assertTrue(noResolvedType.isEmptyType());
-    assertTrue(registry.getNativeFunctionType(JSTypeNative.LEAST_FUNCTION_TYPE).isEmptyType());
-    assertFalse(numberType.isEmptyType());
-    assertFalse(objectType.isEmptyType());
+  public void testEqualsAndHashCode_sameAndDifferentTypes_consistentResult() {
+    assertTrue(numberType.equals(numberType));
+    assertFalse(numberType.equals(stringType));
+    assertFalse(numberType.equals("not a type"));
+    assertEquals(numberType.hashCode(), numberType.hashCode());
   }
 
-  // Tests isNullable check
+  // Tests differsFrom method logic with unknown and known types
   @Test
-  public void testIsNullable_nullAndOtherTypes_returnsCorrectBoolean() {
-    assertTrue(nullType.isNullable());
-    assertFalse(voidType.isNullable());
-    assertFalse(numberType.isNullable());
-    assertFalse(objectType.isNullable());
-
-    JSType unionWithNull = registry.createUnionType(numberType, nullType);
-    assertTrue(unionWithNull.isNullable());
+  public void testDiffersFrom_knownAndUnknownTypes_returnsCorrectComparison() {
+    assertFalse(numberType.differsFrom(numberType));
+    assertTrue(numberType.differsFrom(stringType));
+    assertTrue(numberType.differsFrom(unknownType));
+    assertFalse(unknownType.differsFrom(unknownType));
   }
 
-  // Tests subtype relationship for primitive and top/bottom types
+  // Tests subtyping lattice relationships between basic types
   @Test
-  public void testIsSubtype_latticeRelationships_returnsCorrectSubtypeResult() {
+  public void testIsSubtype_latticeRelationships_returnsExpectedHierarchy() {
     assertTrue(numberType.isSubtype(numberType));
     assertTrue(numberType.isSubtype(allType));
     assertTrue(numberType.isSubtype(unknownType));
@@ -92,211 +72,325 @@ public class JSTypeTest {
     assertFalse(allType.isSubtype(numberType));
   }
 
-  // Tests differsFrom method regarding unknown types
+  // Tests canAssignTo based on subtype relations
   @Test
-  public void testDiffersFrom_knownAndUnknownTypes_handlesUnknownProperly() {
-    assertFalse(numberType.differsFrom(numberType));
-    assertTrue(numberType.differsFrom(stringType));
-    assertTrue(numberType.differsFrom(unknownType));
-    assertTrue(unknownType.differsFrom(numberType));
-    assertFalse(unknownType.differsFrom(unknownType));
+  public void testCanAssignTo_compatibleAndIncompatibleTypes_returnsExpected() {
+    assertTrue(numberType.canAssignTo(numberType));
+    assertTrue(numberType.canAssignTo(allType));
+    assertFalse(numberType.canAssignTo(stringType));
   }
 
-  // Tests getLeastSupertype computation
+  // Tests isString and isNumber utility predicates
   @Test
-  public void testGetLeastSupertype_variousPairs_returnsLatticeJoin() {
-    assertSame(numberType, numberType.getLeastSupertype(numberType));
-    assertSame(allType, numberType.getLeastSupertype(allType));
-    assertSame(numberType, noType.getLeastSupertype(numberType));
-
-    JSType union = numberType.getLeastSupertype(stringType);
-    assertTrue(union.isUnionType());
-    assertTrue(numberType.isSubtype(union));
-    assertTrue(stringType.isSubtype(union));
+  public void testIsStringAndIsNumber_typeCheckPredicates_returnsCorrectBooleans() {
+    assertTrue(stringType.isString());
+    assertFalse(numberType.isString());
+    assertTrue(numberType.isNumber());
+    assertFalse(stringType.isNumber());
   }
 
-  // Tests getGreatestSubtype computation
+  // Tests isEmptyType method for NoType vs non-empty types
   @Test
-  public void testGetGreatestSubtype_subtypesAndDisjointTypes_returnsLatticeMeet() {
-    assertSame(numberType, numberType.getGreatestSubtype(numberType));
-    assertSame(numberType, numberType.getGreatestSubtype(allType));
-    assertSame(noType, numberType.getGreatestSubtype(stringType));
-    assertSame(unknownType, numberType.getGreatestSubtype(unknownType));
-    assertSame(noObjectType, objectType.getGreatestSubtype(registry.getNativeType(JSTypeNative.ARRAY_TYPE).getGreatestSubtype(registry.getNativeType(JSTypeNative.DATE_TYPE))));
+  public void testIsEmptyType_noTypeAndNormalTypes_identifiedCorrectly() {
+    assertTrue(noType.isEmptyType());
+    assertFalse(numberType.isEmptyType());
+    assertFalse(allType.isEmptyType());
   }
 
-  // Tests testForEquality between various types
+  // Tests canTestForEqualityWith and testForEquality behavior
   @Test
-  public void testTestForEquality_primitiveAndSpecialTypes_returnsExpectedTernary() {
-    assertEquals(TernaryValue.UNKNOWN, numberType.testForEquality(numberType));
-    assertEquals(TernaryValue.UNKNOWN, numberType.testForEquality(unknownType));
-    assertEquals(TernaryValue.UNKNOWN, allType.testForEquality(numberType));
+  public void testCanTestForEqualityWith_variousTypes_returnsExpected() {
+    assertTrue(unknownType.canTestForEqualityWith(numberType));
+    assertEquals(TernaryValue.UNKNOWN, numberType.testForEquality(allType));
     assertEquals(TernaryValue.TRUE, noType.testForEquality(noType));
-    assertEquals(TernaryValue.UNKNOWN, noType.testForEquality(numberType));
   }
 
-  // Tests shallow equality check capabilities
+  // Tests shallow equality check compatibility
   @Test
-  public void testCanTestForShallowEqualityWith_disjointAndCommonTypes_evaluatesProperly() {
+  public void testCanTestForShallowEqualityWith_sameAndDifferentTypes_returnsExpected() {
     assertTrue(numberType.canTestForShallowEqualityWith(numberType));
-    assertTrue(numberType.canTestForShallowEqualityWith(allType));
     assertFalse(numberType.canTestForShallowEqualityWith(stringType));
-    assertFalse(numberType.canTestForShallowEqualityWith(booleanType));
     assertTrue(noType.canTestForShallowEqualityWith(numberType));
   }
 
-  // Tests getTypesUnderEquality and getTypesUnderInequality
+  // Tests getLeastSupertype computation (least upper bound)
   @Test
-  public void testGetTypesUnderEqualityAndInequality_compatibleTypes_returnsValidPairs() {
-    TypePair eqPair = numberType.getTypesUnderEquality(numberType);
-    assertSame(numberType, eqPair.typeA);
-    assertSame(numberType, eqPair.typeB);
-
-    TypePair ineqPair = numberType.getTypesUnderInequality(numberType);
-    assertSame(numberType, ineqPair.typeA);
-    assertSame(numberType, ineqPair.typeB);
+  public void testGetLeastSupertype_disjointAndEquivalentTypes_computesUnionOrSupertype() {
+    assertEquals(numberType, numberType.getLeastSupertype(numberType));
+    JSType union = numberType.getLeastSupertype(stringType);
+    assertTrue(union.isUnionType());
+    assertEquals(allType, numberType.getLeastSupertype(allType));
   }
 
-  // Tests getTypesUnderShallowInequality for null and void types
+  // Tests getGreatestSubtype computation (greatest lower bound)
   @Test
-  public void testGetTypesUnderShallowInequality_nullAndVoidTypes_returnsNullComponents() {
-    TypePair nullPair = nullType.getTypesUnderShallowInequality(nullType);
-    assertNull(nullPair.typeA);
-    assertNull(nullPair.typeB);
-
-    TypePair voidPair = voidType.getTypesUnderShallowInequality(voidType);
-    assertNull(voidPair.typeA);
-    assertNull(voidPair.typeB);
-
-    TypePair numPair = numberType.getTypesUnderShallowInequality(numberType);
-    assertSame(numberType, numPair.typeA);
-    assertSame(numberType, numPair.typeB);
+  public void testGetGreatestSubtype_disjointAndSubtypePairs_computesCorrectInfimum() {
+    assertEquals(numberType, numberType.getGreatestSubtype(numberType));
+    assertEquals(unknownType, numberType.getGreatestSubtype(unknownType));
+    assertEquals(noType, numberType.getGreatestSubtype(stringType));
   }
 
-  // Tests getRestrictedTypeGivenToBooleanOutcome
+  // Tests getTypesUnderEquality outcome
   @Test
-  public void testGetRestrictedTypeGivenToBooleanOutcome_booleanOutcomes_restrictsProperly() {
-    JSType restrictedTrue = objectType.getRestrictedTypeGivenToBooleanOutcome(true);
-    assertSame(objectType, restrictedTrue);
-
-    JSType restrictedFalse = objectType.getRestrictedTypeGivenToBooleanOutcome(false);
-    assertSame(noType, restrictedFalse);
-
-    JSType nullFalse = nullType.getRestrictedTypeGivenToBooleanOutcome(false);
-    assertSame(nullType, nullFalse);
-
-    JSType nullTrue = nullType.getRestrictedTypeGivenToBooleanOutcome(true);
-    assertSame(noType, nullTrue);
+  public void testGetTypesUnderEquality_compatibleTypes_returnsTypePair() {
+    JSType.TypePair pair = numberType.getTypesUnderEquality(allType);
+    assertEquals(numberType, pair.typeA);
+    assertEquals(allType, pair.typeB);
   }
 
-  // Tests static downcast helper methods with null inputs
+  // Tests getTypesUnderInequality outcome for identical types
   @Test
-  public void testToMaybeDowncasts_nullInputs_returnsNull() {
-    assertNull(JSType.toMaybeFunctionType(null));
-    assertNull(JSType.toMaybeParameterizedType(null));
-    assertNull(JSType.toMaybeTemplateType(null));
-    assertNull(numberType.toMaybeFunctionType());
-    assertNull(numberType.toMaybeParameterizedType());
-    assertNull(numberType.toMaybeTemplateType());
-    assertNull(numberType.toMaybeUnionType());
-    assertNull(numberType.toMaybeEnumType());
-    assertNull(numberType.toMaybeEnumElementType());
+  public void testGetTypesUnderInequality_differentTypes_returnsTypePair() {
+    JSType.TypePair pair = numberType.getTypesUnderInequality(stringType);
+    assertEquals(numberType, pair.typeA);
+    assertEquals(stringType, pair.typeB);
   }
 
-  // Tests resolve and resolve lifecycle
+  // Tests getTypesUnderShallowInequality for null and void
   @Test
-  public void testResolveAndClearResolved_primitiveType_maintainsResolvedState() {
-    assertFalse(numberType.isResolved());
-    JSType resolved = numberType.resolve(null, null);
-    assertSame(numberType, resolved);
-    assertTrue(numberType.isResolved());
+  public void testGetTypesUnderShallowInequality_nullAndVoidTypes_returnsExpectedRestrictedPair() {
+    JSType.TypePair pairNull = nullType.getTypesUnderShallowInequality(nullType);
+    assertNull(pairNull.typeA);
+    assertNull(pairNull.typeB);
 
-    numberType.clearResolved();
-    assertFalse(numberType.isResolved());
+    JSType.TypePair pairVoid = voidType.getTypesUnderShallowInequality(voidType);
+    assertNull(pairVoid.typeA);
+    assertNull(pairVoid.typeB);
 
-    JSType forced = numberType.forceResolve(null, null);
-    assertSame(numberType, forced);
-    assertTrue(numberType.isResolved());
-    numberType.clearResolved();
+    JSType.TypePair pairDiff = numberType.getTypesUnderShallowInequality(stringType);
+    assertEquals(numberType, pairDiff.typeA);
+    assertEquals(stringType, pairDiff.typeB);
   }
 
-  // Tests static isEquivalent method
+  // Tests getRestrictedTypeGivenToBooleanOutcome restricting truthy/falsy values
   @Test
-  public void testIsEquivalent_nullAndSameTypes_handlesNullCorrectly() {
-    assertTrue(JSType.isEquivalent(null, null));
-    assertFalse(JSType.isEquivalent(numberType, null));
-    assertFalse(JSType.isEquivalent(null, numberType));
-    assertTrue(JSType.isEquivalent(numberType, numberType));
-    assertFalse(JSType.isEquivalent(numberType, stringType));
-    assertTrue(numberType.equals(numberType));
-    assertFalse(numberType.equals(new Object()));
+  public void testGetRestrictedTypeGivenToBooleanOutcome_restrictsBasedOnBooleanLiteral() {
+    JSType restrictedTrue = nullType.getRestrictedTypeGivenToBooleanOutcome(true);
+    assertTrue(restrictedTrue.isEmptyType());
+
+    JSType restrictedFalse = nullType.getRestrictedTypeGivenToBooleanOutcome(false);
+    assertEquals(nullType, restrictedFalse);
   }
 
-  // Tests filterNoResolvedType helper behavior
+  // Tests autobox and dereference behavior on primitive value type
   @Test
-  public void testFilterNoResolvedType_singleAndUnionTypes_filtersCorrectly() {
-    assertSame(noResolvedType, JSType.filterNoResolvedType(noResolvedType));
-    assertSame(numberType, JSType.filterNoResolvedType(numberType));
-
-    JSType union = registry.createUnionType(numberType, noResolvedType);
-    JSType filtered = JSType.filterNoResolvedType(union);
-    assertSame(numberType, filtered);
-  }
-
-  // Tests context matching predicates
-  @Test
-  public void testContextMatching_primitiveTypes_returnsExpectedBooleans() {
-    assertTrue(numberType.matchesInt32Context());
-    assertTrue(numberType.matchesUint32Context());
-    assertTrue(numberType.matchesNumberContext());
-    assertFalse(stringType.matchesNumberContext());
-    assertFalse(numberType.matchesStringContext());
-    assertFalse(numberType.matchesObjectContext());
-  }
-
-  // Tests autoboxing, dereference, and property lookup
-  @Test
-  public void testAutoboxAndDereference_primitiveNumber_dereferencesToNumberObject() {
+  public void testAutoboxAndDereference_primitiveValue_returnsAutoboxedObjectType() {
     JSType autoboxed = numberType.autobox();
     assertNotNull(autoboxed);
     assertTrue(autoboxed.isObject());
 
     ObjectType dereferenced = numberType.dereference();
     assertNotNull(dereferenced);
-    assertSame(autoboxed, dereferenced);
-
-    assertNull(numberType.findPropertyType("nonExistentProperty"));
+    assertTrue(dereferenced.isObject());
   }
 
-  // Tests toString, toAnnotationString, toDebugHashCodeString, and ALPHA comparator
+  // Tests isNullable check
   @Test
-  public void testStringRepresentationsAndComparator_validTypes_generatesCorrectStrings() {
-    assertEquals("number", numberType.toString());
+  public void testIsNullable_nullAndOtherTypes_returnsCorrectBoolean() {
+    assertTrue(nullType.isNullable());
+    assertFalse(numberType.isNullable());
+  }
+
+  // Tests static downcast helpers with null inputs
+  @Test
+  public void testToMaybeFunctionAndParameterizedType_nullInput_returnsNull() {
+    assertNull(JSType.toMaybeFunctionType(null));
+    assertNull(JSType.toMaybeFunctionType(numberType));
+    assertNull(JSType.toMaybeParameterizedType(null));
+    assertNull(JSType.toMaybeParameterizedType(numberType));
+    assertNull(JSType.toMaybeTemplateType(null));
+    assertNull(JSType.toMaybeTemplateType(numberType));
+  }
+
+  // Tests safeResolve helper with null and non-null types
+  @Test
+  public void testSafeResolve_nullAndResolvedTypes_handledSafely() {
+    assertNull(JSType.safeResolve(null, null, null));
+    JSType resolved = JSType.safeResolve(numberType, null, null);
+    assertEquals(numberType, resolved);
+    assertTrue(numberType.isResolved());
+  }
+
+  // Tests ALPHA comparator for sorting types
+  @Test
+  public void testAlphaComparator_comparesByToString() {
+    int cmp = JSType.ALPHA.compare(numberType, stringType);
+    assertEquals(numberType.toString().compareTo(stringType.toString()), cmp);
+  }
+
+  // Tests restrictByNotNullOrUndefined for primitive and union types
+  @Test
+  public void testRestrictByNotNullOrUndefined_primitivesAndUnions_restrictsCorrectly() {
+    assertEquals(numberType, numberType.restrictByNotNullOrUndefined());
+    assertTrue(nullType.restrictByNotNullOrUndefined().isEmptyType());
+    assertTrue(voidType.restrictByNotNullOrUndefined().isEmptyType());
+
+    JSType nullableNumber = registry.createUnionType(numberType, nullType, voidType);
+    assertEquals(numberType, nullableNumber.restrictByNotNullOrUndefined());
+  }
+
+  // Tests matchesNumberContext, matchesStringContext, matchesObjectContext predicates
+  @Test
+  public void testMatchesContexts_primitiveAndSpecialTypes_evaluatesExpectedContexts() {
+    assertTrue(numberType.matchesNumberContext());
+    assertFalse(numberType.matchesStringContext());
+    assertFalse(numberType.matchesObjectContext());
+
+    assertFalse(stringType.matchesNumberContext());
+    assertTrue(stringType.matchesStringContext());
+    assertFalse(stringType.matchesObjectContext());
+
+    assertFalse(objectType.matchesNumberContext());
+    assertFalse(objectType.matchesStringContext());
+    assertTrue(objectType.matchesObjectContext());
+
+    assertTrue(allType.matchesNumberContext());
+    assertTrue(allType.matchesStringContext());
+    assertTrue(allType.matchesObjectContext());
+
+    assertTrue(unknownType.matchesNumberContext());
+    assertTrue(unknownType.matchesStringContext());
+    assertTrue(unknownType.matchesObjectContext());
+  }
+
+  // Tests canCastTo relationship logic
+  @Test
+  public void testCanCastTo_compatibleAndIncompatiblePairs_returnsExpectedBoolean() {
+    assertTrue(numberType.canCastTo(allType));
+    assertTrue(numberType.canCastTo(numberType));
+    assertTrue(numberType.canCastTo(unknownType));
+    assertFalse(numberType.canCastTo(stringType));
+  }
+
+  // Tests various is* predicate methods on native types
+  @Test
+  public void testTypeKindPredicates_nativeTypes_returnsExpectedBooleans() {
+    assertTrue(allType.isAllType());
+    assertFalse(numberType.isAllType());
+
+    assertTrue(unknownType.isUnknownType());
+    assertFalse(numberType.isUnknownType());
+
+    assertTrue(nullType.isNullType());
+    assertFalse(numberType.isNullType());
+
+    assertTrue(voidType.isVoidType());
+    assertFalse(numberType.isVoidType());
+
+    assertTrue(booleanType.isBooleanValueType());
+    assertFalse(numberType.isBooleanValueType());
+
+    assertTrue(stringType.isStringValueType());
+    assertFalse(numberType.isStringValueType());
+
+    assertTrue(numberType.isNumberValueType());
+    assertFalse(stringType.isNumberValueType());
+
+    assertTrue(objectType.isObject());
+    assertFalse(numberType.isObject());
+    assertTrue(objectType.isTheObjectType());
+    assertFalse(numberType.isTheObjectType());
+
+    assertFalse(numberType.isGlobalThisType());
+    assertFalse(numberType.isLoose());
+    assertFalse(numberType.canBeCalled());
+    assertFalse(numberType.hasDisplayName());
+    assertNull(numberType.getDisplayName());
+  }
+
+  // Tests toMaybe* downcasting helper methods on various types
+  @Test
+  public void testToMaybeDowncastMethods_variousTypes_downcastsOrReturnsNull() {
+    assertNotNull(objectType.toMaybeObjectType());
+    assertNull(numberType.toMaybeObjectType());
+
+    JSType union = registry.createUnionType(numberType, stringType);
+    assertNotNull(union.toMaybeUnionType());
+    assertNull(numberType.toMaybeUnionType());
+
+    assertNull(numberType.toMaybeRecordType());
+    assertNull(numberType.toMaybeEnumElementType());
+
+    FunctionType fnType = registry.createFunctionType(numberType);
+    assertNotNull(fnType.toMaybeFunctionType());
+    assertTrue(fnType.canBeCalled());
+    assertTrue(fnType.isFunctionType());
+    assertTrue(fnType.isOrdinaryFunction());
+    assertFalse(fnType.isConstructor());
+    assertFalse(fnType.isInterface());
+    assertFalse(fnType.isNominalConstructor());
+    assertFalse(fnType.isNominalType());
+    assertFalse(fnType.isInstanceType());
+  }
+
+  // Tests getTypesUnderShallowEquality method
+  @Test
+  public void testGetTypesUnderShallowEquality_identicalAndDisjointTypes_returnsExpectedPairs() {
+    JSType.TypePair pairSame = numberType.getTypesUnderShallowEquality(numberType);
+    assertEquals(numberType, pairSame.typeA);
+    assertEquals(numberType, pairSame.typeB);
+
+    JSType.TypePair pairDiff = numberType.getTypesUnderShallowEquality(stringType);
+    assertNull(pairDiff.typeA);
+    assertNull(pairDiff.typeB);
+
+    JSType.TypePair pairNullVoid = nullType.getTypesUnderShallowEquality(voidType);
+    assertNull(pairNullVoid.typeA);
+    assertNull(pairNullVoid.typeB);
+  }
+
+  // Tests toAnnotationString on basic types
+  @Test
+  public void testToAnnotationString_primitiveAndObjectType_returnsExpectedAnnotations() {
     assertEquals("number", numberType.toAnnotationString());
-    assertEquals("{" + numberType.hashCode() + "}", numberType.toDebugHashCodeString());
-
-    int comp = JSType.ALPHA.compare(numberType, stringType);
-    assertTrue(comp < 0);
-    assertEquals(0, JSType.ALPHA.compare(numberType, numberType));
+    assertEquals("string", stringType.toAnnotationString());
+    assertEquals("boolean", booleanType.toAnnotationString());
+    assertEquals("null", nullType.toAnnotationString());
+    assertEquals("undefined", voidType.toAnnotationString());
   }
 
-  // Tests setValidator predicate application
+  // Tests filterBySubtype, collapseUnion and findPropertyType methods
   @Test
-  public void testSetValidator_predicate_evaluatesPredicate() {
-    Predicate<JSType> acceptAll = new Predicate<JSType>() {
-      @Override
-      public boolean apply(JSType input) {
-        return true;
-      }
-    };
-    Predicate<JSType> rejectAll = new Predicate<JSType>() {
-      @Override
-      public boolean apply(JSType input) {
-        return false;
-      }
-    };
+  public void testFilterBySubtypeAndPropertyLookup_unionAndPrimitiveTypes() {
+    JSType union = registry.createUnionType(numberType, stringType);
+    assertEquals(numberType, union.filterBySubtype(numberType));
+    assertNotNull(union.collapseUnion());
 
-    assertTrue(numberType.setValidator(acceptAll));
-    assertFalse(numberType.setValidator(rejectAll));
+    assertNull(numberType.findPropertyType("prop"));
+    assertNull(objectType.findPropertyType("prop"));
+  }
+
+  // Tests testForEquality on various primitive combinations
+  @Test
+  public void testForEquality_primitivePairs_returnsExpectedTernaryValues() {
+    assertEquals(TernaryValue.UNKNOWN, numberType.testForEquality(numberType));
+    assertEquals(TernaryValue.FALSE, numberType.testForEquality(stringType));
+    assertEquals(TernaryValue.TRUE, nullType.testForEquality(nullType));
+    assertEquals(TernaryValue.TRUE, nullType.testForEquality(voidType));
+    assertEquals(TernaryValue.TRUE, voidType.testForEquality(nullType));
+  }
+
+  // Tests dereference and autobox on null and void types
+  @Test
+  public void testAutoboxAndDereference_nullAndVoidTypes_returnsExpectedResults() {
+    assertNull(nullType.dereference());
+    assertNull(voidType.dereference());
+
+    assertEquals(nullType, nullType.autobox());
+    assertEquals(voidType, voidType.autobox());
+  }
+
+  // Tests isSubtype with null argument
+  @Test
+  public void testIsSubtype_nullTargetType_returnsFalse() {
+    assertFalse(numberType.isSubtype(null));
+  }
+
+  // Tests isEquivalentTo method directly
+  @Test
+  public void testIsEquivalentTo_matchingAndNonMatchingTypes_returnsExpectedBoolean() {
+    assertTrue(numberType.isEquivalentTo(numberType));
+    assertFalse(numberType.isEquivalentTo(stringType));
+    assertFalse(numberType.isEquivalentTo(null));
   }
 }

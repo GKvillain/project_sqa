@@ -5,56 +5,49 @@ import static org.junit.Assert.*;
 
 public class TokenStreamTest {
 
-    // Tests empty string for isJSIdentifier
+    // Tests empty string as JS identifier
     @Test
     public void testIsJSIdentifier_emptyString_returnsFalse() {
         assertFalse(TokenStream.isJSIdentifier(""));
     }
 
-    // Tests valid single character identifier
-    @Test
-    public void testIsJSIdentifier_validSingleChar_returnsTrue() {
-        assertTrue(TokenStream.isJSIdentifier("a"));
-        assertTrue(TokenStream.isJSIdentifier("_"));
-        assertTrue(TokenStream.isJSIdentifier("$"));
-    }
-
-    // Tests invalid start character (digit)
-    @Test
-    public void testIsJSIdentifier_digitStart_returnsFalse() {
-        assertFalse(TokenStream.isJSIdentifier("0abc"));
-        assertFalse(TokenStream.isJSIdentifier("9"));
-    }
-
-    // Tests valid multi-character identifier
+    // Tests valid simple JS identifier
     @Test
     public void testIsJSIdentifier_validIdentifier_returnsTrue() {
-        assertTrue(TokenStream.isJSIdentifier("myVariable123"));
-        assertTrue(TokenStream.isJSIdentifier("_$foo_bar"));
+        assertTrue(TokenStream.isJSIdentifier("validVar"));
+        assertTrue(TokenStream.isJSIdentifier("_privateVar"));
+        assertTrue(TokenStream.isJSIdentifier("$jquery"));
+        assertTrue(TokenStream.isJSIdentifier("var123"));
     }
 
-    // Tests invalid character inside identifier
+    // Tests JS identifier starting with digit
     @Test
-    public void testIsJSIdentifier_invalidCharInBody_returnsFalse() {
-        assertFalse(TokenStream.isJSIdentifier("a-b"));
-        assertFalse(TokenStream.isJSIdentifier("a.b"));
-        assertFalse(TokenStream.isJSIdentifier("a b"));
-        assertFalse(TokenStream.isJSIdentifier("a#b"));
+    public void testIsJSIdentifier_startingWithDigit_returnsFalse() {
+        assertFalse(TokenStream.isJSIdentifier("123var"));
     }
 
-    // Tests 2-character keywords and non-keywords
+    // Tests JS identifier containing special characters or spaces
     @Test
-    public void testIsKeyword_twoCharKeywords() {
+    public void testIsJSIdentifier_containingSpecialChars_returnsFalse() {
+        assertFalse(TokenStream.isJSIdentifier("foo-bar"));
+        assertFalse(TokenStream.isJSIdentifier("foo bar"));
+        assertFalse(TokenStream.isJSIdentifier("foo.bar"));
+        assertFalse(TokenStream.isJSIdentifier("foo@bar"));
+    }
+
+    // Tests keywords of length 2
+    @Test
+    public void testIsKeyword_lengthTwoKeywords_returnsTrue() {
         assertTrue(TokenStream.isKeyword("if"));
         assertTrue(TokenStream.isKeyword("in"));
         assertTrue(TokenStream.isKeyword("do"));
-        assertFalse(TokenStream.isKeyword("is"));
         assertFalse(TokenStream.isKeyword("to"));
+        assertFalse(TokenStream.isKeyword("it"));
     }
 
-    // Tests 3-character keywords and non-keywords
+    // Tests keywords of length 3
     @Test
-    public void testIsKeyword_threeCharKeywords() {
+    public void testIsKeyword_lengthThreeKeywords_returnsTrue() {
         assertTrue(TokenStream.isKeyword("for"));
         assertTrue(TokenStream.isKeyword("int"));
         assertTrue(TokenStream.isKeyword("new"));
@@ -64,9 +57,9 @@ public class TokenStreamTest {
         assertFalse(TokenStream.isKeyword("bar"));
     }
 
-    // Tests 4-character keywords and non-keywords
+    // Tests keywords of length 4
     @Test
-    public void testIsKeyword_fourCharKeywords() {
+    public void testIsKeyword_lengthFourKeywords_returnsTrue() {
         assertTrue(TokenStream.isKeyword("byte"));
         assertTrue(TokenStream.isKeyword("case"));
         assertTrue(TokenStream.isKeyword("char"));
@@ -80,12 +73,12 @@ public class TokenStreamTest {
         assertTrue(TokenStream.isKeyword("void"));
         assertTrue(TokenStream.isKeyword("with"));
         assertFalse(TokenStream.isKeyword("test"));
-        assertFalse(TokenStream.isKeyword("cars"));
+        assertFalse(TokenStream.isKeyword("care"));
     }
 
-    // Tests 5-character keywords and non-keywords
+    // Tests keywords of length 5
     @Test
-    public void testIsKeyword_fiveCharKeywords() {
+    public void testIsKeyword_lengthFiveKeywords_returnsTrue() {
         assertTrue(TokenStream.isKeyword("class"));
         assertTrue(TokenStream.isKeyword("break"));
         assertTrue(TokenStream.isKeyword("while"));
@@ -97,13 +90,13 @@ public class TokenStreamTest {
         assertTrue(TokenStream.isKeyword("super"));
         assertTrue(TokenStream.isKeyword("throw"));
         assertTrue(TokenStream.isKeyword("catch"));
-        assertFalse(TokenStream.isKeyword("clock"));
-        assertFalse(TokenStream.isKeyword("fruit"));
+        assertFalse(TokenStream.isKeyword("hello"));
+        assertFalse(TokenStream.isKeyword("flock"));
     }
 
-    // Tests 6-character keywords and non-keywords
+    // Tests keywords of length 6
     @Test
-    public void testIsKeyword_sixCharKeywords() {
+    public void testIsKeyword_lengthSixKeywords_returnsTrue() {
         assertTrue(TokenStream.isKeyword("native"));
         assertTrue(TokenStream.isKeyword("delete"));
         assertTrue(TokenStream.isKeyword("return"));
@@ -116,55 +109,51 @@ public class TokenStreamTest {
         assertTrue(TokenStream.isKeyword("export"));
         assertTrue(TokenStream.isKeyword("typeof"));
         assertFalse(TokenStream.isKeyword("custom"));
+        assertFalse(TokenStream.isKeyword("revert"));
     }
 
-    // Tests 7-character keywords and non-keywords
+    // Tests keywords of length 7
     @Test
-    public void testIsKeyword_sevenCharKeywords() {
+    public void testIsKeyword_lengthSevenKeywords_returnsTrue() {
         assertTrue(TokenStream.isKeyword("package"));
         assertTrue(TokenStream.isKeyword("default"));
         assertTrue(TokenStream.isKeyword("finally"));
         assertTrue(TokenStream.isKeyword("boolean"));
         assertTrue(TokenStream.isKeyword("private"));
         assertTrue(TokenStream.isKeyword("extends"));
-        assertFalse(TokenStream.isKeyword("program"));
+        assertFalse(TokenStream.isKeyword("example"));
     }
 
-    // Tests 8-character keywords and non-keywords
+    // Tests keywords of length 8
     @Test
-    public void testIsKeyword_eightCharKeywords() {
+    public void testIsKeyword_lengthEightKeywords_returnsTrue() {
         assertTrue(TokenStream.isKeyword("abstract"));
         assertTrue(TokenStream.isKeyword("continue"));
         assertTrue(TokenStream.isKeyword("debugger"));
         assertTrue(TokenStream.isKeyword("function"));
         assertTrue(TokenStream.isKeyword("volatile"));
-        assertFalse(TokenStream.isKeyword("absolute"));
+        assertFalse(TokenStream.isKeyword("argument"));
     }
 
-    // Tests 9-character keywords and non-keywords
+    // Tests keywords of length 9, 10, and 12
     @Test
-    public void testIsKeyword_nineCharKeywords() {
+    public void testIsKeyword_lengthNineTenTwelveKeywords_returnsTrue() {
         assertTrue(TokenStream.isKeyword("interface"));
         assertTrue(TokenStream.isKeyword("protected"));
         assertTrue(TokenStream.isKeyword("transient"));
-        assertFalse(TokenStream.isKeyword("important"));
-    }
-
-    // Tests 10-character and 12-character keywords and non-keywords
-    @Test
-    public void testIsKeyword_tenAndTwelveCharKeywords() {
         assertTrue(TokenStream.isKeyword("implements"));
         assertTrue(TokenStream.isKeyword("instanceof"));
         assertTrue(TokenStream.isKeyword("synchronized"));
+        assertFalse(TokenStream.isKeyword("interfaces"));
         assertFalse(TokenStream.isKeyword("implementor"));
-        assertFalse(TokenStream.isKeyword("synchronizer"));
     }
 
-    // Tests default / non-keyword length lengths
+    // Tests strings of non-keyword length or non-matching partial strings
     @Test
-    public void testIsKeyword_unsupportedLength_returnsFalse() {
+    public void testIsKeyword_invalidLengthsAndNonKeywords_returnsFalse() {
         assertFalse(TokenStream.isKeyword(""));
         assertFalse(TokenStream.isKeyword("a"));
-        assertFalse(TokenStream.isKeyword("unsupportedlengthname"));
+        assertFalse(TokenStream.isKeyword("supercalifragilistic"));
+        assertFalse(TokenStream.isKeyword("synchro"));
     }
 }

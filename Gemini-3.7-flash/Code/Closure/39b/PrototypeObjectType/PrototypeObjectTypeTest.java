@@ -1,18 +1,14 @@
 package com.google.javascript.rhino.jstype;
 
-import com.google.common.collect.Sets;
-import com.google.javascript.rhino.JSDocInfo;
-import com.google.javascript.rhino.Node;
-import com.google.javascript.rhino.SimpleErrorReporter;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Set;
-import java.util.TreeSet;
 
 import static org.junit.Assert.*;
 
 public class PrototypeObjectTypeTest {
+
   private JSTypeRegistry registry;
   private ObjectType objectPrototype;
   private JSType numberType;
@@ -21,242 +17,315 @@ public class PrototypeObjectTypeTest {
 
   @Before
   public void setUp() {
-    registry = new JSTypeRegistry(new SimpleErrorReporter());
+    registry = new JSTypeRegistry(null);
     objectPrototype = registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE);
     numberType = registry.getNativeType(JSTypeNative.NUMBER_TYPE);
     stringType = registry.getNativeType(JSTypeNative.STRING_TYPE);
     booleanType = registry.getNativeType(JSTypeNative.BOOLEAN_TYPE);
   }
 
-  // Tests property definition, retrieval, and existence check
+  // Tests constructor with null implicit prototype sets default ObjectType
   @Test
-  public void testDefineProperty_newProperty_success() {
-    PrototypeObjectType type = new PrototypeObjectType(registry, "Foo", objectPrototype);
-    Node node = new Node(1);
-    boolean defined = type.defineProperty("prop1", numberType, false, node);
+  public void testConstructor_nullImplicitPrototype_defaultsToObjectPrototype() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "MyClass", null, false);
+    assertEquals("MyClass", type.getClassName());
+    assertEquals("MyClass", type.getReferenceName());
+    assertTrue(type.hasReferenceName());
+    assertEquals(objectPrototype, type.getImplicitPrototype());
+    assertFalse(type.isNativeObjectType());
+  }
+
+  // Tests constructor with explicit implicit prototype and nativeType flag
+  @Test
+  public void testConstructor_nativeTypeTrue_retainsNativeFlag() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "NativeObj", null, true);
+    assertTrue(type.isNativeObjectType());
+    assertNull(type.getImplicitPrototype());
+  }
+
+  // Tests defineProperty, hasProperty, hasOwnProperty, and getSlot
+  @Test
+  public void testDefineProperty_validProperty_successfullyDefinedAndRetrieved() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, null, objectPrototype, false);
+    boolean defined = type.defineProperty("foo", numberType, false, null);
 
     assertTrue(defined);
-    assertTrue(type.hasOwnProperty("prop1"));
-    assertTrue(type.hasProperty("prop1"));
-    assertEquals(numberType, type.getPropertyType("prop1"));
-    assertEquals(node, type.getPropertyNode("prop1"));
-    assertFalse(type.isPropertyTypeInferred("prop1"));
-    assertTrue(type.isPropertyTypeDeclared("prop1"));
+    assertTrue(type.hasProperty("foo"));
+    assertTrue(type.hasOwnProperty("foo"));
+    assertNotNull(type.getSlot("foo"));
+    assertEquals(numberType, type.getPropertyType("foo"));
+    assertFalse(type.isPropertyTypeInferred("foo"));
+    assertTrue(type.isPropertyTypeDeclared("foo"));
   }
 
-  // Tests duplicate declaration of already declared property
+  // Tests defineProperty fails when property is already declared
   @Test
-  public void testDefineProperty_duplicateDeclaredProperty_returnsFalse() {
-    PrototypeObjectType type = new PrototypeObjectType(registry, "Foo", objectPrototype);
-    type.defineProperty("prop1", numberType, false, null);
+  public void testDefineProperty_alreadyDeclared_returnsFalse() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, null, objectPrototype, false);
+    type.defineProperty("bar", stringType, false, null);
 
-    boolean redefined = type.defineProperty("prop1", stringType, false, null);
-    assertFalse(redefined);
-    assertEquals(numberType, type.getPropertyType("prop1"));
+    boolean definedAgain = type.defineProperty("bar", stringType, false, null);
+    assertFalse(definedAgain);
   }
 
-  // Tests property removal
+  // Tests removeProperty on existing and non-existing property
   @Test
-  public void testRemoveProperty_existingAndNonExisting_removesCorrectly() {
-    PrototypeObjectType type = new PrototypeObjectType(registry, "Foo", objectPrototype);
-    type.defineProperty("prop1", numberType, true, null);
+  public void testRemoveProperty_existingAndNonExistingProperty() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, null, objectPrototype, false);
+    type.defineProperty("temp", booleanType, true, null);
 
-    assertTrue(type.removeProperty("prop1"));
-    assertFalse(type.hasOwnProperty("prop1"));
-    assertFalse(type.removeProperty("prop1"));
+    assertTrue(type.removeProperty("temp"));
+    assertFalse(type.hasOwnProperty("temp"));
+    assertFalse(type.removeProperty("nonExistent"));
   }
 
-  // Tests property resolution through prototype chain
+  // Tests inheritance of properties from implicit prototype
   @Test
-  public void testGetSlot_inheritedFromPrototype_findsProperty() {
-    PrototypeObjectType parent = new PrototypeObjectType(registry, "Parent", objectPrototype);
-    parent.defineProperty("parentProp", stringType, false, null);
+  public void testGetSlot_inheritedFromPrototype_returnsPrototypeSlot() {
+    PrototypeObjectType parent = new PrototypeObjectType(registry, "Parent", null, false);
+    parent.defineProperty("parentProp", numberType, false, null);
 
-    PrototypeObjectType child = new PrototypeObjectType(registry, "Child", parent);
-
-    assertNotNull(child.getSlot("parentProp"));
+    PrototypeObjectType child = new PrototypeObjectType(registry, "Child", parent, false);
     assertTrue(child.hasProperty("parentProp"));
     assertFalse(child.hasOwnProperty("parentProp"));
-    assertEquals(stringType, child.getPropertyType("parentProp"));
+    assertNotNull(child.getSlot("parentProp"));
+    assertEquals(numberType, child.getPropertyType("parentProp"));
   }
 
-  // Tests properties count calculation with and without prototype properties
+  // Tests getPropertiesCount calculation with local and prototype properties
   @Test
-  public void testGetPropertiesCount_withInheritance_returnsTotalCount() {
-    PrototypeObjectType proto = new PrototypeObjectType(registry, "Proto", null, true);
-    proto.defineProperty("a", numberType, true, null);
-    proto.defineProperty("b", stringType, true, null);
+  public void testGetPropertiesCount_withLocalAndInheritedProperties() {
+    PrototypeObjectType parent = new PrototypeObjectType(registry, null, null, true);
+    parent.defineProperty("p1", numberType, false, null);
+    parent.defineProperty("p2", numberType, false, null);
 
-    PrototypeObjectType obj = new PrototypeObjectType(registry, "Obj", proto);
-    obj.defineProperty("b", stringType, true, null); // overrides proto 'b'
-    obj.defineProperty("c", booleanType, true, null);
+    PrototypeObjectType child = new PrototypeObjectType(registry, null, parent, false);
+    child.defineProperty("p2", numberType, false, null); // overridden
+    child.defineProperty("c1", stringType, false, null);
 
-    assertEquals(2, proto.getPropertiesCount());
-    assertEquals(3, obj.getPropertiesCount());
+    assertEquals(3, child.getPropertiesCount());
   }
 
-  // Tests JSDoc info management on properties
+  // Tests collectPropertyNames across inheritance chain
   @Test
-  public void testPropertyJSDocInfo_setAndGet_preservesInfo() {
-    PrototypeObjectType type = new PrototypeObjectType(registry, "Foo", objectPrototype);
-    JSDocInfo info = new JSDocInfo();
+  public void testCollectPropertyNames_aggregatesNames() {
+    PrototypeObjectType parent = new PrototypeObjectType(registry, null, null, true);
+    parent.defineProperty("parentKey", numberType, false, null);
 
-    type.setPropertyJSDocInfo("dynamicProp", info);
-    assertTrue(type.hasOwnProperty("dynamicProp"));
-    assertEquals(info, type.getOwnPropertyJSDocInfo("dynamicProp"));
-    assertNull(type.getOwnPropertyJSDocInfo("nonExistent"));
+    PrototypeObjectType child = new PrototypeObjectType(registry, null, parent, false);
+    child.defineProperty("childKey", stringType, false, null);
+
+    Set<String> names = child.getPropertyNames();
+    assertTrue(names.contains("parentKey"));
+    assertTrue(names.contains("childKey"));
   }
 
-  // Tests matching contexts (number, string, object)
+  // Tests matching contexts and unboxing behaviors
   @Test
-  public void testMatchesContexts_standardObject_evaluatesCorrectly() {
-    PrototypeObjectType type = new PrototypeObjectType(registry, "Foo", objectPrototype);
-
+  public void testContextMatchingAndUnboxing() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, null, objectPrototype, false);
     assertTrue(type.matchesObjectContext());
     assertFalse(type.canBeCalled());
-    assertFalse(type.matchesNumberContext());
-    assertFalse(type.matchesStringContext());
-  }
-
-  // Tests unboxesTo method for non-primitive wrapper
-  @Test
-  public void testUnboxesTo_standardObject_returnsNull() {
-    PrototypeObjectType type = new PrototypeObjectType(registry, "Foo", objectPrototype);
     assertNull(type.unboxesTo());
+    assertNull(type.getConstructor());
   }
 
-  // Tests getReferenceName and hasReferenceName
+  // Tests owner function and reference name derived from owner
   @Test
-  public void testReferenceName_namedAndAnonymous_returnsExpected() {
-    PrototypeObjectType named = new PrototypeObjectType(registry, "NamedClass", objectPrototype);
-    assertTrue(named.hasReferenceName());
-    assertEquals("NamedClass", named.getReferenceName());
+  public void testOwnerFunction_referenceNameDerivedFromOwner() {
+    PrototypeObjectType prototype = new PrototypeObjectType(registry, null, objectPrototype, false);
+    assertNull(prototype.getReferenceName());
+    assertFalse(prototype.hasReferenceName());
 
-    PrototypeObjectType anonymous = new PrototypeObjectType(registry, null, objectPrototype);
-    assertFalse(anonymous.hasReferenceName());
-    assertNull(anonymous.getReferenceName());
+    FunctionType ctor = registry.createConstructorType("Foo", null, null, prototype);
+    prototype.setOwnerFunction(ctor);
+
+    assertEquals(ctor, prototype.getOwnerFunction());
+    assertEquals("Foo.prototype", prototype.getReferenceName());
+    assertTrue(prototype.hasReferenceName());
   }
 
-  // Tests owner function and prototype reference name
-  @Test
-  public void testOwnerFunction_setAndGet_updatesReferenceName() {
-    PrototypeObjectType proto = new PrototypeObjectType(registry, null, objectPrototype);
-    FunctionType ctor = registry.createConstructorType("MyClass", null, null, null);
-    proto.setOwnerFunction(ctor);
-
-    assertEquals(ctor, proto.getOwnerFunction());
-    assertTrue(proto.hasReferenceName());
-    assertEquals("MyClass.prototype", proto.getReferenceName());
-  }
-
-  // Tests setting owner function when already set throws exception
+  // Tests setting owner function twice throws exception
   @Test(expected = IllegalStateException.class)
   public void testSetOwnerFunction_alreadySet_throwsIllegalStateException() {
-    PrototypeObjectType proto = new PrototypeObjectType(registry, null, objectPrototype);
-    FunctionType ctor1 = registry.createConstructorType("C1", null, null, null);
-    FunctionType ctor2 = registry.createConstructorType("C2", null, null, null);
+    PrototypeObjectType prototype = new PrototypeObjectType(registry, null, objectPrototype, false);
+    FunctionType ctor1 = registry.createConstructorType("First", null, null, prototype);
+    FunctionType ctor2 = registry.createConstructorType("Second", null, null, prototype);
 
-    proto.setOwnerFunction(ctor1);
-    proto.setOwnerFunction(ctor2);
+    prototype.setOwnerFunction(ctor1);
+    prototype.setOwnerFunction(ctor2);
   }
 
-  // Tests toStringHelper with named type
+  // Tests toStringHelper with named prototype object
   @Test
-  public void testToStringHelper_namedType_returnsClassName() {
-    PrototypeObjectType named = new PrototypeObjectType(registry, "MyType", objectPrototype);
-    assertEquals("MyType", named.toStringHelper(false));
-    assertEquals("MyType", named.toStringHelper(true));
+  public void testToStringHelper_withReferenceName_returnsReferenceName() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "NamedType", objectPrototype, false);
+    assertEquals("NamedType", type.toStringHelper(false));
+    assertEquals("NamedType", type.toStringHelper(true));
   }
 
-  // Tests toStringHelper without pretty printing
-  @Test
-  public void testToStringHelper_anonymousWithoutPrettyPrint_returnsEllipsis() {
-    PrototypeObjectType anon = new PrototypeObjectType(registry, null, objectPrototype);
-    anon.setPrettyPrint(false);
-    assertFalse(anon.isPrettyPrint());
-    assertEquals("{...}", anon.toStringHelper(false));
-  }
-
-  // Tests toStringHelper with pretty printing up to 4 properties
+  // Tests toStringHelper pretty printing under property limit
   @Test
   public void testToStringHelper_prettyPrintFewProperties_printsAllProperties() {
-    PrototypeObjectType anon = new PrototypeObjectType(registry, null, null, true);
-    anon.defineProperty("p1", numberType, true, null);
-    anon.defineProperty("p2", stringType, true, null);
-    anon.setPrettyPrint(true);
+    PrototypeObjectType type = new PrototypeObjectType(registry, null, null, true);
+    type.defineProperty("a", numberType, false, null);
+    type.defineProperty("b", stringType, false, null);
+    type.setPrettyPrint(true);
 
-    String result = anon.toStringHelper(false);
-    assertEquals("{p1: number, p2: string}", result);
+    String result = type.toStringHelper(false);
+    assertEquals("{a: number, b: string}", result);
   }
 
-  // Tests toStringHelper with pretty printing exceeding max limit (Defects4J 39 regression)
+  // Tests toStringHelper pretty printing exceeding max property limit
   @Test
-  public void testToStringHelper_prettyPrintMoreThanMaxProperties_handlesLimit() {
-    PrototypeObjectType anon = new PrototypeObjectType(registry, null, null, true);
-    anon.defineProperty("a", numberType, true, null);
-    anon.defineProperty("b", numberType, true, null);
-    anon.defineProperty("c", numberType, true, null);
-    anon.defineProperty("d", numberType, true, null);
-    anon.defineProperty("e", numberType, true, null);
-    anon.setPrettyPrint(true);
+  public void testToStringHelper_prettyPrintManyProperties_truncatesWithEllipsis() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, null, null, true);
+    type.defineProperty("prop1", numberType, false, null);
+    type.defineProperty("prop2", numberType, false, null);
+    type.defineProperty("prop3", numberType, false, null);
+    type.defineProperty("prop4", numberType, false, null);
+    type.defineProperty("prop5", numberType, false, null);
+    type.setPrettyPrint(true);
 
-    String forDisplay = anon.toStringHelper(false);
-    assertEquals("{a: number, b: number, c: number, d: number, ...}", forDisplay);
-
-    anon.setPrettyPrint(true);
-    String forAnnotation = anon.toStringHelper(true);
-    // When forAnnotations is true, it should not truncate or should produce consistent representation
-    assertNotNull(forAnnotation);
+    String result = type.toStringHelper(false);
+    assertEquals("{prop1: number, prop2: number, prop3: number, prop4: number, ...}", result);
   }
 
-  // Tests recursive pretty printing prevents infinite recursion
+  // Tests toStringHelper when prettyPrint is false
   @Test
-  public void testToStringHelper_recursiveSelfReference_preventsInfiniteLoop() {
-    PrototypeObjectType anon = new PrototypeObjectType(registry, null, null, true);
-    anon.defineProperty("self", anon, true, null);
-    anon.setPrettyPrint(true);
+  public void testToStringHelper_prettyPrintFalse_returnsSummary() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, null, null, true);
+    type.defineProperty("prop1", numberType, false, null);
+    type.setPrettyPrint(false);
 
-    String result = anon.toStringHelper(false);
-    assertEquals("{self: {...}}", result);
+    assertEquals("{...}", type.toStringHelper(false));
   }
 
-  // Tests subtype relationship on prototype chain
+  // Tests isSubtype with prototype inheritance relationship
   @Test
-  public void testIsSubtype_prototypeHierarchy_detectsSubtype() {
-    PrototypeObjectType parent = new PrototypeObjectType(registry, "Parent", objectPrototype);
-    PrototypeObjectType child = new PrototypeObjectType(registry, "Child", parent);
+  public void testIsSubtype_prototypeChain() {
+    PrototypeObjectType base = new PrototypeObjectType(registry, "Base", null, false);
+    PrototypeObjectType derived = new PrototypeObjectType(registry, "Derived", base, false);
 
-    assertTrue(child.isSubtype(parent));
-    assertTrue(child.isSubtype(objectPrototype));
-    assertFalse(parent.isSubtype(child));
+    assertTrue(derived.isSubtype(base));
+    assertFalse(base.isSubtype(derived));
+    assertTrue(derived.isSubtype(derived));
   }
 
-  // Tests collectPropertyNames across prototype hierarchy
+  // Tests resolveInternal resolves properties and implicit prototype
   @Test
-  public void testCollectPropertyNames_withPrototype_collectsAll() {
-    PrototypeObjectType parent = new PrototypeObjectType(registry, "Parent", null, true);
-    parent.defineProperty("p1", numberType, true, null);
+  public void testResolveInternal_resolvesPropertiesAndPrototype() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "Resolvable", objectPrototype, false);
+    type.defineProperty("prop", numberType, false, null);
 
-    PrototypeObjectType child = new PrototypeObjectType(registry, "Child", parent);
-    child.defineProperty("p2", stringType, true, null);
-
-    Set<String> names = new TreeSet<String>();
-    child.collectPropertyNames(names);
-
-    assertEquals(2, names.size());
-    assertTrue(names.contains("p1"));
-    assertTrue(names.contains("p2"));
+    JSType resolved = type.resolveInternal(null, null);
+    assertSame(type, resolved);
+    assertTrue(type.isResolved());
   }
 
-  // Tests resolveInternal method resolves prototype and properties
+  // Tests three-argument constructor defaulting nativeType to false
   @Test
-  public void testResolveInternal_resolvesTypes() {
-    PrototypeObjectType type = new PrototypeObjectType(registry, "Foo", objectPrototype);
-    type.defineProperty("x", numberType, true, null);
+  public void testConstructor_threeArgs_defaultsToNonNative() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "ThreeArgs", objectPrototype);
+    assertFalse(type.isNativeObjectType());
+    assertEquals("ThreeArgs", type.getClassName());
+    assertEquals(objectPrototype, type.getImplicitPrototype());
+  }
 
-    JSType resolved = type.resolveInternal(new SimpleErrorReporter(), null);
-    assertNotNull(resolved);
-    assertTrue(resolved.isResolved());
-    assertEquals(numberType, type.getPropertyType("x"));
+  // Tests setImplicitPrototype updates the prototype reference
+  @Test
+  public void testSetImplicitPrototype_updatesImplicitPrototype() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "ChildType", null, false);
+    PrototypeObjectType newParent = new PrototypeObjectType(registry, "NewParent", null, false);
+
+    type.setImplicitPrototype(newParent);
+    assertEquals(newParent, type.getImplicitPrototype());
+  }
+
+  // Tests toStringHelper with empty properties and prettyPrint enabled
+  @Test
+  public void testToStringHelper_emptyPropertiesPrettyPrint_returnsEmptyBraces() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, null, null, true);
+    type.setPrettyPrint(true);
+    assertEquals("{}", type.toStringHelper(false));
+  }
+
+  // Tests getPropertyType returns unknown type for nonexistent property
+  @Test
+  public void testGetPropertyType_nonExistentProperty_returnsUnknownType() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "TestType", null, false);
+    assertEquals(registry.getNativeType(JSTypeNative.UNKNOWN_TYPE), type.getPropertyType("nonExistent"));
+  }
+
+  // Tests isPropertyTypeInferred and isPropertyTypeDeclared for nonexistent property
+  @Test
+  public void testPropertyTypeInferredAndDeclared_nonExistentProperty_returnsFalse() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "TestType", null, false);
+    assertFalse(type.isPropertyTypeInferred("missing"));
+    assertFalse(type.isPropertyTypeDeclared("missing"));
+    assertNull(type.getSlot("missing"));
+  }
+
+  // Tests defining an inferred property
+  @Test
+  public void testDefineProperty_inferredProperty_setsInferredFlag() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "InferredObj", objectPrototype, false);
+    boolean defined = type.defineProperty("inferredProp", numberType, true, null);
+
+    assertTrue(defined);
+    assertTrue(type.isPropertyTypeInferred("inferredProp"));
+    assertFalse(type.isPropertyTypeDeclared("inferredProp"));
+  }
+
+  // Tests redefining an inferred property with a declared property succeeds
+  @Test
+  public void testDefineProperty_overrideInferredWithDeclared_succeeds() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "OverrideObj", objectPrototype, false);
+    type.defineProperty("prop", numberType, true, null);
+    assertTrue(type.isPropertyTypeInferred("prop"));
+
+    boolean redefined = type.defineProperty("prop", stringType, false, null);
+    assertTrue(redefined);
+    assertFalse(type.isPropertyTypeInferred("prop"));
+    assertTrue(type.isPropertyTypeDeclared("prop"));
+    assertEquals(stringType, type.getPropertyType("prop"));
+  }
+
+  // Tests isPropertyInExterns, getPropertyNode, and doc info defaults
+  @Test
+  public void testPropertyMetadata_nodeAndExternDefaults() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, "MetaObj", objectPrototype, false);
+    type.defineProperty("metaProp", numberType, false, null);
+
+    assertFalse(type.isPropertyInExterns("metaProp"));
+    assertNull(type.getPropertyNode("metaProp"));
+    assertNull(type.getDocInfoForProperty("metaProp"));
+    type.setPropertyJSDocInfo("metaProp", null);
+    assertNull(type.getDocInfoForProperty("metaProp"));
+  }
+
+  // Tests isSubtype against unknown type and non-object types
+  @Test
+  public void testIsSubtype_againstNativeTypes() {
+    PrototypeObjectType type = new PrototypeObjectType(registry, null, objectPrototype, false);
+    JSType unknownType = registry.getNativeType(JSTypeNative.UNKNOWN_TYPE);
+
+    assertTrue(type.isSubtype(unknownType));
+    assertTrue(type.isSubtype(objectPrototype));
+    assertFalse(type.isSubtype(numberType));
+    assertFalse(type.isSubtype(stringType));
+  }
+
+  // Tests hasOwnProperty does not return true for properties on the prototype chain
+  @Test
+  public void testHasOwnProperty_doesNotTraversePrototypeChain() {
+    PrototypeObjectType parent = new PrototypeObjectType(registry, "Parent", null, false);
+    parent.defineProperty("p", numberType, false, null);
+
+    PrototypeObjectType child = new PrototypeObjectType(registry, "Child", parent, false);
+    assertFalse(child.hasOwnProperty("p"));
+    assertTrue(child.hasProperty("p"));
+    assertFalse(child.hasOwnProperty("notDefined"));
+    assertFalse(child.hasProperty("notDefined"));
   }
 }

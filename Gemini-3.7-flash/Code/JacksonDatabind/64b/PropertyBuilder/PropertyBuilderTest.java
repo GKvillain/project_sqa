@@ -1,340 +1,306 @@
 package com.fasterxml.jackson.databind.ser;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.util.*;
-
-import org.junit.Test;
-import static org.junit.Assert.*;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.introspect.AnnotatedField;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
-import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 import com.fasterxml.jackson.databind.type.TypeFactory;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class PropertyBuilderTest {
 
-    // Test helper classes for serialization scenarios
+    private ObjectMapper mapper;
+
+    @Before
+    public void setUp() {
+        mapper = new ObjectMapper();
+    }
+
+    // Helper classes for testing various inclusion scenarios
 
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    static class NonDefaultBean {
-        public String str = "default";
-        public int num = 10;
-        public List<String> list = Collections.emptyList();
-        public int[] array = new int[] { 1, 2 };
-
-        public NonDefaultBean() {}
+    static class NonDefaultClassBean {
+        public int x = 10;
+        public int y = 20;
+        public String text = "default";
+        public String other = "init";
     }
 
-    @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    static class NonEmptyBean {
-        public String emptyStr = "";
-        public String nonEmptyStr = "abc";
-        public List<String> emptyList = new ArrayList<String>();
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    static class NonNullBean {
-        public String nullStr = null;
-        public String nonNullStr = "value";
-    }
-
-    @JsonInclude(JsonInclude.Include.NON_ABSENT)
-    static class NonAbsentBean {
-        public String nullVal = null;
-        public String nonNullVal = "present";
-    }
-
-    static class PropertyOverrideBean {
-        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-        public String str = "default";
-
+    static class NonDefaultPropertyBean {
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
         public int num = 0;
 
+        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+        public String str = "";
+
+        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+        public List<String> list = new ArrayList<String>();
+
+        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+        public int nonDefaultNum = 42;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    static class ArrayBean {
+        public int[] numbers = new int[]{1, 2, 3};
+    }
+
+    static class NonEmptyBean {
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
         public String emptyStr = "";
 
-        @JsonInclude(JsonInclude.Include.NON_NULL)
-        public String nullStr = null;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public String nonEmptyStr = "hello";
 
-        @JsonInclude(JsonInclude.Include.ALWAYS)
-        public String alwaysNull = null;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public List<String> emptyList = Collections.emptyList();
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public int[] emptyArray = new int[0];
+    }
+
+    static class NonNullBean {
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        public String nullField = null;
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        public String nonNullField = "value";
+    }
+
+    static class NonAbsentBean {
+        @JsonInclude(JsonInclude.Include.NON_ABSENT)
+        public AtomicReference<String> absentRef = new AtomicReference<String>(null);
+
+        @JsonInclude(JsonInclude.Include.NON_ABSENT)
+        public AtomicReference<String> presentRef = new AtomicReference<String>("content");
+
+        @JsonInclude(JsonInclude.Include.NON_ABSENT)
+        public String nullField = null;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    static class NoDefaultConstructorBean {
+        public int x;
+
+        public NoDefaultConstructorBean(int x) {
+            this.x = x;
+        }
     }
 
     static class StaticTypingBean {
         @JsonSerialize(typing = JsonSerialize.Typing.STATIC)
-        public CharSequence seq = "staticText";
+        public Object val = "stringVal";
     }
 
-    static class NoDefaultConstructorBean {
-        public String value;
-
-        public NoDefaultConstructorBean(String v) {
-            this.value = v;
-        }
+    static class UnwrappedChild {
+        public String inner = "child";
     }
 
-    static class DefaultValuesBean {
-        public boolean boolVal = false;
-        public byte byteVal = 0;
-        public short shortVal = 0;
-        public char charVal = '\0';
-        public int intVal = 0;
-        public long longVal = 0L;
-        public float floatVal = 0.0f;
-        public double doubleVal = 0.0d;
-        public String strVal = "";
-        public List<String> listVal = null;
+    static class UnwrappedParent {
+        @JsonUnwrapped
+        public UnwrappedChild child = new UnwrappedChild();
     }
 
-    static class SubPropertyBuilder extends PropertyBuilder {
-        public SubPropertyBuilder(SerializationConfig config, BeanDescription beanDesc) {
-            super(config, beanDesc);
-        }
-
-        public Object callGetDefaultBean() {
-            return getDefaultBean();
-        }
-
-        public Object callGetDefaultValue(JavaType type) {
-            return getDefaultValue(type);
-        }
-
-        public Object callGetPropertyDefaultValue(String name, AnnotatedMember member, JavaType type) {
-            return getPropertyDefaultValue(name, member, type);
-        }
-
-        public JavaType callFindSerializationType(AnnotatedMember a, boolean useStaticTyping, JavaType declaredType)
-            throws JsonMappingException
-        {
-            return findSerializationType(a, useStaticTyping, declaredType);
-        }
-
-        public Object callThrowWrapped(Exception e, String propName, Object defaultBean) {
-            return _throwWrapped(e, propName, defaultBean);
+    static class CustomNullSerializer extends JsonSerializer<Object> {
+        @Override
+        public void serialize(Object value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeString("CUSTOM_NULL");
         }
     }
 
-    // Tests construction and metadata retrieval
+    static class CustomNullBean {
+        @JsonSerialize(nullsUsing = CustomNullSerializer.class)
+        public String nullValue = null;
+    }
+
+    static class ContainerBean {
+        public List<String> items = new ArrayList<String>();
+    }
+
+    // Tests class-level NON_DEFAULT inclusion with matching and non-matching defaults
     @Test
-    public void testGetClassAnnotations_validBean_returnsNonNull() {
-        ObjectMapper mapper = new ObjectMapper();
-        SerializationConfig config = mapper.getSerializationConfig();
-        JavaType type = mapper.constructType(NonDefaultBean.class);
-        BeanDescription beanDesc = config.introspect(type);
-        PropertyBuilder builder = new PropertyBuilder(config, beanDesc);
+    public void testBuildWriter_classNonDefault_suppressesMatchingDefaults() throws Exception {
+        NonDefaultClassBean bean = new NonDefaultClassBean();
+        bean.y = 99; // default is 20
+        bean.other = "changed"; // default is "init"
 
-        assertNotNull(builder.getClassAnnotations());
+        String json = mapper.writeValueAsString(bean);
+        assertTrue(json.contains("\"y\":99"));
+        assertTrue(json.contains("\"other\":\"changed\""));
+        assertTrue(!json.contains("\"x\""));
+        assertTrue(!json.contains("\"text\""));
     }
 
-    // Tests serialization with class-level NON_DEFAULT inclusion
+    // Tests property-level NON_DEFAULT inclusion
     @Test
-    public void testBuildWriter_classLevelNonDefault_suppressesDefaultValues() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        NonDefaultBean bean = new NonDefaultBean();
+    public void testBuildWriter_propertyNonDefault_suppressesTypeDefaults() throws Exception {
+        NonDefaultPropertyBean bean = new NonDefaultPropertyBean();
+        String json = mapper.writeValueAsString(bean);
+        assertEquals("{\"nonDefaultNum\":42}", json);
 
+        bean.num = 5;
+        bean.str = "test";
+        bean.nonDefaultNum = 0;
+        json = mapper.writeValueAsString(bean);
+        assertTrue(json.contains("\"num\":5"));
+        assertTrue(json.contains("\"str\":\"test\""));
+        assertTrue(!json.contains("\"nonDefaultNum\""));
+    }
+
+    // Tests NON_DEFAULT with array properties comparing elements
+    @Test
+    public void testBuildWriter_arrayNonDefault_suppressesEqualArray() throws Exception {
+        ArrayBean bean = new ArrayBean();
         String json = mapper.writeValueAsString(bean);
         assertEquals("{}", json);
 
-        bean.str = "custom";
-        bean.num = 20;
+        bean.numbers = new int[]{1, 2, 4};
         json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"str\":\"custom\""));
-        assertTrue(json.contains("\"num\":20"));
+        assertEquals("{\"numbers\":[1,2,4]}", json);
     }
 
-    // Tests array comparison suppression in class-level NON_DEFAULT
+    // Tests NON_EMPTY inclusion suppressing empty strings, lists, arrays
     @Test
-    public void testBuildWriter_classLevelNonDefaultArray_suppressesMatchingArray() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        NonDefaultBean bean = new NonDefaultBean();
-        bean.str = "changed";
-        bean.array = new int[] { 1, 2 }; // Matches default array content
-
-        String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"str\":\"changed\""));
-        assertFalse(json.contains("\"array\""));
-
-        bean.array = new int[] { 1, 3 }; // Modified array content
-        json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"array\":[1,3]"));
-    }
-
-    // Tests property-level NON_DEFAULT inclusion override
-    @Test
-    public void testBuildWriter_propertyLevelNonDefault_suppressesDefaultPrimitiveAndString() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        PropertyOverrideBean bean = new PropertyOverrideBean();
-
-        String json = mapper.writeValueAsString(bean);
-        // Default String for property-level NON_DEFAULT is empty string "", so "default" is serialized
-        assertTrue(json.contains("\"str\":\"default\""));
-        // Default int is 0, so num=0 is suppressed
-        assertFalse(json.contains("\"num\""));
-
-        bean.num = 42;
-        json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"num\":42"));
-    }
-
-    // Tests property-level NON_EMPTY inclusion override
-    @Test
-    public void testBuildWriter_propertyLevelNonEmpty_suppressesEmpty() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        PropertyOverrideBean bean = new PropertyOverrideBean();
-        bean.emptyStr = "";
-
-        String json = mapper.writeValueAsString(bean);
-        assertFalse(json.contains("\"emptyStr\""));
-
-        bean.emptyStr = "filled";
-        json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"emptyStr\":\"filled\""));
-    }
-
-    // Tests property-level NON_NULL and ALWAYS inclusion
-    @Test
-    public void testBuildWriter_propertyLevelNonNullAndAlways_respectsInclusion() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        PropertyOverrideBean bean = new PropertyOverrideBean();
-
-        String json = mapper.writeValueAsString(bean);
-        assertFalse(json.contains("\"nullStr\""));
-        assertTrue(json.contains("\"alwaysNull\":null"));
-    }
-
-    // Tests class-level NON_EMPTY inclusion
-    @Test
-    public void testBuildWriter_classLevelNonEmpty_suppressesEmptyFields() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
+    public void testBuildWriter_nonEmpty_suppressesEmptyValues() throws Exception {
         NonEmptyBean bean = new NonEmptyBean();
-
         String json = mapper.writeValueAsString(bean);
-        assertFalse(json.contains("\"emptyStr\""));
-        assertFalse(json.contains("\"emptyList\""));
-        assertTrue(json.contains("\"nonEmptyStr\":\"abc\""));
+        assertEquals("{\"nonEmptyStr\":\"hello\"}", json);
     }
 
-    // Tests class-level NON_NULL inclusion
+    // Tests NON_NULL inclusion suppressing null values
     @Test
-    public void testBuildWriter_classLevelNonNull_suppressesNullFields() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
+    public void testBuildWriter_nonNull_suppressesNullProperties() throws Exception {
         NonNullBean bean = new NonNullBean();
-
         String json = mapper.writeValueAsString(bean);
-        assertFalse(json.contains("\"nullStr\""));
-        assertTrue(json.contains("\"nonNullStr\":\"value\""));
+        assertEquals("{\"nonNullField\":\"value\"}", json);
     }
 
-    // Tests class-level NON_ABSENT inclusion
+    // Tests NON_ABSENT inclusion suppressing empty reference types and nulls
     @Test
-    public void testBuildWriter_classLevelNonAbsent_suppressesNulls() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
+    public void testBuildWriter_nonAbsent_suppressesNullAndEmptyReference() throws Exception {
         NonAbsentBean bean = new NonAbsentBean();
-
         String json = mapper.writeValueAsString(bean);
-        assertFalse(json.contains("\"nullVal\""));
-        assertTrue(json.contains("\"nonNullVal\":\"present\""));
+        assertEquals("{\"presentRef\":\"content\"}", json);
     }
 
-    // Tests static typing configuration on property
+    // Tests NON_DEFAULT when class has no default constructor
     @Test
-    public void testBuildWriter_staticTyping_serializesCorrectly() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
+    public void testBuildWriter_noDefaultConstructor_fallsBackToTypeDefaults() throws Exception {
+        NoDefaultConstructorBean bean = new NoDefaultConstructorBean(0);
+        String json = mapper.writeValueAsString(bean);
+        assertEquals("{}", json);
+
+        bean = new NoDefaultConstructorBean(15);
+        json = mapper.writeValueAsString(bean);
+        assertEquals("{\"x\":15}", json);
+    }
+
+    // Tests static typing via annotation
+    @Test
+    public void testBuildWriter_staticTyping_serializesProperly() throws Exception {
         StaticTypingBean bean = new StaticTypingBean();
-
         String json = mapper.writeValueAsString(bean);
-        assertTrue(json.contains("\"seq\":\"staticText\""));
+        assertEquals("{\"val\":\"stringVal\"}", json);
     }
 
-    // Tests getDefaultBean when target class has no default constructor
+    // Tests unwrapped property handling
     @Test
-    public void testGetDefaultBean_noDefaultConstructor_returnsNull() {
-        ObjectMapper mapper = new ObjectMapper();
-        SerializationConfig config = mapper.getSerializationConfig();
-        JavaType type = mapper.constructType(NoDefaultConstructorBean.class);
-        BeanDescription beanDesc = config.introspect(type);
-        SubPropertyBuilder builder = new SubPropertyBuilder(config, beanDesc);
-
-        Object defaultBean = builder.callGetDefaultBean();
-        assertNull(defaultBean);
+    public void testBuildWriter_unwrappedProperty_unwrapsProperties() throws Exception {
+        UnwrappedParent parent = new UnwrappedParent();
+        String json = mapper.writeValueAsString(parent);
+        assertEquals("{\"inner\":\"child\"}", json);
     }
 
-    // Tests getDefaultValue helper method for primitives and reference/container types
+    // Tests custom null serializer assignment
     @Test
-    public void testGetDefaultValue_variousTypes_returnsExpectedDefaults() {
-        ObjectMapper mapper = new ObjectMapper();
-        SerializationConfig config = mapper.getSerializationConfig();
-        BeanDescription beanDesc = config.introspect(mapper.constructType(DefaultValuesBean.class));
-        SubPropertyBuilder builder = new SubPropertyBuilder(config, beanDesc);
-
-        TypeFactory tf = mapper.getTypeFactory();
-
-        assertEquals(false, builder.callGetDefaultValue(tf.constructType(boolean.class)));
-        assertEquals((byte) 0, builder.callGetDefaultValue(tf.constructType(byte.class)));
-        assertEquals((short) 0, builder.callGetDefaultValue(tf.constructType(short.class)));
-        assertEquals('\0', builder.callGetDefaultValue(tf.constructType(char.class)));
-        assertEquals(0, builder.callGetDefaultValue(tf.constructType(int.class)));
-        assertEquals(0L, builder.callGetDefaultValue(tf.constructType(long.class)));
-        assertEquals(0.0f, builder.callGetDefaultValue(tf.constructType(float.class)));
-        assertEquals(0.0d, builder.callGetDefaultValue(tf.constructType(double.class)));
-        assertEquals("", builder.callGetDefaultValue(tf.constructType(String.class)));
-        assertEquals(JsonInclude.Include.NON_EMPTY, builder.callGetDefaultValue(tf.constructType(List.class)));
-        assertNull(builder.callGetDefaultValue(tf.constructType(Object.class)));
+    public void testBuildWriter_customNullSerializer_usesCustomSerializer() throws Exception {
+        CustomNullBean bean = new CustomNullBean();
+        String json = mapper.writeValueAsString(bean);
+        assertEquals("{\"nullValue\":\"CUSTOM_NULL\"}", json);
     }
 
-    // Tests getPropertyDefaultValue fallback when bean has no default constructor
+    // Tests disabling WRITE_EMPTY_JSON_ARRAYS suppresses empty containers
     @Test
-    public void testGetPropertyDefaultValue_noDefaultBean_fallsBackToTypeDefault() {
-        ObjectMapper mapper = new ObjectMapper();
-        SerializationConfig config = mapper.getSerializationConfig();
-        BeanDescription beanDesc = config.introspect(mapper.constructType(NoDefaultConstructorBean.class));
-        SubPropertyBuilder builder = new SubPropertyBuilder(config, beanDesc);
+    public void testBuildWriter_disableWriteEmptyArrays_suppressesEmptyContainer() throws Exception {
+        mapper.disable(SerializationFeature.WRITE_EMPTY_JSON_ARRAYS);
+        ContainerBean bean = new ContainerBean();
+        String json = mapper.writeValueAsString(bean);
+        assertEquals("{}", json);
 
-        JavaType stringType = mapper.constructType(String.class);
-        Object defVal = builder.callGetPropertyDefaultValue("value", null, stringType);
-        assertEquals("", defVal);
+        bean.items.add("item");
+        json = mapper.writeValueAsString(bean);
+        assertEquals("{\"items\":[\"item\"]}", json);
     }
 
-    // Tests exception wrapping in _throwWrapped
-    @Test(expected = IllegalArgumentException.class)
-    public void testThrowWrapped_checkedException_throwsIllegalArgumentException() {
-        ObjectMapper mapper = new ObjectMapper();
-        SerializationConfig config = mapper.getSerializationConfig();
-        BeanDescription beanDesc = config.introspect(mapper.constructType(DefaultValuesBean.class));
-        SubPropertyBuilder builder = new SubPropertyBuilder(config, beanDesc);
+    // Tests config override for default inclusion per type
+    @Test
+    public void testBuildWriter_configOverrideNonDefault_suppressesDefaults() throws Exception {
+        mapper.configOverride(NonDefaultClassBean.class)
+                .setInclude(JsonInclude.Value.construct(JsonInclude.Include.NON_DEFAULT, JsonInclude.Include.NON_DEFAULT));
 
-        Exception checkedEx = new Exception("test checked exception");
-        builder.callThrowWrapped(checkedEx, "testProp", new DefaultValuesBean());
+        NonDefaultClassBean bean = new NonDefaultClassBean();
+        String json = mapper.writeValueAsString(bean);
+        assertEquals("{}", json);
     }
 
-    // Tests runtime exception propagation in _throwWrapped
-    @Test(expected = IllegalStateException.class)
-    public void testThrowWrapped_runtimeException_rethrowsSameRuntimeException() {
-        ObjectMapper mapper = new ObjectMapper();
-        SerializationConfig config = mapper.getSerializationConfig();
-        BeanDescription beanDesc = config.introspect(mapper.constructType(DefaultValuesBean.class));
-        SubPropertyBuilder builder = new SubPropertyBuilder(config, beanDesc);
+    // Tests direct PropertyBuilder helper methods via subclass
+    @Test
+    public void testPropertyBuilder_getDefaultValue_returnsExpectedPrimitiveAndContainerDefaults() {
+        PropertyBuilder pb = new PropertyBuilder(
+                mapper.getSerializationConfig(),
+                mapper.getSerializationConfig().introspect(mapper.constructType(NonDefaultClassBean.class))
+        );
 
-        IllegalStateException runtimeEx = new IllegalStateException("test runtime exception");
-        builder.callThrowWrapped(runtimeEx, "testProp", new DefaultValuesBean());
+        JavaType intType = TypeFactory.defaultInstance().constructType(int.class);
+        JavaType stringType = TypeFactory.defaultInstance().constructType(String.class);
+        JavaType listType = TypeFactory.defaultInstance().constructType(List.class);
+        JavaType objType = TypeFactory.defaultInstance().constructType(Object.class);
+
+        assertEquals(Integer.valueOf(0), pb.getDefaultValue(intType));
+        assertEquals("", pb.getDefaultValue(stringType));
+        assertEquals(JsonInclude.Include.NON_EMPTY, pb.getDefaultValue(listType));
+        assertNull(pb.getDefaultValue(objType));
     }
 
-    // Tests error propagation in _throwWrapped
-    @Test(expected = AssertionError.class)
-    public void testThrowWrapped_error_rethrowsError() {
-        ObjectMapper mapper = new ObjectMapper();
-        SerializationConfig config = mapper.getSerializationConfig();
-        BeanDescription beanDesc = config.introspect(mapper.constructType(DefaultValuesBean.class));
-        SubPropertyBuilder builder = new SubPropertyBuilder(config, beanDesc);
+    // Tests getClassAnnotations accessor
+    @Test
+    public void testPropertyBuilder_getClassAnnotations_returnsNonNullAnnotations() {
+        PropertyBuilder pb = new PropertyBuilder(
+                mapper.getSerializationConfig(),
+                mapper.getSerializationConfig().introspect(mapper.constructType(NonDefaultClassBean.class))
+        );
+        assertNotNull(pb.getClassAnnotations());
+    }
 
-        AssertionError error = new AssertionError("test assertion error");
-        Exception wrapper = new Exception(error);
-        builder.callThrowWrapped(wrapper, "testProp", new DefaultValuesBean());
+    // Tests getDefaultBean returns cached instance
+    @Test
+    public void testPropertyBuilder_getDefaultBean_returnsCachedBean() {
+        PropertyBuilder pb = new PropertyBuilder(
+                mapper.getSerializationConfig(),
+                mapper.getSerializationConfig().introspect(mapper.constructType(NonDefaultClassBean.class))
+        );
+        Object bean1 = pb.getDefaultBean();
+        Object bean2 = pb.getDefaultBean();
+        assertNotNull(bean1);
+        assertTrue(bean1 instanceof NonDefaultClassBean);
+        assertTrue(bean1 == bean2);
     }
 }

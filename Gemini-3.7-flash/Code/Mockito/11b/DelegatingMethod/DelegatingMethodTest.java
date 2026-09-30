@@ -4,158 +4,163 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class DelegatingMethodTest {
 
-    private interface SampleInterface {
-        void abstractMethod() throws Exception;
-        void varArgsMethod(String... args);
-        String regularMethod(int a, String b);
-    }
-
-    private static class SampleClass implements SampleInterface {
-        @Override
-        public void abstractMethod() throws Exception {}
-
-        @Override
-        public void varArgsMethod(String... args) {}
-
-        @Override
-        public String regularMethod(int a, String b) {
-            return b;
-        }
-    }
-
-    private Method regularMethod;
-    private Method interfaceRegularMethod;
-    private Method abstractMethod;
-    private Method varArgsMethod;
-    private DelegatingMethod delegatingRegularMethod;
+    private Method stringLengthMethod;
+    private Method stringFormatMethod;
+    private Method listSizeMethod;
+    private Method classForNameMethod;
+    private DelegatingMethod delegatingMethod;
 
     @Before
     public void setUp() throws Exception {
-        regularMethod = SampleClass.class.getMethod("regularMethod", int.class, String.class);
-        interfaceRegularMethod = SampleInterface.class.getMethod("regularMethod", int.class, String.class);
-        abstractMethod = SampleInterface.class.getMethod("abstractMethod");
-        varArgsMethod = SampleInterface.class.getMethod("varArgsMethod", String[].class);
-        delegatingRegularMethod = new DelegatingMethod(regularMethod);
-    }
-
-    // Tests equals with another DelegatingMethod wrapping the same Method
-    @Test
-    public void testEquals_anotherDelegatingMethodWithSameMethod_returnsTrue() {
-        DelegatingMethod other = new DelegatingMethod(regularMethod);
-        assertTrue(delegatingRegularMethod.equals(other));
+        stringLengthMethod = String.class.getMethod("length");
+        stringFormatMethod = String.class.getMethod("format", String.class, Object[].class);
+        listSizeMethod = List.class.getMethod("size");
+        classForNameMethod = Class.class.getMethod("forName", String.class);
+        delegatingMethod = new DelegatingMethod(stringLengthMethod);
     }
 
     // Tests equals with the same DelegatingMethod instance
     @Test
     public void testEquals_sameInstance_returnsTrue() {
-        assertTrue(delegatingRegularMethod.equals(delegatingRegularMethod));
+        assertTrue(delegatingMethod.equals(delegatingMethod));
     }
 
-    // Tests equals with the underlying java.lang.reflect.Method instance
+    // Tests equals with another DelegatingMethod wrapping the same underlying method (Defect 11b)
+    @Test
+    public void testEquals_twoDelegatingMethodsWithSameUnderlyingMethod_returnsTrue() {
+        DelegatingMethod other = new DelegatingMethod(stringLengthMethod);
+        assertTrue(delegatingMethod.equals(other));
+    }
+
+    // Tests equals with another DelegatingMethod wrapping a different underlying method
+    @Test
+    public void testEquals_twoDelegatingMethodsWithDifferentUnderlyingMethod_returnsFalse() {
+        DelegatingMethod other = new DelegatingMethod(listSizeMethod);
+        assertFalse(delegatingMethod.equals(other));
+    }
+
+    // Tests equals with the underlying Method object directly
     @Test
     public void testEquals_underlyingMethodInstance_returnsTrue() {
-        assertTrue(delegatingRegularMethod.equals(regularMethod));
+        assertTrue(delegatingMethod.equals(stringLengthMethod));
     }
 
-    // Tests equals with a different java.lang.reflect.Method instance directly
+    // Tests equals with a different Method object
     @Test
-    public void testEquals_differentUnderlyingMethod_returnsFalse() {
-        assertFalse(delegatingRegularMethod.equals(abstractMethod));
-    }
-
-    // Tests equals with a DelegatingMethod wrapping an interface method versus class method
-    @Test
-    public void testEquals_interfaceVsClassMethod_returnsFalse() {
-        DelegatingMethod interfaceDelegatingMethod = new DelegatingMethod(interfaceRegularMethod);
-        assertFalse(delegatingRegularMethod.equals(interfaceDelegatingMethod));
-    }
-
-    // Tests equals with a DelegatingMethod wrapping a different Method
-    @Test
-    public void testEquals_differentMethod_returnsFalse() {
-        DelegatingMethod other = new DelegatingMethod(abstractMethod);
-        assertFalse(delegatingRegularMethod.equals(other));
+    public void testEquals_differentMethodInstance_returnsFalse() {
+        assertFalse(delegatingMethod.equals(listSizeMethod));
     }
 
     // Tests equals with null input
     @Test
     public void testEquals_nullInput_returnsFalse() {
-        assertFalse(delegatingRegularMethod.equals(null));
+        assertFalse(delegatingMethod.equals(null));
     }
 
-    // Tests equals with an unrelated object type
+    // Tests equals with an object of an unrelated type
     @Test
-    public void testEquals_differentObjectType_returnsFalse() {
-        assertFalse(delegatingRegularMethod.equals("someString"));
+    public void testEquals_unrelatedType_returnsFalse() {
+        assertFalse(delegatingMethod.equals("someString"));
     }
 
-    // Tests hashCode value
+    // Tests hashCode consistency and contract
     @Test
-    public void testHashCode_validMethod_returnsOne() {
-        assertEquals(1, delegatingRegularMethod.hashCode());
+    public void testHashCode_validInstance_returnsConsistentHashCode() {
+        assertEquals(1, delegatingMethod.hashCode());
     }
 
-    // Tests getName returns the correct method name
+    // Tests getName delegating to underlying method
     @Test
-    public void testGetName_validMethod_returnsCorrectName() {
-        assertEquals("regularMethod", delegatingRegularMethod.getName());
+    public void testGetName_standardMethod_returnsMethodName() {
+        assertEquals("length", delegatingMethod.getName());
     }
 
-    // Tests getJavaMethod returns the wrapped Method instance
+    // Tests getJavaMethod returns the underlying Method object
     @Test
-    public void testGetJavaMethod_validMethod_returnsWrappedMethod() {
-        assertSame(regularMethod, delegatingRegularMethod.getJavaMethod());
+    public void testGetJavaMethod_standardMethod_returnsExactMethod() {
+        assertSame(stringLengthMethod, delegatingMethod.getJavaMethod());
     }
 
-    // Tests getReturnType returns the correct return type
+    // Tests getReturnType returns expected class
     @Test
-    public void testGetReturnType_validMethod_returnsCorrectReturnType() {
-        assertEquals(String.class, delegatingRegularMethod.getReturnType());
+    public void testGetReturnType_returnsCorrectType() {
+        assertEquals(int.class, delegatingMethod.getReturnType());
     }
 
-    // Tests getParameterTypes returns the correct parameter types
+    // Tests getParameterTypes returns expected parameter array
     @Test
-    public void testGetParameterTypes_validMethod_returnsCorrectParameterTypes() {
-        Class<?>[] paramTypes = delegatingRegularMethod.getParameterTypes();
-        assertArrayEquals(new Class<?>[]{int.class, String.class}, paramTypes);
+    public void testGetParameterTypes_emptyParams_returnsEmptyArray() {
+        assertArrayEquals(new Class<?>[0], delegatingMethod.getParameterTypes());
     }
 
-    // Tests getExceptionTypes returns the correct exception types
+    // Tests getParameterTypes for method with arguments
     @Test
-    public void testGetExceptionTypes_methodWithExceptions_returnsExceptionTypes() {
-        DelegatingMethod delegating = new DelegatingMethod(abstractMethod);
-        Class<?>[] exceptionTypes = delegating.getExceptionTypes();
-        assertArrayEquals(new Class<?>[]{Exception.class}, exceptionTypes);
+    public void testGetParameterTypes_withParams_returnsCorrectArray() {
+        DelegatingMethod formatDelegating = new DelegatingMethod(stringFormatMethod);
+        assertArrayEquals(new Class<?>[]{String.class, Object[].class}, formatDelegating.getParameterTypes());
     }
 
-    // Tests isVarArgs on a varargs method returns true
+    // Tests getExceptionTypes returns expected exceptions
+    @Test
+    public void testGetExceptionTypes_declaredExceptions_returnsExceptionTypes() {
+        DelegatingMethod forNameDelegating = new DelegatingMethod(classForNameMethod);
+        assertArrayEquals(new Class<?>[]{ClassNotFoundException.class}, forNameDelegating.getExceptionTypes());
+    }
+
+    // Tests getExceptionTypes for method without declared exceptions returns empty array
+    @Test
+    public void testGetExceptionTypes_noDeclaredExceptions_returnsEmptyArray() {
+        assertArrayEquals(new Class<?>[0], delegatingMethod.getExceptionTypes());
+    }
+
+    // Tests isVarArgs for varargs method returns true
     @Test
     public void testIsVarArgs_varArgsMethod_returnsTrue() {
-        DelegatingMethod delegating = new DelegatingMethod(varArgsMethod);
-        assertTrue(delegating.isVarArgs());
+        DelegatingMethod formatDelegating = new DelegatingMethod(stringFormatMethod);
+        assertTrue(formatDelegating.isVarArgs());
     }
 
-    // Tests isVarArgs on a non-varargs method returns false
+    // Tests isVarArgs for non-varargs method returns false
     @Test
     public void testIsVarArgs_nonVarArgsMethod_returnsFalse() {
-        assertFalse(delegatingRegularMethod.isVarArgs());
+        assertFalse(delegatingMethod.isVarArgs());
     }
 
-    // Tests isAbstract on an abstract interface method returns true
+    // Tests isAbstract for abstract interface method returns true
     @Test
     public void testIsAbstract_abstractMethod_returnsTrue() {
-        DelegatingMethod delegating = new DelegatingMethod(abstractMethod);
-        assertTrue(delegating.isAbstract());
+        DelegatingMethod abstractDelegating = new DelegatingMethod(listSizeMethod);
+        assertTrue(abstractDelegating.isAbstract());
     }
 
-    // Tests isAbstract on a concrete class method returns false
+    // Tests isAbstract for concrete method returns false
     @Test
     public void testIsAbstract_concreteMethod_returnsFalse() {
-        assertFalse(delegatingRegularMethod.isAbstract());
+        assertFalse(delegatingMethod.isAbstract());
+    }
+
+    // Tests isAbstract for static method returns false
+    @Test
+    public void testIsAbstract_staticMethod_returnsFalse() {
+        DelegatingMethod forNameDelegating = new DelegatingMethod(classForNameMethod);
+        assertFalse(forNameDelegating.isAbstract());
+    }
+
+    // Tests getReturnType for void return type
+    @Test
+    public void testGetReturnType_voidMethod_returnsVoidType() throws Exception {
+        Method waitMethod = Object.class.getMethod("wait");
+        DelegatingMethod waitDelegating = new DelegatingMethod(waitMethod);
+        assertEquals(void.class, waitDelegating.getReturnType());
     }
 }

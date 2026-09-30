@@ -1,7 +1,6 @@
 package com.google.javascript.jscomp;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.javascript.jscomp.ReferenceCollectingCallback.BasicBlock;
 import com.google.javascript.jscomp.ReferenceCollectingCallback.Behavior;
 import com.google.javascript.jscomp.ReferenceCollectingCallback.Reference;
@@ -9,10 +8,8 @@ import com.google.javascript.jscomp.ReferenceCollectingCallback.ReferenceCollect
 import com.google.javascript.jscomp.Scope.Var;
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.Token;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,341 +17,388 @@ import static org.junit.Assert.*;
 
 public class ReferenceCollectingCallbackTest {
 
-  private Compiler compiler;
-
-  @Before
-  public void setUp() {
-    compiler = new Compiler();
-  }
-
-  private ReferenceCollectingCallback parseAndTraverse(String js) {
-    return parseAndTraverse(js, ReferenceCollectingCallback.DO_NOTHING_BEHAVIOR, Predicates.<Var>alwaysTrue());
-  }
-
-  private ReferenceCollectingCallback parseAndTraverse(
-      String js, Behavior behavior, Predicate<Var> filter) {
+  private ReferenceCollectingCallback parseAndRun(String js) {
+    Compiler compiler = new Compiler();
     Node root = compiler.parseTestCode(js);
-    ReferenceCollectingCallback callback =
-        new ReferenceCollectingCallback(compiler, behavior, filter);
-    callback.process(new Node(Token.BLOCK), root);
+    ReferenceCollectingCallback callback = new ReferenceCollectingCallback(
+        compiler, ReferenceCollectingCallback.DO_NOTHING_BEHAVIOR);
+    callback.process(null, root);
     return callback;
   }
 
-  private ReferenceCollection getCollectionFor(ReferenceCollectingCallback callback, String varName) {
-    for (Var var : callback.getReferencedVariables()) {
-      if (var.getName().equals(varName)) {
-        return callback.getReferenceCollection(var);
+  private Var getVar(ReferenceCollectingCallback callback, String name) {
+    for (Var v : callback.getReferencedVariables()) {
+      if (v.getName().equals(name)) {
+        return v;
       }
     }
     return null;
   }
 
-  // Tests variable declaration with immediate initialization
+  // Tests basic reference collection on variable declaration and usage
   @Test
-  public void testProcess_initializedVar_isWellDefinedAndAssignedOnce() {
-    String js = "var x = 10; var y = x + 1;";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection xRefs = getCollectionFor(callback, "x");
-    assertNotNull(xRefs);
-    assertEquals(2, xRefs.references.size());
-    assertTrue(xRefs.isWellDefined());
-    assertTrue(xRefs.isAssignedOnceInLifetime());
-    assertFalse(xRefs.isNeverAssigned());
-    assertTrue(xRefs.firstReferenceIsAssigningDeclaration());
-    assertNotNull(xRefs.getInitializingReference());
-    assertFalse(xRefs.isEscaped());
+  public void testProcess_simpleVar_collectsReferences() {
+    ReferenceCollectingCallback callback = parseAndRun("var a = 1; a;");
+    Var a = getVar(callback, "a");
+    assertNotNull(a);
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertNotNull(col);
+    assertEquals(2, col.references.size());
   }
 
-  // Tests uninitialized variable declaration followed by assignment
+  // Tests well-defined variable initialized at declaration
   @Test
-  public void testProcess_uninitializedVarThenAssigned_isWellDefined() {
-    String js = "var x; x = 10; var y = x;";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection xRefs = getCollectionFor(callback, "x");
-    assertNotNull(xRefs);
-    assertEquals(3, xRefs.references.size());
-    assertTrue(xRefs.isWellDefined());
-    assertTrue(xRefs.isAssignedOnceInLifetime());
-    assertFalse(xRefs.isNeverAssigned());
-    assertFalse(xRefs.firstReferenceIsAssigningDeclaration());
-    assertNotNull(xRefs.getInitializingReference());
-    assertEquals(xRefs.references.get(1), xRefs.getInitializingReference());
+  public void testIsWellDefined_initializedAtDecl_returnsTrue() {
+    ReferenceCollectingCallback callback = parseAndRun("var a = 1; a();");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertTrue(col.isWellDefined());
+    assertTrue(col.firstReferenceIsAssigningDeclaration());
+    assertNotNull(col.getInitializingReference());
   }
 
-  // Tests variable declared but never assigned a value
+  // Tests well-defined variable declared and immediately assigned
   @Test
-  public void testProcess_unassignedVar_isNeverAssigned() {
-    String js = "var x; var y = x;";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection xRefs = getCollectionFor(callback, "x");
-    assertNotNull(xRefs);
-    assertEquals(2, xRefs.references.size());
-    assertFalse(xRefs.isWellDefined());
-    assertFalse(xRefs.isAssignedOnceInLifetime());
-    assertTrue(xRefs.isNeverAssigned());
-    assertNull(xRefs.getInitializingReference());
+  public void testIsWellDefined_uninitializedDeclThenAssigned_returnsTrue() {
+    ReferenceCollectingCallback callback = parseAndRun("var a; a = 1; a;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertTrue(col.isWellDefined());
+    assertNotNull(col.getInitializingReference());
   }
 
-  // Tests variable assigned multiple times in the same scope
+  // Tests variable used before assigned is not well-defined
   @Test
-  public void testProcess_multipleAssignments_notAssignedOnce() {
-    String js = "var x = 1; x = 2; x = 3;";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection xRefs = getCollectionFor(callback, "x");
-    assertNotNull(xRefs);
-    assertEquals(3, xRefs.references.size());
-    assertFalse(xRefs.isAssignedOnceInLifetime());
-    assertFalse(xRefs.isNeverAssigned());
+  public void testIsWellDefined_usedBeforeAssigned_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("a; var a = 1;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isWellDefined());
   }
 
-  // Tests assignment within a loop block
+  // Tests uninitialized variable is not well-defined
   @Test
-  public void testProcess_assignmentInsideLoop_notAssignedOnceInLifetime() {
-    String js = "var x; while (true) { x = 1; }";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection xRefs = getCollectionFor(callback, "x");
-    assertNotNull(xRefs);
-    assertFalse(xRefs.isAssignedOnceInLifetime());
+  public void testIsWellDefined_uninitializedVar_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("var a;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isWellDefined());
+    assertNull(col.getInitializingReference());
   }
 
-  // Tests variable referenced inside an inner function scope (escaped)
+  // Tests variable initialized in conditional block is not well-defined
   @Test
-  public void testProcess_variableUsedInInnerScope_isEscaped() {
-    String js = "var x = 1; function f() { return x; }";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection xRefs = getCollectionFor(callback, "x");
-    assertNotNull(xRefs);
-    assertTrue(xRefs.isEscaped());
+  public void testIsWellDefined_conditionalAssignment_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("var a; if (true) { a = 1; } a;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isWellDefined());
   }
 
-  // Tests variable confined strictly to a single scope (not escaped)
+  // Tests single assignment in lifetime returns true
   @Test
-  public void testProcess_variableInSingleScope_isNotEscaped() {
-    String js = "function f() { var x = 1; return x; }";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection xRefs = getCollectionFor(callback, "x");
-    assertNotNull(xRefs);
-    assertFalse(xRefs.isEscaped());
+  public void testIsAssignedOnceInLifetime_singleAssignment_returnsTrue() {
+    ReferenceCollectingCallback callback = parseAndRun("var a = 1; a;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertTrue(col.isAssignedOnceInLifetime());
+    assertFalse(col.isNeverAssigned());
   }
 
-  // Tests behavior afterExitScope callback execution
+  // Tests multiple assignments in lifetime returns false
   @Test
-  public void testProcess_customBehavior_invokesAfterExitScope() {
-    final int[] exitScopeCount = new int[1];
-    Behavior behavior = new Behavior() {
-      @Override
-      public void afterExitScope(NodeTraversal t, Map<Var, ReferenceCollection> referenceMap) {
-        exitScopeCount[0]++;
-      }
-    };
-
-    String js = "function f() { var a = 1; }";
-    parseAndTraverse(js, behavior, Predicates.<Var>alwaysTrue());
-
-    assertTrue(exitScopeCount[0] > 0);
+  public void testIsAssignedOnceInLifetime_multipleAssignments_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("var a = 1; a = 2;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isAssignedOnceInLifetime());
+    assertFalse(col.isNeverAssigned());
   }
 
-  // Tests varFilter predicate to collect only matching variables
+  // Tests assignment inside loop returns false for assigned once in lifetime
   @Test
-  public void testProcess_varFilter_onlyCollectsMatchingVars() {
+  public void testIsAssignedOnceInLifetime_assignmentInWhileLoop_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("var a; while (true) { a = 1; }");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isAssignedOnceInLifetime());
+  }
+
+  // Tests assignment inside for loop returns false for assigned once in lifetime
+  @Test
+  public void testIsAssignedOnceInLifetime_assignmentInForLoop_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("var a; for (var i = 0; i < 10; i++) { a = 1; }");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isAssignedOnceInLifetime());
+  }
+
+  // Tests variable declared inside a function within a loop is assigned once in lifetime
+  @Test
+  public void testIsAssignedOnceInLifetime_insideFunctionInLoop_returnsTrue() {
+    ReferenceCollectingCallback callback = parseAndRun("while (true) { function f() { var a = 1; } }");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertTrue(col.isAssignedOnceInLifetime());
+  }
+
+  // Tests variable never assigned value
+  @Test
+  public void testIsNeverAssigned_unassignedVar_returnsTrue() {
+    ReferenceCollectingCallback callback = parseAndRun("var a;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertTrue(col.isNeverAssigned());
+    assertFalse(col.isAssignedOnceInLifetime());
+  }
+
+  // Tests variable escaped into inner scope
+  @Test
+  public void testIsEscaped_innerScopeAccess_returnsTrue() {
+    ReferenceCollectingCallback callback = parseAndRun("var a = 1; function f() { a; }");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertTrue(col.isEscaped());
+  }
+
+  // Tests variable not escaped when only accessed in same scope
+  @Test
+  public void testIsEscaped_sameScopeOnly_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("var a = 1; a++;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isEscaped());
+  }
+
+  // Tests getInitializingReferenceForConstants finds later initialization
+  @Test
+  public void testGetInitializingReferenceForConstants_lateInit_findsInit() {
+    ReferenceCollectingCallback callback = parseAndRun("a; var a = 1;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertNotNull(col.getInitializingReferenceForConstants());
+  }
+
+  // Tests variable filtering constructor
+  @Test
+  public void testVarFilter_onlyCollectsFilteredVars() {
+    Compiler compiler = new Compiler();
+    Node root = compiler.parseTestCode("var a = 1; var b = 2;");
     Predicate<Var> filter = new Predicate<Var>() {
       @Override
       public boolean apply(Var input) {
-        return input != null && "target".equals(input.getName());
+        return "a".equals(input.getName());
       }
     };
-
-    String js = "var ignored = 1; var target = 2;";
-    ReferenceCollectingCallback callback =
-        parseAndTraverse(js, ReferenceCollectingCallback.DO_NOTHING_BEHAVIOR, filter);
+    ReferenceCollectingCallback callback = new ReferenceCollectingCallback(
+        compiler, ReferenceCollectingCallback.DO_NOTHING_BEHAVIOR, filter);
+    callback.process(null, root);
 
     Set<Var> vars = callback.getReferencedVariables();
-    for (Var var : vars) {
-      assertEquals("target", var.getName());
-    }
-    assertNull(getCollectionFor(callback, "ignored"));
-    assertNotNull(getCollectionFor(callback, "target"));
+    assertEquals(1, vars.size());
+    assertNotNull(getVar(callback, "a"));
+    assertNull(getVar(callback, "b"));
   }
 
-  // Tests function declaration reference and hoisting
+  // Tests custom behavior invocation upon exiting scope
   @Test
-  public void testProcess_functionDeclaration_isDeclarationAndInitializing() {
-    String js = "function foo() {} foo();";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection fooRefs = getCollectionFor(callback, "foo");
-    assertNotNull(fooRefs);
-    assertTrue(fooRefs.references.get(0).isDeclaration());
-    assertTrue(fooRefs.references.get(0).isInitializingDeclaration());
-    assertTrue(fooRefs.references.get(0).isHoistedFunction());
-    assertNotNull(fooRefs.references.get(0).getAssignedValue());
+  public void testBehavior_afterExitScopeInvoked() {
+    Compiler compiler = new Compiler();
+    Node root = compiler.parseTestCode("var a = 1;");
+    final boolean[] exited = new boolean[]{false};
+    Behavior behavior = new Behavior() {
+      @Override
+      public void afterExitScope(NodeTraversal t, Map<Var, ReferenceCollection> referenceMap) {
+        exited[0] = true;
+      }
+    };
+    ReferenceCollectingCallback callback = new ReferenceCollectingCallback(compiler, behavior);
+    callback.process(null, root);
+    assertTrue(exited[0]);
   }
 
-  // Tests catch block variable declaration reference
+  // Tests Reference inspection methods (isDeclaration, isVarDeclaration, isLvalue, isHoistedFunction)
   @Test
-  public void testProcess_catchClause_createsInitializingDeclaration() {
-    String js = "try { var x = 1; } catch (e) { var y = e; }";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
+  public void testReference_propertiesAndMethods() {
+    ReferenceCollectingCallback callback = parseAndRun(
+        "function foo() {} var x = 1; x++; for (var k in {}) {}");
+    Var foo = getVar(callback, "foo");
+    Reference refFoo = callback.getReferenceCollection(foo).references.get(0);
+    assertTrue(refFoo.isDeclaration());
+    assertTrue(refFoo.isHoistedFunction());
+    assertNotNull(refFoo.getAssignedValue());
+    assertNotNull(refFoo.getNameNode());
+    assertNotNull(refFoo.getParent());
+    assertNotNull(refFoo.getGrandparent());
+    assertNotNull(refFoo.getScope());
+    assertNotNull(refFoo.getBasicBlock());
 
-    ReferenceCollection eRefs = getCollectionFor(callback, "e");
-    assertNotNull(eRefs);
-    assertTrue(eRefs.references.get(0).isDeclaration());
-    assertTrue(eRefs.references.get(0).isInitializingDeclaration());
-    assertFalse(eRefs.references.get(0).isVarDeclaration());
+    Var x = getVar(callback, "x");
+    ReferenceCollection colX = callback.getReferenceCollection(x);
+    Reference declX = colX.references.get(0);
+    assertTrue(declX.isVarDeclaration());
+    assertTrue(declX.isInitializingDeclaration());
+    assertTrue(declX.isLvalue());
+
+    Reference incX = colX.references.get(1);
+    assertTrue(incX.isLvalue());
+    assertFalse(incX.isDeclaration());
+
+    Var k = getVar(callback, "k");
+    Reference refK = callback.getReferenceCollection(k).references.get(0);
+    assertTrue(refK.isLvalue());
   }
 
-  // Tests basic block provablyExecutesBefore ordering
+  // Tests BasicBlock provablyExecutesBefore hierarchy
   @Test
-  public void testBasicBlock_provablyExecutesBefore_parentExecutesBeforeChild() {
-    Node rootNode = new Node(Token.BLOCK);
-    Node ifNode = new Node(Token.IF);
-    rootNode.addChildToBack(ifNode);
+  public void testBasicBlock_provablyExecutesBefore() {
+    Node root = new Node(Token.BLOCK);
+    BasicBlock rootBlock = new BasicBlock(null, root);
+    assertNull(rootBlock.getParent());
 
-    BasicBlock rootBlock = new BasicBlock(null, rootNode);
-    BasicBlock ifBlock = new BasicBlock(rootBlock, ifNode);
+    Node childNode = new Node(Token.BLOCK);
+    BasicBlock childBlock = new BasicBlock(rootBlock, childNode);
+    assertEquals(rootBlock, childBlock.getParent());
 
-    assertTrue(rootBlock.provablyExecutesBefore(ifBlock));
-    assertFalse(ifBlock.provablyExecutesBefore(rootBlock));
-    assertEquals(rootBlock, ifBlock.getParent());
+    assertTrue(rootBlock.provablyExecutesBefore(childBlock));
+    assertFalse(childBlock.provablyExecutesBefore(rootBlock));
+    assertTrue(rootBlock.provablyExecutesBefore(rootBlock));
   }
 
-  // Tests constant initializing reference lookup
+  // Tests control structures block boundaries traversal
   @Test
-  public void testReferenceCollection_getInitializingReferenceForConstants() {
-    String js = "var y = CONST; var CONST = 10;";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection constRefs = getCollectionFor(callback, "CONST");
-    assertNotNull(constRefs);
-    Reference initRef = constRefs.getInitializingReferenceForConstants();
-    assertNotNull(initRef);
-    assertTrue(initRef.isInitializingDeclaration());
+  public void testControlStructures_traversal() {
+    ReferenceCollectingCallback callback = parseAndRun(
+        "var x = 1;" +
+        "do { x; } while (true);" +
+        "try { x; } catch (e) { x; } finally { x; }" +
+        "with ({}) { x; }" +
+        "if (true && x || x ? x : x) { x; }" +
+        "switch (x) { case 1: x; }");
+    Var x = getVar(callback, "x");
+    ReferenceCollection col = callback.getReferenceCollection(x);
+    assertNotNull(col);
+    assertTrue(col.references.size() > 5);
   }
 
-  // Tests empty ReferenceCollection edge cases
+  // Tests hotSwapScript invocation
   @Test
-  public void testReferenceCollection_emptyCollection_returnsFalseAndNull() {
-    ReferenceCollection emptyCol = new ReferenceCollection();
-    assertFalse(emptyCol.isWellDefined());
-    assertFalse(emptyCol.isEscaped());
-    assertTrue(emptyCol.isNeverAssigned());
-    assertFalse(emptyCol.isAssignedOnceInLifetime());
-    assertFalse(emptyCol.firstReferenceIsAssigningDeclaration());
-    assertNull(emptyCol.getInitializingReference());
-    assertNull(emptyCol.getInitializingReferenceForConstants());
+  public void testHotSwapScript_processesScriptRoot() {
+    Compiler compiler = new Compiler();
+    Node scriptRoot = compiler.parseTestCode("var a = 1; a;");
+    ReferenceCollectingCallback callback = new ReferenceCollectingCallback(
+        compiler, ReferenceCollectingCallback.DO_NOTHING_BEHAVIOR);
+    callback.hotSwapScript(scriptRoot, null);
+    Var a = getVar(callback, "a");
+    assertNotNull(a);
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertNotNull(col);
+    assertEquals(2, col.references.size());
   }
 
-  // Tests reference properties for compound assignment and unary operators
-  @Test
-  public void testReference_lValueOperations_identifiedAsLvalues() {
-    String js = "var a = 0; a++; a += 2;";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection aRefs = getCollectionFor(callback, "a");
-    assertNotNull(aRefs);
-    assertEquals(3, aRefs.references.size());
-    assertTrue(aRefs.references.get(0).isLvalue());
-    assertTrue(aRefs.references.get(1).isLvalue());
-    assertTrue(aRefs.references.get(2).isLvalue());
-    assertNotNull(aRefs.references.get(0).getParent());
-    assertNotNull(aRefs.references.get(0).getNameNode());
-    assertNotNull(aRefs.references.get(0).getScope());
-    assertNotNull(aRefs.references.get(0).getBasicBlock());
-  }
-
-  // Tests for-in loop header reference
-  @Test
-  public void testProcess_forInLoop_isSetForLoop() {
-    String js = "var obj = {}; for (var key in obj) { alert(key); }";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-
-    ReferenceCollection keyRefs = getCollectionFor(callback, "key");
-    assertNotNull(keyRefs);
-    assertTrue(keyRefs.references.get(0).isSetForLoop());
-    assertTrue(keyRefs.references.get(0).isVarDeclaration());
-    assertFalse(keyRefs.isAssignedOnceInLifetime());
-  }
-
-  // Tests do-while and for loop basic block properties
-  @Test
-  public void testBasicBlock_loopAndFunctionTypes() {
-    Node loopNode = new Node(Token.DO);
-    Node fnNode = new Node(Token.FUNCTION);
-    BasicBlock rootBlock = new BasicBlock(null, new Node(Token.BLOCK));
-    BasicBlock loopBlock = new BasicBlock(rootBlock, loopNode);
-    BasicBlock fnBlock = new BasicBlock(rootBlock, fnNode);
-
-    assertTrue(loopBlock.isLoop());
-    assertFalse(loopBlock.isFunction());
-    assertTrue(fnBlock.isFunction());
-    assertFalse(fnBlock.isLoop());
-  }
-
-  // Tests isOnlyAssignmentSameScopeAsDeclaration
-  @Test
-  public void testReferenceCollection_isOnlyAssignmentSameScopeAsDeclaration() {
-    String jsSameScope = "var x; function f() {} x = 1; var y = x;";
-    ReferenceCollectingCallback callbackSame = parseAndTraverse(jsSameScope);
-    ReferenceCollection xSame = getCollectionFor(callbackSame, "x");
-    assertNotNull(xSame);
-    assertTrue(xSame.isOnlyAssignmentSameScopeAsDeclaration());
-
-    String jsDiffScope = "var x; function f() { x = 1; }";
-    ReferenceCollectingCallback callbackDiff = parseAndTraverse(jsDiffScope);
-    ReferenceCollection xDiff = getCollectionFor(callbackDiff, "x");
-    assertNotNull(xDiff);
-    assertFalse(xDiff.isOnlyAssignmentSameScopeAsDeclaration());
-  }
-
-  // Tests ReferenceCollection iteration
+  // Tests ReferenceCollection iterable implementation
   @Test
   public void testReferenceCollection_iterator() {
-    String js = "var x = 1; x = 2;";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-    ReferenceCollection xRefs = getCollectionFor(callback, "x");
-    assertNotNull(xRefs);
-
-    Iterator<Reference> iterator = xRefs.iterator();
+    ReferenceCollectingCallback callback = parseAndRun("var a = 1; a; a;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
     int count = 0;
-    while (iterator.hasNext()) {
-      assertNotNull(iterator.next());
+    for (Reference ref : col) {
+      assertNotNull(ref);
+      assertNotNull(ref.getNode());
       count++;
     }
-    assertEquals(2, count);
+    assertEquals(3, count);
   }
 
-  // Tests hotSwapScript entry point
-  @Test
-  public void testHotSwapScript() {
-    Node scriptRoot = compiler.parseTestCode("var a = 1;");
-    ReferenceCollectingCallback callback =
-        new ReferenceCollectingCallback(compiler, ReferenceCollectingCallback.DO_NOTHING_BEHAVIOR);
-    callback.hotSwapScript(scriptRoot, null);
-    ReferenceCollection aRefs = getCollectionFor(callback, "a");
-    assertNotNull(aRefs);
-    assertEquals(1, aRefs.references.size());
-  }
-
-  // Tests simple assignment to name check
+  // Tests Reference isSimpleAssignmentToName
   @Test
   public void testReference_isSimpleAssignmentToName() {
-    String js = "var a; a = 10; a += 5;";
-    ReferenceCollectingCallback callback = parseAndTraverse(js);
-    ReferenceCollection aRefs = getCollectionFor(callback, "a");
-    assertNotNull(aRefs);
+    ReferenceCollectingCallback callback = parseAndRun("var a; a = 1; a += 2; a++;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.references.get(0).isSimpleAssignmentToName());
+    assertTrue(col.references.get(1).isSimpleAssignmentToName());
+    assertFalse(col.references.get(2).isSimpleAssignmentToName());
+    assertFalse(col.references.get(3).isSimpleAssignmentToName());
+  }
 
-    // a (var decl)
-    assertFalse(aRefs.references.get(0).isSimpleAssignmentToName());
-    // a = 10
-    assertTrue(aRefs.references.get(1).isSimpleAssignmentToName());
-    // a += 5
-    assertFalse(aRefs.references.get(2).isSimpleAssignmentToName());
+  // Tests BasicBlock isFunction and isLoop
+  @Test
+  public void testBasicBlock_isFunctionAndIsLoop() {
+    Node fnNode = new Node(Token.FUNCTION);
+    BasicBlock fnBlock = new BasicBlock(null, fnNode);
+    assertTrue(fnBlock.isFunction());
+    assertFalse(fnBlock.isLoop());
+
+    Node whileNode = new Node(Token.WHILE);
+    BasicBlock whileBlock = new BasicBlock(null, whileNode);
+    assertFalse(whileBlock.isFunction());
+    assertTrue(whileBlock.isLoop());
+
+    Node doNode = new Node(Token.DO);
+    BasicBlock doBlock = new BasicBlock(null, doNode);
+    assertFalse(doBlock.isFunction());
+    assertTrue(doBlock.isLoop());
+
+    Node forNode = new Node(Token.FOR);
+    BasicBlock forBlock = new BasicBlock(null, forNode);
+    assertFalse(forBlock.isFunction());
+    assertTrue(forBlock.isLoop());
+  }
+
+  // Tests BasicBlock provablyExecutesBefore with disjoint branches
+  @Test
+  public void testBasicBlock_disjointBranches() {
+    Node rootNode = new Node(Token.IF);
+    BasicBlock rootBlock = new BasicBlock(null, rootNode);
+    Node branch1Node = new Node(Token.BLOCK);
+    BasicBlock branch1Block = new BasicBlock(rootBlock, branch1Node);
+    Node branch2Node = new Node(Token.BLOCK);
+    BasicBlock branch2Block = new BasicBlock(rootBlock, branch2Node);
+
+    assertTrue(rootBlock.provablyExecutesBefore(branch1Block));
+    assertTrue(rootBlock.provablyExecutesBefore(branch2Block));
+    assertFalse(branch1Block.provablyExecutesBefore(branch2Block));
+    assertFalse(branch2Block.provablyExecutesBefore(branch1Block));
+  }
+
+  // Tests isAssignedOnceInLifetime when assigned in do-while loop
+  @Test
+  public void testIsAssignedOnceInLifetime_doWhileLoop_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("var a; do { a = 1; } while (false);");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isAssignedOnceInLifetime());
+  }
+
+  // Tests isAssignedOnceInLifetime when assigned in for-in loop header
+  @Test
+  public void testIsAssignedOnceInLifetime_forInLoop_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("var a; for (a in {x: 1, y: 2}) {}");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isAssignedOnceInLifetime());
+  }
+
+  // Tests function parameters reference collection
+  @Test
+  public void testFunctionParameters_referenceCollection() {
+    ReferenceCollectingCallback callback = parseAndRun("function foo(param) { return param; }");
+    Var param = getVar(callback, "param");
+    assertNotNull(param);
+    ReferenceCollection col = callback.getReferenceCollection(param);
+    assertNotNull(col);
+    assertEquals(2, col.references.size());
+    assertFalse(col.firstReferenceIsAssigningDeclaration());
+  }
+
+  // Tests redeclared variable is not well-defined
+  @Test
+  public void testIsWellDefined_redeclaredVar_returnsFalse() {
+    ReferenceCollectingCallback callback = parseAndRun("var a = 1; var a = 2; a;");
+    Var a = getVar(callback, "a");
+    ReferenceCollection col = callback.getReferenceCollection(a);
+    assertFalse(col.isWellDefined());
   }
 }

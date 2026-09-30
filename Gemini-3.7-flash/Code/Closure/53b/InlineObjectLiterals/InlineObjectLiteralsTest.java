@@ -3,109 +3,99 @@ package com.google.javascript.jscomp;
 import org.junit.Test;
 
 /**
- * Tests for {@link InlineObjectLiterals}.
+ * Unit tests for {@link InlineObjectLiterals}.
  */
 public class InlineObjectLiteralsTest extends CompilerTestCase {
 
-  public InlineObjectLiteralsTest() {
-    enableNormalize();
-  }
-
   @Override
-  protected CompilerPass getProcessor(final Compiler compiler) {
+  protected CompilerPass getProcessor(Compiler compiler) {
     return new InlineObjectLiterals(
         compiler,
         compiler.getUniqueNameIdSupplier());
   }
 
-  @Override
-  protected int getNumRepetitions() {
-    return 1;
+  // Tests defect 53: empty object assignment without properties causing index out of bounds
+  @Test
+  public void testProcess_emptyObjectAssignment_inlinesOrReplaces() {
+    test("function f() { var a = {}; a = {}; }",
+         "function f() { true; }");
   }
 
-  // Tests that global object literals are not inlined
+  // Tests simple object literal with one property
   @Test
-  public void testProcess_globalVariable_notInlined() {
-    testSame("var a = {x: 1}; a.x;");
-  }
-
-  // Tests that escaped object references (passed to functions) are not inlined
-  @Test
-  public void testProcess_escapedObjectReference_notInlined() {
-    testSame("function f() { var a = {x: 1}; g(a); }");
-  }
-
-  // Tests that method calls where the object is the 'this' context are not inlined
-  @Test
-  public void testProcess_methodCallTarget_notInlined() {
-    testSame("function f() { var a = {m: function() { return this; }}; a.m(); }");
-  }
-
-  // Tests that self-referential assignments are not inlined
-  @Test
-  public void testProcess_selfReferentialAssignment_notInlined() {
-    testSame("function f() { var a = {x: 1}; a = {x: a.x}; return a.x; }");
-  }
-
-  // Tests that ES5 getters and setters are not inlined
-  @Test
-  public void testProcess_getterSetterObject_notInlined() {
-    testSame("function f() { var a = { get x() { return 1; } }; return a.x; }");
-    testSame("function f() { var a = { set x(val) { } }; a.x = 1; }");
-  }
-
-  // Tests inlining a simple object literal with one property
-  @Test
-  public void testProcess_simpleObjectLiteral_inlined() {
+  public void testProcess_simpleObjectLiteral_inlinesObject() {
     test("function f() { var a = {x: 1}; return a.x; }",
          "function f() { var JSCompiler_object_inline_x_0 = 1; return JSCompiler_object_inline_x_0; }");
   }
 
-  // Tests inlining an object literal with multiple properties
+  // Tests object literal with multiple properties
   @Test
-  public void testProcess_multipleProperties_inlined() {
+  public void testProcess_multipleProperties_inlinesObject() {
     test("function f() { var a = {x: 1, y: 2}; return a.x + a.y; }",
          "function f() { var JSCompiler_object_inline_x_0 = 1; var JSCompiler_object_inline_y_1 = 2; return JSCompiler_object_inline_x_0 + JSCompiler_object_inline_y_1; }");
   }
 
-  // Tests inlining an uninitialized variable followed by an assignment
+  // Tests reassignment of object literal properties
   @Test
-  public void testProcess_uninitializedVarThenAssigned_inlined() {
-    test("function f() { var a; a = {x: 1}; return a.x; }",
-         "function f() { var JSCompiler_object_inline_x_0; JSCompiler_object_inline_x_0 = 1, true; return JSCompiler_object_inline_x_0; }");
-  }
-
-  // Tests inlining an object with reassignment
-  @Test
-  public void testProcess_reassignment_inlined() {
+  public void testProcess_reassignment_inlinesObject() {
     test("function f() { var a = {x: 1}; a = {x: 2}; return a.x; }",
          "function f() { var JSCompiler_object_inline_x_0 = 1; JSCompiler_object_inline_x_0 = 2, true; return JSCompiler_object_inline_x_0; }");
   }
 
-  // Tests inlining an empty object literal assignment (Defects4J Closure-53 regression test)
+  // Tests object literal initialized without value then assigned
   @Test
-  public void testProcess_emptyObjectAssignment_inlined() {
-    test("function f() { var a = {x: 1}; a = {}; return a.x; }",
-         "function f() { var JSCompiler_object_inline_x_0 = 1; JSCompiler_object_inline_x_0 = void 0, true; return JSCompiler_object_inline_x_0; }");
+  public void testProcess_uninitializedVarAssigned_inlinesObject() {
+    test("function f() { var a; a = {x: 1}; return a.x; }",
+         "function f() { var JSCompiler_object_inline_x_0; JSCompiler_object_inline_x_0 = 1, true; return JSCompiler_object_inline_x_0; }");
   }
 
-  // Tests inlining an object with multiple keys reassigned to empty object
+  // Tests partial property reassignment where missing properties become undefined
   @Test
-  public void testProcess_multipleKeysReassignedToEmpty_inlined() {
-    test("function f() { var a = {x: 1, y: 2}; a = {}; return a.x + a.y; }",
-         "function f() { var JSCompiler_object_inline_x_0 = 1; var JSCompiler_object_inline_y_1 = 2; JSCompiler_object_inline_x_0 = void 0, JSCompiler_object_inline_y_1 = void 0, true; return JSCompiler_object_inline_x_0 + JSCompiler_object_inline_y_1; }");
+  public void testProcess_partialPropertyReassignment_setsUndefined() {
+    test("function f() { var a = {x: 1, y: 2}; a = {x: 3}; return a.x + a.y; }",
+         "function f() { var JSCompiler_object_inline_x_0 = 1; var JSCompiler_object_inline_y_1 = 2; JSCompiler_object_inline_x_0 = 3, JSCompiler_object_inline_y_1 = void 0, true; return JSCompiler_object_inline_x_0 + JSCompiler_object_inline_y_1; }");
   }
 
-  // Tests inlining when property is accessed without initial definition in object
+  // Tests global variable which should be forbidden from inlining
   @Test
-  public void testProcess_propertyReadWithoutInitialValue_inlined() {
-    test("function f() { var a = {}; return a.x; }",
-         "function f() { var JSCompiler_object_inline_x_0; return JSCompiler_object_inline_x_0; }");
+  public void testProcess_globalVariable_doesNotInlined() {
+    testSame("var a = {x: 1}; a.x;");
   }
 
-  // Tests inlining when non-object assignment prevents inlining
+  // Tests direct object reference passed to function which prevents inlining
   @Test
-  public void testProcess_nonObjectAssignment_notInlined() {
-    testSame("function f() { var a = {x: 1}; a = 5; return a.x; }");
+  public void testProcess_directObjectEscape_doesNotInlined() {
+    testSame("function f() { var a = {x: 1}; g(a); return a.x; }");
+  }
+
+  // Tests method call on property which uses object as 'this' context
+  @Test
+  public void testProcess_methodCallOnProperty_doesNotInlined() {
+    testSame("function f() { var a = {x: function() {}}; a.x(); }");
+  }
+
+  // Tests self-referential assignment which forbids inlining
+  @Test
+  public void testProcess_selfReferentialObject_doesNotInlined() {
+    testSame("function f() { var a = {x: 1, y: a.x}; return a.x; }");
+  }
+
+  // Tests ES5 getter/setter which is not supported for inlining
+  @Test
+  public void testProcess_es5GetterSetter_doesNotInlined() {
+    testSame("function f() { var a = { get x() { return 1; } }; return a.x; }");
+  }
+
+  // Tests object with property access that was not in the initial literal
+  @Test
+  public void testProcess_accessUndeclaredKey_inlinesObject() {
+    test("function f() { var a = {x: 1}; return a.y; }",
+         "function f() { var JSCompiler_object_inline_x_0 = 1; var JSCompiler_object_inline_y_1; return JSCompiler_object_inline_y_1; }");
+  }
+
+  // Tests non-object literal assignment forbidding inlining
+  @Test
+  public void testProcess_nonObjectAssignment_doesNotInlined() {
+    testSame("function f() { var a = {x: 1}; a = 2; return a.x; }");
   }
 }

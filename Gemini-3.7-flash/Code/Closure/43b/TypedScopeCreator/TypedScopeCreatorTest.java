@@ -1,10 +1,11 @@
 package com.google.javascript.jscomp;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static com.google.javascript.rhino.jstype.JSTypeNative.BOOLEAN_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.NUMBER_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.OBJECT_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.STRING_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.UNKNOWN_TYPE;
+import static com.google.javascript.rhino.jstype.JSTypeNative.VOID_TYPE;
 
 import com.google.javascript.rhino.Node;
 import com.google.javascript.rhino.jstype.EnumType;
@@ -14,279 +15,328 @@ import com.google.javascript.rhino.jstype.JSTypeNative;
 import com.google.javascript.rhino.jstype.ObjectType;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class TypedScopeCreatorTest {
+public class TypedScopeCreatorTest extends CompilerTestCase {
 
-  private Compiler compiler;
+  private Scope globalScope;
+  private TypedScopeCreator scopeCreator;
 
+  @Override
   @Before
-  public void setUp() {
-    compiler = new Compiler();
-    CompilerOptions options = new CompilerOptions();
-    options.setCheckTypes(true);
-    compiler.initOptions(options);
+  public void setUp() throws Exception {
+    super.setUp();
   }
 
-  private Node parse(String js) {
-    return compiler.parseTestCode(js);
+  @Override
+  protected CompilerPass getProcessor(final Compiler compiler) {
+    return new CompilerPass() {
+      @Override
+      public void process(Node externs, Node root) {
+        scopeCreator = new TypedScopeCreator(compiler);
+        globalScope = scopeCreator.createScope(root, null);
+      }
+    };
   }
 
-  private Scope createGlobalScope(Node root) {
-    TypedScopeCreator scopeCreator = new TypedScopeCreator(compiler);
-    return scopeCreator.createScope(root, null);
+  @Override
+  protected int getNumRepetitions() {
+    return 1;
   }
 
-  // Tests basic variable declaration in global scope
+  private JSType getNativeType(JSTypeNative type) {
+    return getLastCompiler().getTypeRegistry().getNativeType(type);
+  }
+
+  // Tests declared number variable in global scope
   @Test
-  public void testCreateScope_varDeclaration_declaresVariable() {
-    Node root = parse("var a = 1;");
-    Scope scope = createGlobalScope(root);
-
-    assertTrue(scope.isDeclared("a", false));
-    Scope.Var varA = scope.getVar("a");
-    assertNotNull(varA);
-    assertEquals(compiler.getTypeRegistry().getNativeType(JSTypeNative.NUMBER_TYPE), varA.getType());
+  public void testCreateScope_declaredNumberVar_hasNumberType() {
+    testSame("/** @type {number} */ var x = 42;");
+    Scope.Var var = globalScope.getVar("x");
+    assertNotNull(var);
+    assertEquals(getNativeType(NUMBER_TYPE), var.getType());
+    assertFalse(var.isTypeInferred());
   }
 
-  // Tests string, boolean and null literal type inference
+  // Tests declared string variable in global scope
   @Test
-  public void testCreateScope_literalTypes_inferredCorrectly() {
-    Node root = parse("var str = 'hello'; var b = true; var n = null;");
-    Scope scope = createGlobalScope(root);
-
-    assertEquals(compiler.getTypeRegistry().getNativeType(JSTypeNative.STRING_TYPE),
-        scope.getVar("str").getType());
-    assertEquals(compiler.getTypeRegistry().getNativeType(JSTypeNative.BOOLEAN_TYPE),
-        scope.getVar("b").getType());
-    assertEquals(compiler.getTypeRegistry().getNativeType(JSTypeNative.NULL_TYPE),
-        scope.getVar("n").getType());
+  public void testCreateScope_declaredStringVar_hasStringType() {
+    testSame("/** @type {string} */ var s = 'hello';");
+    Scope.Var var = globalScope.getVar("s");
+    assertNotNull(var);
+    assertEquals(getNativeType(STRING_TYPE), var.getType());
   }
 
-  // Tests function declaration and function type creation
+  // Tests declared boolean variable in global scope
   @Test
-  public void testCreateScope_functionDeclaration_declaresFunction() {
-    Node root = parse("function foo(x, y) { return x; }");
-    Scope scope = createGlobalScope(root);
-
-    assertTrue(scope.isDeclared("foo", false));
-    Scope.Var fooVar = scope.getVar("foo");
-    assertNotNull(fooVar);
-    assertTrue(fooVar.getType().isFunctionType());
+  public void testCreateScope_declaredBoolVar_hasBooleanType() {
+    testSame("/** @type {boolean} */ var b = true;");
+    Scope.Var var = globalScope.getVar("b");
+    assertNotNull(var);
+    assertEquals(getNativeType(BOOLEAN_TYPE), var.getType());
   }
 
-  // Tests constructor declaration and prototype creation
+  // Tests function declaration and its type creation
   @Test
-  public void testCreateScope_constructor_declaresConstructorAndPrototype() {
-    Node root = parse("/** @constructor */ function MyClass() {}");
-    Scope scope = createGlobalScope(root);
-
-    assertTrue(scope.isDeclared("MyClass", false));
-    assertTrue(scope.isDeclared("MyClass.prototype", false));
-    Scope.Var classVar = scope.getVar("MyClass");
-    assertTrue(classVar.getType().isConstructor());
+  public void testCreateScope_functionDeclaration_createsFunctionType() {
+    testSame("/** @param {number} a\n * @return {string} */ function f(a) { return ''; }");
+    Scope.Var var = globalScope.getVar("f");
+    assertNotNull(var);
+    assertTrue(var.getType().isFunctionType());
+    FunctionType fnType = var.getType().toMaybeFunctionType();
+    assertEquals(getNativeType(STRING_TYPE), fnType.getReturnType());
   }
 
-  // Tests interface declaration
+  // Tests constructor declaration creates constructor and prototype in scope
   @Test
-  public void testCreateScope_interface_declaresInterfaceType() {
-    Node root = parse("/** @interface */ function MyInterface() {}");
-    Scope scope = createGlobalScope(root);
+  public void testCreateScope_constructorDeclaration_declaresPrototypeAndConstructor() {
+    testSame("/** @constructor */ function Foo() {}");
+    Scope.Var ctorVar = globalScope.getVar("Foo");
+    assertNotNull(ctorVar);
+    assertTrue(ctorVar.getType().isConstructor());
 
-    assertTrue(scope.isDeclared("MyInterface", false));
-    Scope.Var ifaceVar = scope.getVar("MyInterface");
-    assertTrue(ifaceVar.getType().isInterface());
+    Scope.Var protoVar = globalScope.getVar("Foo.prototype");
+    assertNotNull(protoVar);
+    assertTrue(protoVar.getType().isObject());
   }
 
-  // Tests enum declaration and element type verification
+  // Tests namespaced constructor declaration
   @Test
-  public void testCreateScope_enumDeclaration_declaresEnumType() {
-    Node root = parse("/** @enum {number} */ var MyEnum = { FIRST: 1, SECOND: 2 };");
-    Scope scope = createGlobalScope(root);
+  public void testCreateScope_namespacedConstructor_declaresConstructor() {
+    testSame("var ns = {}; /** @constructor */ ns.Bar = function() {};");
+    Scope.Var ctorVar = globalScope.getVar("ns.Bar");
+    assertNotNull(ctorVar);
+    assertTrue(ctorVar.getType().isConstructor());
+    assertNotNull(globalScope.getVar("ns.Bar.prototype"));
+  }
 
-    assertTrue(scope.isDeclared("MyEnum", false));
-    Scope.Var enumVar = scope.getVar("MyEnum");
+  // Tests enum declaration and member types
+  @Test
+  public void testCreateScope_enumDeclaration_createsEnumTypeWithElements() {
+    testSame("/** @enum {number} */ var MyEnum = { FIRST: 1, SECOND: 2 };");
+    Scope.Var enumVar = globalScope.getVar("MyEnum");
+    assertNotNull(enumVar);
     assertTrue(enumVar.getType().isEnumType());
     EnumType enumType = (EnumType) enumVar.getType();
-    assertTrue(enumType.hasOwnProperty("FIRST"));
-    assertTrue(enumType.hasOwnProperty("SECOND"));
+    assertEquals(getNativeType(NUMBER_TYPE), enumType.getElementsType());
+    assertTrue(enumType.hasProperty("FIRST"));
+    assertTrue(enumType.hasProperty("SECOND"));
   }
 
-  // Tests typedef declaration in global scope
+  // Tests typedef declaration and type registry registration
   @Test
-  public void testCreateScope_typedef_registersType() {
-    Node root = parse("/** @typedef {(string|number)} */ var StringOrNum;");
-    Scope scope = createGlobalScope(root);
-
-    JSType typedefType = compiler.getTypeRegistry().getType("StringOrNum");
-    assertNotNull(typedefType);
-    assertTrue(typedefType.isUnionType());
+  public void testCreateScope_typedefDeclaration_registersType() {
+    testSame("/** @typedef {Array.<string>} */ var StringList;");
+    JSType definedType = getLastCompiler().getTypeRegistry().getType("StringList");
+    assertNotNull(definedType);
   }
 
-  // Tests local scope creation inside function
+  // Tests object literal with @lends annotation
   @Test
-  public void testCreateScope_localScope_containsParametersAndLocalVars() {
-    Node root = parse("function outer(param1) { var localVar = 'test'; }");
-    Scope globalScope = createGlobalScope(root);
-
-    Node fnNode = root.getFirstChild();
-    TypedScopeCreator scopeCreator = new TypedScopeCreator(compiler);
-    Scope localScope = scopeCreator.createScope(fnNode, globalScope);
-
-    assertTrue(localScope.isDeclared("param1", false));
-    assertTrue(localScope.isDeclared("localVar", false));
-    assertFalse(localScope.isGlobal());
+  public void testCreateScope_objectLiteralLends_attachesProperties() {
+    testSame("/** @constructor */ function Foo() {}\n"
+        + "Foo.prototype = /** @lends {Foo.prototype} */ {\n"
+        + "  /** @type {number} */\n"
+        + "  bar: 1\n"
+        + "};");
+    Scope.Var protoVar = globalScope.getVar("Foo.prototype");
+    assertNotNull(protoVar);
+    ObjectType protoType = ObjectType.cast(protoVar.getType());
+    assertNotNull(protoType);
+    assertTrue(protoType.hasProperty("bar"));
   }
 
-  // Tests catch parameter declaration in local scope
+  // Tests stub declaration in global scope
   @Test
-  public void testCreateScope_catchBlock_declaresCatchVariable() {
-    Node root = parse("function testCatch() { try { } catch (err) { } }");
-    Scope globalScope = createGlobalScope(root);
-
-    Node fnNode = root.getFirstChild();
-    TypedScopeCreator scopeCreator = new TypedScopeCreator(compiler);
-    Scope localScope = scopeCreator.createScope(fnNode, globalScope);
-
-    assertTrue(localScope.isDeclared("err", true));
+  public void testCreateScope_stubDeclaration_resolvesToUnknown() {
+    testSame("var obj = {}; obj.stub;");
+    Scope.Var stubVar = globalScope.getVar("obj.stub");
+    assertNotNull(stubVar);
+    assertEquals(getNativeType(UNKNOWN_TYPE), stubVar.getType());
   }
 
-  // Tests qualified name assignment on prototype
-  @Test
-  public void testCreateScope_prototypePropertyAssignment_declaresProperty() {
-    Node root = parse("/** @constructor */ function Foo() {} Foo.prototype.bar = function() { return 1; };");
-    Scope scope = createGlobalScope(root);
-
-    Scope.Var fooVar = scope.getVar("Foo");
-    FunctionType fooCtor = fooVar.getType().toMaybeFunctionType();
-    ObjectType proto = fooCtor.getPrototype();
-    assertTrue(proto.hasProperty("bar"));
-  }
-
-  // Tests @lends annotation on object literal
-  @Test
-  public void testCreateScope_lendsAnnotation_appliesPropertiesToTarget() {
-    Node root = parse(
-        "/** @constructor */ function Target() {}\n"
-        + "var obj = /** @lends {Target.prototype} */ ({ method: function() {} });");
-    Scope scope = createGlobalScope(root);
-
-    Scope.Var targetVar = scope.getVar("Target");
-    FunctionType targetCtor = targetVar.getType().toMaybeFunctionType();
-    ObjectType proto = targetCtor.getPrototype();
-    assertTrue(proto.hasProperty("method"));
-  }
-
-  // Tests @lends with subproperties and namespaced objects
-  @Test
-  public void testCreateScope_lendsOnNamespacedObject_attachesTypes() {
-    Node root = parse(
-        "/** @constructor */ function Person() {}\n"
-        + "Person.methods = /** @lends {Person.prototype} */ ({ "
-        + "  getName: function() { return 'name'; }"
-        + "});");
-    Scope scope = createGlobalScope(root);
-
-    Scope.Var personVar = scope.getVar("Person");
-    assertNotNull(personVar);
-    FunctionType personCtor = personVar.getType().toMaybeFunctionType();
-    assertTrue(personCtor.getPrototype().hasProperty("getName"));
-  }
-
-  // Tests initial scope containing native types
-  @Test
-  public void testCreateInitialScope_containsNativeTypes() {
-    TypedScopeCreator scopeCreator = new TypedScopeCreator(compiler);
-    Node root = parse("");
-    Scope scope = scopeCreator.createInitialScope(root);
-
-    assertTrue(scope.isDeclared("Object", false));
-    assertTrue(scope.isDeclared("Function", false));
-    assertTrue(scope.isDeclared("Array", false));
-    assertTrue(scope.isDeclared("String", false));
-    assertTrue(scope.isDeclared("Number", false));
-    assertTrue(scope.isDeclared("Boolean", false));
-    assertTrue(scope.isDeclared("RegExp", false));
-    assertTrue(scope.isDeclared("Date", false));
-    assertTrue(scope.isDeclared("Error", false));
-    assertTrue(scope.isDeclared("undefined", false));
-  }
-
-  // Tests multiple var definitions warning
+  // Tests warning on multiple var declaration with JSDoc
   @Test
   public void testCreateScope_multipleVarDefWithJSDoc_reportsWarning() {
-    Node root = parse("/** @type {number} */ var a = 1, b = 2;");
-    createGlobalScope(root);
-
-    assertEquals(1, compiler.getWarningCount());
-    assertEquals(TypeCheck.MULTIPLE_VAR_DEF.key,
-        compiler.getWarnings()[0].getType().key);
+    testWarning("/** @type {number} */ var a = 1, b = 2;", TypedScopeCreator.MULTIPLE_VAR_DEF);
   }
 
-  // Tests invalid enum initializer reporting warning
+  // Tests warning on unknown @lends target
   @Test
-  public void testCreateScope_invalidEnumInitializer_reportsWarning() {
-    Node root = parse("/** @enum {number} */ var MyEnum = 123;");
-    createGlobalScope(root);
-
-    assertEquals(1, compiler.getWarningCount());
-    assertEquals(TypedScopeCreator.ENUM_INITIALIZER.key,
-        compiler.getWarnings()[0].getType().key);
+  public void testCreateScope_unknownLendsTarget_reportsWarning() {
+    testWarning("var obj = /** @lends {nonExistent} */ { x: 1 };", TypedScopeCreator.UNKNOWN_LENDS);
   }
 
-  // Tests patchGlobalScope updating script variables
+  // Tests warning when lending properties to a non-object type
   @Test
-  public void testPatchGlobalScope_updatesVariables() {
-    Node scriptRoot1 = parse("var x = 10;");
-    scriptRoot1.setStaticSourceFile(new SimpleSourceFile("test.js", false));
-    Scope globalScope = createGlobalScope(scriptRoot1);
-
-    assertTrue(globalScope.isDeclared("x", false));
-    assertEquals(compiler.getTypeRegistry().getNativeType(JSTypeNative.NUMBER_TYPE),
-        globalScope.getVar("x").getType());
-
-    Node scriptRoot2 = parse("var x = 'updated';");
-    scriptRoot2.setStaticSourceFile(new SimpleSourceFile("test.js", false));
-
-    TypedScopeCreator scopeCreator = new TypedScopeCreator(compiler);
-    scopeCreator.patchGlobalScope(globalScope, scriptRoot2);
-
-    assertTrue(globalScope.isDeclared("x", false));
-    assertEquals(compiler.getTypeRegistry().getNativeType(JSTypeNative.STRING_TYPE),
-        globalScope.getVar("x").getType());
+  public void testCreateScope_lendsOnNonObject_reportsWarning() {
+    testWarning("var num = 123; var obj = /** @lends {num} */ { x: 1 };", TypedScopeCreator.LENDS_ON_NON_OBJECT);
   }
 
-  // Tests stub property declaration resolved to unknown
+  // Tests local scope creation and parameter declaration
   @Test
-  public void testCreateScope_stubPropertyDeclaration_resolvesStub() {
-    Node root = parse("var ns = {}; ns.stubProp;");
-    Scope scope = createGlobalScope(root);
+  public void testCreateScope_localScope_declaresParametersAndLocals() {
+    testSame("function testFn(param1) { var localVar = param1; }");
+    Node root = getLastCompiler().getRoot().getLastChild();
+    Node fnNode = root.getFirstChild().getFirstChild();
 
-    assertTrue(scope.isDeclared("ns", false));
-    Scope.Var nsVar = scope.getVar("ns");
-    assertNotNull(nsVar);
+    Scope localScope = scopeCreator.createScope(fnNode.getLastChild(), globalScope);
+    assertNotNull(localScope);
+    assertTrue(localScope.isLocal());
+    assertNotNull(localScope.getVar("param1"));
+    assertNotNull(localScope.getVar("localVar"));
   }
 
-  // Tests @const annotation on qualified name
+  // Tests catch block scope variable declaration
   @Test
-  public void testCreateScope_constAnnotation_infersDeclaredType() {
-    Node root = parse("var ns = {}; /** @const */ ns.CONSTANT_VAL = 42;");
-    Scope scope = createGlobalScope(root);
+  public void testCreateScope_catchBlock_declaresCatchParam() {
+    testSame("function testCatch() { try {} catch (e) { var inner = e; } }");
+    Node root = getLastCompiler().getRoot().getLastChild();
+    Node fnNode = root.getFirstChild().getFirstChild();
 
-    assertTrue(scope.isDeclared("ns.CONSTANT_VAL", false));
-    Scope.Var constVar = scope.getVar("ns.CONSTANT_VAL");
-    assertNotNull(constVar);
-    assertEquals(compiler.getTypeRegistry().getNativeType(JSTypeNative.NUMBER_TYPE),
-        constVar.getType());
+    Scope localScope = scopeCreator.createScope(fnNode.getLastChild(), globalScope);
+    assertNotNull(localScope);
+    assertNotNull(localScope.getVar("e"));
   }
 
-  // Tests object literal with @lends pointing to unknown variable
+  // Tests initial scope containing standard native bindings
   @Test
-  public void testCreateScope_unknownLends_reportsWarning() {
-    Node root = parse("var obj = /** @lends {NonExistentTarget} */ ({ prop: 1 });");
-    createGlobalScope(root);
+  public void testCreateInitialScope_containsNativeBindings() {
+    testSame("");
+    Scope initialScope = scopeCreator.createInitialScope(getLastCompiler().getRoot());
+    assertNotNull(initialScope.getVar("Object"));
+    assertNotNull(initialScope.getVar("Function"));
+    assertNotNull(initialScope.getVar("Array"));
+    assertNotNull(initialScope.getVar("String"));
+    assertNotNull(initialScope.getVar("Number"));
+    assertNotNull(initialScope.getVar("Boolean"));
+    assertNotNull(initialScope.getVar("Date"));
+    assertNotNull(initialScope.getVar("RegExp"));
+    assertNotNull(initialScope.getVar("undefined"));
+    assertNotNull(initialScope.getVar("ActiveXObject"));
+  }
 
-    assertEquals(1, compiler.getWarningCount());
-    assertEquals(TypedScopeCreator.UNKNOWN_LENDS.key,
-        compiler.getWarnings()[0].getType().key);
+  // Tests patchGlobalScope removes old vars and updates global scope
+  @Test
+  public void testPatchGlobalScope_replacesOldDeclarations() {
+    testSame("var oldVar = 1;");
+    assertTrue(globalScope.isDeclared("oldVar", false));
+
+    Node scriptNode = getLastCompiler().getRoot().getLastChild().getFirstChild();
+    Node newVarNode = getLastCompiler().parseSyntheticCode("var newVar = 2;").removeChildren();
+    scriptNode.getParent().replaceChild(scriptNode, newVarNode);
+
+    scopeCreator.patchGlobalScope(globalScope, newVarNode);
+    assertFalse(globalScope.isDeclared("oldVar", false));
+    assertTrue(globalScope.isDeclared("newVar", false));
+  }
+
+  // Tests lending properties within object literal assigning to constructor prototype
+  @Test
+  public void testCreateScope_lendsConstructorPrototypeHierarchical_attachesTypeCorrectly() {
+    testSame("var ns = {};\n"
+        + "/** @constructor */ ns.MyClass = function() {};\n"
+        + "ns.MyClass.prototype = /** @lends {ns.MyClass.prototype} */ {\n"
+        + "  /** @return {number} */\n"
+        + "  getValue: function() { return 0; }\n"
+        + "};");
+    Scope.Var protoVar = globalScope.getVar("ns.MyClass.prototype");
+    assertNotNull(protoVar);
+    ObjectType protoType = ObjectType.cast(protoVar.getType());
+    assertNotNull(protoType);
+    assertTrue(protoType.hasProperty("getValue"));
+    JSType methodType = protoType.getPropertyType("getValue");
+    assertTrue(methodType.isFunctionType());
+    assertEquals(getNativeType(NUMBER_TYPE), methodType.toMaybeFunctionType().getReturnType());
+  }
+
+  // Tests interface declaration in global scope
+  @Test
+  public void testCreateScope_interfaceDeclaration_createsInterfaceType() {
+    testSame("/** @interface */ function AnInterface() {}\n"
+        + "/** @return {string} */ AnInterface.prototype.getName = function() {};");
+    Scope.Var ifaceVar = globalScope.getVar("AnInterface");
+    assertNotNull(ifaceVar);
+    assertTrue(ifaceVar.getType().isInterface());
+    Scope.Var protoVar = globalScope.getVar("AnInterface.prototype");
+    assertNotNull(protoVar);
+    ObjectType protoType = ObjectType.cast(protoVar.getType());
+    assertNotNull(protoType);
+    assertTrue(protoType.hasProperty("getName"));
+  }
+
+  // Tests constructor with @extends annotation inherits properties
+  @Test
+  public void testCreateScope_constructorExtends_setsSuperClassPrototype() {
+    testSame("/** @constructor */ function SuperClass() {}\n"
+        + "SuperClass.prototype.superProp = 123;\n"
+        + "/** @constructor\n * @extends {SuperClass} */ function SubClass() {}\n"
+        + "SubClass.prototype = new SuperClass();");
+    Scope.Var subCtorVar = globalScope.getVar("SubClass");
+    assertNotNull(subCtorVar);
+    FunctionType subCtor = subCtorVar.getType().toMaybeFunctionType();
+    assertNotNull(subCtor);
+    FunctionType superCtor = subCtor.getSuperClassConstructor();
+    assertNotNull(superCtor);
+    assertEquals("SuperClass", superCtor.getReferenceName());
+  }
+
+  // Tests constructor with @implements annotation registers implemented interface
+  @Test
+  public void testCreateScope_constructorImplements_setsImplementedInterfaces() {
+    testSame("/** @interface */ function Disposable() {}\n"
+        + "/** @constructor\n * @implements {Disposable} */ function Resource() {}");
+    Scope.Var ctorVar = globalScope.getVar("Resource");
+    assertNotNull(ctorVar);
+    FunctionType ctor = ctorVar.getType().toMaybeFunctionType();
+    assertNotNull(ctor);
+    assertNotNull(ctor.getImplementedInterfaces());
+    assertFalse(ctor.getImplementedInterfaces().isEmpty());
+  }
+
+  // Tests stub declaration with JSDoc type annotation on property
+  @Test
+  public void testCreateScope_typedStubDeclaration_hasDeclaredType() {
+    testSame("var ns = {};\n"
+        + "/** @type {string} */ ns.name;");
+    Scope.Var stubVar = globalScope.getVar("ns.name");
+    assertNotNull(stubVar);
+    assertEquals(getNativeType(STRING_TYPE), stubVar.getType());
+  }
+
+  // Tests function with @this type annotation
+  @Test
+  public void testCreateScope_functionWithThisAnnotation_hasCorrectThisType() {
+    testSame("/** @constructor */ function Context() {}\n"
+        + "/** @this {Context} */ function helper() { this.x = 1; }");
+    Scope.Var fnVar = globalScope.getVar("helper");
+    assertNotNull(fnVar);
+    FunctionType fnType = fnVar.getType().toMaybeFunctionType();
+    assertNotNull(fnType);
+    assertEquals("Context", fnType.getTypeOfThis().toMaybeObjectType().getReferenceName());
+  }
+
+  // Tests namespaced enum declaration
+  @Test
+  public void testCreateScope_namespacedEnum_createsEnumType() {
+    testSame("var ns = {};\n"
+        + "/** @enum {string} */ ns.Status = { OK: 'ok', ERROR: 'error' };");
+    Scope.Var enumVar = globalScope.getVar("ns.Status");
+    assertNotNull(enumVar);
+    assertTrue(enumVar.getType().isEnumType());
+    EnumType enumType = (EnumType) enumVar.getType();
+    assertEquals(getNativeType(STRING_TYPE), enumType.getElementsType());
+    assertTrue(enumType.hasProperty("OK"));
+    assertTrue(enumType.hasProperty("ERROR"));
+  }
+
+  // Tests function with @return {void}
+  @Test
+  public void testCreateScope_functionReturningVoid_hasVoidReturnType() {
+    testSame("/** @return {void} */ function doWork() {}");
+    Scope.Var fnVar = globalScope.getVar("doWork");
+    assertNotNull(fnVar);
+    FunctionType fnType = fnVar.getType().toMaybeFunctionType();
+    assertEquals(getNativeType(VOID_TYPE), fnType.getReturnType());
   }
 }

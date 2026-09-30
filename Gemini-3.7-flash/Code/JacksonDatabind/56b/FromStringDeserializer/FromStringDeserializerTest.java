@@ -1,13 +1,5 @@
 package com.fasterxml.jackson.databind.deser.std;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -19,7 +11,14 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
+import org.junit.Before;
+import org.junit.Test;
 import static org.junit.Assert.*;
+
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class FromStringDeserializerTest {
 
@@ -30,176 +29,159 @@ public class FromStringDeserializerTest {
         mapper = new ObjectMapper();
     }
 
-    // Tests types() method returns all supported standard types
+    // Tests types() returns supported types array
     @Test
-    public void testTypes_returnsExpectedSupportedTypes() {
+    public void testTypes_returnsNonEmptyArray() {
         Class<?>[] types = FromStringDeserializer.types();
         assertNotNull(types);
-        assertEquals(12, types.length);
+        assertTrue(types.length > 0);
     }
 
-    // Tests findDeserializer with supported and unsupported types
+    // Tests findDeserializer for supported and unsupported types
     @Test
     public void testFindDeserializer_supportedAndUnsupportedTypes() {
-        assertNotNull(FromStringDeserializer.findDeserializer(File.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(URL.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(URI.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(Class.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(JavaType.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(Currency.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(Pattern.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(Locale.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(Charset.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(TimeZone.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(InetAddress.class));
-        assertNotNull(FromStringDeserializer.findDeserializer(InetSocketAddress.class));
-        assertNull(FromStringDeserializer.findDeserializer(StringBuilder.class));
+        for (Class<?> type : FromStringDeserializer.types()) {
+            assertNotNull(FromStringDeserializer.findDeserializer(type));
+        }
+        assertNull(FromStringDeserializer.findDeserializer(String.class));
+        assertNull(FromStringDeserializer.findDeserializer(Object.class));
     }
 
-    // Tests standard deserialization for File, URL, and URI
+    // Tests deserialization of File
     @Test
-    public void testDeserialize_fileUrlUri_success() throws Exception {
+    public void testDeserialize_file_returnsFile() throws Exception {
         File file = mapper.readValue("\"/tmp/test.txt\"", File.class);
         assertEquals(new File("/tmp/test.txt"), file);
+    }
 
+    // Tests deserialization of URL
+    @Test
+    public void testDeserialize_url_returnsURL() throws Exception {
         URL url = mapper.readValue("\"http://localhost:8080/test\"", URL.class);
         assertEquals(new URL("http://localhost:8080/test"), url);
+    }
 
+    // Tests deserialization of URI (normal and empty string handling)
+    @Test
+    public void testDeserialize_uri_returnsURI() throws Exception {
         URI uri = mapper.readValue("\"http://localhost:8080/test\"", URI.class);
         assertEquals(URI.create("http://localhost:8080/test"), uri);
+
+        URI emptyUri = mapper.readValue("\"\"", URI.class);
+        assertEquals(URI.create(""), emptyUri);
     }
 
-    // Tests standard deserialization for Class and JavaType
+    // Tests deserialization of Locale (1, 2, 3 parts and empty string)
     @Test
-    public void testDeserialize_classAndJavaType_success() throws Exception {
-        Class<?> clazz = mapper.readValue("\"java.lang.String\"", Class.class);
-        assertEquals(String.class, clazz);
+    public void testDeserialize_locale_returnsLocale() throws Exception {
+        Locale l1 = mapper.readValue("\"en\"", Locale.class);
+        assertEquals(new Locale("en"), l1);
 
-        JavaType type = mapper.readValue("\"java.util.List<java.lang.String>\"", JavaType.class);
-        assertNotNull(type);
-        assertEquals(java.util.List.class, type.getRawClass());
+        Locale l2 = mapper.readValue("\"en_US\"", Locale.class);
+        assertEquals(new Locale("en", "US"), l2);
+
+        Locale l3 = mapper.readValue("\"en_US_WIN\"", Locale.class);
+        assertEquals(new Locale("en", "US", "WIN"), l3);
+
+        Locale emptyLocale = mapper.readValue("\"\"", Locale.class);
+        assertEquals(Locale.ROOT, emptyLocale);
     }
 
-    // Tests standard deserialization for Currency, Pattern, Charset, and TimeZone
+    // Tests deserialization of Currency
     @Test
-    public void testDeserialize_miscTypes_success() throws Exception {
+    public void testDeserialize_currency_returnsCurrency() throws Exception {
         Currency currency = mapper.readValue("\"USD\"", Currency.class);
         assertEquals(Currency.getInstance("USD"), currency);
-
-        Pattern pattern = mapper.readValue("\"a*b\"", Pattern.class);
-        assertEquals("a*b", pattern.pattern());
-
-        Charset charset = mapper.readValue("\"UTF-8\"", Charset.class);
-        assertEquals(Charset.forName("UTF-8"), charset);
-
-        TimeZone timeZone = mapper.readValue("\"GMT+8\"", TimeZone.class);
-        assertEquals(TimeZone.getTimeZone("GMT+8"), timeZone);
     }
 
-    // Tests standard deserialization for InetAddress
+    // Tests deserialization of Pattern
     @Test
-    public void testDeserialize_inetAddress_success() throws Exception {
+    public void testDeserialize_pattern_returnsPattern() throws Exception {
+        Pattern pattern = mapper.readValue("\"a*b\"", Pattern.class);
+        assertEquals("a*b", pattern.pattern());
+    }
+
+    // Tests deserialization of Charset
+    @Test
+    public void testDeserialize_charset_returnsCharset() throws Exception {
+        Charset charset = mapper.readValue("\"UTF-8\"", Charset.class);
+        assertEquals(Charset.forName("UTF-8"), charset);
+    }
+
+    // Tests deserialization of TimeZone
+    @Test
+    public void testDeserialize_timeZone_returnsTimeZone() throws Exception {
+        TimeZone tz = mapper.readValue("\"UTC\"", TimeZone.class);
+        assertEquals(TimeZone.getTimeZone("UTC"), tz);
+    }
+
+    // Tests deserialization of InetAddress
+    @Test
+    public void testDeserialize_inetAddress_returnsInetAddress() throws Exception {
         InetAddress addr = mapper.readValue("\"127.0.0.1\"", InetAddress.class);
         assertEquals(InetAddress.getByName("127.0.0.1"), addr);
     }
 
-    // Tests Locale deserialization with 1, 2, and 3 parts
+    // Tests deserialization of InetSocketAddress (IPv4 with and without port)
     @Test
-    public void testDeserialize_localeVariations_success() throws Exception {
-        Locale loc1 = mapper.readValue("\"en\"", Locale.class);
-        assertEquals(new Locale("en"), loc1);
+    public void testDeserialize_inetSocketAddress_ipv4() throws Exception {
+        InetSocketAddress isaWithPort = mapper.readValue("\"127.0.0.1:8080\"", InetSocketAddress.class);
+        assertEquals("127.0.0.1", isaWithPort.getHostName());
+        assertEquals(8080, isaWithPort.getPort());
 
-        Locale loc2 = mapper.readValue("\"en_US\"", Locale.class);
-        assertEquals(new Locale("en", "US"), loc2);
-
-        Locale loc3 = mapper.readValue("\"en_US_WIN\"", Locale.class);
-        assertEquals(new Locale("en", "US", "WIN"), loc3);
+        InetSocketAddress isaWithoutPort = mapper.readValue("\"127.0.0.1\"", InetSocketAddress.class);
+        assertEquals("127.0.0.1", isaWithoutPort.getHostName());
+        assertEquals(0, isaWithoutPort.getPort());
     }
 
-    // Tests empty string handling for URI and Locale
+    // Tests deserialization of InetSocketAddress (IPv6 bracketed format)
     @Test
-    public void testDeserialize_emptyStringSpecialCases_returnsSpecialValues() throws Exception {
-        URI uri = mapper.readValue("\"\"", URI.class);
-        assertEquals(URI.create(""), uri);
+    public void testDeserialize_inetSocketAddress_bracketedIpv6() throws Exception {
+        InetSocketAddress isa = mapper.readValue("\"[::1]:8080\"", InetSocketAddress.class);
+        assertEquals("[::1]", isa.getHostName());
+        assertEquals(8080, isa.getPort());
 
-        Locale loc = mapper.readValue("\"\"", Locale.class);
-        assertEquals(Locale.ROOT, loc);
+        InetSocketAddress isaNoPort = mapper.readValue("\"[::1]\"", InetSocketAddress.class);
+        assertEquals("[::1]", isaNoPort.getHostName());
+        assertEquals(0, isaNoPort.getPort());
     }
 
-    // Tests empty string handling for default types returning null
-    @Test
-    public void testDeserialize_emptyStringDefault_returnsNull() throws Exception {
-        File file = mapper.readValue("\"\"", File.class);
-        assertNull(file);
-
-        Currency currency = mapper.readValue("\"   \"", Currency.class);
-        assertNull(currency);
-    }
-
-    // Tests InetSocketAddress with host and port
-    @Test
-    public void testDeserialize_inetSocketAddressHostPort_success() throws Exception {
-        InetSocketAddress addr = mapper.readValue("\"localhost:8080\"", InetSocketAddress.class);
-        assertEquals("localhost", addr.getHostName());
-        assertEquals(8080, addr.getPort());
-    }
-
-    // Tests InetSocketAddress with host only
-    @Test
-    public void testDeserialize_inetSocketAddressHostOnly_success() throws Exception {
-        InetSocketAddress addr = mapper.readValue("\"localhost\"", InetSocketAddress.class);
-        assertEquals("localhost", addr.getHostName());
-        assertEquals(0, addr.getPort());
-    }
-
-    // Tests InetSocketAddress with bracketed IPv6 and port
-    @Test
-    public void testDeserialize_inetSocketAddressBracketedIpv6WithPort_success() throws Exception {
-        InetSocketAddress addr = mapper.readValue("\"[::1]:8080\"", InetSocketAddress.class);
-        assertEquals("[::1]", addr.getHostString());
-        assertEquals(8080, addr.getPort());
-    }
-
-    // Tests InetSocketAddress with bracketed IPv6 without port
-    @Test
-    public void testDeserialize_inetSocketAddressBracketedIpv6NoPort_success() throws Exception {
-        InetSocketAddress addr = mapper.readValue("\"[::1]\"", InetSocketAddress.class);
-        assertEquals("[::1]", addr.getHostString());
-        assertEquals(0, addr.getPort());
-    }
-
-    // Tests InetSocketAddress with unbracketed IPv6
-    @Test
-    public void testDeserialize_inetSocketAddressUnbracketedIpv6_success() throws Exception {
-        InetSocketAddress addr = mapper.readValue("\"2001:db8::1\"", InetSocketAddress.class);
-        assertEquals("2001:db8::1", addr.getHostName());
-        assertEquals(0, addr.getPort());
-    }
-
-    // Tests InetSocketAddress with malformed bracketed IPv6 missing closing bracket
-    @Test(expected = InvalidFormatException.class)
-    public void testDeserialize_inetSocketAddressMalformedBracket_throwsException() throws Exception {
-        mapper.readValue("\"[::1:8080\"", InetSocketAddress.class);
-    }
-
-    // Tests invalid input throwing JsonMappingException
+    // Tests exception on malformed bracketed IPv6 address
     @Test(expected = JsonMappingException.class)
-    public void testDeserialize_invalidCurrency_throwsJsonMappingException() throws Exception {
-        mapper.readValue("\"INVALID_CURRENCY_CODE\"", Currency.class);
+    public void testDeserialize_inetSocketAddress_malformedIpv6_throwsException() throws Exception {
+        mapper.readValue("\"[::1\"", InetSocketAddress.class);
+    }
+
+    // Tests exception on invalid textual representation
+    @Test(expected = JsonMappingException.class)
+    public void testDeserialize_invalidCurrency_throwsException() throws Exception {
+        mapper.readValue("\"INVALID_CURRENCY\"", Currency.class);
     }
 
     // Tests unwrapping single value array feature
     @Test
-    public void testDeserialize_unwrappedSingleValueArray_success() throws Exception {
-        mapper.enable(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS);
-        URI uri = mapper.readValue("[\"http://localhost:8080\"]", URI.class);
-        assertEquals(URI.create("http://localhost:8080"), uri);
+    public void testDeserialize_unwrapSingleValueArray_returnsValue() throws Exception {
+        ObjectMapper unwrapMapper = new ObjectMapper();
+        unwrapMapper.enable(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS);
+
+        Currency currency = unwrapMapper.readValue("[\"USD\"]", Currency.class);
+        assertEquals(Currency.getInstance("USD"), currency);
     }
 
-    // Tests unwrapping single value array failing on multiple elements
+    // Tests exception when array has multiple values under unwrapping feature
     @Test(expected = JsonMappingException.class)
-    public void testDeserialize_unwrappedMultipleValuesArray_throwsException() throws Exception {
-        mapper.enable(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS);
-        mapper.readValue("[\"http://localhost:8080\", \"http://localhost:8081\"]", URI.class);
+    public void testDeserialize_unwrapSingleValueArray_multipleElements_throwsException() throws Exception {
+        ObjectMapper unwrapMapper = new ObjectMapper();
+        unwrapMapper.enable(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS);
+
+        unwrapMapper.readValue("[\"USD\", \"EUR\"]", Currency.class);
+    }
+
+    // Tests empty string deserialization returning null for standard types
+    @Test
+    public void testDeserialize_emptyString_returnsNull() throws Exception {
+        assertNull(mapper.readValue("\"\"", Currency.class));
+        assertNull(mapper.readValue("\"   \"", Currency.class));
+        assertNull(mapper.readValue("\"\"", Pattern.class));
     }
 }

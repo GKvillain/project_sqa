@@ -5,345 +5,373 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.TimeZone;
-
-import org.junit.After;
-import org.junit.Before;
+import org.joda.time.chrono.BuddhistChronology;
+import org.joda.time.chrono.GJChronology;
+import org.joda.time.chrono.GregorianChronology;
+import org.joda.time.chrono.ISOChronology;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 
 public class LocalDateTimeTest {
 
-    private DateTimeZone originalZone;
-    private TimeZone originalJvmZone;
-
-    @Before
-    public void setUp() {
-        originalZone = DateTimeZone.getDefault();
-        originalJvmZone = TimeZone.getDefault();
-        DateTimeZone.setDefault(DateTimeZone.UTC);
-        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-    }
-
-    @After
-    public void tearDown() {
-        DateTimeZone.setDefault(originalZone);
-        TimeZone.setDefault(originalJvmZone);
-    }
-
-    // Tests fromCalendarFields with normal AD date
+    // Tests fromCalendarFields with BC era (Defects4J Time-12 regression)
     @Test
-    public void testFromCalendarFields_adDate_returnsCorrectLocalDateTime() {
-        Calendar cal = new GregorianCalendar(2010, Calendar.FEBRUARY, 15, 12, 30, 45);
-        cal.set(Calendar.MILLISECOND, 500);
-
-        LocalDateTime ldt = LocalDateTime.fromCalendarFields(cal);
-
-        assertEquals(2010, ldt.getYear());
-        assertEquals(2, ldt.getMonthOfYear());
-        assertEquals(15, ldt.getDayOfMonth());
-        assertEquals(12, ldt.getHourOfDay());
-        assertEquals(30, ldt.getMinuteOfHour());
-        assertEquals(45, ldt.getSecondOfMinute());
-        assertEquals(500, ldt.getMillisOfSecond());
-    }
-
-    // Tests fromCalendarFields with BC date (Defects4J Time-12 bug trigger)
-    @Test
-    public void testFromCalendarFields_bcDate_returnsCorrectLocalDateTime() {
-        Calendar cal = new GregorianCalendar(2010, Calendar.FEBRUARY, 15, 12, 30, 45);
-        cal.set(Calendar.MILLISECOND, 500);
+    public void testFromCalendarFields_beforeCommonEra_constructsCorrectYear() {
+        GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("GMT"));
+        cal.clear();
         cal.set(Calendar.ERA, GregorianCalendar.BC);
+        cal.set(Calendar.YEAR, 5); // 5 BC -> year -4 in ISO
+        cal.set(Calendar.MONTH, Calendar.FEBRUARY);
+        cal.set(Calendar.DAY_OF_MONTH, 3);
+        cal.set(Calendar.HOUR_OF_DAY, 4);
+        cal.set(Calendar.MINUTE, 5);
+        cal.set(Calendar.SECOND, 6);
+        cal.set(Calendar.MILLISECOND, 7);
 
         LocalDateTime ldt = LocalDateTime.fromCalendarFields(cal);
-
-        assertEquals(-2009, ldt.getYear());
+        assertEquals(-4, ldt.getYear());
         assertEquals(2, ldt.getMonthOfYear());
+        assertEquals(3, ldt.getDayOfMonth());
+        assertEquals(4, ldt.getHourOfDay());
+        assertEquals(5, ldt.getMinuteOfHour());
+        assertEquals(6, ldt.getSecondOfMinute());
+        assertEquals(7, ldt.getMillisOfSecond());
+    }
+
+    // Tests fromDateFields with BC era date (Defects4J Time-12 regression)
+    @Test
+    public void testFromDateFields_beforeCommonEra_constructsCorrectYear() {
+        GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("GMT"));
+        cal.clear();
+        cal.set(Calendar.ERA, GregorianCalendar.BC);
+        cal.set(Calendar.YEAR, 5); // 5 BC -> year -4
+        cal.set(Calendar.MONTH, Calendar.FEBRUARY);
+        cal.set(Calendar.DAY_OF_MONTH, 3);
+        cal.set(Calendar.HOUR_OF_DAY, 4);
+        cal.set(Calendar.MINUTE, 5);
+        cal.set(Calendar.SECOND, 6);
+        cal.set(Calendar.MILLISECOND, 7);
+
+        Date date = cal.getTime();
+        LocalDateTime ldt = LocalDateTime.fromDateFields(date);
+        assertEquals(-4, ldt.getYear());
+        assertEquals(2, ldt.getMonthOfYear());
+        assertEquals(3, ldt.getDayOfMonth());
+    }
+
+    // Tests fromCalendarFields with normal AD calendar
+    @Test
+    public void testFromCalendarFields_normalAD_constructsCorrectly() {
+        GregorianCalendar cal = new GregorianCalendar(2023, Calendar.MARCH, 15, 10, 20, 30);
+        cal.set(Calendar.MILLISECOND, 123);
+
+        LocalDateTime ldt = LocalDateTime.fromCalendarFields(cal);
+        assertEquals(2023, ldt.getYear());
+        assertEquals(3, ldt.getMonthOfYear());
         assertEquals(15, ldt.getDayOfMonth());
-        assertEquals(12, ldt.getHourOfDay());
-        assertEquals(30, ldt.getMinuteOfHour());
-        assertEquals(45, ldt.getSecondOfMinute());
-        assertEquals(500, ldt.getMillisOfSecond());
+        assertEquals(10, ldt.getHourOfDay());
+        assertEquals(20, ldt.getMinuteOfHour());
+        assertEquals(30, ldt.getSecondOfMinute());
+        assertEquals(123, ldt.getMillisOfSecond());
     }
 
     // Tests fromCalendarFields with null input throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testFromCalendarFields_nullCalendar_throwsIllegalArgumentException() {
+    public void testFromCalendarFields_nullInput_throwsIllegalArgumentException() {
         LocalDateTime.fromCalendarFields(null);
-    }
-
-    // Tests fromDateFields with normal date
-    @Test
-    public void testFromDateFields_adDate_returnsCorrectLocalDateTime() {
-        Calendar cal = new GregorianCalendar(2012, Calendar.AUGUST, 20, 14, 15, 30);
-        cal.set(Calendar.MILLISECOND, 123);
-        Date date = cal.getTime();
-
-        LocalDateTime ldt = LocalDateTime.fromDateFields(date);
-
-        assertEquals(2012, ldt.getYear());
-        assertEquals(8, ldt.getMonthOfYear());
-        assertEquals(20, ldt.getDayOfMonth());
-        assertEquals(14, ldt.getHourOfDay());
-        assertEquals(15, ldt.getMinuteOfHour());
-        assertEquals(30, ldt.getSecondOfMinute());
-        assertEquals(123, ldt.getMillisOfSecond());
-    }
-
-    // Tests fromDateFields with BC date (Defects4J Time-12 bug trigger)
-    @Test
-    public void testFromDateFields_bcDate_returnsCorrectLocalDateTime() {
-        Calendar cal = new GregorianCalendar(2010, Calendar.FEBRUARY, 15, 12, 30, 45);
-        cal.set(Calendar.MILLISECOND, 500);
-        cal.set(Calendar.ERA, GregorianCalendar.BC);
-        Date date = cal.getTime();
-
-        LocalDateTime ldt = LocalDateTime.fromDateFields(date);
-
-        assertEquals(-2009, ldt.getYear());
-        assertEquals(2, ldt.getMonthOfYear());
-        assertEquals(15, ldt.getDayOfMonth());
-        assertEquals(12, ldt.getHourOfDay());
-        assertEquals(30, ldt.getMinuteOfHour());
-        assertEquals(45, ldt.getSecondOfMinute());
-        assertEquals(500, ldt.getMillisOfSecond());
     }
 
     // Tests fromDateFields with null input throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testFromDateFields_nullDate_throwsIllegalArgumentException() {
+    public void testFromDateFields_nullInput_throwsIllegalArgumentException() {
         LocalDateTime.fromDateFields(null);
     }
 
-    // Tests now() factory methods and null validations
+    // Tests now() factory methods
+    @Test
+    public void testNow_withZoneAndChronology_returnsNonNull() {
+        LocalDateTime now1 = LocalDateTime.now();
+        assertNotNull(now1);
+
+        LocalDateTime now2 = LocalDateTime.now(DateTimeZone.UTC);
+        assertNotNull(now2);
+
+        LocalDateTime now3 = LocalDateTime.now(ISOChronology.getInstanceUTC());
+        assertNotNull(now3);
+    }
+
+    // Tests now(DateTimeZone) with null zone
     @Test(expected = NullPointerException.class)
-    public void testNow_nullDateTimeZone_throwsNullPointerException() {
+    public void testNow_nullZone_throwsNullPointerException() {
         LocalDateTime.now((DateTimeZone) null);
     }
 
-    // Tests now(Chronology) with null parameter
-    @Test(expected = NullPointerException.class)
-    public void testNow_nullChronology_throwsNullPointerException() {
-        LocalDateTime.now((Chronology) null);
-    }
-
-    // Tests parse(String) with standard ISO format
+    // Tests parse methods
     @Test
-    public void testParse_isoString_parsesSuccessfully() {
-        LocalDateTime ldt = LocalDateTime.parse("2021-11-25T15:45:30.123");
+    public void testParse_stringAndFormatter_returnsCorrectLocalDateTime() {
+        LocalDateTime parsed = LocalDateTime.parse("2021-12-25T14:30:00.500");
+        assertEquals(2021, parsed.getYear());
+        assertEquals(12, parsed.getMonthOfYear());
+        assertEquals(25, parsed.getDayOfMonth());
+        assertEquals(14, parsed.getHourOfDay());
+        assertEquals(30, parsed.getMinuteOfHour());
+        assertEquals(0, parsed.getSecondOfMinute());
+        assertEquals(500, parsed.getMillisOfSecond());
 
-        assertEquals(2021, ldt.getYear());
-        assertEquals(11, ldt.getMonthOfYear());
-        assertEquals(25, ldt.getDayOfMonth());
-        assertEquals(15, ldt.getHourOfDay());
-        assertEquals(45, ldt.getMinuteOfHour());
-        assertEquals(30, ldt.getSecondOfMinute());
-        assertEquals(123, ldt.getMillisOfSecond());
+        DateTimeFormatter formatter = DateTimeFormat.forPattern("dd/MM/yyyy HH:mm");
+        LocalDateTime parsedCustom = LocalDateTime.parse("25/12/2021 14:30", formatter);
+        assertEquals(2021, parsedCustom.getYear());
+        assertEquals(12, parsedCustom.getMonthOfYear());
+        assertEquals(25, parsedCustom.getDayOfMonth());
+        assertEquals(14, parsedCustom.getHourOfDay());
+        assertEquals(30, parsedCustom.getMinuteOfHour());
     }
 
-    // Tests constructors with various field values
+    // Tests constructors with various parameter counts
     @Test
-    public void testConstructor_fieldValues_createsInstanceCorrectly() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30, 15, 200);
+    public void testConstructors_variousSignatures_initializeCorrectly() {
+        LocalDateTime dt4 = new LocalDateTime(2020, 5, 10, 8, 30);
+        assertEquals(2020, dt4.getYear());
+        assertEquals(5, dt4.getMonthOfYear());
+        assertEquals(10, dt4.getDayOfMonth());
+        assertEquals(8, dt4.getHourOfDay());
+        assertEquals(30, dt4.getMinuteOfHour());
+        assertEquals(0, dt4.getSecondOfMinute());
+        assertEquals(0, dt4.getMillisOfSecond());
 
-        assertEquals(2023, ldt.getYear());
-        assertEquals(5, ldt.getMonthOfYear());
-        assertEquals(10, ldt.getDayOfMonth());
-        assertEquals(8, ldt.getHourOfDay());
-        assertEquals(30, ldt.getMinuteOfHour());
-        assertEquals(15, ldt.getSecondOfMinute());
-        assertEquals(200, ldt.getMillisOfSecond());
-        assertEquals(4, ldt.size());
+        LocalDateTime dt6 = new LocalDateTime(2020, 5, 10, 8, 30, 45);
+        assertEquals(45, dt6.getSecondOfMinute());
+
+        LocalDateTime dt7 = new LocalDateTime(2020, 5, 10, 8, 30, 45, 250);
+        assertEquals(250, dt7.getMillisOfSecond());
+
+        LocalDateTime dtChrono = new LocalDateTime(2020, 5, 10, 8, 30, 45, 250, BuddhistChronology.getInstanceUTC());
+        assertEquals(BuddhistChronology.getInstanceUTC(), dtChrono.getChronology());
     }
 
-    // Tests size and getValue boundary/indexing
+    // Tests size and getValue / getField indices
     @Test
-    public void testGetValue_validAndInvalidIndex() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30, 15, 200);
-
-        assertEquals(2023, ldt.getValue(0));
-        assertEquals(5, ldt.getValue(1));
-        assertEquals(10, ldt.getValue(2));
-        assertEquals(8 * 3600000 + 30 * 60000 + 15 * 1000 + 200, ldt.getValue(3));
+    public void testSizeAndGetValue_allIndices_returnsExpectedValues() {
+        LocalDateTime dt = new LocalDateTime(2022, 7, 19, 15, 45, 30, 100);
+        assertEquals(4, dt.size());
+        assertEquals(2022, dt.getValue(0));
+        assertEquals(7, dt.getValue(1));
+        assertEquals(19, dt.getValue(2));
+        assertEquals(15 * 3600000 + 45 * 60000 + 30 * 1000 + 100, dt.getValue(3));
     }
 
-    // Tests getValue out of bounds throws IndexOutOfBoundsException
+    // Tests getValue with invalid index throws exception
     @Test(expected = IndexOutOfBoundsException.class)
-    public void testGetValue_indexOutOfBounds_throwsIndexOutOfBoundsException() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30);
-        ldt.getValue(4);
+    public void testGetValue_invalidIndex_throwsIndexOutOfBoundsException() {
+        LocalDateTime dt = new LocalDateTime(2022, 7, 19, 15, 45);
+        dt.getValue(4);
     }
 
-    // Tests get(DateTimeFieldType) and isSupported
+    // Tests isSupported and get with DateTimeFieldType
     @Test
-    public void testGetAndIsSupported_validAndNullFields() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30, 15, 200);
+    public void testGetAndIsSupported_fieldTypes_returnsExpectedResults() {
+        LocalDateTime dt = new LocalDateTime(2022, 7, 19, 15, 45, 30, 100);
+        assertTrue(dt.isSupported(DateTimeFieldType.year()));
+        assertTrue(dt.isSupported(DateTimeFieldType.hourOfDay()));
+        assertTrue(dt.isSupported(DurationFieldType.days()));
+        assertFalse(dt.isSupported((DateTimeFieldType) null));
+        assertFalse(dt.isSupported((DurationFieldType) null));
 
-        assertEquals(2023, ldt.get(DateTimeFieldType.year()));
-        assertEquals(5, ldt.get(DateTimeFieldType.monthOfYear()));
-        assertEquals(10, ldt.get(DateTimeFieldType.dayOfMonth()));
-        assertTrue(ldt.isSupported(DateTimeFieldType.hourOfDay()));
-        assertFalse(ldt.isSupported((DateTimeFieldType) null));
-        assertTrue(ldt.isSupported(DurationFieldType.days()));
-        assertFalse(ldt.isSupported((DurationFieldType) null));
+        assertEquals(2022, dt.get(DateTimeFieldType.year()));
+        assertEquals(7, dt.get(DateTimeFieldType.monthOfYear()));
+        assertEquals(19, dt.get(DateTimeFieldType.dayOfMonth()));
+        assertEquals(15, dt.get(DateTimeFieldType.hourOfDay()));
+        assertEquals(45, dt.get(DateTimeFieldType.minuteOfHour()));
+        assertEquals(30, dt.get(DateTimeFieldType.secondOfMinute()));
+        assertEquals(100, dt.get(DateTimeFieldType.millisOfSecond()));
+        assertEquals(1, dt.getEra());
+        assertEquals(20, dt.getCenturyOfEra());
+        assertEquals(22, dt.getYearOfCentury());
+        assertEquals(2022, dt.getYearOfEra());
     }
 
-    // Tests get with null DateTimeFieldType throws exception
-    @Test(expected = IllegalArgumentException.class)
-    public void testGet_nullFieldType_throwsIllegalArgumentException() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30);
-        ldt.get(null);
+    // Tests plus and minus methods
+    @Test
+    public void testPlusMinus_variousFields_calculatesCorrectly() {
+        LocalDateTime dt = new LocalDateTime(2020, 1, 15, 12, 0, 0, 0);
+
+        assertEquals(new LocalDateTime(2022, 1, 15, 12, 0, 0, 0), dt.plusYears(2));
+        assertEquals(new LocalDateTime(2018, 1, 15, 12, 0, 0, 0), dt.minusYears(2));
+        assertEquals(dt, dt.plusYears(0));
+        assertEquals(dt, dt.minusYears(0));
+
+        assertEquals(new LocalDateTime(2020, 4, 15, 12, 0, 0, 0), dt.plusMonths(3));
+        assertEquals(new LocalDateTime(2019, 10, 15, 12, 0, 0, 0), dt.minusMonths(3));
+        assertEquals(dt, dt.plusMonths(0));
+        assertEquals(dt, dt.minusMonths(0));
+
+        assertEquals(new LocalDateTime(2020, 1, 29, 12, 0, 0, 0), dt.plusWeeks(2));
+        assertEquals(new LocalDateTime(2020, 1, 1, 12, 0, 0, 0), dt.minusWeeks(2));
+        assertEquals(dt, dt.plusWeeks(0));
+        assertEquals(dt, dt.minusWeeks(0));
+
+        assertEquals(new LocalDateTime(2020, 1, 20, 12, 0, 0, 0), dt.plusDays(5));
+        assertEquals(new LocalDateTime(2020, 1, 10, 12, 0, 0, 0), dt.minusDays(5));
+        assertEquals(dt, dt.plusDays(0));
+        assertEquals(dt, dt.minusDays(0));
+
+        assertEquals(new LocalDateTime(2020, 1, 15, 15, 0, 0, 0), dt.plusHours(3));
+        assertEquals(new LocalDateTime(2020, 1, 15, 9, 0, 0, 0), dt.minusHours(3));
+
+        assertEquals(new LocalDateTime(2020, 1, 15, 12, 45, 0, 0), dt.plusMinutes(45));
+        assertEquals(new LocalDateTime(2020, 1, 15, 11, 15, 0, 0), dt.minusMinutes(45));
+
+        assertEquals(new LocalDateTime(2020, 1, 15, 12, 0, 30, 0), dt.plusSeconds(30));
+        assertEquals(new LocalDateTime(2020, 1, 15, 11, 59, 30, 0), dt.minusSeconds(30));
+
+        assertEquals(new LocalDateTime(2020, 1, 15, 12, 0, 0, 500), dt.plusMillis(500));
+        assertEquals(new LocalDateTime(2020, 1, 15, 11, 59, 59, 500), dt.minusMillis(500));
+    }
+
+    // Tests withDate and withTime methods
+    @Test
+    public void testWithDateAndWithTime_validInputs_returnsModifiedCopies() {
+        LocalDateTime dt = new LocalDateTime(2020, 1, 15, 12, 30, 45, 500);
+
+        LocalDateTime newDate = dt.withDate(2025, 6, 20);
+        assertEquals(2025, newDate.getYear());
+        assertEquals(6, newDate.getMonthOfYear());
+        assertEquals(20, newDate.getDayOfMonth());
+        assertEquals(12, newDate.getHourOfDay());
+
+        LocalDateTime newTime = dt.withTime(8, 15, 20, 100);
+        assertEquals(2020, newTime.getYear());
+        assertEquals(8, newTime.getHourOfDay());
+        assertEquals(15, newTime.getMinuteOfHour());
+        assertEquals(20, newTime.getSecondOfMinute());
+        assertEquals(100, newTime.getMillisOfSecond());
+    }
+
+    // Tests withField and withFields
+    @Test
+    public void testWithFieldAndWithFields_validInputs_returnsUpdatedInstances() {
+        LocalDateTime dt = new LocalDateTime(2020, 1, 15, 12, 30, 45, 500);
+
+        LocalDateTime updatedYear = dt.withField(DateTimeFieldType.year(), 2024);
+        assertEquals(2024, updatedYear.getYear());
+
+        LocalDateTime updatedWithAdded = dt.withFieldAdded(DurationFieldType.years(), 3);
+        assertEquals(2023, updatedWithAdded.getYear());
+
+        assertSame(dt, dt.withFieldAdded(DurationFieldType.years(), 0));
+        assertSame(dt, dt.withFields(null));
+    }
+
+    // Tests conversions to DateTime, LocalDate, LocalTime, Date
+    @Test
+    public void testConversions_toDateTime_toLocalDate_toLocalTime_toDate() {
+        LocalDateTime dt = new LocalDateTime(2020, 1, 15, 12, 30, 45, 500);
+
+        DateTime dateTimeUtc = dt.toDateTime(DateTimeZone.UTC);
+        assertEquals(2020, dateTimeUtc.getYear());
+        assertEquals(DateTimeZone.UTC, dateTimeUtc.getZone());
+
+        LocalDate localDate = dt.toLocalDate();
+        assertEquals(2020, localDate.getYear());
+        assertEquals(1, localDate.getMonthOfYear());
+        assertEquals(15, localDate.getDayOfMonth());
+
+        LocalTime localTime = dt.toLocalTime();
+        assertEquals(12, localTime.getHourOfDay());
+        assertEquals(30, localTime.getMinuteOfHour());
+        assertEquals(45, localTime.getSecondOfMinute());
+        assertEquals(500, localTime.getMillisOfSecond());
+
+        Date jdkDate = dt.toDate();
+        assertNotNull(jdkDate);
+        LocalDateTime roundTrip = LocalDateTime.fromDateFields(jdkDate);
+        assertEquals(dt.getYear(), roundTrip.getYear());
+        assertEquals(dt.getMonthOfYear(), roundTrip.getMonthOfYear());
+        assertEquals(dt.getDayOfMonth(), roundTrip.getDayOfMonth());
+        assertEquals(dt.getHourOfDay(), roundTrip.getHourOfDay());
+        assertEquals(dt.getMinuteOfHour(), roundTrip.getMinuteOfHour());
+        assertEquals(dt.getSecondOfMinute(), roundTrip.getSecondOfMinute());
+        assertEquals(dt.getMillisOfSecond(), roundTrip.getMillisOfSecond());
     }
 
     // Tests equals and compareTo
     @Test
-    public void testEqualsAndCompareTo_sameAndDifferentInstants() {
-        LocalDateTime ldt1 = new LocalDateTime(2023, 5, 10, 8, 30, 0, 0);
-        LocalDateTime ldt2 = new LocalDateTime(2023, 5, 10, 8, 30, 0, 0);
-        LocalDateTime ldt3 = new LocalDateTime(2023, 5, 10, 8, 30, 0, 1);
+    public void testEqualsAndCompareTo_variousObjects_returnsExpectedComparison() {
+        LocalDateTime dt1 = new LocalDateTime(2020, 1, 15, 12, 0);
+        LocalDateTime dt2 = new LocalDateTime(2020, 1, 15, 12, 0);
+        LocalDateTime dt3 = new LocalDateTime(2020, 1, 15, 13, 0);
 
-        assertTrue(ldt1.equals(ldt1));
-        assertTrue(ldt1.equals(ldt2));
-        assertFalse(ldt1.equals(ldt3));
-        assertFalse(ldt1.equals("NotALocalDateTime"));
+        assertTrue(dt1.equals(dt1));
+        assertTrue(dt1.equals(dt2));
+        assertFalse(dt1.equals(dt3));
+        assertFalse(dt1.equals("not a localdatetime"));
+        assertFalse(dt1.equals(null));
 
-        assertEquals(0, ldt1.compareTo(ldt2));
-        assertTrue(ldt1.compareTo(ldt3) < 0);
-        assertTrue(ldt3.compareTo(ldt1) > 0);
+        assertEquals(0, dt1.compareTo(dt2));
+        assertTrue(dt1.compareTo(dt3) < 0);
+        assertTrue(dt3.compareTo(dt1) > 0);
     }
 
-    // Tests plus and minus methods for date and time fields
+    // Tests toString with pattern and locale
     @Test
-    public void testPlusMinusFields_validOperations() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30, 15, 200);
-
-        assertSame(ldt, ldt.plusYears(0));
-        assertEquals(2025, ldt.plusYears(2).getYear());
-        assertEquals(2021, ldt.minusYears(2).getYear());
-
-        assertSame(ldt, ldt.plusMonths(0));
-        assertEquals(7, ldt.plusMonths(2).getMonthOfYear());
-        assertEquals(3, ldt.minusMonths(2).getMonthOfYear());
-
-        assertSame(ldt, ldt.plusWeeks(0));
-        assertEquals(24, ldt.plusWeeks(2).getDayOfMonth());
-        assertEquals(26, ldt.minusWeeks(2).getDayOfMonth());
-
-        assertSame(ldt, ldt.plusDays(0));
-        assertEquals(15, ldt.plusDays(5).getDayOfMonth());
-        assertEquals(5, ldt.minusDays(5).getDayOfMonth());
-
-        assertSame(ldt, ldt.plusHours(0));
-        assertEquals(11, ldt.plusHours(3).getHourOfDay());
-        assertEquals(5, ldt.minusHours(3).getHourOfDay());
-
-        assertSame(ldt, ldt.plusMinutes(0));
-        assertEquals(40, ldt.plusMinutes(10).getMinuteOfHour());
-        assertEquals(20, ldt.minusMinutes(10).getMinuteOfHour());
-
-        assertSame(ldt, ldt.plusSeconds(0));
-        assertEquals(35, ldt.plusSeconds(20).getSecondOfMinute());
-        assertEquals(5, ldt.minusSeconds(10).getSecondOfMinute());
-
-        assertSame(ldt, ldt.plusMillis(0));
-        assertEquals(500, ldt.plusMillis(300).getMillisOfSecond());
-        assertEquals(100, ldt.minusMillis(100).getMillisOfSecond());
+    public void testToString_patternAndLocale_formatsProperly() {
+        LocalDateTime dt = new LocalDateTime(2020, 1, 15, 12, 30, 45, 500);
+        assertEquals("2020-01-15T12:30:45.500", dt.toString());
+        assertEquals("15/01/2020 12:30", dt.toString("dd/MM/yyyy HH:mm"));
+        assertEquals("15/01/2020", dt.toString("dd/MM/yyyy", Locale.US));
+        assertEquals(dt.toString(), dt.toString(null));
+        assertEquals(dt.toString(), dt.toString(null, Locale.US));
     }
 
-    // Tests withDate and withTime
+    // Tests property operations
     @Test
-    public void testWithDateAndWithTime_updatesValues() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30, 15, 200);
+    public void testProperty_operations_modifyAndQueryCorrectly() {
+        LocalDateTime dt = new LocalDateTime(2020, 1, 15, 12, 30, 45, 500);
+        LocalDateTime.Property prop = dt.monthOfYear();
 
-        LocalDateTime updatedDate = ldt.withDate(2020, 1, 1);
-        assertEquals(2020, updatedDate.getYear());
-        assertEquals(1, updatedDate.getMonthOfYear());
-        assertEquals(1, updatedDate.getDayOfMonth());
-        assertEquals(8, updatedDate.getHourOfDay());
+        assertEquals(1, prop.get());
+        assertEquals("January", prop.getAsText(Locale.ENGLISH));
+        assertEquals("Jan", prop.getAsShortText(Locale.ENGLISH));
+        assertEquals(1, prop.getMinimumValue());
+        assertEquals(12, prop.getMaximumValue());
 
-        LocalDateTime updatedTime = ldt.withTime(12, 0, 0, 0);
-        assertEquals(2023, updatedTime.getYear());
-        assertEquals(12, updatedTime.getHourOfDay());
-        assertEquals(0, updatedTime.getMinuteOfHour());
-        assertEquals(0, updatedTime.getSecondOfMinute());
-        assertEquals(0, updatedTime.getMillisOfSecond());
-    }
+        LocalDateTime modified = prop.setCopy(6);
+        assertEquals(6, modified.getMonthOfYear());
 
-    // Tests withField and withFieldAdded
-    @Test
-    public void testWithFieldAndWithFieldAdded() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30);
+        LocalDateTime added = prop.addToCopy(2);
+        assertEquals(3, added.getMonthOfYear());
 
-        LocalDateTime modified = ldt.withField(DateTimeFieldType.monthOfYear(), 12);
-        assertEquals(12, modified.getMonthOfYear());
+        LocalDateTime maxDay = dt.dayOfMonth().withMaximumValue();
+        assertEquals(31, maxDay.getDayOfMonth()); // Jan has 31 days
 
-        LocalDateTime added = ldt.withFieldAdded(DurationFieldType.days(), 3);
-        assertEquals(13, added.getDayOfMonth());
-
-        assertSame(ldt, ldt.withFieldAdded(DurationFieldType.days(), 0));
-    }
-
-    // Tests conversions to LocalDate, LocalTime, DateTime, and Date
-    @Test
-    public void testConversions_returnsExpectedObjects() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30, 15, 200);
-
-        LocalDate localDate = ldt.toLocalDate();
-        assertEquals(2023, localDate.getYear());
-        assertEquals(5, localDate.getMonthOfYear());
-        assertEquals(10, localDate.getDayOfMonth());
-
-        LocalTime localTime = ldt.toLocalTime();
-        assertEquals(8, localTime.getHourOfDay());
-        assertEquals(30, localTime.getMinuteOfHour());
-        assertEquals(15, localTime.getSecondOfMinute());
-        assertEquals(200, localTime.getMillisOfSecond());
-
-        DateTime dt = ldt.toDateTime(DateTimeZone.UTC);
-        assertEquals(ldt.getYear(), dt.getYear());
-        assertEquals(ldt.getMillisOfDay(), dt.getMillisOfDay());
-
-        Date d = ldt.toDate();
-        assertNotNull(d);
-        LocalDateTime roundTrip = LocalDateTime.fromDateFields(d);
-        assertEquals(ldt, roundTrip);
-    }
-
-    // Tests toString formats
-    @Test
-    public void testToString_formattedOutput() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30, 15, 200);
-
-        assertEquals("2023-05-10T08:30:15.200", ldt.toString());
-        assertEquals("2023/05/10 08:30", ldt.toString("yyyy/MM/dd HH:mm"));
-        assertEquals("2023-05-10T08:30:15.200", ldt.toString((String) null));
-        assertEquals("2023-05-10T08:30:15.200", ldt.toString(null, Locale.ENGLISH));
-    }
-
-    // Tests Property class methods
-    @Test
-    public void testProperty_operationsAndRounding() {
-        LocalDateTime ldt = new LocalDateTime(2023, 5, 10, 8, 30, 15, 200);
-
-        LocalDateTime.Property prop = ldt.dayOfMonth();
-        assertEquals(10, prop.get());
-        assertEquals(ldt, prop.getLocalDateTime());
-
-        LocalDateTime maxDay = prop.withMaximumValue();
-        assertEquals(31, maxDay.getDayOfMonth());
-
-        LocalDateTime minDay = prop.withMinimumValue();
+        LocalDateTime minDay = dt.dayOfMonth().withMinimumValue();
         assertEquals(1, minDay.getDayOfMonth());
 
-        LocalDateTime addedCopy = prop.addToCopy(5);
-        assertEquals(15, addedCopy.getDayOfMonth());
+        LocalDateTime rounded = dt.hourOfDay().roundFloorCopy();
+        assertEquals(0, rounded.getMinuteOfHour());
+        assertEquals(0, rounded.getSecondOfMinute());
+        assertEquals(0, rounded.getMillisOfSecond());
+    }
 
-        LocalDateTime setCopy = prop.setCopy(20);
-        assertEquals(20, setCopy.getDayOfMonth());
+    // Tests individual field modifier methods (withYear, withMonthOfYear, etc.)
+    @Test
+    public void testWithIndividualFields_validValues_returnsUpdatedInstances() {
+        LocalDateTime dt = new LocalDateTime(2020, 1, 15, 12, 30, 45, 500);
 
-        LocalDateTime floorHour = ldt.hourOfDay().roundFloorCopy();
-        assertEquals(0, floorHour.getMinuteOfHour());
-        assertEquals(0, floorHour.getSecondOfMinute());
-        assertEquals(0, floorHour.getMillisOfSecond());
+        assertEquals(2021, dt.withYear(2021).getYear());
+        assertEquals(10, dt.withMonthOfYear(10).getMonthOfYear());
+        assertEquals(25, dt.withDayOfMonth(25).getDayOfMonth());
+        assertEquals(18, dt.withHourOfDay(18).getHourOfDay());
+        assertEquals(40, dt.withMinuteOfHour(40).getMinuteOfHour());
+        assertEquals(50, dt.withSecondOfMinute(50).getSecondOfMinute());
+        assertEquals(750, dt.withMillisOfSecond(750).getMillisOfSecond());
+        assertEquals(5000, dt.withMillisOfDay(5000).getMillisOfDay());
+        assertEquals(200, dt.withDayOfYear(200).getDayOfYear());
+        assertEquals(3, dt.withDayOfWeek(3).getDayOfWeek());
+        assertEquals(2021, dt.withWeekyear(2021).getWeekyear());
+        assertEquals(10, dt.withWeekOfWeekyear(10).getWeekOfWeekyear());
     }
 }

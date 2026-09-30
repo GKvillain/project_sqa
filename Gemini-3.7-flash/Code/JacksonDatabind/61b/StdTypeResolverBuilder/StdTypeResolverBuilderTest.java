@@ -1,13 +1,16 @@
 package com.fasterxml.jackson.databind.jsontype.impl;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Collection;
+
+import org.junit.Before;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DeserializationConfig;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationConfig;
 import com.fasterxml.jackson.databind.annotation.NoClass;
@@ -15,58 +18,58 @@ import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
 import com.fasterxml.jackson.databind.jsontype.TypeIdResolver;
 import com.fasterxml.jackson.databind.jsontype.TypeSerializer;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
+import com.fasterxml.jackson.databind.type.TypeFactory;
 
 public class StdTypeResolverBuilderTest {
 
-    private ObjectMapper mapper;
-    private SerializationConfig serConfig;
-    private DeserializationConfig deserConfig;
-    private JavaType objectType;
+    private ObjectMapper _mapper;
+    private SerializationConfig _serConfig;
+    private DeserializationConfig _deserConfig;
+    private JavaType _baseType;
+    private Collection<NamedType> _subtypes;
 
     @Before
     public void setUp() {
-        mapper = new ObjectMapper();
-        serConfig = mapper.getSerializationConfig();
-        deserConfig = mapper.getDeserializationConfig();
-        objectType = mapper.constructType(Object.class);
+        _mapper = new ObjectMapper();
+        _serConfig = _mapper.getSerializationConfig();
+        _deserConfig = _mapper.getDeserializationConfig();
+        _baseType = TypeFactory.defaultInstance().constructType(Number.class);
+        _subtypes = new ArrayList<NamedType>();
+        _subtypes.add(new NamedType(Integer.class, "int"));
+        _subtypes.add(new NamedType(Long.class, "long"));
     }
 
-    // Tests creation of no-op type info builder
-    @Test
-    public void testNoTypeInfoBuilder_returnsNullSerializers() {
-        StdTypeResolverBuilder builder = StdTypeResolverBuilder.noTypeInfoBuilder();
-        TypeSerializer ser = builder.buildTypeSerializer(serConfig, objectType, null);
-        TypeDeserializer deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
-
-        assertNull(ser);
-        assertNull(deser);
-    }
-
-    // Tests exception path when init() receives null idType
+    // Tests initialization with null idType throws exception
     @Test(expected = IllegalArgumentException.class)
     public void testInit_nullIdType_throwsIllegalArgumentException() {
-        new StdTypeResolverBuilder().init(null, null);
+        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        builder.init(null, null);
     }
 
-    // Tests exception path when inclusion() receives null includeAs
-    @Test(expected = IllegalArgumentException.class)
-    public void testInclusion_nullIncludeAs_throwsIllegalArgumentException() {
-        new StdTypeResolverBuilder().inclusion(null);
-    }
-
-    // Tests setting and getting type property with default fallbacks
+    // Tests noTypeInfoBuilder factory method
     @Test
-    public void testTypeProperty_nullOrEmpty_resetsToDefault() {
+    public void testNoTypeInfoBuilder_defaultState_returnsNullSerializers() {
+        StdTypeResolverBuilder builder = StdTypeResolverBuilder.noTypeInfoBuilder();
+        assertNull(builder.buildTypeSerializer(_serConfig, _baseType, _subtypes));
+        assertNull(builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes));
+    }
+
+    // Tests inclusion setter with null throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testInclusion_nullInclusion_throwsIllegalArgumentException() {
+        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        builder.inclusion(null);
+    }
+
+    // Tests typeProperty with custom value, null, and empty string
+    @Test
+    public void testTypeProperty_customAndDefaultValues_setsCorrectProperty() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
         builder.init(JsonTypeInfo.Id.CLASS, null);
         assertEquals(JsonTypeInfo.Id.CLASS.getDefaultPropertyName(), builder.getTypeProperty());
 
-        builder.typeProperty("customProp");
-        assertEquals("customProp", builder.getTypeProperty());
+        builder.typeProperty("myType");
+        assertEquals("myType", builder.getTypeProperty());
 
         builder.typeProperty(null);
         assertEquals(JsonTypeInfo.Id.CLASS.getDefaultPropertyName(), builder.getTypeProperty());
@@ -75,214 +78,238 @@ public class StdTypeResolverBuilderTest {
         assertEquals(JsonTypeInfo.Id.CLASS.getDefaultPropertyName(), builder.getTypeProperty());
     }
 
-    // Tests typeIdVisibility flag setter and getter
+    // Tests setters and accessors for defaultImpl and typeIdVisible
     @Test
-    public void testTypeIdVisibility_setsCorrectFlag() {
+    public void testSettersAndGetters_validInputs_setsValuesProperly() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        assertNull(builder.getDefaultImpl());
         assertFalse(builder.isTypeIdVisible());
 
+        builder.defaultImpl(Integer.class);
         builder.typeIdVisibility(true);
-        assertTrue(builder.isTypeIdVisible());
 
-        builder.typeIdVisibility(false);
-        assertFalse(builder.isTypeIdVisible());
+        assertEquals(Integer.class, builder.getDefaultImpl());
+        assertTrue(builder.isTypeIdVisible());
     }
 
-    // Tests buildTypeSerializer across all JsonTypeInfo.As inclusion mechanisms
+    // Tests buildTypeSerializer with Id.NONE returns null
     @Test
-    public void testBuildTypeSerializer_allInclusionTypes() {
+    public void testBuildTypeSerializer_idTypeNone_returnsNull() {
+        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        builder.init(JsonTypeInfo.Id.NONE, null);
+        builder.inclusion(JsonTypeInfo.As.PROPERTY);
+
+        TypeSerializer serializer = builder.buildTypeSerializer(_serConfig, _baseType, _subtypes);
+        assertNull(serializer);
+    }
+
+    // Tests buildTypeDeserializer with Id.NONE returns null
+    @Test
+    public void testBuildTypeDeserializer_idTypeNone_returnsNull() {
+        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        builder.init(JsonTypeInfo.Id.NONE, null);
+        builder.inclusion(JsonTypeInfo.As.PROPERTY);
+
+        TypeDeserializer deserializer = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
+        assertNull(deserializer);
+    }
+
+    // Tests buildTypeSerializer across all As inclusions
+    @Test
+    public void testBuildTypeSerializer_allInclusions_constructsProperSerializers() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
         builder.init(JsonTypeInfo.Id.CLASS, null);
 
         builder.inclusion(JsonTypeInfo.As.WRAPPER_ARRAY);
-        TypeSerializer ser = builder.buildTypeSerializer(serConfig, objectType, null);
+        TypeSerializer ser = builder.buildTypeSerializer(_serConfig, _baseType, _subtypes);
         assertTrue(ser instanceof AsArrayTypeSerializer);
 
         builder.inclusion(JsonTypeInfo.As.PROPERTY);
-        ser = builder.buildTypeSerializer(serConfig, objectType, null);
+        ser = builder.buildTypeSerializer(_serConfig, _baseType, _subtypes);
         assertTrue(ser instanceof AsPropertyTypeSerializer);
 
         builder.inclusion(JsonTypeInfo.As.WRAPPER_OBJECT);
-        ser = builder.buildTypeSerializer(serConfig, objectType, null);
+        ser = builder.buildTypeSerializer(_serConfig, _baseType, _subtypes);
         assertTrue(ser instanceof AsWrapperTypeSerializer);
 
         builder.inclusion(JsonTypeInfo.As.EXTERNAL_PROPERTY);
-        ser = builder.buildTypeSerializer(serConfig, objectType, null);
+        ser = builder.buildTypeSerializer(_serConfig, _baseType, _subtypes);
         assertTrue(ser instanceof AsExternalTypeSerializer);
 
         builder.inclusion(JsonTypeInfo.As.EXISTING_PROPERTY);
-        ser = builder.buildTypeSerializer(serConfig, objectType, null);
+        ser = builder.buildTypeSerializer(_serConfig, _baseType, _subtypes);
         assertTrue(ser instanceof AsExistingPropertyTypeSerializer);
     }
 
-    // Tests buildTypeDeserializer across all JsonTypeInfo.As inclusion mechanisms
+    // Tests buildTypeDeserializer across all As inclusions
     @Test
-    public void testBuildTypeDeserializer_allInclusionTypes() {
+    public void testBuildTypeDeserializer_allInclusions_constructsProperDeserializers() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
         builder.init(JsonTypeInfo.Id.CLASS, null);
 
         builder.inclusion(JsonTypeInfo.As.WRAPPER_ARRAY);
-        TypeDeserializer deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
+        TypeDeserializer deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
         assertTrue(deser instanceof AsArrayTypeDeserializer);
 
         builder.inclusion(JsonTypeInfo.As.PROPERTY);
-        deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
+        deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
         assertTrue(deser instanceof AsPropertyTypeDeserializer);
 
         builder.inclusion(JsonTypeInfo.As.EXISTING_PROPERTY);
-        deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
+        deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
         assertTrue(deser instanceof AsPropertyTypeDeserializer);
 
         builder.inclusion(JsonTypeInfo.As.WRAPPER_OBJECT);
-        deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
+        deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
         assertTrue(deser instanceof AsWrapperTypeDeserializer);
 
         builder.inclusion(JsonTypeInfo.As.EXTERNAL_PROPERTY);
-        deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
+        deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
         assertTrue(deser instanceof AsExternalTypeDeserializer);
     }
 
-    // Tests defaultImpl resolution with Void.class and NoClass.class
+    // Tests buildTypeDeserializer with special defaultImpl classes (Void, NoClass, Subclass)
     @Test
-    public void testBuildTypeDeserializer_defaultImpl_markerClasses() {
+    public void testBuildTypeDeserializer_specialDefaultImpl_constructsExpectedType() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        builder.init(JsonTypeInfo.Id.CLASS, null).inclusion(JsonTypeInfo.As.PROPERTY);
+        builder.init(JsonTypeInfo.Id.CLASS, null);
+        builder.inclusion(JsonTypeInfo.As.PROPERTY);
 
         builder.defaultImpl(Void.class);
-        assertEquals(Void.class, builder.getDefaultImpl());
-        TypeDeserializer deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
+        TypeDeserializer deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
+        assertNotNull(deser);
         assertEquals(Void.class, deser.getDefaultImpl());
 
         builder.defaultImpl(NoClass.class);
-        assertEquals(NoClass.class, builder.getDefaultImpl());
-        deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
+        deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
+        assertNotNull(deser);
         assertEquals(NoClass.class, deser.getDefaultImpl());
-    }
 
-    // Tests defaultImpl resolution with specialized class type
-    @Test
-    public void testBuildTypeDeserializer_defaultImpl_specializedClass() {
-        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        builder.init(JsonTypeInfo.Id.CLASS, null).inclusion(JsonTypeInfo.As.PROPERTY);
-        builder.defaultImpl(ArrayList.class);
-
-        JavaType listType = mapper.constructType(List.class);
-        TypeDeserializer deser = builder.buildTypeDeserializer(deserConfig, listType, null);
-
-        assertEquals(ArrayList.class, deser.getDefaultImpl());
-    }
-
-    // Tests build with custom TypeIdResolver
-    @Test
-    public void testBuildTypeSerializerAndDeserializer_customIdResolver() {
-        TypeIdResolver customResolver = new ClassNameIdResolver(objectType, mapper.getTypeFactory());
-        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        builder.init(JsonTypeInfo.Id.CUSTOM, customResolver).inclusion(JsonTypeInfo.As.WRAPPER_OBJECT);
-
-        TypeSerializer ser = builder.buildTypeSerializer(serConfig, objectType, null);
-        assertNotNull(ser);
-
-        TypeDeserializer deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
+        builder.defaultImpl(Integer.class);
+        deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
         assertNotNull(deser);
+        assertEquals(Integer.class, deser.getDefaultImpl());
     }
 
-    // Tests TypeNameIdResolver construction with Id.NAME
+    // Tests idResolver creation with different Id types: MINIMAL_CLASS, NAME, and custom resolver
     @Test
-    public void testBuildTypeSerializer_idTypeName() {
-        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        builder.init(JsonTypeInfo.Id.NAME, null).inclusion(JsonTypeInfo.As.PROPERTY);
-
-        List<NamedType> subtypes = Collections.singletonList(new NamedType(String.class, "string"));
-        TypeSerializer ser = builder.buildTypeSerializer(serConfig, objectType, subtypes);
-        assertNotNull(ser);
-
-        TypeDeserializer deser = builder.buildTypeDeserializer(deserConfig, objectType, subtypes);
-        assertNotNull(deser);
-    }
-
-    // Tests MinimalClassNameIdResolver construction with Id.MINIMAL_CLASS
-    @Test
-    public void testBuildTypeSerializer_idTypeMinimalClass() {
-        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        builder.init(JsonTypeInfo.Id.MINIMAL_CLASS, null).inclusion(JsonTypeInfo.As.PROPERTY);
-
-        TypeSerializer ser = builder.buildTypeSerializer(serConfig, objectType, null);
-        assertNotNull(ser);
-
-        TypeDeserializer deser = builder.buildTypeDeserializer(deserConfig, objectType, null);
-        assertNotNull(deser);
-    }
-
-    // Tests exception path when idResolver is called without calling init()
-    @Test(expected = IllegalStateException.class)
-    public void testBuildTypeSerializer_uninitialized_throwsIllegalStateException() {
+    public void testIdResolver_differentIdTypes_createsCorrectResolvers() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
         builder.inclusion(JsonTypeInfo.As.PROPERTY);
-        builder.buildTypeSerializer(serConfig, objectType, null);
+
+        builder.init(JsonTypeInfo.Id.MINIMAL_CLASS, null);
+        TypeIdResolver res = builder.idResolver(_serConfig, _baseType, _subtypes, true, false);
+        assertTrue(res instanceof MinimalClassNameIdResolver);
+
+        builder.init(JsonTypeInfo.Id.NAME, null);
+        res = builder.idResolver(_serConfig, _baseType, _subtypes, true, false);
+        assertTrue(res instanceof TypeNameIdResolver);
+
+        TypeIdResolver custom = new ClassNameIdResolver(_baseType, _serConfig.getTypeFactory());
+        builder.init(JsonTypeInfo.Id.CUSTOM, custom);
+        res = builder.idResolver(_serConfig, _baseType, _subtypes, true, false);
+        assertSame(custom, res);
     }
 
-    // Tests exception path when inclusion is not configured
+    // Tests idResolver throws exception when init was not called
+    @Test(expected = IllegalStateException.class)
+    public void testIdResolver_uninitialized_throwsIllegalStateException() {
+        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        builder.idResolver(_serConfig, _baseType, _subtypes, true, false);
+    }
+
+    // Tests idResolver throws exception for Id.CUSTOM when custom resolver is null
+    @Test(expected = IllegalStateException.class)
+    public void testIdResolver_customWithoutResolver_throwsIllegalStateException() {
+        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        builder.init(JsonTypeInfo.Id.CUSTOM, null);
+        builder.idResolver(_serConfig, _baseType, _subtypes, true, false);
+    }
+
+    // Tests exception path when inclusion is null on buildTypeSerializer
     @Test(expected = NullPointerException.class)
     public void testBuildTypeSerializer_nullInclusion_throwsException() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
         builder.init(JsonTypeInfo.Id.CLASS, null);
-        builder.buildTypeSerializer(serConfig, objectType, null);
+        builder.buildTypeSerializer(_serConfig, _baseType, _subtypes);
     }
 
-    // Tests behavior when Id.NONE is explicitly initialized
+    // Tests exception path when inclusion is null on buildTypeDeserializer
+    @Test(expected = NullPointerException.class)
+    public void testBuildTypeDeserializer_nullInclusion_throwsException() {
+        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        builder.init(JsonTypeInfo.Id.CLASS, null);
+        builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
+    }
+
+    // Tests defineDefaultImpl using DeserializationFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL
     @Test
-    public void testBuildTypeSerializerAndDeserializer_idTypeNone() {
+    public void testBuildTypeDeserializer_useBaseTypeAsDefaultImpl_usesBaseType() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        builder.init(JsonTypeInfo.Id.NONE, null).inclusion(JsonTypeInfo.As.PROPERTY);
+        builder.init(JsonTypeInfo.Id.CLASS, null);
+        builder.inclusion(JsonTypeInfo.As.PROPERTY);
 
-        assertNull(builder.buildTypeSerializer(serConfig, objectType, null));
-        assertNull(builder.buildTypeDeserializer(deserConfig, objectType, null));
+        DeserializationConfig configWithBaseType = _deserConfig.with(DeserializationFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL);
+        TypeDeserializer deser = builder.buildTypeDeserializer(configWithBaseType, _baseType, _subtypes);
+        assertNotNull(deser);
+        assertEquals(Number.class, deser.getDefaultImpl());
+
+        DeserializationConfig configWithoutBaseType = _deserConfig.without(DeserializationFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL);
+        deser = builder.buildTypeDeserializer(configWithoutBaseType, _baseType, _subtypes);
+        assertNotNull(deser);
+        assertNull(deser.getDefaultImpl());
     }
 
-    // Tests exception when Id.CUSTOM is specified without a custom TypeIdResolver
-    @Test(expected = IllegalStateException.class)
-    public void testBuildTypeSerializer_customIdWithoutResolver_throwsIllegalStateException() {
-        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        builder.init(JsonTypeInfo.Id.CUSTOM, null).inclusion(JsonTypeInfo.As.PROPERTY);
-        builder.buildTypeSerializer(serConfig, objectType, null);
-    }
-
-    // Tests defaultImpl when the default implementation class is not a subtype of baseType
+    // Tests defineDefaultImpl when defaultImpl is the exact same class as baseType
     @Test
-    public void testBuildTypeDeserializer_defaultImpl_nonSubtype() {
+    public void testBuildTypeDeserializer_defaultImplSameAsBaseType() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        builder.init(JsonTypeInfo.Id.CLASS, null).inclusion(JsonTypeInfo.As.PROPERTY);
-        builder.defaultImpl(Integer.class);
+        builder.init(JsonTypeInfo.Id.CLASS, null);
+        builder.inclusion(JsonTypeInfo.As.PROPERTY);
+        builder.defaultImpl(Number.class);
 
-        JavaType stringType = mapper.constructType(String.class);
-        TypeDeserializer deser = builder.buildTypeDeserializer(deserConfig, stringType, null);
-        assertEquals(Integer.class, deser.getDefaultImpl());
+        TypeDeserializer deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
+        assertNotNull(deser);
+        assertEquals(Number.class, deser.getDefaultImpl());
     }
 
-    // Tests defaultImpl resolution when USE_BASE_TYPE_AS_DEFAULT_IMPL is enabled for non-abstract base type
+    // Tests defineDefaultImpl when defaultImpl is not a subtype of baseType
     @Test
-    public void testBuildTypeDeserializer_useBaseTypeAsDefaultImpl() {
-        ObjectMapper customMapper = new ObjectMapper();
-        customMapper.enable(MapperFeature.USE_BASE_TYPE_AS_DEFAULT_IMPL);
-        DeserializationConfig config = customMapper.getDeserializationConfig();
-
+    public void testBuildTypeDeserializer_defaultImplUnrelatedType() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        builder.init(JsonTypeInfo.Id.CLASS, null).inclusion(JsonTypeInfo.As.PROPERTY);
-        builder.defaultImpl(null);
+        builder.init(JsonTypeInfo.Id.CLASS, null);
+        builder.inclusion(JsonTypeInfo.As.PROPERTY);
+        builder.defaultImpl(String.class);
 
-        JavaType concreteType = customMapper.constructType(String.class);
-        TypeDeserializer deser = builder.buildTypeDeserializer(config, concreteType, null);
+        TypeDeserializer deser = builder.buildTypeDeserializer(_deserConfig, _baseType, _subtypes);
+        assertNotNull(deser);
         assertEquals(String.class, deser.getDefaultImpl());
-
-        JavaType abstractType = customMapper.constructType(Number.class);
-        TypeDeserializer deserAbstract = builder.buildTypeDeserializer(config, abstractType, null);
-        assertNull(deserAbstract.getDefaultImpl());
     }
 
-    // Tests getDefaultImpl getter when not set
+    // Tests idResolver for Id.NONE returns null
     @Test
-    public void testGetDefaultImpl_initiallyNull() {
+    public void testIdResolver_idNone_returnsNull() {
         StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
-        assertNull(builder.getDefaultImpl());
+        builder.init(JsonTypeInfo.Id.NONE, null);
+        TypeIdResolver res = builder.idResolver(_serConfig, _baseType, _subtypes, true, false);
+        assertNull(res);
+    }
+
+    // Tests idResolver for Id.CLASS creates ClassNameIdResolver
+    @Test
+    public void testIdResolver_idClass_createsClassNameIdResolver() {
+        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        builder.init(JsonTypeInfo.Id.CLASS, null);
+        TypeIdResolver res = builder.idResolver(_serConfig, _baseType, _subtypes, true, false);
+        assertTrue(res instanceof ClassNameIdResolver);
+    }
+
+    // Tests idResolver for deserialization mode
+    @Test
+    public void testIdResolver_forDeserializationMode() {
+        StdTypeResolverBuilder builder = new StdTypeResolverBuilder();
+        builder.init(JsonTypeInfo.Id.NAME, null);
+        TypeIdResolver res = builder.idResolver(_deserConfig, _baseType, _subtypes, false, true);
+        assertTrue(res instanceof TypeNameIdResolver);
     }
 }

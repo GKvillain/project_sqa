@@ -1,6 +1,5 @@
 package org.jsoup.parser;
 
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Comment;
 import org.jsoup.nodes.Document;
@@ -14,292 +13,398 @@ import org.junit.Test;
 import java.io.StringReader;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class HtmlTreeBuilderTest {
 
-    private HtmlTreeBuilder treeBuilder;
+    private HtmlTreeBuilder builder;
     private Parser parser;
 
     @Before
     public void setUp() {
-        treeBuilder = new HtmlTreeBuilder();
-        parser = new Parser(treeBuilder);
-        treeBuilder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        builder = new HtmlTreeBuilder();
+        parser = new Parser(builder);
     }
 
-    // Tests implied end tags with null excludeTag pops eligible elements like <p> (Defects4J bug 87)
+    // Tests stack push, pop, and stack query operations
     @Test
-    public void testGenerateImpliedEndTags_nullExcludeTag_popsImpliedTags() {
-        Element html = treeBuilder.insertStartTag("html");
-        Element body = treeBuilder.insertStartTag("body");
-        Element p = treeBuilder.insertStartTag("p");
+    public void testStackOperations_pushAndPop_maintainsCorrectStack() {
+        builder.initialiseParse(new StringReader("<div></div>"), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "http://example.com");
+        Element body = new Element(Tag.valueOf("body"), "http://example.com");
+        Element div = new Element(Tag.valueOf("div"), "http://example.com");
 
-        assertEquals(p, treeBuilder.currentElement());
-        treeBuilder.generateImpliedEndTags();
-        assertEquals(body, treeBuilder.currentElement());
-    }
+        builder.push(html);
+        builder.push(body);
+        builder.push(div);
 
-    // Tests implied end tags when excludeTag matches current element
-    @Test
-    public void testGenerateImpliedEndTags_withMatchingExcludeTag_doesNotPopExcludedTag() {
-        treeBuilder.insertStartTag("html");
-        treeBuilder.insertStartTag("body");
-        Element p = treeBuilder.insertStartTag("p");
+        assertTrue(builder.onStack(div));
+        assertTrue(builder.onStack(body));
+        assertEquals(div, builder.currentElement());
+        assertEquals(body, builder.aboveOnStack(div));
+        assertEquals(div, builder.getFromStack("div"));
 
-        assertEquals(p, treeBuilder.currentElement());
-        treeBuilder.generateImpliedEndTags("p");
-        assertEquals(p, treeBuilder.currentElement());
-    }
+        Element popped = builder.pop();
+        assertEquals(div, popped);
+        assertFalse(builder.onStack(div));
+        assertEquals(body, builder.currentElement());
 
-    // Tests implied end tags when excludeTag is different from current tag
-    @Test
-    public void testGenerateImpliedEndTags_withDifferentExcludeTag_popsTargetTag() {
-        treeBuilder.insertStartTag("html");
-        Element body = treeBuilder.insertStartTag("body");
-        Element li = treeBuilder.insertStartTag("li");
-
-        assertEquals(li, treeBuilder.currentElement());
-        treeBuilder.generateImpliedEndTags("p");
-        assertEquals(body, treeBuilder.currentElement());
-    }
-
-    // Tests normal HTML parsing with implied end tags for paragraphs
-    @Test
-    public void testParse_consecutiveParagraphs_createsSiblingsNotNested() {
-        Document doc = Jsoup.parse("<p>One<p>Two");
-        assertEquals(2, doc.body().children().size());
-        assertEquals("One", doc.body().child(0).text());
-        assertEquals("Two", doc.body().child(1).text());
-    }
-
-    // Tests parsing an HTML fragment with context element
-    @Test
-    public void testParseFragment_withContextElement_returnsParsedNodes() {
-        Element context = new Element(Tag.valueOf("div"), "");
-        List<Node> nodes = treeBuilder.parseFragment("<span>text</span>", context, "http://example.com", parser);
-
-        assertNotNull(nodes);
-        assertFalse(nodes.isEmpty());
-        assertEquals("span", ((Element) nodes.get(0)).tagName());
-    }
-
-    // Tests parsing an HTML fragment with null context element
-    @Test
-    public void testParseFragment_nullContext_returnsNodesFromDoc() {
-        List<Node> nodes = treeBuilder.parseFragment("<div>content</div>", null, "http://example.com", parser);
-        assertNotNull(nodes);
-        assertFalse(nodes.isEmpty());
-    }
-
-    // Tests push, pop, onStack and getFromStack functionality
-    @Test
-    public void testStackOperations_pushAndPop_maintainsCorrectStackState() {
-        Element el1 = new Element(Tag.valueOf("div"), "");
-        Element el2 = new Element(Tag.valueOf("span"), "");
-
-        treeBuilder.push(el1);
-        treeBuilder.push(el2);
-
-        assertTrue(treeBuilder.onStack(el1));
-        assertTrue(treeBuilder.onStack(el2));
-        assertEquals(el2, treeBuilder.getFromStack("span"));
-        assertEquals(el2, treeBuilder.currentElement());
-
-        Element popped = treeBuilder.pop();
-        assertEquals(el2, popped);
-        assertFalse(treeBuilder.onStack(el2));
-        assertEquals(el1, treeBuilder.currentElement());
-    }
-
-    // Tests removeFromStack with existing and non-existing element
-    @Test
-    public void testRemoveFromStack_validAndInvalidElements_removesOnlyWhenPresent() {
-        Element div = new Element(Tag.valueOf("div"), "");
-        Element span = new Element(Tag.valueOf("span"), "");
-        Element p = new Element(Tag.valueOf("p"), "");
-
-        treeBuilder.push(div);
-        treeBuilder.push(span);
-
-        assertTrue(treeBuilder.removeFromStack(span));
-        assertFalse(treeBuilder.onStack(span));
-        assertFalse(treeBuilder.removeFromStack(p));
+        boolean removed = builder.removeFromStack(body);
+        assertTrue(removed);
+        assertFalse(builder.onStack(body));
     }
 
     // Tests popStackToClose with single element name
     @Test
-    public void testPopStackToClose_singleTagName_popsUpToAndIncludingTarget() {
-        Element html = treeBuilder.insertStartTag("html");
-        treeBuilder.insertStartTag("body");
-        treeBuilder.insertStartTag("div");
-        treeBuilder.insertStartTag("span");
+    public void testPopStackToClose_matchingElement_popsCorrectly() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element body = new Element(Tag.valueOf("body"), "");
+        Element p = new Element(Tag.valueOf("p"), "");
+        Element span = new Element(Tag.valueOf("span"), "");
 
-        treeBuilder.popStackToClose("body");
-        assertEquals(html, treeBuilder.currentElement());
-        assertFalse(treeBuilder.onStack(treeBuilder.getFromStack("div")));
+        builder.push(html);
+        builder.push(body);
+        builder.push(p);
+        builder.push(span);
+
+        builder.popStackToClose("p");
+        assertFalse(builder.onStack(span));
+        assertFalse(builder.onStack(p));
+        assertTrue(builder.onStack(body));
+        assertEquals(body, builder.currentElement());
     }
 
-    // Tests popStackToClose with multiple target names
+    // Tests popStackToBefore element
     @Test
-    public void testPopStackToClose_multipleTagNames_popsUpToMatchingTag() {
-        Element html = treeBuilder.insertStartTag("html");
-        Element body = treeBuilder.insertStartTag("body");
-        treeBuilder.insertStartTag("ul");
-        treeBuilder.insertStartTag("li");
-
-        treeBuilder.popStackToClose(HtmlTreeBuilder.TagSearchList);
-        assertEquals(body, treeBuilder.currentElement());
-    }
-
-    // Tests popStackToBefore target name
-    @Test
-    public void testPopStackToBefore_targetTagName_popsElementsAboveTarget() {
-        treeBuilder.insertStartTag("html");
-        Element body = treeBuilder.insertStartTag("body");
-        treeBuilder.insertStartTag("div");
-        treeBuilder.insertStartTag("p");
-
-        treeBuilder.popStackToBefore("body");
-        assertEquals(body, treeBuilder.currentElement());
-    }
-
-    // Tests inScope checks for base scope elements
-    @Test
-    public void testInScope_elementsInAndOutOfScope_returnsExpectedBoolean() {
-        treeBuilder.insertStartTag("html");
-        treeBuilder.insertStartTag("body");
-        treeBuilder.insertStartTag("table");
-        treeBuilder.insertStartTag("tr");
-        treeBuilder.insertStartTag("td");
-        treeBuilder.insertStartTag("div");
-
-        assertTrue(treeBuilder.inScope("div"));
-        assertTrue(treeBuilder.inScope("td"));
-        assertTrue(treeBuilder.inScope("table"));
-        assertFalse(treeBuilder.inScope("span"));
-    }
-
-    // Tests inListItemScope, inButtonScope, inTableScope and inSelectScope
-    @Test
-    public void testSpecialScopes_targetElements_correctScopeEvaluation() {
-        treeBuilder.insertStartTag("html");
-        treeBuilder.insertStartTag("body");
-        treeBuilder.insertStartTag("ol");
-        treeBuilder.insertStartTag("li");
-
-        assertTrue(treeBuilder.inListItemScope("li"));
-        assertFalse(treeBuilder.inListItemScope("ol"));
-
-        treeBuilder.insertStartTag("button");
-        assertTrue(treeBuilder.inButtonScope("button"));
-
-        treeBuilder.insertStartTag("table");
-        assertTrue(treeBuilder.inTableScope("table"));
-
-        Element select = treeBuilder.insertStartTag("select");
-        treeBuilder.insertStartTag("option");
-        assertTrue(treeBuilder.inSelectScope("option"));
-        assertFalse(treeBuilder.inSelectScope("input"));
-    }
-
-    // Tests active formatting elements push, limit to 3 duplicates, and pop
-    @Test
-    public void testPushActiveFormattingElements_maxThreeDuplicates_dropsOldestDuplicate() {
-        Attributes attr = new Attributes();
-        attr.put("class", "bold");
-
-        Element b1 = new Element(Tag.valueOf("b"), "", attr.clone());
-        Element b2 = new Element(Tag.valueOf("b"), "", attr.clone());
-        Element b3 = new Element(Tag.valueOf("b"), "", attr.clone());
-        Element b4 = new Element(Tag.valueOf("b"), "", attr.clone());
-
-        treeBuilder.pushActiveFormattingElements(b1);
-        treeBuilder.pushActiveFormattingElements(b2);
-        treeBuilder.pushActiveFormattingElements(b3);
-        assertTrue(treeBuilder.isInActiveFormattingElements(b1));
-
-        treeBuilder.pushActiveFormattingElements(b4);
-        assertFalse(treeBuilder.isInActiveFormattingElements(b1));
-        assertTrue(treeBuilder.isInActiveFormattingElements(b4));
-    }
-
-    // Tests formatting element marker and clearing to last marker
-    @Test
-    public void testClearFormattingElementsToLastMarker_withMarker_clearsOnlyAfterMarker() {
-        Element b = new Element(Tag.valueOf("b"), "");
-        Element i = new Element(Tag.valueOf("i"), "");
-
-        treeBuilder.pushActiveFormattingElements(b);
-        treeBuilder.insertMarkerToFormattingElements();
-        treeBuilder.pushActiveFormattingElements(i);
-
-        assertEquals(i, treeBuilder.lastFormattingElement());
-        treeBuilder.clearFormattingElementsToLastMarker();
-        assertEquals(b, treeBuilder.lastFormattingElement());
-    }
-
-    // Tests insert(Token.Character), insert(Token.Comment), and insertForm
-    @Test
-    public void testInsertNodes_differentTokenTypes_createsProperNodes() {
-        treeBuilder.insertStartTag("html");
-        treeBuilder.insertStartTag("body");
-
-        Token.Comment commentToken = new Token.Comment();
-        commentToken.data.append("test comment");
-        treeBuilder.insert(commentToken);
-
-        Token.Character charToken = new Token.Character();
-        charToken.data("sample text");
-        treeBuilder.insert(charToken);
-
-        Token.StartTag formStart = new Token.StartTag();
-        formStart.nameAttr("form", new Attributes());
-        FormElement form = treeBuilder.insertForm(formStart, true);
-
-        assertNotNull(form);
-        assertEquals(form, treeBuilder.getFormElement());
-        assertTrue(treeBuilder.onStack(form));
-    }
-
-    // Tests foster parenting when fosterInserts flag is set
-    @Test
-    public void testInsertInFosterParent_fosterInsertsEnabled_insertsBeforeTable() {
-        treeBuilder.insertStartTag("html");
-        Element body = treeBuilder.insertStartTag("body");
-        Element table = treeBuilder.insertStartTag("table");
-        treeBuilder.setFosterInserts(true);
-
-        TextNode textNode = new TextNode("fostered text");
-        treeBuilder.insertInFosterParent(textNode);
-
-        assertEquals(body, textNode.parent());
-        assertEquals(table, textNode.nextSibling());
-    }
-
-    // Tests maybeSetBaseUri only updates baseUri once
-    @Test
-    public void testMaybeSetBaseUri_multipleBaseTags_onlySetsFirstUri() {
-        Element base1 = new Element(Tag.valueOf("base"), "http://example.com");
-        base1.attr("href", "http://example.com/first/");
-
-        Element base2 = new Element(Tag.valueOf("base"), "http://example.com");
-        base2.attr("href", "http://example.com/second/");
-
-        treeBuilder.maybeSetBaseUri(base1);
-        assertEquals("http://example.com/first/", treeBuilder.getBaseUri());
-
-        treeBuilder.maybeSetBaseUri(base2);
-        assertEquals("http://example.com/first/", treeBuilder.getBaseUri());
-    }
-
-    // Tests isSpecial method for known special tags vs custom tags
-    @Test
-    public void testIsSpecial_standardAndCustomTags_identifiesCorrectly() {
+    public void testPopStackToBefore_existingElement_popsUntilTarget() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element body = new Element(Tag.valueOf("body"), "");
         Element div = new Element(Tag.valueOf("div"), "");
+        Element span = new Element(Tag.valueOf("span"), "");
+
+        builder.push(html);
+        builder.push(body);
+        builder.push(div);
+        builder.push(span);
+
+        builder.popStackToBefore("div");
+        assertFalse(builder.onStack(span));
+        assertTrue(builder.onStack(div));
+        assertEquals(div, builder.currentElement());
+    }
+
+    // Tests clearStackToTableContext and variants
+    @Test
+    public void testClearStackToTableContext_nestedElements_clearsToTable() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element table = new Element(Tag.valueOf("table"), "");
+        Element div = new Element(Tag.valueOf("div"), "");
+
+        builder.push(html);
+        builder.push(table);
+        builder.push(div);
+
+        builder.clearStackToTableContext();
+        assertEquals(table, builder.currentElement());
+    }
+
+    // Tests clearStackToTableRowContext
+    @Test
+    public void testClearStackToTableRowContext_nestedInRow_clearsToRow() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element tr = new Element(Tag.valueOf("tr"), "");
+        Element span = new Element(Tag.valueOf("span"), "");
+
+        builder.push(html);
+        builder.push(tr);
+        builder.push(span);
+
+        builder.clearStackToTableRowContext();
+        assertEquals(tr, builder.currentElement());
+    }
+
+    // Tests insertOnStackAfter and replaceOnStack
+    @Test
+    public void testInsertOnStackAfterAndReplace_validElements_modifiesStack() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element div = new Element(Tag.valueOf("div"), "");
+        Element span = new Element(Tag.valueOf("span"), "");
+        Element p = new Element(Tag.valueOf("p"), "");
+
+        builder.push(html);
+        builder.push(div);
+
+        builder.insertOnStackAfter(div, span);
+        assertEquals(span, builder.currentElement());
+
+        builder.replaceOnStack(span, p);
+        assertEquals(p, builder.currentElement());
+        assertFalse(builder.onStack(span));
+    }
+
+    // Tests inScope resolution
+    @Test
+    public void testInScope_elementsInAndOutOfScope_returnsExpected() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element table = new Element(Tag.valueOf("table"), "");
+        Element td = new Element(Tag.valueOf("td"), "");
+        Element p = new Element(Tag.valueOf("p"), "");
+
+        builder.push(html);
+        builder.push(table);
+        builder.push(td);
+        builder.push(p);
+
+        assertTrue(builder.inScope("p"));
+        assertTrue(builder.inScope("td"));
+        assertTrue(builder.inTableScope("table"));
+        assertFalse(builder.inTableScope("p"));
+        assertTrue(builder.inListItemScope("p"));
+        assertTrue(builder.inButtonScope("p"));
+    }
+
+    // Tests inSelectScope
+    @Test
+    public void testInSelectScope_validSelectStructure_checksCorrectScope() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element select = new Element(Tag.valueOf("select"), "");
+        Element option = new Element(Tag.valueOf("option"), "");
+
+        builder.push(html);
+        builder.push(select);
+        builder.push(option);
+
+        assertTrue(builder.inSelectScope("option"));
+        assertFalse(builder.inSelectScope("input"));
+    }
+
+    // Tests active formatting elements push, limit of 3 duplicates, and removal
+    @Test
+    public void testPushActiveFormattingElements_duplicateThreshold_dropsEarliest() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+
+        Element b1 = new Element(Tag.valueOf("b"), "");
+        Element b2 = new Element(Tag.valueOf("b"), "");
+        Element b3 = new Element(Tag.valueOf("b"), "");
+        Element b4 = new Element(Tag.valueOf("b"), "");
+
+        builder.pushActiveFormattingElements(b1);
+        builder.pushActiveFormattingElements(b2);
+        builder.pushActiveFormattingElements(b3);
+        assertTrue(builder.isInActiveFormattingElements(b1));
+
+        builder.pushActiveFormattingElements(b4);
+        assertFalse(builder.isInActiveFormattingElements(b1));
+        assertTrue(builder.isInActiveFormattingElements(b2));
+        assertTrue(builder.isInActiveFormattingElements(b3));
+        assertTrue(builder.isInActiveFormattingElements(b4));
+
+        assertEquals(b4, builder.lastFormattingElement());
+        assertEquals(b4, builder.removeLastFormattingElement());
+        assertEquals(b3, builder.lastFormattingElement());
+
+        builder.removeFromActiveFormattingElements(b2);
+        assertFalse(builder.isInActiveFormattingElements(b2));
+    }
+
+    // Tests active formatting element marker insertion and clearing to marker
+    @Test
+    public void testClearFormattingElementsToLastMarker_withMarker_clearsUntilMarker() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+
+        Element a = new Element(Tag.valueOf("a"), "");
+        Element b = new Element(Tag.valueOf("b"), "");
+
+        builder.pushActiveFormattingElements(a);
+        builder.insertMarkerToFormattingElements();
+        builder.pushActiveFormattingElements(b);
+
+        assertEquals(b, builder.getActiveFormattingElement("b"));
+        builder.clearFormattingElementsToLastMarker();
+
+        assertNull(builder.getActiveFormattingElement("b"));
+        assertEquals(a, builder.getActiveFormattingElement("a"));
+    }
+
+    // Tests replaceActiveFormattingElement
+    @Test
+    public void testReplaceActiveFormattingElement_validElement_replacesCorrectly() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+
+        Element i1 = new Element(Tag.valueOf("i"), "");
+        Element i2 = new Element(Tag.valueOf("i"), "");
+
+        builder.pushActiveFormattingElements(i1);
+        builder.replaceActiveFormattingElement(i1, i2);
+
+        assertFalse(builder.isInActiveFormattingElements(i1));
+        assertTrue(builder.isInActiveFormattingElements(i2));
+    }
+
+    // Tests generateImpliedEndTags
+    @Test
+    public void testGenerateImpliedEndTags_withImpliedTags_popsUntilNonImplied() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element body = new Element(Tag.valueOf("body"), "");
+        Element p = new Element(Tag.valueOf("p"), "");
+
+        builder.push(html);
+        builder.push(body);
+        builder.push(p);
+
+        builder.generateImpliedEndTags();
+        assertEquals(body, builder.currentElement());
+
+        builder.push(p);
+        builder.generateImpliedEndTags("p");
+        assertEquals(p, builder.currentElement());
+    }
+
+    // Tests isSpecial method for standard HTML special tags
+    @Test
+    public void testIsSpecial_specialAndNonSpecialTags_returnsExpected() {
+        Element p = new Element(Tag.valueOf("p"), "");
+        Element div = new Element(Tag.valueOf("div"), "");
+        Element span = new Element(Tag.valueOf("span"), "");
         Element custom = new Element(Tag.valueOf("custom-tag"), "");
 
-        assertTrue(treeBuilder.isSpecial(div));
-        assertFalse(treeBuilder.isSpecial(custom));
+        assertTrue(builder.isSpecial(p));
+        assertTrue(builder.isSpecial(div));
+        assertFalse(builder.isSpecial(span));
+        assertFalse(builder.isSpecial(custom));
+    }
+
+    // Tests maybeSetBaseUri when href attribute is present
+    @Test
+    public void testMaybeSetBaseUri_validBaseElement_updatesBaseUri() {
+        builder.initialiseParse(new StringReader(""), "http://initial.com", parser);
+        Element base = new Element(Tag.valueOf("base"), "http://initial.com");
+        base.attr("href", "http://example.com/base/");
+
+        builder.maybeSetBaseUri(base);
+        assertEquals("http://example.com/base/", builder.getBaseUri());
+
+        Element secondBase = new Element(Tag.valueOf("base"), "http://initial.com");
+        secondBase.attr("href", "http://ignored.com/");
+        builder.maybeSetBaseUri(secondBase);
+        assertEquals("http://example.com/base/", builder.getBaseUri());
+    }
+
+    // Tests parseFragment with a standard context element
+    @Test
+    public void testParseFragment_withContextElement_parsesChildren() {
+        Element context = new Element(Tag.valueOf("div"), "http://example.com");
+        List<Node> nodes = builder.parseFragment("<p>Hello</p><span>World</span>", context, "http://example.com", parser);
+
+        assertEquals(2, nodes.size());
+        assertEquals("p", nodes.get(0).nodeName());
+        assertEquals("span", nodes.get(1).nodeName());
+    }
+
+    // Tests parseFragment with null context
+    @Test
+    public void testParseFragment_nullContext_parsesDocumentNodes() {
+        List<Node> nodes = builder.parseFragment("<p>Hello</p>", null, "http://example.com", parser);
+        assertNotNull(nodes);
+        assertFalse(nodes.isEmpty());
+    }
+
+    // Tests foster parenting when inserting in table context
+    @Test
+    public void testInsertInFosterParent_tableWithParent_insertsBeforeTable() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Document doc = builder.getDocument();
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element body = new Element(Tag.valueOf("body"), "");
+        Element table = new Element(Tag.valueOf("table"), "");
+        doc.appendChild(html);
+        html.appendChild(body);
+        body.appendChild(table);
+
+        builder.push(html);
+        builder.push(body);
+        builder.push(table);
+
+        TextNode text = new TextNode("fostered");
+        builder.insertInFosterParent(text);
+
+        assertEquals(2, body.childNodeSize());
+        assertEquals(text, body.childNode(0));
+        assertEquals(table, body.childNode(1));
+    }
+
+    // Tests resetInsertionMode transition for table contexts
+    @Test
+    public void testResetInsertionMode_inSelectContext_transitionsToInSelect() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element body = new Element(Tag.valueOf("body"), "");
+        Element select = new Element(Tag.valueOf("select"), "");
+
+        builder.push(html);
+        builder.push(body);
+        builder.push(select);
+
+        builder.resetInsertionMode();
+        assertEquals(HtmlTreeBuilderState.InSelect, builder.state());
+    }
+
+    // Tests insert FormElement and linking form controls
+    @Test
+    public void testInsertForm_withFormAndInputs_associatesFormControls() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element body = new Element(Tag.valueOf("body"), "");
+        builder.push(html);
+        builder.push(body);
+
+        Token.StartTag formTag = new Token.StartTag();
+        formTag.nameAttr("form", new Attributes());
+        FormElement form = builder.insertForm(formTag, true);
+
+        assertEquals(form, builder.getFormElement());
+        assertTrue(builder.onStack(form));
+
+        Token.StartTag inputTag = new Token.StartTag();
+        inputTag.nameAttr("input", new Attributes());
+        Element input = builder.insertEmpty(inputTag);
+
+        assertTrue(form.elements().contains(input));
+    }
+
+    // Tests comments and text insertion
+    @Test
+    public void testInsertCommentAndText_standardTokens_appendsToCurrentElement() {
+        builder.initialiseParse(new StringReader(""), "http://example.com", parser);
+        Element html = new Element(Tag.valueOf("html"), "");
+        Element body = new Element(Tag.valueOf("body"), "");
+        builder.push(html);
+        builder.push(body);
+
+        Token.Comment commentToken = new Token.Comment();
+        commentToken.getData().append("test comment");
+        builder.insert(commentToken);
+
+        Token.Character charToken = new Token.Character();
+        charToken.data("test text");
+        builder.insert(charToken);
+
+        assertEquals(2, body.childNodeSize());
+        assertTrue(body.childNode(0) instanceof Comment);
+        assertEquals("test comment", ((Comment) body.childNode(0)).getData());
+        assertTrue(body.childNode(1) instanceof TextNode);
+        assertEquals("test text", ((TextNode) body.childNode(1)).text());
     }
 }

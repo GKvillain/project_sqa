@@ -5,13 +5,15 @@ import java.util.Locale;
 import org.joda.time.Chronology;
 import org.joda.time.DateTimeFieldType;
 import org.joda.time.DateTimeZone;
+import org.joda.time.DurationField;
 import org.joda.time.IllegalFieldValueException;
 import org.joda.time.chrono.BuddhistChronology;
 import org.joda.time.chrono.GJChronology;
+import org.joda.time.chrono.GregorianChronology;
 import org.joda.time.chrono.ISOChronology;
+
 import org.junit.Before;
 import org.junit.Test;
-
 import static org.junit.Assert.*;
 
 public class DateTimeParserBucketTest {
@@ -19,6 +21,7 @@ public class DateTimeParserBucketTest {
     private static final DateTimeZone PARIS = DateTimeZone.forID("Europe/Paris");
     private static final DateTimeZone LONDON = DateTimeZone.forID("Europe/London");
     private static final DateTimeZone TOKYO = DateTimeZone.forID("Asia/Tokyo");
+    private static final DateTimeZone NEW_YORK = DateTimeZone.forID("America/New_York");
 
     private Chronology chrono;
     private Locale locale;
@@ -26,257 +29,393 @@ public class DateTimeParserBucketTest {
     @Before
     public void setUp() {
         chrono = ISOChronology.getInstance(DateTimeZone.UTC);
-        locale = Locale.ENGLISH;
+        locale = Locale.UK;
     }
 
-    // Tests constructors and getters
+    // Tests constructor with default parameters and getters
     @Test
-    public void testConstructor_withDefaults_initializesCorrectly() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale);
-        assertEquals(chrono.withUTC(), bucket.getChronology());
+    public void testConstructor_defaultParameters_initializedProperly() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, 2010, 2000);
+        assertEquals(chrono, bucket.getChronology());
         assertEquals(locale, bucket.getLocale());
+        assertEquals(Integer.valueOf(2010), bucket.getPivotYear());
         assertNull(bucket.getZone());
         assertEquals(0, bucket.getOffset());
+    }
+
+    // Tests deprecated 3-arg constructor
+    @Test
+    public void testConstructor_deprecatedThreeArgs_defaultsSet() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(1000L, chrono, null);
+        assertNotNull(bucket.getLocale());
         assertNull(bucket.getPivotYear());
+        assertEquals(chrono, bucket.getChronology());
     }
 
-    // Tests constructor with pivot year and default year
+    // Tests deprecated 4-arg constructor with pivot year
     @Test
-    public void testConstructor_withPivotAndDefaultYear_initializesCorrectly() {
-        Integer pivot = Integer.valueOf(2050);
-        DateTimeParserBucket bucket = new DateTimeParserBucket(1000L, GJChronology.getInstance(TOKYO), Locale.FRANCE, pivot, 1999);
-        assertEquals(GJChronology.getInstanceUTC(), bucket.getChronology());
-        assertEquals(Locale.FRANCE, bucket.getLocale());
-        assertEquals(TOKYO, bucket.getZone());
-        assertEquals(pivot, bucket.getPivotYear());
+    public void testConstructor_deprecatedFourArgs_pivotYearSet() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(1000L, chrono, locale, Integer.valueOf(1950));
+        assertEquals(Integer.valueOf(1950), bucket.getPivotYear());
     }
 
-    // Tests setZone and setOffset overriding
+    // Tests setPivotYear and getPivotYear
     @Test
-    public void testSetZoneAndSetOffset_overridesEachOther() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale);
-        
-        bucket.setZone(PARIS);
-        assertEquals(PARIS, bucket.getZone());
-        assertEquals(0, bucket.getOffset());
-
-        bucket.setZone(DateTimeZone.UTC);
-        assertNull(bucket.getZone());
-
-        bucket.setOffset(3600000);
-        assertEquals(3600000, bucket.getOffset());
-        assertEquals(Integer.valueOf(3600000), bucket.getOffsetInteger());
-        assertNull(bucket.getZone());
-
-        bucket.setOffset((Integer) null);
-        assertNull(bucket.getOffsetInteger());
-        assertEquals(0, bucket.getOffset());
-
+    public void testSetPivotYear_customValue_returnsUpdatedValue() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        assertNull(bucket.getPivotYear());
         bucket.setPivotYear(Integer.valueOf(2020));
         assertEquals(Integer.valueOf(2020), bucket.getPivotYear());
         bucket.setPivotYear(null);
         assertNull(bucket.getPivotYear());
     }
 
-    // Tests normal computeMillis with year, month, day
+    // Tests setZone with UTC and non-UTC zones
     @Test
-    public void testComputeMillis_yearMonthDay_returnsCorrectMillis() {
+    public void testSetZone_zoneSettings_updatesZoneAndResetsOffset() {
         DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
-        bucket.saveField(DateTimeFieldType.year(), 2004);
-        bucket.saveField(DateTimeFieldType.monthOfYear(), 6);
-        bucket.saveField(DateTimeFieldType.dayOfMonth(), 9);
+        bucket.setOffset(3600000);
+        assertEquals(3600000, bucket.getOffset());
 
-        // 2004-06-09T00:00:00.000Z
-        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2004, 6, 9, 0);
-        assertEquals(expected, bucket.computeMillis());
+        bucket.setZone(PARIS);
+        assertEquals(PARIS, bucket.getZone());
+        assertEquals(0, bucket.getOffset());
+
+        bucket.setZone(DateTimeZone.UTC);
+        assertNull(bucket.getZone());
+        assertEquals(0, bucket.getOffset());
     }
 
-    // Tests computeMillis defaulting year when only month and day are provided
+    // Tests setOffset updates offset and clears zone
     @Test
-    public void testComputeMillis_monthAndDayWithoutYear_usesDefaultYear() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2005);
-        bucket.saveField(DateTimeFieldType.monthOfYear(), 10);
-        bucket.saveField(DateTimeFieldType.dayOfMonth(), 25);
+    public void testSetOffset_validOffset_clearsZone() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.setZone(PARIS);
+        assertEquals(PARIS, bucket.getZone());
 
-        // 2005-10-25T00:00:00.000Z
-        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2005, 10, 25, 0);
-        assertEquals(expected, bucket.computeMillis());
+        bucket.setOffset(7200000);
+        assertEquals(7200000, bucket.getOffset());
+        assertNull(bucket.getZone());
     }
 
-    // Tests computeMillis with weekyear and weekOfWeekyear (regression check for week-based parsing)
+    // Tests saveField by DateTimeField and computeMillis
     @Test
-    public void testComputeMillis_weekyearAndWeekOfWeek_returnsCorrectMillis() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2010);
+    public void testSaveField_fieldAndValue_computesCorrectMillis() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.saveField(DateTimeFieldType.year().getField(chrono), 2005);
+        bucket.saveField(DateTimeFieldType.monthOfYear().getField(chrono), 6);
+        bucket.saveField(DateTimeFieldType.dayOfMonth().getField(chrono), 15);
+
+        long millis = bucket.computeMillis(true);
+        // 2005-06-15T00:00:00.000Z
+        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2005, 6, 15, 0);
+        assertEquals(expected, millis);
+    }
+
+    // Tests saveField by DateTimeFieldType with text and locale
+    @Test
+    public void testSaveField_fieldTypeAndText_computesCorrectMillis() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, Locale.ENGLISH, null, 2000);
+        bucket.saveField(DateTimeFieldType.year(), 2012);
+        bucket.saveField(DateTimeFieldType.monthOfYear(), "March", Locale.ENGLISH);
+        bucket.saveField(DateTimeFieldType.dayOfMonth(), 10);
+
+        long millis = bucket.computeMillis(true);
+        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2012, 3, 10, 0);
+        assertEquals(expected, millis);
+    }
+
+    // Tests computeMillis with default year injection when first field is month or day
+    @Test
+    public void testComputeMillis_monthAndDayOnly_usesDefaultYear() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2004);
+        bucket.saveField(DateTimeFieldType.monthOfYear(), 2);
+        bucket.saveField(DateTimeFieldType.dayOfMonth(), 29); // Leap day in 2004
+
+        long millis = bucket.computeMillis(true);
+        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2004, 2, 29, 0);
+        assertEquals(expected, millis);
+    }
+
+    // Tests computeMillis with weekyear and week-of-weekyear ordering
+    @Test
+    public void testComputeMillis_weekyearAndWeekOfWeekyear_computesCorrectMillis() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2011);
         bucket.saveField(DateTimeFieldType.weekyear(), 2011);
         bucket.saveField(DateTimeFieldType.weekOfWeekyear(), 1);
         bucket.saveField(DateTimeFieldType.dayOfWeek(), 1);
 
+        long millis = bucket.computeMillis(true, "2011-W01-1");
         long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2011, 1, 3, 0);
-        assertEquals(expected, bucket.computeMillis(true));
+        assertEquals(expected, millis);
     }
 
-    // Tests computeMillis with text field and locale
+    // Tests computeMillis with non-UTC zone applying offset transition
     @Test
-    public void testComputeMillis_textFieldWithLocale_parsesCorrectly() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, Locale.ENGLISH, null, 2000);
-        bucket.saveField(DateTimeFieldType.year(), 2008);
-        bucket.saveField(DateTimeFieldType.monthOfYear(), "December", Locale.ENGLISH);
-        bucket.saveField(DateTimeFieldType.dayOfMonth(), 15);
-
-        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2008, 12, 15, 0);
-        assertEquals(expected, bucket.computeMillis(false));
-    }
-
-    // Tests computeMillis with zone and offset calculations
-    @Test
-    public void testComputeMillis_withZone_appliesZoneOffset() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale);
-        bucket.setZone(LONDON);
-        bucket.saveField(DateTimeFieldType.year(), 2007);
-        bucket.saveField(DateTimeFieldType.monthOfYear(), 7);
+    public void testComputeMillis_withTimeZone_computesLocalToZone() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.setZone(TOKYO); // +09:00
+        bucket.saveField(DateTimeFieldType.year(), 2020);
+        bucket.saveField(DateTimeFieldType.monthOfYear(), 1);
         bucket.saveField(DateTimeFieldType.dayOfMonth(), 1);
 
-        // 2007-07-01 in London is BST (UTC+1)
-        long localMillis = ISOChronology.getInstanceUTC().getDateTimeMillis(2007, 7, 1, 0);
-        long expected = localMillis - 3600000L;
-        assertEquals(expected, bucket.computeMillis());
+        long millis = bucket.computeMillis(true);
+        long expected = ISOChronology.getInstance(TOKYO).getDateTimeMillis(2020, 1, 1, 0);
+        assertEquals(expected, millis);
     }
 
     // Tests computeMillis with explicit offset
     @Test
     public void testComputeMillis_withOffset_subtractsOffset() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale);
-        bucket.setOffset(7200000); // UTC+2
-        bucket.saveField(DateTimeFieldType.year(), 2000);
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.setOffset(3600000); // +1 hour
+        bucket.saveField(DateTimeFieldType.year(), 2020);
         bucket.saveField(DateTimeFieldType.monthOfYear(), 1);
         bucket.saveField(DateTimeFieldType.dayOfMonth(), 1);
 
-        long localMillis = ISOChronology.getInstanceUTC().getDateTimeMillis(2000, 1, 1, 0);
-        assertEquals(localMillis - 7200000L, bucket.computeMillis());
+        long millis = bucket.computeMillis(true);
+        long localMillis = ISOChronology.getInstanceUTC().getDateTimeMillis(2020, 1, 1, 0);
+        assertEquals(localMillis - 3600000, millis);
     }
 
-    // Tests computeMillis when more than 10 fields are saved to trigger Arrays.sort branch
+    // Tests illegal field value throws IllegalFieldValueException with parsed text
     @Test
-    public void testComputeMillis_moreThanTenFields_sortsCorrectly() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale);
-        bucket.saveField(DateTimeFieldType.year(), 2012);
+    public void testComputeMillis_invalidFieldValue_throwsExceptionWithText() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.saveField(DateTimeFieldType.year(), 2021);
+        bucket.saveField(DateTimeFieldType.monthOfYear(), 13); // Invalid month
+
+        try {
+            bucket.computeMillis(false, "2021-13");
+            fail("Expected IllegalFieldValueException");
+        } catch (IllegalFieldValueException e) {
+            assertTrue(e.getMessage().contains("Cannot parse \"2021-13\""));
+        }
+    }
+
+    // Tests saveState and restoreState restoring fields and zone
+    @Test
+    public void testSaveAndRestoreState_modifiedState_restoresOriginal() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.saveField(DateTimeFieldType.year(), 2000);
+        bucket.setZone(LONDON);
+
+        Object state = bucket.saveState();
+
         bucket.saveField(DateTimeFieldType.monthOfYear(), 5);
-        bucket.saveField(DateTimeFieldType.dayOfMonth(), 10);
+        bucket.setZone(PARIS);
+        assertEquals(PARIS, bucket.getZone());
+
+        boolean restored = bucket.restoreState(state);
+        assertTrue(restored);
+        assertEquals(LONDON, bucket.getZone());
+
+        // Further saving and computing should reflect restored fields only
+        bucket.saveField(DateTimeFieldType.monthOfYear(), 12);
+        long millis = bucket.computeMillis(true);
+        long expected = ISOChronology.getInstance(LONDON).getDateTimeMillis(2000, 12, 1, 0);
+        assertEquals(expected, millis);
+    }
+
+    // Tests restoreState with invalid state object returns false
+    @Test
+    public void testRestoreState_invalidObject_returnsFalse() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        assertFalse(bucket.restoreState("InvalidStateObject"));
+        assertFalse(bucket.restoreState(null));
+    }
+
+    // Tests array expansion when saving more than initial capacity (8 fields)
+    @Test
+    public void testSaveField_moreThanInitialCapacity_expandsArrayAndSorts() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.saveField(DateTimeFieldType.year(), 2020);
+        bucket.saveField(DateTimeFieldType.monthOfYear(), 10);
+        bucket.saveField(DateTimeFieldType.dayOfMonth(), 25);
         bucket.saveField(DateTimeFieldType.hourOfDay(), 14);
         bucket.saveField(DateTimeFieldType.minuteOfHour(), 30);
         bucket.saveField(DateTimeFieldType.secondOfMinute(), 45);
         bucket.saveField(DateTimeFieldType.millisOfSecond(), 500);
-        bucket.saveField(DateTimeFieldType.centuryOfEra(), 20);
         bucket.saveField(DateTimeFieldType.era(), 1);
-        bucket.saveField(DateTimeFieldType.dayOfWeek(), 4);
+        bucket.saveField(DateTimeFieldType.centuryOfEra(), 20);
+        bucket.saveField(DateTimeFieldType.yearOfCentury(), 20);
         bucket.saveField(DateTimeFieldType.minuteOfDay(), 14 * 60 + 30);
 
-        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2012, 5, 10, 14, 30, 45, 500);
-        assertEquals(expected, bucket.computeMillis());
+        long millis = bucket.computeMillis(false);
+        assertTrue(millis > 0);
     }
 
-    // Tests saveState and restoreState with rollback of saved fields
+    // Tests restoreState from a foreign bucket instance returns false
     @Test
-    public void testSaveAndRestoreState_revertsSavedFieldsAndProperties() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale);
-        bucket.saveField(DateTimeFieldType.year(), 1995);
-        bucket.setOffset(1000);
+    public void testRestoreState_foreignBucketState_returnsFalse() {
+        DateTimeParserBucket bucket1 = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        DateTimeParserBucket bucket2 = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
 
+        Object state1 = bucket1.saveState();
+        assertFalse(bucket2.restoreState(state1));
+    }
+
+    // Tests compareReverse logic with null and unsupported duration fields
+    @Test
+    public void testCompareReverse_durationFieldComparisons() {
+        Chronology c = ISOChronology.getInstanceUTC();
+        assertEquals(0, DateTimeParserBucket.compareReverse(null, null));
+        assertEquals(1, DateTimeParserBucket.compareReverse(c.years(), null));
+        assertEquals(-1, DateTimeParserBucket.compareReverse(null, c.years()));
+        assertTrue(DateTimeParserBucket.compareReverse(c.years(), c.months()) < 0);
+        assertTrue(DateTimeParserBucket.compareReverse(c.days(), c.hours()) < 0);
+    }
+
+    // Tests getOffsetInteger and setOffset with Integer argument
+    @Test
+    public void testOffsetInteger_getAndSetIntegerOffset() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        assertNull(bucket.getOffsetInteger());
+
+        bucket.setOffset(Integer.valueOf(3600000));
+        assertEquals(Integer.valueOf(3600000), bucket.getOffsetInteger());
+        assertEquals(3600000, bucket.getOffset());
+
+        bucket.setOffset((Integer) null);
+        assertNull(bucket.getOffsetInteger());
+        assertEquals(0, bucket.getOffset());
+    }
+
+    // Tests saveState and restoreState restoring Integer offset
+    @Test
+    public void testSaveAndRestoreState_withOffset_restoresOriginalOffset() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.setOffset(Integer.valueOf(1800000));
         Object state = bucket.saveState();
 
-        bucket.saveField(DateTimeFieldType.monthOfYear(), 12);
-        bucket.setOffset(5000);
-        bucket.setZone(PARIS);
+        bucket.setOffset(Integer.valueOf(3600000));
+        assertEquals(Integer.valueOf(3600000), bucket.getOffsetInteger());
 
         assertTrue(bucket.restoreState(state));
-        assertEquals(1000, bucket.getOffset());
-        assertNull(bucket.getZone());
-
-        // Should compute without monthOfYear set
-        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(1995, 1, 1, 0) - 1000L;
-        assertEquals(expected, bucket.computeMillis());
+        assertEquals(Integer.valueOf(1800000), bucket.getOffsetInteger());
     }
 
-    // Tests restoreState with foreign/invalid state object
+    // Tests computeMillis no-arg method
     @Test
-    public void testRestoreState_invalidObject_returnsFalse() {
-        DateTimeParserBucket bucket1 = new DateTimeParserBucket(0L, chrono, locale);
-        DateTimeParserBucket bucket2 = new DateTimeParserBucket(0L, chrono, locale);
+    public void testComputeMillis_noArg_computesAndPreservesFields() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.saveField(DateTimeFieldType.year(), 2022);
+        bucket.saveField(DateTimeFieldType.monthOfYear(), 8);
+        bucket.saveField(DateTimeFieldType.dayOfMonth(), 15);
 
-        assertFalse(bucket1.restoreState("invalid_state"));
-        assertFalse(bucket1.restoreState(null));
+        long millis1 = bucket.computeMillis();
+        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2022, 8, 15, 0);
+        assertEquals(expected, millis1);
 
-        Object state2 = bucket2.saveState();
-        assertFalse(bucket1.restoreState(state2));
+        // Fields should not be reset after computeMillis()
+        long millis2 = bucket.computeMillis();
+        assertEquals(expected, millis2);
     }
 
-    // Tests IllegalFieldValueException handling with text prepending
+    // Tests computeMillis with CharSequence (StringBuilder) and exception message
     @Test
-    public void testComputeMillis_invalidFieldValueWithText_prependsParseTextToException() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale);
-        bucket.saveField(DateTimeFieldType.monthOfYear(), 13);
+    public void testComputeMillis_withCharSequence_invalidFieldIncludesCharSequenceInMessage() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.saveField(DateTimeFieldType.year(), 2020);
+        bucket.saveField(DateTimeFieldType.dayOfMonth(), 32); // Invalid day
+
+        StringBuilder text = new StringBuilder("2020-01-32");
         try {
-            bucket.computeMillis(false, "2020-13-01");
+            bucket.computeMillis(false, (CharSequence) text);
             fail("Expected IllegalFieldValueException");
         } catch (IllegalFieldValueException e) {
-            assertTrue(e.getMessage().contains("Cannot parse \"2020-13-01\""));
+            assertTrue(e.getMessage().contains("Cannot parse \"2020-01-32\""));
         }
     }
 
-    // Tests IllegalFieldValueException without text parameter
-    @Test(expected = IllegalFieldValueException.class)
-    public void testComputeMillis_invalidFieldValueWithoutText_throwsException() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale);
-        bucket.saveField(DateTimeFieldType.dayOfMonth(), 32);
-        bucket.computeMillis();
-    }
-
-    // Tests DST gap / offset transition exception
-    @Test(expected = IllegalArgumentException.class)
-    public void testComputeMillis_gapInZoneTransition_throwsIllegalArgumentException() {
-        DateTimeZone zoneWithGap = DateTimeZone.forID("America/New_York");
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, ISOChronology.getInstance(zoneWithGap), locale);
-        bucket.setZone(zoneWithGap);
-        // 2007-03-11 02:30:00 did not exist in EST/EDT due to spring forward
-        bucket.saveField(DateTimeFieldType.year(), 2007);
-        bucket.saveField(DateTimeFieldType.monthOfYear(), 3);
-        bucket.saveField(DateTimeFieldType.dayOfMonth(), 11);
-        bucket.saveField(DateTimeFieldType.hourOfDay(), 2);
-        bucket.saveField(DateTimeFieldType.minuteOfHour(), 30);
-
-        bucket.computeMillis(false, "2007-03-11 02:30");
-    }
-
-    // Tests saveField with raw DateTimeField instance
+    // Tests computeMillis with null text on invalid field
     @Test
-    public void testSaveField_withDateTimeFieldInstance_setsCorrectValue() {
-        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, BuddhistChronology.getInstanceUTC(), locale);
-        bucket.saveField(BuddhistChronology.getInstanceUTC().year(), 2543);
-
-        // Buddhist year 2543 = Gregorian year 2000
-        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2000, 1, 1, 0);
-        assertEquals(expected, bucket.computeMillis());
-    }
-
-    // Tests saveField with raw DateTimeField instance and text value
-    @Test
-    public void testSaveField_withDateTimeFieldInstanceAndText_setsCorrectValue() {
+    public void testComputeMillis_nullTextInvalidField_throwsExceptionWithoutTextPrefix() {
         DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
-        bucket.saveField(ISOChronology.getInstanceUTC().monthOfYear(), "March", Locale.ENGLISH);
+        bucket.saveField(DateTimeFieldType.monthOfYear(), 15); // Invalid month
 
-        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2000, 3, 1, 0);
-        assertEquals(expected, bucket.computeMillis());
+        try {
+            bucket.computeMillis(true, (CharSequence) null);
+            fail("Expected IllegalFieldValueException");
+        } catch (IllegalFieldValueException e) {
+            assertFalse(e.getMessage().contains("Cannot parse"));
+        }
     }
 
-    // Tests computeMillis idempotency
+    // Tests parseMillis with DateTimeParser valid parsing
     @Test
-    public void testComputeMillis_calledMultipleTimes_isIdempotent() {
+    public void testParseMillis_validParser_computesExpectedMillis() {
         DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
-        bucket.saveField(DateTimeFieldType.year(), 2002);
-        bucket.saveField(DateTimeFieldType.monthOfYear(), 4);
+        DateTimeParser parser = DateTimeFormat.forPattern("yyyy-MM-dd").getParser();
 
-        long firstResult = bucket.computeMillis();
-        long secondResult = bucket.computeMillis();
-        assertEquals(firstResult, secondResult);
+        long result = bucket.parseMillis(parser, "2023-04-20");
+        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2023, 4, 20, 0);
+        assertEquals(expected, result);
+    }
+
+    // Tests parseMillis with invalid input throws IllegalArgumentException
+    @Test
+    public void testParseMillis_invalidText_throwsIllegalArgumentException() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        DateTimeParser parser = DateTimeFormat.forPattern("yyyy-MM-dd").getParser();
+
+        try {
+            bucket.parseMillis(parser, "invalid-date-format");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("invalid-date-format"));
+        }
+    }
+
+    // Tests parseMillis with incomplete input throws IllegalArgumentException
+    @Test
+    public void testParseMillis_incompleteText_throwsIllegalArgumentException() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        DateTimeParser parser = DateTimeFormat.forPattern("yyyy-MM-dd").getParser();
+
+        try {
+            bucket.parseMillis(parser, "2023-04-20extra");
+            fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("2023-04-20extra"));
+        }
+    }
+
+    // Tests compareReverse with equal duration fields
+    @Test
+    public void testCompareReverse_sameOrEqualDurationFields_returnsZero() {
+        DurationField days1 = ISOChronology.getInstanceUTC().days();
+        DurationField days2 = ISOChronology.getInstance(TOKYO).days();
+        assertEquals(0, DateTimeParserBucket.compareReverse(days1, days2));
+        assertEquals(0, DateTimeParserBucket.compareReverse(days1, days1));
+    }
+
+    // Tests computeMillis with daylight saving time transition in New York
+    @Test
+    public void testComputeMillis_withDstTransition_computesCorrectZoneOffset() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, locale, null, 2000);
+        bucket.setZone(NEW_YORK);
+        // Summer time in NY (EDT = UTC-4)
+        bucket.saveField(DateTimeFieldType.year(), 2021);
+        bucket.saveField(DateTimeFieldType.monthOfYear(), 7);
+        bucket.saveField(DateTimeFieldType.dayOfMonth(), 4);
+        bucket.saveField(DateTimeFieldType.hourOfDay(), 12);
+
+        long millis = bucket.computeMillis(true);
+        long expected = ISOChronology.getInstance(NEW_YORK).getDateTimeMillis(2021, 7, 4, 12, 0, 0, 0);
+        assertEquals(expected, millis);
+    }
+
+    // Tests saveField by DateTimeFieldType with text using bucket default locale
+    @Test
+    public void testSaveField_fieldTypeAndTextWithBucketLocale() {
+        DateTimeParserBucket bucket = new DateTimeParserBucket(0L, chrono, Locale.FRENCH, null, 2000);
+        bucket.saveField(DateTimeFieldType.year(), 2018);
+        bucket.saveField(DateTimeFieldType.monthOfYear(), "août", null);
+        bucket.saveField(DateTimeFieldType.dayOfMonth(), 1);
+
+        long millis = bucket.computeMillis(true);
+        long expected = ISOChronology.getInstanceUTC().getDateTimeMillis(2018, 8, 1, 0);
+        assertEquals(expected, millis);
     }
 }

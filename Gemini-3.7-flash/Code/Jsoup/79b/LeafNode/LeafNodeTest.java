@@ -6,17 +6,17 @@ import static org.junit.Assert.*;
 
 public class LeafNodeTest {
 
-    private static class TestLeafNode extends LeafNode {
-        private final String name;
+    private static class ConcreteLeafNode extends LeafNode {
+        ConcreteLeafNode() {
+        }
 
-        TestLeafNode(String name, String value) {
-            this.name = name;
+        ConcreteLeafNode(String value) {
             this.value = value;
         }
 
         @Override
         public String nodeName() {
-            return name;
+            return "leaf";
         }
 
         @Override
@@ -28,138 +28,152 @@ public class LeafNodeTest {
         }
     }
 
-    // Tests reading attribute value matching the nodeName before attributes map is initialized
+    // Tests that childNodeSize always returns 0 for a leaf node
     @Test
-    public void testAttr_matchingNodeName_returnsCoreValue() {
-        LeafNode node = new TestLeafNode("testNode", "coreText");
-        assertEquals("coreText", node.attr("testNode"));
-        assertFalse(node.hasAttributes());
+    public void testChildNodeSize_always_returnsZero() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("text");
+        assertEquals(0, leaf.childNodeSize());
     }
 
-    // Tests reading non-matching attribute key when attributes map is not initialized
-    @Test
-    public void testAttr_nonMatchingKey_returnsEmptyString() {
-        LeafNode node = new TestLeafNode("testNode", "coreText");
-        assertEquals("", node.attr("otherKey"));
-        assertFalse(node.hasAttributes());
+    // Tests that ensureChildNodes throws UnsupportedOperationException
+    @Test(expected = UnsupportedOperationException.class)
+    public void testEnsureChildNodes_onLeafNode_throwsException() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("text");
+        leaf.ensureChildNodes();
     }
 
-    // Tests null key validation in attr method
+    // Tests getting core value when set via constructor
+    @Test
+    public void testCoreValue_initialValue_returnsValue() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("sampleValue");
+        assertEquals("sampleValue", leaf.coreValue());
+    }
+
+    // Tests setting and getting core value
+    @Test
+    public void testCoreValue_setValue_updatesCoreValue() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("initial");
+        leaf.coreValue("updated");
+        assertEquals("updated", leaf.coreValue());
+    }
+
+    // Tests attr with matching nodeName returns core value without creating attributes
+    @Test
+    public void testAttr_matchingNodeNameWithoutAttributes_returnsValue() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("myValue");
+        assertEquals("myValue", leaf.attr("leaf"));
+        assertFalse(leaf.hasAttributes());
+    }
+
+    // Tests attr with non-matching key returns empty string without creating attributes
+    @Test
+    public void testAttr_nonMatchingKeyWithoutAttributes_returnsEmptyString() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("myValue");
+        assertEquals("", leaf.attr("otherKey"));
+        assertFalse(leaf.hasAttributes());
+    }
+
+    // Tests attr with null key throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testAttr_nullKey_throwsIllegalArgumentException() {
-        LeafNode node = new TestLeafNode("testNode", "coreText");
-        node.attr(null);
+    public void testAttr_nullKey_throwsException() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("myValue");
+        leaf.attr(null);
     }
 
-    // Tests updating attribute with matching nodeName modifies value field without creating Attributes object
+    // Tests setting attr for nodeName when attributes are not initialized updates core value directly
     @Test
-    public void testAttr_updateMatchingKey_updatesValueDirectly() {
-        LeafNode node = new TestLeafNode("testNode", "initialValue");
-        node.attr("testNode", "updatedValue");
-        assertEquals("updatedValue", node.attr("testNode"));
-        assertEquals("updatedValue", node.coreValue());
-        assertFalse(node.hasAttributes());
+    public void testAttr_setMatchingNodeNameWithoutAttributes_updatesValueWithoutAttributes() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("initial");
+        leaf.attr("leaf", "modified");
+        assertEquals("modified", leaf.coreValue());
+        assertFalse(leaf.hasAttributes());
     }
 
-    // Tests setting a different attribute key creates Attributes object and stores both attributes
+    // Tests setting an attribute other than nodeName transitions leaf to use Attributes object
     @Test
-    public void testAttr_setDifferentKey_expandsToAttributes() {
-        LeafNode node = new TestLeafNode("testNode", "coreText");
-        node.attr("customAttr", "customValue");
-        assertTrue(node.hasAttributes());
-        assertEquals("coreText", node.attr("testNode"));
-        assertEquals("customValue", node.attr("customAttr"));
+    public void testAttr_setDifferentKey_createsAttributesAndSetsValue() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("core");
+        leaf.attr("class", "bold");
+
+        assertTrue(leaf.hasAttributes());
+        assertEquals("bold", leaf.attr("class"));
+        assertEquals("core", leaf.attr("leaf"));
     }
 
-    // Tests attributes() ensures Attributes object is created with coreValue populated
+    // Tests hasAttr transitions to attributes and returns true for existing attribute
     @Test
-    public void testAttributes_whenCalled_populatesAttributesObject() {
-        LeafNode node = new TestLeafNode("testNode", "coreText");
-        Attributes attributes = node.attributes();
-        assertNotNull(attributes);
-        assertTrue(node.hasAttributes());
-        assertEquals("coreText", attributes.get("testNode"));
+    public void testHasAttr_existingCoreValue_returnsTrue() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("test");
+        assertTrue(leaf.hasAttr("leaf"));
+        assertTrue(leaf.hasAttributes());
     }
 
-    // Tests attributes() when value field is initially null
+    // Tests hasAttr returns false for non-existing attribute
     @Test
-    public void testAttributes_whenValueIsNull_createsEmptyAttributes() {
-        LeafNode node = new TestLeafNode("testNode", null);
-        Attributes attributes = node.attributes();
-        assertNotNull(attributes);
-        assertTrue(node.hasAttributes());
-        assertEquals("", attributes.get("testNode"));
+    public void testHasAttr_nonExistingKey_returnsFalse() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("test");
+        assertFalse(leaf.hasAttr("href"));
     }
 
-    // Tests coreValue getter and setter
+    // Tests removeAttr removes the attribute
     @Test
-    public void testCoreValue_getAndSet_updatesCorrectly() {
-        LeafNode node = new TestLeafNode("testNode", "val1");
-        assertEquals("val1", node.coreValue());
-        node.coreValue("val2");
-        assertEquals("val2", node.coreValue());
+    public void testRemoveAttr_existingAttribute_removesAttribute() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("test");
+        leaf.removeAttr("leaf");
+        assertFalse(leaf.hasAttr("leaf"));
+        assertEquals("", leaf.attr("leaf"));
     }
 
-    // Tests hasAttr for both existing and non-existing attributes
-    @Test
-    public void testHasAttr_existingAndNonExisting_returnsExpectedBoolean() {
-        LeafNode node = new TestLeafNode("testNode", "val");
-        assertTrue(node.hasAttr("testNode"));
-        assertFalse(node.hasAttr("nonExistent"));
-    }
-
-    // Tests removing an attribute through removeAttr
-    @Test
-    public void testRemoveAttr_existingKey_removesAttribute() {
-        LeafNode node = new TestLeafNode("testNode", "val");
-        node.removeAttr("testNode");
-        assertFalse(node.hasAttr("testNode"));
-        assertEquals("", node.attr("testNode"));
-    }
-
-    // Tests absUrl behavior on LeafNode
+    // Tests absUrl on leaf node without base URI returns empty string
     @Test
     public void testAbsUrl_noBaseUri_returnsEmptyString() {
-        LeafNode node = new TestLeafNode("testNode", "http://example.com");
-        assertEquals("", node.absUrl("testNode"));
+        ConcreteLeafNode leaf = new ConcreteLeafNode("test");
+        assertEquals("", leaf.absUrl("href"));
     }
 
-    // Tests baseUri when node has no parent
+    // Tests baseUri returns empty string when leaf node has no parent
     @Test
-    public void testBaseUri_withoutParent_returnsEmptyString() {
-        LeafNode node = new TestLeafNode("testNode", "val");
-        assertEquals("", node.baseUri());
+    public void testBaseUri_noParent_returnsEmptyString() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("test");
+        assertEquals("", leaf.baseUri());
     }
 
-    // Tests baseUri when node has a parent with baseUri
+    // Tests baseUri returns parent baseUri when parent is present
     @Test
     public void testBaseUri_withParent_returnsParentBaseUri() {
         Element parent = new Element("div");
-        parent.setBaseUri("http://example.com/");
-        LeafNode node = new TestLeafNode("testNode", "val");
-        parent.appendChild(node);
-        assertEquals("http://example.com/", node.baseUri());
+        parent.setBaseUri("https://example.com/");
+        ConcreteLeafNode leaf = new ConcreteLeafNode("test");
+        parent.appendChild(leaf);
+
+        assertEquals("https://example.com/", leaf.baseUri());
     }
 
     // Tests doSetBaseUri is a no-op
     @Test
-    public void testDoSetBaseUri_called_doesNotChangeBaseUri() {
-        LeafNode node = new TestLeafNode("testNode", "val");
-        node.doSetBaseUri("http://example.com/");
-        assertEquals("", node.baseUri());
+    public void testDoSetBaseUri_called_isNoOp() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("test");
+        leaf.doSetBaseUri("https://example.com/");
+        assertEquals("", leaf.baseUri());
     }
 
-    // Tests childNodeSize returns 0 for LeafNode
+    // Tests attributes() ensures and returns non-null Attributes instance
     @Test
-    public void testChildNodeSize_whenCalled_returnsZero() {
-        LeafNode node = new TestLeafNode("testNode", "val");
-        assertEquals(0, node.childNodeSize());
+    public void testAttributes_called_returnsNonNullAttributes() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode("test");
+        Attributes attrs = leaf.attributes();
+        assertNotNull(attrs);
+        assertTrue(leaf.hasAttributes());
+        assertEquals("test", attrs.get("leaf"));
     }
 
-    // Tests ensureChildNodes throws UnsupportedOperationException
-    @Test(expected = UnsupportedOperationException.class)
-    public void testEnsureChildNodes_whenCalled_throwsUnsupportedOperationException() {
-        LeafNode node = new TestLeafNode("testNode", "val");
-        node.ensureChildNodes();
+    // Tests attributes() on leaf node with null initial value
+    @Test
+    public void testAttributes_nullInitialValue_returnsEmptyAttributes() {
+        ConcreteLeafNode leaf = new ConcreteLeafNode(null);
+        Attributes attrs = leaf.attributes();
+        assertNotNull(attrs);
+        assertTrue(leaf.hasAttributes());
+        assertEquals(0, attrs.size());
     }
 }

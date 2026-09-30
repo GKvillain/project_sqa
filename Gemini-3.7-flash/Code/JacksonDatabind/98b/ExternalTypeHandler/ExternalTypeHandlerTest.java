@@ -1,229 +1,149 @@
 package com.fasterxml.jackson.databind.deser.impl;
 
-import java.io.IOException;
-import java.util.*;
-
-import com.fasterxml.jackson.annotation.*;
-import com.fasterxml.jackson.core.*;
-import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyName;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
-public class ExternalTypeHandlerTest
-{
-    private final ObjectMapper MAPPER = new ObjectMapper();
+public class ExternalTypeHandlerTest {
 
-    // Helper polymorphic hierarchy
-    interface Animal { }
+    private ObjectMapper mapper;
 
-    static class Dog implements Animal {
-        public String name;
-        public Dog() { }
-        public Dog(String name) { this.name = name; }
+    @Before
+    public void setUp() {
+        mapper = new ObjectMapper();
     }
 
-    static class Cat implements Animal {
-        public int lives;
-        public Cat() { }
-        public Cat(int lives) { this.lives = lives; }
+    // Helper classes for testing external type deserialization
+
+    interface BasePoly {
     }
 
-    // Helper container with external type property (field/setter based)
-    static class AnimalContainer {
+    static class ImplOne implements BasePoly {
+        public int x;
+
+        public ImplOne() {
+        }
+
+        public ImplOne(int x) {
+            this.x = x;
+        }
+    }
+
+    static class ImplTwo implements BasePoly {
+        public String y;
+
+        public ImplTwo() {
+        }
+
+        public ImplTwo(String y) {
+            this.y = y;
+        }
+    }
+
+    static class StandardContainer {
         public String type;
 
         @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
         @JsonSubTypes({
-            @JsonSubTypes.Type(value = Dog.class, name = "dog"),
-            @JsonSubTypes.Type(value = Cat.class, name = "cat")
+                @JsonSubTypes.Type(value = ImplOne.class, name = "one"),
+                @JsonSubTypes.Type(value = ImplTwo.class, name = "two")
         })
-        public Animal animal;
-
-        public AnimalContainer() { }
-        public AnimalContainer(String type, Animal animal) {
-            this.type = type;
-            this.animal = animal;
-        }
+        public BasePoly value;
     }
 
-    // Helper container with external type property and @JsonCreator
-    static class AnimalCreatorContainer {
-        public final String type;
-        public final Animal animal;
-
-        @JsonCreator
-        public AnimalCreatorContainer(
-                @JsonProperty("type") String type,
-                @JsonProperty("animal")
-                @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
-                @JsonSubTypes({
-                    @JsonSubTypes.Type(value = Dog.class, name = "dog"),
-                    @JsonSubTypes.Type(value = Cat.class, name = "cat")
-                }) Animal animal) {
-            this.type = type;
-            this.animal = animal;
-        }
-    }
-
-    // Helper container with defaultImpl
-    static class AnimalDefaultContainer {
+    static class DefaultImplContainer {
         public String type;
 
-        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type", defaultImpl = Dog.class)
+        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type", defaultImpl = ImplOne.class)
         @JsonSubTypes({
-            @JsonSubTypes.Type(value = Dog.class, name = "dog"),
-            @JsonSubTypes.Type(value = Cat.class, name = "cat")
+                @JsonSubTypes.Type(value = ImplTwo.class, name = "two")
         })
-        public Animal animal;
+        public BasePoly value;
     }
 
-    // Helper container with defaultImpl and @JsonCreator
-    static class AnimalDefaultCreatorContainer {
+    static class CreatorContainer {
         public final String type;
-        public final Animal animal;
+        public final BasePoly value;
 
         @JsonCreator
-        public AnimalDefaultCreatorContainer(
+        public CreatorContainer(
                 @JsonProperty("type") String type,
-                @JsonProperty("animal")
-                @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type", defaultImpl = Dog.class)
+                @JsonProperty("value")
+                @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
                 @JsonSubTypes({
-                    @JsonSubTypes.Type(value = Dog.class, name = "dog"),
-                    @JsonSubTypes.Type(value = Cat.class, name = "cat")
-                }) Animal animal) {
+                        @JsonSubTypes.Type(value = ImplOne.class, name = "one"),
+                        @JsonSubTypes.Type(value = ImplTwo.class, name = "two")
+                })
+                BasePoly value) {
             this.type = type;
-            this.animal = animal;
+            this.value = value;
         }
     }
 
-    // Helper container with multiple external typed properties
-    static class MultiContainer {
-        public String type1;
-        public String type2;
+    static class CreatorWithDefaultContainer {
+        public final String type;
+        public final BasePoly value;
 
-        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type1")
-        @JsonSubTypes({ @JsonSubTypes.Type(value = Dog.class, name = "dog") })
-        public Animal animal1;
-
-        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type2")
-        @JsonSubTypes({ @JsonSubTypes.Type(value = Cat.class, name = "cat") })
-        public Animal animal2;
+        @JsonCreator
+        public CreatorWithDefaultContainer(
+                @JsonProperty("type") String type,
+                @JsonProperty("value")
+                @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type", defaultImpl = ImplOne.class)
+                @JsonSubTypes({
+                        @JsonSubTypes.Type(value = ImplTwo.class, name = "two")
+                })
+                BasePoly value) {
+            this.type = type;
+            this.value = value;
+        }
     }
 
-    // Tests normal deserialization where type id comes before value
+    static class MultiPropertyContainer {
+        public String type;
+
+        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
+        @JsonSubTypes({
+                @JsonSubTypes.Type(value = ImplOne.class, name = "one"),
+                @JsonSubTypes.Type(value = ImplTwo.class, name = "two")
+        })
+        public BasePoly val1;
+
+        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
+        @JsonSubTypes({
+                @JsonSubTypes.Type(value = ImplOne.class, name = "one"),
+                @JsonSubTypes.Type(value = ImplTwo.class, name = "two")
+        })
+        public BasePoly val2;
+    }
+
+    // Tests builder initialization and start method
     @Test
-    public void testDeserialization_typeIdBeforeValue_success() throws Exception {
-        String json = "{\"type\":\"dog\",\"animal\":{\"name\":\"Rex\"}}";
-        AnimalContainer container = MAPPER.readValue(json, AnimalContainer.class);
-        assertNotNull(container);
-        assertEquals("dog", container.type);
-        assertTrue(container.animal instanceof Dog);
-        assertEquals("Rex", ((Dog) container.animal).name);
-    }
-
-    // Tests normal deserialization where value comes before type id
-    @Test
-    public void testDeserialization_valueBeforeTypeId_success() throws Exception {
-        String json = "{\"animal\":{\"lives\":9},\"type\":\"cat\"}";
-        AnimalContainer container = MAPPER.readValue(json, AnimalContainer.class);
-        assertNotNull(container);
-        assertEquals("cat", container.type);
-        assertTrue(container.animal instanceof Cat);
-        assertEquals(9, ((Cat) container.animal).lives);
-    }
-
-    // Tests @JsonCreator deserialization with type id before value
-    @Test
-    public void testCreatorDeserialization_typeIdBeforeValue_success() throws Exception {
-        String json = "{\"type\":\"dog\",\"animal\":{\"name\":\"Spike\"}}";
-        AnimalCreatorContainer container = MAPPER.readValue(json, AnimalCreatorContainer.class);
-        assertNotNull(container);
-        assertEquals("dog", container.type);
-        assertTrue(container.animal instanceof Dog);
-        assertEquals("Spike", ((Dog) container.animal).name);
-    }
-
-    // Tests @JsonCreator deserialization with value before type id
-    @Test
-    public void testCreatorDeserialization_valueBeforeTypeId_success() throws Exception {
-        String json = "{\"animal\":{\"lives\":7},\"type\":\"cat\"}";
-        AnimalCreatorContainer container = MAPPER.readValue(json, AnimalCreatorContainer.class);
-        assertNotNull(container);
-        assertEquals("cat", container.type);
-        assertTrue(container.animal instanceof Cat);
-        assertEquals(7, ((Cat) container.animal).lives);
-    }
-
-    // Tests defaultImpl support when type id property is omitted
-    @Test
-    public void testDefaultImpl_missingTypeId_usesDefaultImpl() throws Exception {
-        String json = "{\"animal\":{\"name\":\"DefaultDog\"}}";
-        AnimalDefaultContainer container = MAPPER.readValue(json, AnimalDefaultContainer.class);
-        assertNotNull(container);
-        assertTrue(container.animal instanceof Dog);
-        assertEquals("DefaultDog", ((Dog) container.animal).name);
-    }
-
-    // Tests defaultImpl with @JsonCreator when type id property is omitted
-    @Test
-    public void testDefaultImplCreator_missingTypeId_usesDefaultImpl() throws Exception {
-        String json = "{\"animal\":{\"name\":\"DefaultDogCreator\"}}";
-        AnimalDefaultCreatorContainer container = MAPPER.readValue(json, AnimalDefaultCreatorContainer.class);
-        assertNotNull(container);
-        assertTrue(container.animal instanceof Dog);
-        assertEquals("DefaultDogCreator", ((Dog) container.animal).name);
-    }
-
-    // Tests multiple external properties deserialized correctly
-    @Test
-    public void testMultipleExternalProperties_success() throws Exception {
-        String json = "{\"type1\":\"dog\",\"animal1\":{\"name\":\"Buddy\"},\"type2\":\"cat\",\"animal2\":{\"lives\":5}}";
-        MultiContainer container = MAPPER.readValue(json, MultiContainer.class);
-        assertNotNull(container);
-        assertTrue(container.animal1 instanceof Dog);
-        assertEquals("Buddy", ((Dog) container.animal1).name);
-        assertTrue(container.animal2 instanceof Cat);
-        assertEquals(5, ((Cat) container.animal2).lives);
-    }
-
-    // Tests missing external type id when no defaultImpl is configured throws exception
-    @Test(expected = JsonProcessingException.class)
-    public void testMissingTypeId_withoutDefaultImpl_throwsException() throws Exception {
-        String json = "{\"animal\":{\"name\":\"Fido\"}}";
-        MAPPER.readValue(json, AnimalContainer.class);
-    }
-
-    // Tests missing property value when type id is provided throws exception
-    @Test(expected = JsonProcessingException.class)
-    public void testMissingPropertyValue_withTypeId_throwsException() throws Exception {
-        String json = "{\"type\":\"dog\"}";
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(DeserializationFeature.FAIL_ON_MISSING_EXTERNAL_TYPE_ID_PROPERTY);
-        mapper.readValue(json, AnimalContainer.class);
-    }
-
-    // Tests null value handling for external property
-    @Test
-    public void testNullPropertyValue_success() throws Exception {
-        String json = "{\"type\":\"dog\",\"animal\":null}";
-        AnimalContainer container = MAPPER.readValue(json, AnimalContainer.class);
-        assertNotNull(container);
-        assertEquals("dog", container.type);
-        assertNull(container.animal);
-    }
-
-    // Tests ExternalTypeHandler.builder() instantiation and basic start() functionality
-    @Test
-    public void testBuilderAndStart_notNull() {
-        JavaType javaType = MAPPER.constructType(AnimalContainer.class);
+    public void testBuilder_createsHandlerAndStartReturnsInstance() {
+        JavaType javaType = TypeFactory.defaultInstance().constructType(StandardContainer.class);
         ExternalTypeHandler.Builder builder = ExternalTypeHandler.builder(javaType);
         assertNotNull(builder);
 
-        BeanPropertyMap propMap = BeanPropertyMap.construct(Collections.<SettableBeanProperty>emptyList(), false);
-        ExternalTypeHandler handler = builder.build(propMap);
+        BeanPropertyMap emptyMap = BeanPropertyMap.construct(Collections.<SettableBeanProperty>emptyList(), false, Collections.<String, List<PropertyName>>emptyMap());
+        ExternalTypeHandler handler = builder.build(emptyMap);
         assertNotNull(handler);
 
         ExternalTypeHandler started = handler.start();
@@ -231,37 +151,171 @@ public class ExternalTypeHandlerTest
         assertNotSame(handler, started);
     }
 
-    // Tests handlePropertyValue with unknown property name returns false
+    // Tests unknown property handling in handleTypePropertyValue
     @Test
-    public void testHandlePropertyValue_unknownProperty_returnsFalse() throws IOException {
-        JavaType javaType = MAPPER.constructType(AnimalContainer.class);
-        ExternalTypeHandler.Builder builder = ExternalTypeHandler.builder(javaType);
-        BeanPropertyMap propMap = BeanPropertyMap.construct(Collections.<SettableBeanProperty>emptyList(), false);
-        ExternalTypeHandler handler = builder.build(propMap).start();
+    public void testHandleTypePropertyValue_unknownProperty_returnsFalse() throws IOException {
+        JavaType javaType = TypeFactory.defaultInstance().constructType(StandardContainer.class);
+        BeanPropertyMap emptyMap = BeanPropertyMap.construct(Collections.<SettableBeanProperty>emptyList(), false, Collections.<String, List<PropertyName>>emptyMap());
+        ExternalTypeHandler handler = ExternalTypeHandler.builder(javaType).build(emptyMap).start();
 
-        JsonParser parser = MAPPER.getFactory().createParser("{\"unknown\":\"val\"}");
+        JsonParser parser = mapper.getFactory().createParser("{\"unknown\": \"val\"}");
         parser.nextToken();
-        DeserializationContext ctxt = MAPPER.getDeserializationContext();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
 
-        boolean handled = handler.handlePropertyValue(parser, ctxt, "unknown", new AnimalContainer());
+        boolean handled = handler.handleTypePropertyValue(parser, ctxt, "nonExistentProp", new Object());
         assertFalse(handled);
         parser.close();
     }
 
-    // Tests handleTypePropertyValue with unknown property name returns false
+    // Tests unknown property handling in handlePropertyValue
     @Test
-    public void testHandleTypePropertyValue_unknownProperty_returnsFalse() throws IOException {
-        JavaType javaType = MAPPER.constructType(AnimalContainer.class);
-        ExternalTypeHandler.Builder builder = ExternalTypeHandler.builder(javaType);
-        BeanPropertyMap propMap = BeanPropertyMap.construct(Collections.<SettableBeanProperty>emptyList(), false);
-        ExternalTypeHandler handler = builder.build(propMap).start();
+    public void testHandlePropertyValue_unknownProperty_returnsFalse() throws IOException {
+        JavaType javaType = TypeFactory.defaultInstance().constructType(StandardContainer.class);
+        BeanPropertyMap emptyMap = BeanPropertyMap.construct(Collections.<SettableBeanProperty>emptyList(), false, Collections.<String, List<PropertyName>>emptyMap());
+        ExternalTypeHandler handler = ExternalTypeHandler.builder(javaType).build(emptyMap).start();
 
-        JsonParser parser = MAPPER.getFactory().createParser("{\"unknown\":\"val\"}");
+        JsonParser parser = mapper.getFactory().createParser("{\"unknown\": 123}");
         parser.nextToken();
-        DeserializationContext ctxt = MAPPER.getDeserializationContext();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
 
-        boolean handled = handler.handleTypePropertyValue(parser, ctxt, "unknown", new AnimalContainer());
+        boolean handled = handler.handlePropertyValue(parser, ctxt, "nonExistentProp", new Object());
         assertFalse(handled);
         parser.close();
+    }
+
+    // Tests standard deserialization when type property comes before value property
+    @Test
+    public void testComplete_typeFirst_deserializesCorrectly() throws Exception {
+        String json = "{\"type\":\"one\",\"value\":{\"x\":42}}";
+        StandardContainer container = mapper.readValue(json, StandardContainer.class);
+
+        assertNotNull(container);
+        assertEquals("one", container.type);
+        assertTrue(container.value instanceof ImplOne);
+        assertEquals(42, ((ImplOne) container.value).x);
+    }
+
+    // Tests standard deserialization when value property comes before type property
+    @Test
+    public void testComplete_valueFirst_deserializesCorrectly() throws Exception {
+        String json = "{\"value\":{\"y\":\"hello\"},\"type\":\"two\"}";
+        StandardContainer container = mapper.readValue(json, StandardContainer.class);
+
+        assertNotNull(container);
+        assertEquals("two", container.type);
+        assertTrue(container.value instanceof ImplTwo);
+        assertEquals("hello", ((ImplTwo) container.value).y);
+    }
+
+    // Tests deserialization when value is null
+    @Test
+    public void testComplete_nullValue_handledGracefully() throws Exception {
+        String json = "{\"type\":\"one\",\"value\":null}";
+        StandardContainer container = mapper.readValue(json, StandardContainer.class);
+
+        assertNotNull(container);
+        assertEquals("one", container.type);
+        assertNull(container.value);
+    }
+
+    // Tests deserialization with creator-based class
+    @Test
+    public void testComplete_withCreatorProperties_deserializesCorrectly() throws Exception {
+        String json = "{\"type\":\"one\",\"value\":{\"x\":99}}";
+        CreatorContainer container = mapper.readValue(json, CreatorContainer.class);
+
+        assertNotNull(container);
+        assertEquals("one", container.type);
+        assertTrue(container.value instanceof ImplOne);
+        assertEquals(99, ((ImplOne) container.value).x);
+    }
+
+    // Tests deserialization with creator-based class and value before type
+    @Test
+    public void testComplete_withCreatorPropertiesValueFirst_deserializesCorrectly() throws Exception {
+        String json = "{\"value\":{\"y\":\"creator\"},\"type\":\"two\"}";
+        CreatorContainer container = mapper.readValue(json, CreatorContainer.class);
+
+        assertNotNull(container);
+        assertEquals("two", container.type);
+        assertTrue(container.value instanceof ImplTwo);
+        assertEquals("creator", ((ImplTwo) container.value).y);
+    }
+
+    // Tests defaultImpl support when type is missing for standard bean
+    @Test
+    public void testComplete_missingTypeWithDefaultImpl_usesDefault() throws Exception {
+        String json = "{\"value\":{\"x\":7}}";
+        DefaultImplContainer container = mapper.readValue(json, DefaultImplContainer.class);
+
+        assertNotNull(container);
+        assertTrue(container.value instanceof ImplOne);
+        assertEquals(7, ((ImplOne) container.value).x);
+    }
+
+    // Tests defaultImpl support when type is missing for creator-based bean
+    @Test
+    public void testComplete_missingTypeWithDefaultImplOnCreator_usesDefault() throws Exception {
+        String json = "{\"value\":{\"x\":15}}";
+        CreatorWithDefaultContainer container = mapper.readValue(json, CreatorWithDefaultContainer.class);
+
+        assertNotNull(container);
+        assertTrue(container.value instanceof ImplOne);
+        assertEquals(15, ((ImplOne) container.value).x);
+    }
+
+    // Tests exception when type is missing and no defaultImpl is configured
+    @Test(expected = JsonMappingException.class)
+    public void testComplete_missingTypeNoDefault_throwsException() throws Exception {
+        String json = "{\"value\":{\"x\":10}}";
+        mapper.readValue(json, StandardContainer.class);
+    }
+
+    // Tests multiple external properties sharing same type property
+    @Test
+    public void testComplete_multiplePropertiesSharedTypeId_deserializesBoth() throws Exception {
+        String json = "{\"type\":\"one\",\"val1\":{\"x\":1},\"val2\":{\"x\":2}}";
+        MultiPropertyContainer container = mapper.readValue(json, MultiPropertyContainer.class);
+
+        assertNotNull(container);
+        assertEquals("one", container.type);
+        assertTrue(container.val1 instanceof ImplOne);
+        assertEquals(1, ((ImplOne) container.val1).x);
+        assertTrue(container.val2 instanceof ImplOne);
+        assertEquals(2, ((ImplOne) container.val2).x);
+    }
+
+    // Tests multiple external properties when values appear before type id
+    @Test
+    public void testComplete_multiplePropertiesValuesBeforeType_deserializesBoth() throws Exception {
+        String json = "{\"val1\":{\"x\":10},\"val2\":{\"x\":20},\"type\":\"one\"}";
+        MultiPropertyContainer container = mapper.readValue(json, MultiPropertyContainer.class);
+
+        assertNotNull(container);
+        assertEquals("one", container.type);
+        assertTrue(container.val1 instanceof ImplOne);
+        assertEquals(10, ((ImplOne) container.val1).x);
+        assertTrue(container.val2 instanceof ImplOne);
+        assertEquals(2, ((ImplOne) container.val2).x);
+    }
+
+    // Tests missing property with FAIL_ON_MISSING_EXTERNAL_TYPE_ID_PROPERTY enabled throws exception
+    @Test(expected = JsonMappingException.class)
+    public void testComplete_missingValueWhenTypePresentAndFeatureEnabled_throwsException() throws Exception {
+        mapper.enable(DeserializationFeature.FAIL_ON_MISSING_EXTERNAL_TYPE_ID_PROPERTY);
+        String json = "{\"type\":\"one\"}";
+        mapper.readValue(json, StandardContainer.class);
+    }
+
+    // Tests missing property with FAIL_ON_MISSING_EXTERNAL_TYPE_ID_PROPERTY disabled succeeds
+    @Test
+    public void testComplete_missingValueWhenTypePresentAndFeatureDisabled_returnsBean() throws Exception {
+        mapper.disable(DeserializationFeature.FAIL_ON_MISSING_EXTERNAL_TYPE_ID_PROPERTY);
+        String json = "{\"type\":\"one\"}";
+        StandardContainer container = mapper.readValue(json, StandardContainer.class);
+
+        assertNotNull(container);
+        assertEquals("one", container.type);
+        assertNull(container.value);
     }
 }

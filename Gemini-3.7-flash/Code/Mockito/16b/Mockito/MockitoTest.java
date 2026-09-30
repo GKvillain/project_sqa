@@ -2,18 +2,11 @@ package org.mockito;
 
 import org.junit.After;
 import org.junit.Test;
-import org.mockito.exceptions.base.MockitoException;
 import org.mockito.exceptions.verification.NoInteractionsWanted;
-import org.mockito.exceptions.verification.TooLittleActualInvocations;
-import org.mockito.exceptions.verification.VerificationInOrderFailure;
-import org.mockito.internal.stubbing.answers.CallsRealMethods;
-import org.mockito.internal.stubbing.answers.DoesNothing;
-import org.mockito.internal.stubbing.answers.Returns;
-import org.mockito.internal.stubbing.answers.ThrowsException;
-import org.mockito.internal.verification.api.VerificationMode;
+import org.mockito.exceptions.verification.TooManyActualInvocations;
+import org.mockito.exceptions.verification.WantedButNotInvoked;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.mockito.stubbing.Stubber;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,44 +20,38 @@ public class MockitoTest {
         Mockito.validateMockitoUsage();
     }
 
-    // Tests mock creation with default answer
+    // Tests creating standard mock by class
     @Test
-    public void testMock_classOnly_createsMockObject() {
-        List<?> list = Mockito.mock(List.class);
-        assertNotNull(list);
-        assertNull(list.get(0));
+    public void testMock_class_createsMockInstance() {
+        List<?> mockList = Mockito.mock(List.class);
+        assertNotNull(mockList);
+        assertNull(mockList.get(0));
     }
 
-    // Tests mock creation with name
+    // Tests creating mock with custom name
     @Test
-    public void testMock_withName_createsMockObject() {
-        List<?> list = Mockito.mock(List.class, "myMock");
-        assertNotNull(list);
-        assertEquals("myMock", list.toString());
+    public void testMock_withName_createsMockWithName() {
+        List<?> mockList = Mockito.mock(List.class, "customName");
+        assertNotNull(mockList);
+        assertEquals("customName", mockList.toString());
     }
 
-    // Tests mock creation with custom Answer
+    // Tests creating mock with default answer
     @Test
-    public void testMock_withAnswer_usesGivenAnswer() {
-        Answer<String> dummyAnswer = new Answer<String>() {
-            public String answer(InvocationOnMock invocation) {
-                return "custom";
-            }
-        };
-        List<?> list = Mockito.mock(List.class, dummyAnswer);
-        assertEquals("custom", list.get(0));
+    public void testMock_withDefaultAnswer_usesAnswer() {
+        List<?> mockList = Mockito.mock(List.class, Mockito.RETURNS_SMART_NULLS);
+        assertNotNull(mockList);
     }
 
-    // Tests mock creation with custom MockSettings
+    // Tests creating mock with custom mock settings
     @Test
     public void testMock_withSettings_createsConfiguredMock() {
-        MockSettings settings = Mockito.withSettings().name("customNamed");
-        List<?> list = Mockito.mock(List.class, settings);
-        assertNotNull(list);
-        assertEquals("customNamed", list.toString());
+        List<?> mockList = Mockito.mock(List.class, Mockito.withSettings().name("settingsMock"));
+        assertNotNull(mockList);
+        assertEquals("settingsMock", mockList.toString());
     }
 
-    // Tests spy creation and calling real methods
+    // Tests creating a spy of a real object
     @Test
     public void testSpy_realObject_callsRealMethods() {
         List<String> realList = new ArrayList<String>();
@@ -73,171 +60,224 @@ public class MockitoTest {
         spyList.add("test");
         assertEquals(1, spyList.size());
         assertEquals("test", spyList.get(0));
-        Mockito.verify(spyList).add("test");
     }
 
-    // Tests stubbing and verification of mock interactions
+    // Tests stubbing method with return value using when/thenReturn
     @Test
-    public void testWhen_thenReturnsStubbedValue() {
-        List<String> list = Mockito.mock(List.class);
-        Mockito.when(list.get(0)).thenReturn("first");
+    public void testWhen_thenReturn_returnsStubbedValue() {
+        List<String> mockList = Mockito.mock(List.class);
+        Mockito.when(mockList.get(0)).thenReturn("first");
 
-        assertEquals("first", list.get(0));
-        assertNull(list.get(1));
-        Mockito.verify(list).get(0);
+        assertEquals("first", mockList.get(0));
+        assertNull(mockList.get(1));
     }
 
-    // Tests deprecated stub() method
-    @Test
-    public void testStub_deprecatedStubbing_returnsStubbedValue() {
-        List<String> list = Mockito.mock(List.class);
-        Mockito.stub(list.get(0)).toReturn("stubbed");
-
-        assertEquals("stubbed", list.get(0));
-    }
-
-    // Tests verification modes: times, never, atLeast, atLeastOnce, atMost, only
-    @Test
-    public void testVerify_variousVerificationModes_verifiesCorrectly() {
-        List<String> list = Mockito.mock(List.class);
-
-        list.add("one");
-        list.add("two");
-        list.add("two");
-
-        Mockito.verify(list, Mockito.times(1)).add("one");
-        Mockito.verify(list, Mockito.times(2)).add("two");
-        Mockito.verify(list, Mockito.never()).add("three");
-        Mockito.verify(list, Mockito.atLeastOnce()).add("one");
-        Mockito.verify(list, Mockito.atLeast(1)).add("two");
-        Mockito.verify(list, Mockito.atMost(2)).add("two");
-    }
-
-    // Tests verification mode only()
-    @Test
-    public void testVerify_onlyMode_verifiesSingleInvocation() {
-        List<String> list = Mockito.mock(List.class);
-        list.add("unique");
-
-        Mockito.verify(list, Mockito.only()).add("unique");
-    }
-
-    // Tests InOrder verification succeeds when calls are in order
-    @Test
-    public void testInOrder_correctOrder_verificationPasses() {
-        List<String> first = Mockito.mock(List.class);
-        List<String> second = Mockito.mock(List.class);
-
-        first.add("1");
-        second.add("2");
-
-        InOrder inOrder = Mockito.inOrder(first, second);
-        inOrder.verify(first).add("1");
-        inOrder.verify(second).add("2");
-    }
-
-    // Tests InOrder verification fails when calls are out of order
-    @Test(expected = VerificationInOrderFailure.class)
-    public void testInOrder_wrongOrder_throwsException() {
-        List<String> first = Mockito.mock(List.class);
-        List<String> second = Mockito.mock(List.class);
-
-        first.add("1");
-        second.add("2");
-
-        InOrder inOrder = Mockito.inOrder(first, second);
-        inOrder.verify(second).add("2");
-        inOrder.verify(first).add("1");
-    }
-
-    // Tests verifyZeroInteractions when no interactions happened
-    @Test
-    public void testVerifyZeroInteractions_noInteractions_succeeds() {
-        List<?> list1 = Mockito.mock(List.class);
-        List<?> list2 = Mockito.mock(List.class);
-
-        Mockito.verifyZeroInteractions(list1, list2);
-    }
-
-    // Tests verifyNoMoreInteractions throws exception when unverified interactions exist
-    @Test(expected = NoInteractionsWanted.class)
-    public void testVerifyNoMoreInteractions_unverifiedInteraction_throwsException() {
-        List<String> list = Mockito.mock(List.class);
-        list.add("unexpected");
-
-        Mockito.verifyNoMoreInteractions(list);
-    }
-
-    // Tests reset clears interactions and stubbings
-    @Test
-    public void testReset_clearsInteractionsAndStubbings() {
-        List<String> list = Mockito.mock(List.class);
-        Mockito.when(list.get(0)).thenReturn("value");
-        list.add("call");
-
-        assertEquals("value", list.get(0));
-
-        Mockito.reset(list);
-
-        assertNull(list.get(0));
-        Mockito.verifyZeroInteractions(list);
-    }
-
-    // Tests doReturn stubbing
-    @Test
-    public void testDoReturn_stubbing_returnsValue() {
-        List<String> list = Mockito.mock(List.class);
-        Mockito.doReturn("returned").when(list).get(0);
-
-        assertEquals("returned", list.get(0));
-    }
-
-    // Tests doThrow stubbing with exception
+    // Tests stubbing method with exception using when/thenThrow
     @Test(expected = IllegalArgumentException.class)
-    public void testDoThrow_stubbing_throwsExpectedException() {
-        List<String> list = Mockito.mock(List.class);
-        Mockito.doThrow(new IllegalArgumentException()).when(list).clear();
+    public void testWhen_thenThrow_throwsStubbedException() {
+        List<String> mockList = Mockito.mock(List.class);
+        Mockito.when(mockList.get(0)).thenThrow(new IllegalArgumentException());
 
-        list.clear();
+        mockList.get(0);
     }
 
-    // Tests doAnswer stubbing
+    // Tests basic verification with default times(1)
     @Test
-    public void testDoAnswer_stubbing_executesAnswer() {
-        List<String> list = Mockito.mock(List.class);
+    public void testVerify_singleInvocation_verifiesSuccessfully() {
+        List<String> mockList = Mockito.mock(List.class);
+        mockList.add("one");
+
+        Mockito.verify(mockList).add("one");
+    }
+
+    // Tests verification with explicit times count
+    @Test
+    public void testVerify_times_verifiesExactInvocations() {
+        List<String> mockList = Mockito.mock(List.class);
+        mockList.add("item");
+        mockList.add("item");
+
+        Mockito.verify(mockList, Mockito.times(2)).add("item");
+    }
+
+    // Tests verification using never mode
+    @Test
+    public void testVerify_never_verifiesZeroInvocations() {
+        List<String> mockList = Mockito.mock(List.class);
+        Mockito.verify(mockList, Mockito.never()).clear();
+    }
+
+    // Tests verification using atLeastOnce mode
+    @Test
+    public void testVerify_atLeastOnce_verifiesInvocation() {
+        List<String> mockList = Mockito.mock(List.class);
+        mockList.add("test");
+        mockList.add("test");
+
+        Mockito.verify(mockList, Mockito.atLeastOnce()).add("test");
+    }
+
+    // Tests verification using atLeast mode
+    @Test
+    public void testVerify_atLeast_verifiesMinimumInvocations() {
+        List<String> mockList = Mockito.mock(List.class);
+        mockList.add("item");
+        mockList.add("item");
+        mockList.add("item");
+
+        Mockito.verify(mockList, Mockito.atLeast(2)).add("item");
+    }
+
+    // Tests verification using atMost mode
+    @Test
+    public void testVerify_atMost_verifiesMaximumInvocations() {
+        List<String> mockList = Mockito.mock(List.class);
+        mockList.add("item");
+
+        Mockito.verify(mockList, Mockito.atMost(2)).add("item");
+    }
+
+    // Tests verification using only mode
+    @Test
+    public void testVerify_only_verifiesSingleUniqueInvocation() {
+        List<String> mockList = Mockito.mock(List.class);
+        mockList.add("item");
+
+        Mockito.verify(mockList, Mockito.only()).add("item");
+    }
+
+    // Tests verification failure when expected invocation did not happen
+    @Test(expected = WantedButNotInvoked.class)
+    public void testVerify_uninvokedMethod_throwsWantedButNotInvoked() {
+        List<String> mockList = Mockito.mock(List.class);
+        Mockito.verify(mockList).add("notCalled");
+    }
+
+    // Tests in-order verification of multiple interactions
+    @Test
+    public void testInOrder_multipleMocks_verifiesInOrder() {
+        List<String> firstMock = Mockito.mock(List.class);
+        List<String> secondMock = Mockito.mock(List.class);
+
+        firstMock.add("first");
+        secondMock.add("second");
+
+        InOrder inOrder = Mockito.inOrder(firstMock, secondMock);
+        inOrder.verify(firstMock).add("first");
+        inOrder.verify(secondMock).add("second");
+    }
+
+    // Tests stubbing using doReturn on a spy
+    @Test
+    public void testDoReturn_spyObject_returnsStubbedValue() {
+        List<String> list = new ArrayList<String>();
+        List<String> spyList = Mockito.spy(list);
+
+        Mockito.doReturn("mocked").when(spyList).get(0);
+        assertEquals("mocked", spyList.get(0));
+    }
+
+    // Tests stubbing void method using doThrow
+    @Test(expected = RuntimeException.class)
+    public void testDoThrow_voidMethod_throwsException() {
+        List<String> mockList = Mockito.mock(List.class);
+        Mockito.doThrow(new RuntimeException()).when(mockList).clear();
+
+        mockList.clear();
+    }
+
+    // Tests stubbing void method using doNothing
+    @Test
+    public void testDoNothing_voidMethod_doesNothing() {
+        List<String> mockList = Mockito.mock(List.class);
+        Mockito.doNothing().when(mockList).clear();
+
+        mockList.clear();
+        Mockito.verify(mockList).clear();
+    }
+
+    // Tests stubbing method using doAnswer
+    @Test
+    public void testDoAnswer_customAnswer_returnsAnswerResult() {
+        List<String> mockList = Mockito.mock(List.class);
         Mockito.doAnswer(new Answer<String>() {
             public String answer(InvocationOnMock invocation) {
-                return "answered";
+                return "customAnswer";
             }
-        }).when(list).get(1);
+        }).when(mockList).get(0);
 
-        assertEquals("answered", list.get(1));
+        assertEquals("customAnswer", mockList.get(0));
     }
 
-    // Tests doNothing stubbing on spy
+    // Tests calling real method on a mock using doCallRealMethod
     @Test
-    public void testDoNothing_onSpy_suppressesRealMethod() {
-        List<String> spy = Mockito.spy(new ArrayList<String>());
-        Mockito.doNothing().when(spy).clear();
-
-        spy.add("item");
-        spy.clear();
-
-        assertEquals(1, spy.size());
-    }
-
-    // Tests doCallRealMethod on mock
-    @Test
-    public void testDoCallRealMethod_onMock_callsRealImplementation() {
+    public void testDoCallRealMethod_partialMock_executesRealMethod() {
         ArrayList<String> mockList = Mockito.mock(ArrayList.class);
         Mockito.doCallRealMethod().when(mockList).size();
 
         assertEquals(0, mockList.size());
     }
 
-    // Tests debug() returns non-null debugger instance
+    // Tests reset method clearing mock stubbing and interactions
     @Test
-    public void testDebug_returnsMockitoDebugger() {
+    public void testReset_stubbedMock_clearsStubbingAndInteractions() {
+        List<String> mockList = Mockito.mock(List.class);
+        Mockito.when(mockList.get(0)).thenReturn("stubbed");
+        mockList.get(0);
+
+        Mockito.reset(mockList);
+
+        assertNull(mockList.get(0));
+        Mockito.verify(mockList, Mockito.never()).get(0);
+    }
+
+    // Tests verifyZeroInteractions when no interaction occurred
+    @Test
+    public void testVerifyZeroInteractions_noInvocations_succeeds() {
+        List<String> mockList1 = Mockito.mock(List.class);
+        List<String> mockList2 = Mockito.mock(List.class);
+
+        Mockito.verifyZeroInteractions(mockList1, mockList2);
+    }
+
+    // Tests verifyZeroInteractions throws exception when unexpected interaction occurred
+    @Test(expected = NoInteractionsWanted.class)
+    public void testVerifyZeroInteractions_withInvocation_throwsException() {
+        List<String> mockList = Mockito.mock(List.class);
+        mockList.add("interaction");
+
+        Mockito.verifyZeroInteractions(mockList);
+    }
+
+    // Tests verifyNoMoreInteractions after verifying all interactions
+    @Test
+    public void testVerifyNoMoreInteractions_allInteractionsVerified_succeeds() {
+        List<String> mockList = Mockito.mock(List.class);
+        mockList.add("test");
+
+        Mockito.verify(mockList).add("test");
+        Mockito.verifyNoMoreInteractions(mockList);
+    }
+
+    // Tests deprecated stub method
+    @Test
+    public void testStub_deprecatedStubbing_returnsConfiguredValue() {
+        List<String> mockList = Mockito.mock(List.class);
+        Mockito.stub(mockList.get(0)).toReturn("val");
+
+        assertEquals("val", mockList.get(0));
+    }
+
+    // Tests withSettings factory method
+    @Test
+    public void testWithSettings_returnsNonNullMockSettings() {
+        MockSettings settings = Mockito.withSettings();
+        assertNotNull(settings);
+    }
+
+    // Tests debug factory method
+    @Test
+    public void testDebug_returnsNonNullDebugger() {
         MockitoDebugger debugger = Mockito.debug();
         assertNotNull(debugger);
     }

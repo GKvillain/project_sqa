@@ -1,203 +1,169 @@
 package org.mockito.internal.stubbing.answers;
 
+import org.junit.Test;
+import org.mockito.exceptions.base.MockitoException;
+import org.mockito.invocation.InvocationOnMock;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Method;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.exceptions.base.MockitoException;
-import org.mockito.invocation.InvocationOnMock;
 
 import static org.junit.Assert.*;
 
 public class CallsRealMethodsTest {
 
-    private CallsRealMethods callsRealMethods;
+    // Tests normal case where real method returns a valid string object
+    @Test
+    public void testAnswer_validReturnValue_returnsExpectedObject() throws Throwable {
+        CallsRealMethods answer = new CallsRealMethods();
+        InvocationOnMock invocation = new DummyInvocation("expectedResult", null);
 
-    @Before
-    public void setUp() {
-        callsRealMethods = new CallsRealMethods();
+        Object result = answer.answer(invocation);
+
+        assertEquals("expectedResult", result);
     }
 
-    // Tests normal case where callRealMethod returns an object
+    // Tests normal case where real method returns null
     @Test
-    public void testAnswer_invocationReturnsValue_returnsSameValue() throws Throwable {
-        final Object expectedResult = "realResult";
-        InvocationOnMock invocation = new DummyInvocation() {
-            @Override
-            public Object callRealMethod() throws Throwable {
-                return expectedResult;
-            }
-        };
+    public void testAnswer_nullReturnValue_returnsNull() throws Throwable {
+        CallsRealMethods answer = new CallsRealMethods();
+        InvocationOnMock invocation = new DummyInvocation(null, null);
 
-        Object result = callsRealMethods.answer(invocation);
-        assertEquals(expectedResult, result);
-    }
+        Object result = answer.answer(invocation);
 
-    // Tests normal case where callRealMethod returns null
-    @Test
-    public void testAnswer_invocationReturnsNull_returnsNull() throws Throwable {
-        InvocationOnMock invocation = new DummyInvocation() {
-            @Override
-            public Object callRealMethod() throws Throwable {
-                return null;
-            }
-        };
-
-        Object result = callsRealMethods.answer(invocation);
         assertNull(result);
     }
 
-    // Tests normal case where callRealMethod returns integer primitive wrapper
+    // Tests normal case where real method returns primitive wrapper / number
     @Test
-    public void testAnswer_invocationReturnsInteger_returnsInteger() throws Throwable {
-        final Integer expectedResult = 42;
-        InvocationOnMock invocation = new DummyInvocation() {
-            @Override
-            public Object callRealMethod() throws Throwable {
-                return expectedResult;
-            }
-        };
+    public void testAnswer_numericReturnValue_returnsCorrectNumber() throws Throwable {
+        CallsRealMethods answer = new CallsRealMethods();
+        InvocationOnMock invocation = new DummyInvocation(42, null);
 
-        Object result = callsRealMethods.answer(invocation);
-        assertEquals(expectedResult, result);
+        Object result = answer.answer(invocation);
+
+        assertEquals(42, result);
     }
 
-    // Tests exception path when callRealMethod throws a checked exception
-    @Test(expected = Exception.class)
-    public void testAnswer_invocationThrowsCheckedException_propagatesException() throws Throwable {
-        InvocationOnMock invocation = new DummyInvocation() {
-            @Override
-            public Object callRealMethod() throws Throwable {
-                throw new Exception("Checked exception from real method");
-            }
-        };
+    // Tests edge case where real method returns boolean value true
+    @Test
+    public void testAnswer_booleanReturnValue_returnsTrue() throws Throwable {
+        CallsRealMethods answer = new CallsRealMethods();
+        InvocationOnMock invocation = new DummyInvocation(Boolean.TRUE, null);
 
-        callsRealMethods.answer(invocation);
+        Object result = answer.answer(invocation);
+
+        assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests exception path when callRealMethod throws a runtime exception
+    // Tests exception path where real method throws a RuntimeException
     @Test(expected = RuntimeException.class)
-    public void testAnswer_invocationThrowsRuntimeException_propagatesException() throws Throwable {
-        InvocationOnMock invocation = new DummyInvocation() {
-            @Override
-            public Object callRealMethod() throws Throwable {
-                throw new RuntimeException("Runtime exception from real method");
-            }
-        };
+    public void testAnswer_realMethodThrowsRuntimeException_propagatesRuntimeException() throws Throwable {
+        CallsRealMethods answer = new CallsRealMethods();
+        InvocationOnMock invocation = new DummyInvocation(null, new RuntimeException("runtime error"));
 
-        callsRealMethods.answer(invocation);
+        answer.answer(invocation);
     }
 
-    // Tests exception path when callRealMethod throws an Error
-    @Test(expected = AssertionError.class)
-    public void testAnswer_invocationThrowsError_propagatesError() throws Throwable {
-        InvocationOnMock invocation = new DummyInvocation() {
-            @Override
-            public Object callRealMethod() throws Throwable {
-                throw new AssertionError("Assertion error from real method");
-            }
-        };
+    // Tests exception path where real method throws a checked Exception
+    @Test(expected = Exception.class)
+    public void testAnswer_realMethodThrowsCheckedException_propagatesException() throws Throwable {
+        CallsRealMethods answer = new CallsRealMethods();
+        InvocationOnMock invocation = new DummyInvocation(null, new Exception("checked exception"));
 
-        callsRealMethods.answer(invocation);
+        answer.answer(invocation);
     }
 
-    // Tests invalid null invocation input
+    // Tests exception path where real method throws an Error
+    @Test(expected = Error.class)
+    public void testAnswer_realMethodThrowsError_propagatesError() throws Throwable {
+        CallsRealMethods answer = new CallsRealMethods();
+        InvocationOnMock invocation = new DummyInvocation(null, new Error("fatal error"));
+
+        answer.answer(invocation);
+    }
+
+    // Tests edge case where invocation parameter is null
     @Test(expected = NullPointerException.class)
     public void testAnswer_nullInvocation_throwsNullPointerException() throws Throwable {
-        callsRealMethods.answer(null);
+        CallsRealMethods answer = new CallsRealMethods();
+        answer.answer(null);
     }
 
-    // Tests serialization and deserialization of CallsRealMethods
+    // Tests serialization and deserialization of CallsRealMethods instance
     @Test
-    public void testSerialization_serializedAndDeserialized_behavesCorrectly() throws Exception {
+    public void testSerialization_deserializedObject_answersCorrectly() throws Throwable {
+        CallsRealMethods answer = new CallsRealMethods();
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(callsRealMethods);
+        oos.writeObject(answer);
+        oos.flush();
         oos.close();
 
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         ObjectInputStream ois = new ObjectInputStream(bais);
-        Object deserialized = ois.readObject();
+        CallsRealMethods deserializedAnswer = (CallsRealMethods) ois.readObject();
+        ois.close();
 
-        assertNotNull(deserialized);
-        assertTrue(deserialized instanceof CallsRealMethods);
-
-        CallsRealMethods deserializedAnswer = (CallsRealMethods) deserialized;
-        InvocationOnMock invocation = new DummyInvocation() {
-            @Override
-            public Object callRealMethod() throws Throwable {
-                return "deserializedOk";
-            }
-        };
-
-        try {
-            assertEquals("deserializedOk", deserializedAnswer.answer(invocation));
-        } catch (Throwable t) {
-            fail("Should not throw exception: " + t.getMessage());
-        }
+        assertNotNull(deserializedAnswer);
+        InvocationOnMock invocation = new DummyInvocation("deserializedResult", null);
+        assertEquals("deserializedResult", deserializedAnswer.answer(invocation));
     }
 
-    // Tests exception path when method is abstract
-    @Test(expected = MockitoException.class)
-    public void testAnswer_abstractMethod_throwsCannotCallAbstractRealMethodException() throws Throwable {
-        final Method abstractMethod = DummyInterface.class.getMethod("abstractMethod");
-        InvocationOnMock invocation = new DummyInvocation() {
-            @Override
-            public Method getMethod() {
-                return abstractMethod;
-            }
-
-            @Override
-            public Object callRealMethod() throws Throwable {
-                return "shouldNotBeCalled";
-            }
-        };
-
-        callsRealMethods.answer(invocation);
-    }
-
-    // Tests normal case with explicitly provided concrete method
+    // Tests validateFor when invocation method is concrete (non-abstract)
     @Test
-    public void testAnswer_concreteMethod_callsRealMethod() throws Throwable {
-        final Method concreteMethod = DummyClass.class.getMethod("concreteMethod");
-        InvocationOnMock invocation = new DummyInvocation() {
-            @Override
-            public Method getMethod() {
-                return concreteMethod;
-            }
+    public void testValidateFor_concreteMethod_doesNotThrow() throws Exception {
+        CallsRealMethods answer = new CallsRealMethods();
+        Method concreteMethod = SampleClass.class.getMethod("concreteMethod");
+        InvocationOnMock invocation = new DummyInvocation(new SampleClass(), concreteMethod, null, null);
 
-            @Override
-            public Object callRealMethod() throws Throwable {
-                return "concreteResult";
-            }
-        };
-
-        Object result = callsRealMethods.answer(invocation);
-        assertEquals("concreteResult", result);
+        answer.validateFor(invocation);
     }
 
-    private interface DummyInterface {
+    // Tests validateFor when invocation method is abstract
+    @Test(expected = MockitoException.class)
+    public void testValidateFor_abstractMethod_throwsMockitoException() throws Exception {
+        CallsRealMethods answer = new CallsRealMethods();
+        Method abstractMethod = SampleInterface.class.getMethod("abstractMethod");
+        InvocationOnMock invocation = new DummyInvocation(null, abstractMethod, null, null);
+
+        answer.validateFor(invocation);
+    }
+
+    private interface SampleInterface {
         void abstractMethod();
     }
 
-    private static class DummyClass {
+    private static class SampleClass {
         public void concreteMethod() {}
     }
 
     private static class DummyInvocation implements InvocationOnMock {
+        private final Object mock;
+        private final Method method;
+        private final Object returnValue;
+        private final Throwable throwableToThrow;
+
+        public DummyInvocation(Object returnValue, Throwable throwableToThrow) {
+            this(null, null, returnValue, throwableToThrow);
+        }
+
+        public DummyInvocation(Object mock, Method method, Object returnValue, Throwable throwableToThrow) {
+            this.mock = mock;
+            this.method = method;
+            this.returnValue = returnValue;
+            this.throwableToThrow = throwableToThrow;
+        }
+
         public Object getMock() {
-            return null;
+            return mock;
         }
 
         public Method getMethod() {
-            try {
-                return DummyClass.class.getMethod("concreteMethod");
-            } catch (NoSuchMethodException e) {
-                return null;
-            }
+            return method;
         }
 
         public Object[] getArguments() {
@@ -205,11 +171,19 @@ public class CallsRealMethodsTest {
         }
 
         public Object callRealMethod() throws Throwable {
-            return null;
+            if (throwableToThrow != null) {
+                throw throwableToThrow;
+            }
+            return returnValue;
         }
 
-        public <T> T getArgumentAt(int index, Class<T> clazz) {
-            return null;
+        @SuppressWarnings("unchecked")
+        public <T> T getArgument(int index) {
+            return (T) getArguments()[index];
+        }
+
+        public <T> T getArgument(int index, Class<T> clazz) {
+            return clazz.cast(getArgument(index));
         }
     }
 }

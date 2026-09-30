@@ -2,6 +2,8 @@ package org.apache.commons.lang3;
 
 import org.junit.Test;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -17,182 +19,173 @@ import static org.junit.Assert.assertTrue;
  */
 public class LocaleUtilsTest {
 
-    // Tests constructor execution
+    private static final Locale LOCALE_EN = new Locale("en", "");
+    private static final Locale LOCALE_EN_US = new Locale("en", "US");
+    private static final Locale LOCALE_EN_US_WIN = new Locale("en", "US", "WIN");
+    private static final Locale LOCALE_FR = new Locale("fr", "");
+
+    // Tests public constructor
     @Test
-    public void testConstructor_default_instantiatesSuccessfully() {
+    public void testConstructor_isPublic() throws Exception {
         assertNotNull(new LocaleUtils());
+        Constructor<LocaleUtils> constructor = LocaleUtils.class.getConstructor();
+        assertTrue(Modifier.isPublic(constructor.getModifiers()));
     }
 
-    // Tests null input for toLocale
+    // Tests null string input returns null
     @Test
     public void testToLocale_nullInput_returnsNull() {
         assertNull(LocaleUtils.toLocale(null));
     }
 
-    // Tests language only input for toLocale
+    // Tests language only valid conversion
     @Test
     public void testToLocale_languageOnly_returnsLocale() {
-        final Locale locale = LocaleUtils.toLocale("en");
-        assertNotNull(locale);
-        assertEquals("en", locale.getLanguage());
-        assertEquals("", locale.getCountry());
-        assertEquals("", locale.getVariant());
+        assertEquals(new Locale("us"), LocaleUtils.toLocale("us"));
+        assertEquals(new Locale("fr"), LocaleUtils.toLocale("fr"));
+        assertEquals(new Locale("de"), LocaleUtils.toLocale("de"));
     }
 
-    // Tests language and country input for toLocale
+    // Tests language and country valid conversion
     @Test
     public void testToLocale_languageAndCountry_returnsLocale() {
-        final Locale locale = LocaleUtils.toLocale("en_US");
-        assertNotNull(locale);
-        assertEquals("en", locale.getLanguage());
-        assertEquals("US", locale.getCountry());
-        assertEquals("", locale.getVariant());
+        assertEquals(LOCALE_EN_US, LocaleUtils.toLocale("en_US"));
+        assertEquals(new Locale("fr", "CA"), LocaleUtils.toLocale("fr_CA"));
     }
 
-    // Tests language, country, and variant input for toLocale
+    // Tests language, country and variant valid conversion
     @Test
-    public void testToLocale_languageCountryAndVariant_returnsLocale() {
-        final Locale locale = LocaleUtils.toLocale("en_US_WIN");
-        assertNotNull(locale);
-        assertEquals("en", locale.getLanguage());
-        assertEquals("US", locale.getCountry());
-        assertEquals("WIN", locale.getVariant());
+    public void testToLocale_languageCountryVariant_returnsLocale() {
+        assertEquals(LOCALE_EN_US_WIN, LocaleUtils.toLocale("en_US_WIN"));
     }
 
-    // Tests language with variant only (empty country) for toLocale
+    // Tests language and variant with empty country
     @Test
     public void testToLocale_languageAndVariantOnly_returnsLocale() {
-        final Locale locale = LocaleUtils.toLocale("en__POSIX");
-        assertNotNull(locale);
-        assertEquals("en", locale.getLanguage());
-        assertEquals("", locale.getCountry());
-        assertEquals("POSIX", locale.getVariant());
+        assertEquals(new Locale("en", "", "POSIX"), LocaleUtils.toLocale("en__POSIX"));
     }
 
-    // Tests toLocale with invalid length less than 2
-    @Test(expected = IllegalArgumentException.class)
-    public void testToLocale_lengthLessThanTwo_throwsException() {
-        LocaleUtils.toLocale("a");
+    // Tests locales starting with underscore (Defects4J Lang-5 bug)
+    @Test
+    public void testToLocale_startsUnderscore_returnsLocale() {
+        assertEquals(new Locale("", "GB"), LocaleUtils.toLocale("_GB"));
+        assertEquals(new Locale("", "GB", "xxx"), LocaleUtils.toLocale("_GB_xxx"));
+        assertEquals(new Locale("", "", "POSIX"), LocaleUtils.toLocale("___POSIX"));
     }
 
-    // Tests toLocale with uppercase character in language code
+    // Tests invalid length less than 2
     @Test(expected = IllegalArgumentException.class)
-    public void testToLocale_invalidLanguageCase_throwsException() {
-        LocaleUtils.toLocale("En");
+    public void testToLocale_lengthLessThan2_throwsException() {
+        LocaleUtils.toLocale("u");
     }
 
-    // Tests toLocale with length between 2 and 5
+    // Tests invalid uppercase in language code
     @Test(expected = IllegalArgumentException.class)
-    public void testToLocale_invalidLengthBetweenTwoAndFive_throwsException() {
-        LocaleUtils.toLocale("en_U");
+    public void testToLocale_uppercaseLanguage_throwsException() {
+        LocaleUtils.toLocale("Us_US");
     }
 
-    // Tests toLocale with invalid separator at position 2
+    // Tests invalid length between 2 and 5
     @Test(expected = IllegalArgumentException.class)
-    public void testToLocale_invalidSeparatorAtTwo_throwsException() {
-        LocaleUtils.toLocale("en-US");
+    public void testToLocale_invalidLength3_throwsException() {
+        LocaleUtils.toLocale("usa");
     }
 
-    // Tests toLocale with lowercase character in country code
+    // Tests missing separator at index 2
     @Test(expected = IllegalArgumentException.class)
-    public void testToLocale_invalidCountryCase_throwsException() {
+    public void testToLocale_missingSeparatorAt2_throwsException() {
+        LocaleUtils.toLocale("en#US");
+    }
+
+    // Tests lowercase country code
+    @Test(expected = IllegalArgumentException.class)
+    public void testToLocale_lowercaseCountry_throwsException() {
         LocaleUtils.toLocale("en_us");
     }
 
-    // Tests toLocale with invalid length between 5 and 7
+    // Tests invalid length 6 for country and variant
     @Test(expected = IllegalArgumentException.class)
-    public void testToLocale_invalidLengthBetweenFiveAndSeven_throwsException() {
+    public void testToLocale_invalidLength6_throwsException() {
         LocaleUtils.toLocale("en_US_");
     }
 
-    // Tests toLocale with invalid separator at position 5
+    // Tests missing separator at index 5
     @Test(expected = IllegalArgumentException.class)
-    public void testToLocale_invalidSeparatorAtFive_throwsException() {
-        LocaleUtils.toLocale("en_US-WIN");
+    public void testToLocale_missingSeparatorAt5_throwsException() {
+        LocaleUtils.toLocale("en_US#WIN");
     }
 
-    // Tests localeLookupList with null input
+    // Tests locale lookup list single parameter
+    @Test
+    public void testLocaleLookupList_singleParam_returnsHierarchicalList() {
+        List<Locale> list = LocaleUtils.localeLookupList(LOCALE_EN_US_WIN);
+        assertEquals(3, list.size());
+        assertEquals(LOCALE_EN_US_WIN, list.get(0));
+        assertEquals(LOCALE_EN_US, list.get(1));
+        assertEquals(LOCALE_EN, list.get(2));
+    }
+
+    // Tests locale lookup list with default locale fallback
+    @Test
+    public void testLocaleLookupList_withDefaultLocale_containsDefault() {
+        List<Locale> list = LocaleUtils.localeLookupList(LOCALE_EN_US, LOCALE_FR);
+        assertEquals(3, list.size());
+        assertEquals(LOCALE_EN_US, list.get(0));
+        assertEquals(LOCALE_EN, list.get(1));
+        assertEquals(LOCALE_FR, list.get(2));
+    }
+
+    // Tests locale lookup list with null input
     @Test
     public void testLocaleLookupList_nullLocale_returnsEmptyList() {
-        final List<Locale> list = LocaleUtils.localeLookupList(null);
+        List<Locale> list = LocaleUtils.localeLookupList(null, LOCALE_EN);
         assertNotNull(list);
-        assertEquals(0, list.size());
+        assertTrue(list.isEmpty());
     }
 
-    // Tests localeLookupList with full language, country, variant and fallback default
+    // Tests available locales list and set
     @Test
-    public void testLocaleLookupList_fullLocaleWithDefault_returnsHierarchy() {
-        final Locale locale = new Locale("fr", "CA", "xxx");
-        final Locale defaultLocale = new Locale("en");
-        final List<Locale> list = LocaleUtils.localeLookupList(locale, defaultLocale);
-
-        assertEquals(4, list.size());
-        assertEquals(locale, list.get(0));
-        assertEquals(new Locale("fr", "CA"), list.get(1));
-        assertEquals(new Locale("fr", ""), list.get(2));
-        assertEquals(defaultLocale, list.get(3));
-    }
-
-    // Tests localeLookupList when default locale is already in hierarchy
-    @Test
-    public void testLocaleLookupList_defaultAlreadyPresent_doesNotDuplicate() {
-        final Locale locale = new Locale("fr", "CA");
-        final Locale defaultLocale = new Locale("fr");
-        final List<Locale> list = LocaleUtils.localeLookupList(locale, defaultLocale);
-
-        assertEquals(2, list.size());
-        assertEquals(locale, list.get(0));
-        assertEquals(new Locale("fr", ""), list.get(1));
-    }
-
-    // Tests availableLocaleList and availableLocaleSet
-    @Test
-    public void testAvailableLocales_returnsValidCollections() {
-        final List<Locale> list = LocaleUtils.availableLocaleList();
-        final Set<Locale> set = LocaleUtils.availableLocaleSet();
-
+    public void testAvailableLocaleListAndSet_valid_returnsLocales() {
+        List<Locale> list = LocaleUtils.availableLocaleList();
+        Set<Locale> set = LocaleUtils.availableLocaleSet();
         assertNotNull(list);
         assertNotNull(set);
         assertFalse(list.isEmpty());
         assertEquals(list.size(), set.size());
-        assertTrue(LocaleUtils.isAvailableLocale(Locale.ENGLISH));
+    }
+
+    // Tests isAvailableLocale method
+    @Test
+    public void testIsAvailableLocale_existingAndNonExisting_returnsCorrectBoolean() {
+        assertTrue(LocaleUtils.isAvailableLocale(Locale.US));
         assertFalse(LocaleUtils.isAvailableLocale(new Locale("xx", "YY")));
     }
 
-    // Tests languagesByCountry with null and valid country
+    // Tests languagesByCountry method and caching
     @Test
-    public void testLanguagesByCountry_nullAndValid_returnsExpected() {
+    public void testLanguagesByCountry_validAndNull_returnsExpected() {
         assertTrue(LocaleUtils.languagesByCountry(null).isEmpty());
+        List<Locale> usLangs = LocaleUtils.languagesByCountry("US");
+        assertNotNull(usLangs);
+        assertFalse(usLangs.isEmpty());
+        assertTrue(usLangs.contains(new Locale("en", "US")));
 
-        final List<Locale> usLocales = LocaleUtils.languagesByCountry("US");
-        assertNotNull(usLocales);
-        assertFalse(usLocales.isEmpty());
-        for (Locale loc : usLocales) {
-            assertEquals("US", loc.getCountry());
-            assertTrue(loc.getVariant().isEmpty());
-        }
-
-        // Test caching mechanism
-        final List<Locale> cachedUsLocales = LocaleUtils.languagesByCountry("US");
-        assertEquals(usLocales, cachedUsLocales);
+        // Cached lookup
+        List<Locale> usLangsCached = LocaleUtils.languagesByCountry("US");
+        assertEquals(usLangs, usLangsCached);
     }
 
-    // Tests countriesByLanguage with null and valid language
+    // Tests countriesByLanguage method and caching
     @Test
-    public void testCountriesByLanguage_nullAndValid_returnsExpected() {
+    public void testCountriesByLanguage_validAndNull_returnsExpected() {
         assertTrue(LocaleUtils.countriesByLanguage(null).isEmpty());
+        List<Locale> enCountries = LocaleUtils.countriesByLanguage("en");
+        assertNotNull(enCountries);
+        assertFalse(enCountries.isEmpty());
+        assertTrue(enCountries.contains(new Locale("en", "US")));
 
-        final List<Locale> enLocales = LocaleUtils.countriesByLanguage("en");
-        assertNotNull(enLocales);
-        assertFalse(enLocales.isEmpty());
-        for (Locale loc : enLocales) {
-            assertEquals("en", loc.getLanguage());
-            assertFalse(loc.getCountry().isEmpty());
-            assertTrue(loc.getVariant().isEmpty());
-        }
-
-        // Test caching mechanism
-        final List<Locale> cachedEnLocales = LocaleUtils.countriesByLanguage("en");
-        assertEquals(enLocales, cachedEnLocales);
+        // Cached lookup
+        List<Locale> enCountriesCached = LocaleUtils.countriesByLanguage("en");
+        assertEquals(enCountries, enCountriesCached);
     }
 }

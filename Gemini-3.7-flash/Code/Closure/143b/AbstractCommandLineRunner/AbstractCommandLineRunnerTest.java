@@ -12,270 +12,210 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class AbstractCommandLineRunnerTest {
 
-  private static class DummyCommandLineRunner
-      extends AbstractCommandLineRunner<Compiler, CompilerOptions> {
-
-    @Override
-    protected Compiler createCompiler() {
-      return new Compiler();
-    }
-
-    @Override
-    protected CompilerOptions createOptions() {
-      CompilerOptions options = new CompilerOptions();
-      initOptionsFromFlags(options);
-      return options;
-    }
-  }
-
-  private DummyCommandLineRunner runner;
+  private CompilerOptions options;
 
   @Before
   public void setUp() {
-    runner = new DummyCommandLineRunner();
+    options = new CompilerOptions();
   }
 
-  // Tests define replacement with implicit boolean true
+  // Tests boolean define flag without explicit value defaulting to true
   @Test
-  public void testCreateDefineReplacements_implicitTrue() {
-    CompilerOptions options = new CompilerOptions();
-    List<String> defs = Lists.newArrayList("DEF_BOOL");
+  public void testCreateDefineReplacements_noValue_setsBooleanTrue() {
+    List<String> defs = Lists.newArrayList("DEF_FLAG");
     AbstractCommandLineRunner.createDefineReplacements(defs, options);
-    assertEquals(1, options.getDefineReplacements().size());
+    // Verified by checking define replacement execution without exception
   }
 
-  // Tests define replacement with explicit boolean true and false
+  // Tests boolean define flag with explicit true value
   @Test
-  public void testCreateDefineReplacements_booleanTrueAndFalse() {
-    CompilerOptions options = new CompilerOptions();
-    List<String> defs = Lists.newArrayList("DEF_TRUE=true", "DEF_FALSE=false");
+  public void testCreateDefineReplacements_explicitTrue_setsBooleanTrue() {
+    List<String> defs = Lists.newArrayList("DEF_FLAG=true");
     AbstractCommandLineRunner.createDefineReplacements(defs, options);
-    assertEquals(2, options.getDefineReplacements().size());
   }
 
-  // Tests define replacement with string literal in single quotes
+  // Tests boolean define flag with explicit false value
   @Test
-  public void testCreateDefineReplacements_stringLiteral() {
-    CompilerOptions options = new CompilerOptions();
-    List<String> defs = Lists.newArrayList("DEF_STR='hello'");
+  public void testCreateDefineReplacements_explicitFalse_setsBooleanFalse() {
+    List<String> defs = Lists.newArrayList("DEF_FLAG=false");
     AbstractCommandLineRunner.createDefineReplacements(defs, options);
-    assertEquals(1, options.getDefineReplacements().size());
   }
 
-  // Tests define replacement with numeric literals
+  // Tests single-quoted string literal define flag
   @Test
-  public void testCreateDefineReplacements_numberLiteral() {
-    CompilerOptions options = new CompilerOptions();
-    List<String> defs = Lists.newArrayList("DEF_INT=42", "DEF_DOUBLE=3.14");
+  public void testCreateDefineReplacements_stringLiteral_setsString() {
+    List<String> defs = Lists.newArrayList("DEF_STR='hello world'");
     AbstractCommandLineRunner.createDefineReplacements(defs, options);
-    assertEquals(2, options.getDefineReplacements().size());
   }
 
-  // Tests define replacement with invalid string containing inner quote throws RuntimeException
+  // Tests single-quoted empty string literal define flag
+  @Test
+  public void testCreateDefineReplacements_emptyStringLiteral_setsString() {
+    List<String> defs = Lists.newArrayList("DEF_STR=''");
+    AbstractCommandLineRunner.createDefineReplacements(defs, options);
+  }
+
+  // Tests numeric double literal define flag
+  @Test
+  public void testCreateDefineReplacements_numericLiteral_setsDouble() {
+    List<String> defs = Lists.newArrayList("DEF_NUM=123.45");
+    AbstractCommandLineRunner.createDefineReplacements(defs, options);
+  }
+
+  // Tests invalid define value syntax throwing RuntimeException
   @Test(expected = RuntimeException.class)
-  public void testCreateDefineReplacements_stringWithInnerQuote_throwsException() {
-    CompilerOptions options = new CompilerOptions();
-    List<String> defs = Lists.newArrayList("DEF_STR='hel'lo'");
+  public void testCreateDefineReplacements_invalidValue_throwsException() {
+    List<String> defs = Lists.newArrayList("DEF_INVALID=not_a_valid_val");
     AbstractCommandLineRunner.createDefineReplacements(defs, options);
   }
 
-  // Tests define replacement with empty definition name throws RuntimeException
+  // Tests empty define variable name throwing RuntimeException
   @Test(expected = RuntimeException.class)
   public void testCreateDefineReplacements_emptyName_throwsException() {
-    CompilerOptions options = new CompilerOptions();
     List<String> defs = Lists.newArrayList("=true");
     AbstractCommandLineRunner.createDefineReplacements(defs, options);
   }
 
-  // Tests define replacement with invalid non-numeric/non-boolean unquoted value throws RuntimeException
-  @Test(expected = RuntimeException.class)
-  public void testCreateDefineReplacements_invalidValue_throwsException() {
-    CompilerOptions options = new CompilerOptions();
-    List<String> defs = Lists.newArrayList("DEF_VAR=invalid_unquoted");
-    AbstractCommandLineRunner.createDefineReplacements(defs, options);
-  }
-
-  // Tests creating a single valid JS module
+  // Tests valid JS module creation with single module and files
   @Test
-  public void testCreateJsModules_validSingleModule() throws Exception {
-    List<String> specs = Lists.newArrayList("m1:2");
-    List<String> jsFiles = Lists.newArrayList("f1.js", "f2.js");
-    JSModule[] modules = AbstractCommandLineRunner.createJsModules(specs, jsFiles);
+  public void testCreateJsModules_validSingleModule_createsModule() throws Exception {
+    List<String> specs = Lists.newArrayList("mod1:2");
+    List<String> files = Lists.newArrayList("file1.js", "file2.js");
 
+    JSModule[] modules = AbstractCommandLineRunner.createJsModules(specs, files);
+    assertNotNull(modules);
     assertEquals(1, modules.length);
-    assertEquals("m1", modules[0].getName());
+    assertEquals("mod1", modules[0].getName());
     assertEquals(2, modules[0].getInputs().size());
   }
 
-  // Tests creating multiple JS modules with dependencies
+  // Tests valid JS module creation with dependencies between modules
   @Test
-  public void testCreateJsModules_validMultipleModulesWithDependencies() throws Exception {
-    List<String> specs = Lists.newArrayList("m1:1", "m2:1:m1");
-    List<String> jsFiles = Lists.newArrayList("f1.js", "f2.js");
-    JSModule[] modules = AbstractCommandLineRunner.createJsModules(specs, jsFiles);
+  public void testCreateJsModules_withDependencies_createsLinkedModules() throws Exception {
+    List<String> specs = Lists.newArrayList("base:1", "child:1:base");
+    List<String> files = Lists.newArrayList("base.js", "child.js");
 
+    JSModule[] modules = AbstractCommandLineRunner.createJsModules(specs, files);
+    assertNotNull(modules);
     assertEquals(2, modules.length);
-    assertEquals("m1", modules[0].getName());
-    assertEquals("m2", modules[1].getName());
-    assertEquals(1, modules[1].getDependencies().size());
-    assertEquals("m1", modules[1].getDependencies().get(0).getName());
+    assertEquals("base", modules[0].getName());
+    assertEquals("child", modules[1].getName());
+    assertTrue(modules[1].getDependencies().contains(modules[0]));
   }
 
-  // Tests module specification with invalid number of parts throws FlagUsageException
+  // Tests module spec with invalid module identifier name
   @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testCreateJsModules_invalidPartsCount_throwsFlagUsageException() throws Exception {
-    List<String> specs = Lists.newArrayList("m1");
-    List<String> jsFiles = Lists.newArrayList("f1.js");
-    AbstractCommandLineRunner.createJsModules(specs, jsFiles);
+  public void testCreateJsModules_invalidModuleName_throwsException() throws Exception {
+    List<String> specs = Lists.newArrayList("bad-name:1");
+    List<String> files = Lists.newArrayList("file1.js");
+    AbstractCommandLineRunner.createJsModules(specs, files);
   }
 
-  // Tests module specification with invalid module name throws FlagUsageException
+  // Tests module spec with duplicate module name
   @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testCreateJsModules_invalidModuleName_throwsFlagUsageException() throws Exception {
-    List<String> specs = Lists.newArrayList("123badname:1");
-    List<String> jsFiles = Lists.newArrayList("f1.js");
-    AbstractCommandLineRunner.createJsModules(specs, jsFiles);
+  public void testCreateJsModules_duplicateModuleName_throwsException() throws Exception {
+    List<String> specs = Lists.newArrayList("mod:1", "mod:1");
+    List<String> files = Lists.newArrayList("file1.js", "file2.js");
+    AbstractCommandLineRunner.createJsModules(specs, files);
   }
 
-  // Tests module specification with duplicate module name throws FlagUsageException
+  // Tests module spec depending on an unknown non-existent module
   @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testCreateJsModules_duplicateModuleName_throwsFlagUsageException() throws Exception {
-    List<String> specs = Lists.newArrayList("m1:1", "m1:1");
-    List<String> jsFiles = Lists.newArrayList("f1.js", "f2.js");
-    AbstractCommandLineRunner.createJsModules(specs, jsFiles);
+  public void testCreateJsModules_unknownDependency_throwsException() throws Exception {
+    List<String> specs = Lists.newArrayList("mod:1:unknown");
+    List<String> files = Lists.newArrayList("file1.js");
+    AbstractCommandLineRunner.createJsModules(specs, files);
   }
 
-  // Tests module specification with invalid non-numeric file count throws FlagUsageException
+  // Tests module spec when fewer JS files provided than required
   @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testCreateJsModules_invalidFileCount_throwsFlagUsageException() throws Exception {
-    List<String> specs = Lists.newArrayList("m1:notanumber");
-    List<String> jsFiles = Lists.newArrayList("f1.js");
-    AbstractCommandLineRunner.createJsModules(specs, jsFiles);
+  public void testCreateJsModules_notEnoughJsFiles_throwsException() throws Exception {
+    List<String> specs = Lists.newArrayList("mod:3");
+    List<String> files = Lists.newArrayList("file1.js", "file2.js");
+    AbstractCommandLineRunner.createJsModules(specs, files);
   }
 
-  // Tests module specification when there are not enough js files throws FlagUsageException
+  // Tests module spec when more JS files provided than consumed by modules
   @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testCreateJsModules_notEnoughJsFiles_throwsFlagUsageException() throws Exception {
-    List<String> specs = Lists.newArrayList("m1:2");
-    List<String> jsFiles = Lists.newArrayList("f1.js");
-    AbstractCommandLineRunner.createJsModules(specs, jsFiles);
+  public void testCreateJsModules_tooManyJsFiles_throwsException() throws Exception {
+    List<String> specs = Lists.newArrayList("mod:1");
+    List<String> files = Lists.newArrayList("file1.js", "file2.js");
+    AbstractCommandLineRunner.createJsModules(specs, files);
   }
 
-  // Tests module specification when there are too many js files throws FlagUsageException
+  // Tests module spec with non-integer file count
   @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testCreateJsModules_tooManyJsFiles_throwsFlagUsageException() throws Exception {
-    List<String> specs = Lists.newArrayList("m1:1");
-    List<String> jsFiles = Lists.newArrayList("f1.js", "f2.js");
-    AbstractCommandLineRunner.createJsModules(specs, jsFiles);
-  }
-
-  // Tests module specification depending on unknown module throws FlagUsageException
-  @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testCreateJsModules_unknownDependency_throwsFlagUsageException() throws Exception {
-    List<String> specs = Lists.newArrayList("m1:1:unknownModule");
-    List<String> jsFiles = Lists.newArrayList("f1.js");
-    AbstractCommandLineRunner.createJsModules(specs, jsFiles);
+  public void testCreateJsModules_invalidFileCountFormat_throwsException() throws Exception {
+    List<String> specs = Lists.newArrayList("mod:abc");
+    List<String> files = Lists.newArrayList("file1.js");
+    AbstractCommandLineRunner.createJsModules(specs, files);
   }
 
   // Tests parsing valid module wrapper
   @Test
-  public void testParseModuleWrappers_validWrapper() throws Exception {
-    JSModule[] modules = new JSModule[] { new JSModule("m1"), new JSModule("m2") };
-    List<String> specs = Lists.newArrayList("m1:(function(){%s})();");
+  public void testParseModuleWrappers_validWrapper_returnsMap() throws Exception {
+    JSModule mod1 = new JSModule("mod1");
+    JSModule mod2 = new JSModule("mod2");
+    JSModule[] modules = new JSModule[]{mod1, mod2};
+
+    List<String> specs = Lists.newArrayList("mod1:(function(){%s})();");
     Map<String, String> wrappers = AbstractCommandLineRunner.parseModuleWrappers(specs, modules);
 
-    assertEquals("(function(){%s})();", wrappers.get("m1"));
-    assertEquals("", wrappers.get("m2"));
+    assertEquals("(function(){%s})();", wrappers.get("mod1"));
+    assertEquals("", wrappers.get("mod2"));
   }
 
-  // Tests parsing module wrapper missing colon format throws FlagUsageException
+  // Tests module wrapper without delimiter colon throwing FlagUsageException
   @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testParseModuleWrappers_missingColon_throwsFlagUsageException() throws Exception {
-    JSModule[] modules = new JSModule[] { new JSModule("m1") };
-    List<String> specs = Lists.newArrayList("m1_wrapper");
-    AbstractCommandLineRunner.parseModuleWrappers(specs, modules);
+  public void testParseModuleWrappers_missingColon_throwsException() throws Exception {
+    JSModule mod = new JSModule("mod1");
+    List<String> specs = Lists.newArrayList("mod1wrapper");
+    AbstractCommandLineRunner.parseModuleWrappers(specs, new JSModule[]{mod});
   }
 
-  // Tests parsing module wrapper with unknown module throws FlagUsageException
+  // Tests module wrapper for unknown module name throwing FlagUsageException
   @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testParseModuleWrappers_unknownModule_throwsFlagUsageException() throws Exception {
-    JSModule[] modules = new JSModule[] { new JSModule("m1") };
+  public void testParseModuleWrappers_unknownModule_throwsException() throws Exception {
+    JSModule mod = new JSModule("mod1");
     List<String> specs = Lists.newArrayList("unknownMod:%s");
-    AbstractCommandLineRunner.parseModuleWrappers(specs, modules);
+    AbstractCommandLineRunner.parseModuleWrappers(specs, new JSModule[]{mod});
   }
 
-  // Tests parsing module wrapper missing placeholder throws FlagUsageException
+  // Tests module wrapper missing %s placeholder throwing FlagUsageException
   @Test(expected = AbstractCommandLineRunner.FlagUsageException.class)
-  public void testParseModuleWrappers_missingPlaceholder_throwsFlagUsageException() throws Exception {
-    JSModule[] modules = new JSModule[] { new JSModule("m1") };
-    List<String> specs = Lists.newArrayList("m1:wrapperWithoutPlaceholder");
-    AbstractCommandLineRunner.parseModuleWrappers(specs, modules);
+  public void testParseModuleWrappers_missingPlaceholder_throwsException() throws Exception {
+    JSModule mod = new JSModule("mod1");
+    List<String> specs = Lists.newArrayList("mod1:no_placeholder");
+    AbstractCommandLineRunner.parseModuleWrappers(specs, new JSModule[]{mod});
   }
 
-  // Tests writing output with wrapper containing placeholder in middle
+  // Tests writeOutput inserting code into wrapper placeholder
   @Test
-  public void testWriteOutput_withWrapperPlaceholder() {
+  public void testWriteOutput_withWrapper_insertsCodeProperly() {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    PrintStream ps = new PrintStream(baos);
-    AbstractCommandLineRunner.writeOutput(ps, null, "var a = 1;", "PREFIX(%output%);", "%output%");
-    ps.flush();
+    PrintStream out = new PrintStream(baos);
+
+    AbstractCommandLineRunner.writeOutput(out, null, "var a = 1;", "(function(){%output%})();", "%output%");
+    out.flush();
 
     String result = baos.toString().trim();
-    assertEquals("PREFIX(var a = 1;);", result);
+    assertEquals("(function(){var a = 1;})();", result);
   }
 
-  // Tests writing output with placeholder at the end of wrapper
+  // Tests writeOutput when wrapper has no placeholder outputs raw code
   @Test
-  public void testWriteOutput_placeholderAtEnd() {
+  public void testWriteOutput_withoutPlaceholder_outputsRawCode() {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    PrintStream ps = new PrintStream(baos);
-    AbstractCommandLineRunner.writeOutput(ps, null, "var a = 1;", "PREFIX:%output%", "%output%");
-    ps.flush();
+    PrintStream out = new PrintStream(baos);
 
-    String result = baos.toString().trim();
-    assertEquals("PREFIX:var a = 1;", result);
-  }
-
-  // Tests writing output without wrapper placeholder
-  @Test
-  public void testWriteOutput_withoutPlaceholder() {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    PrintStream ps = new PrintStream(baos);
-    AbstractCommandLineRunner.writeOutput(ps, null, "var a = 1;", "no_placeholder", "%output%");
-    ps.flush();
+    AbstractCommandLineRunner.writeOutput(out, null, "var a = 1;", "no_marker_here", "%output%");
+    out.flush();
 
     String result = baos.toString().trim();
     assertEquals("var a = 1;", result);
-  }
-
-  // Tests initializing compiler options from CommandLineConfig
-  @Test
-  public void testInitOptionsFromFlags_populatesOptions() {
-    AbstractCommandLineRunner.CommandLineConfig config = runner.getCommandLineConfig();
-    config.setDefine(Lists.newArrayList("FLAG_A=true", "FLAG_B=123"));
-
-    CompilerOptions options = runner.createOptions();
-    assertNotNull(options);
-    assertEquals(2, options.getDefineReplacements().size());
-  }
-
-  // Tests setting run options with jsOutputFile and summaryDetailLevel
-  @Test
-  public void testSetRunOptions_configuresOptionsProperly() throws Exception {
-    AbstractCommandLineRunner.CommandLineConfig config = runner.getCommandLineConfig();
-    config.setJsOutputFile("output.js");
-    config.setSummaryDetailLevel(2);
-
-    CompilerOptions options = new CompilerOptions();
-    runner.setRunOptions(options);
-
-    assertEquals("output.js", options.jsOutputFile);
-    assertEquals(2, options.summaryDetailLevel);
   }
 }

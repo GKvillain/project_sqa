@@ -1,9 +1,12 @@
 package org.apache.commons.jxpath.ri.model.jdom;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import org.apache.commons.jxpath.JXPathContext;
 import org.apache.commons.jxpath.JXPathException;
 import org.apache.commons.jxpath.ri.Compiler;
+import org.apache.commons.jxpath.ri.NamespaceResolver;
 import org.apache.commons.jxpath.ri.QName;
 import org.apache.commons.jxpath.ri.compiler.NodeNameTest;
 import org.apache.commons.jxpath.ri.compiler.NodeTypeTest;
@@ -18,317 +21,311 @@ import org.jdom.Element;
 import org.jdom.Namespace;
 import org.jdom.ProcessingInstruction;
 import org.jdom.Text;
+import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class JDOMNodePointerTest {
 
-    // Tests getName and getLocalName on Element node
-    @Test
-    public void testGetName_element_returnsCorrectQName() {
-        Element element = new Element("testElem", "prefix", "http://example.com");
-        JDOMNodePointer pointer = new JDOMNodePointer(element, Locale.ENGLISH);
+    private Element rootElement;
+    private Document document;
+    private JDOMNodePointer rootPointer;
 
-        QName name = pointer.getName();
-        assertEquals("prefix", name.getPrefix());
-        assertEquals("testElem", name.getName());
-        assertEquals("testElem", JDOMNodePointer.getLocalName(element));
-        assertEquals("prefix", JDOMNodePointer.getPrefix(element));
+    @Before
+    public void setUp() {
+        rootElement = new Element("root", "http://example.com/ns");
+        document = new Document(rootElement);
+        rootPointer = new JDOMNodePointer(rootElement, Locale.ENGLISH);
     }
 
-    // Tests getName on ProcessingInstruction node
+    // Tests getName for Element with and without namespace
     @Test
-    public void testGetName_processingInstruction_returnsTargetAsName() {
-        ProcessingInstruction pi = new ProcessingInstruction("targetPI", "data");
-        JDOMNodePointer pointer = new JDOMNodePointer(pi, Locale.ENGLISH);
+    public void testGetName_elementNode_returnsCorrectQName() {
+        Element elem = new Element("child", "ns", "http://example.com/ns");
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        QName name = ptr.getName();
+        assertEquals("ns", name.getPrefix());
+        assertEquals("child", name.getName());
 
-        QName name = pointer.getName();
+        Element simpleElem = new Element("simple");
+        JDOMNodePointer simplePtr = new JDOMNodePointer(simpleElem, Locale.ENGLISH);
+        QName simpleName = simplePtr.getName();
+        assertNull(simpleName.getPrefix());
+        assertEquals("simple", simpleName.getName());
+    }
+
+    // Tests getName for ProcessingInstruction
+    @Test
+    public void testGetName_processingInstruction_returnsTargetName() {
+        ProcessingInstruction pi = new ProcessingInstruction("target", "data");
+        JDOMNodePointer ptr = new JDOMNodePointer(pi, Locale.ENGLISH);
+        QName name = ptr.getName();
         assertNull(name.getPrefix());
-        assertEquals("targetPI", name.getName());
+        assertEquals("target", name.getName());
     }
 
-    // Tests getBaseValue, getImmediateNode, isCollection, getLength
+    // Tests getValue for Element, Text, CDATA, Comment, and ProcessingInstruction
     @Test
-    public void testBasicProperties_elementNode_returnsExpectedValues() {
-        Element element = new Element("root");
-        JDOMNodePointer pointer = new JDOMNodePointer(element, Locale.ENGLISH);
+    public void testGetValue_differentNodeTypes_returnsCorrectTrimmedText() {
+        Element elem = new Element("test");
+        elem.setText("  sample text  ");
+        JDOMNodePointer elemPtr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        assertEquals("sample text", elemPtr.getValue());
 
-        assertSame(element, pointer.getBaseValue());
-        assertSame(element, pointer.getImmediateNode());
-        assertFalse(pointer.isCollection());
-        assertEquals(1, pointer.getLength());
-    }
+        Text text = new Text("  some text  ");
+        JDOMNodePointer textPtr = new JDOMNodePointer(text, Locale.ENGLISH);
+        assertEquals("some text", textPtr.getValue());
 
-    // Tests isLeaf for empty vs non-empty Element and Document
-    @Test
-    public void testIsLeaf_emptyAndNonEmpty_returnsExpectedBoolean() {
-        Element emptyElement = new Element("empty");
-        JDOMNodePointer emptyElemPointer = new JDOMNodePointer(emptyElement, Locale.ENGLISH);
-        assertTrue(emptyElemPointer.isLeaf());
+        CDATA cdata = new CDATA("  cdata text  ");
+        JDOMNodePointer cdataPtr = new JDOMNodePointer(cdata, Locale.ENGLISH);
+        assertEquals("cdata text", cdataPtr.getValue());
 
-        Element parentElement = new Element("parent");
-        parentElement.addContent(new Element("child"));
-        JDOMNodePointer parentElemPointer = new JDOMNodePointer(parentElement, Locale.ENGLISH);
-        assertFalse(parentElemPointer.isLeaf());
-
-        Document emptyDoc = new Document();
-        JDOMNodePointer emptyDocPointer = new JDOMNodePointer(emptyDoc, Locale.ENGLISH);
-        assertTrue(emptyDocPointer.isLeaf());
-
-        Document nonEmpyDoc = new Document(new Element("root"));
-        JDOMNodePointer docPointer = new JDOMNodePointer(nonEmpyDoc, Locale.ENGLISH);
-        assertFalse(docPointer.isLeaf());
-
-        Text text = new Text("sample");
-        JDOMNodePointer textPointer = new JDOMNodePointer(text, Locale.ENGLISH);
-        assertTrue(textPointer.isLeaf());
-    }
-
-    // Tests getValue on Element, Comment, Text, CDATA, and ProcessingInstruction
-    @Test
-    public void testGetValue_differentNodeTypes_returnsTrimmedValues() {
-        Element element = new Element("elem");
-        element.setText("  elem text  ");
-        JDOMNodePointer elemPointer = new JDOMNodePointer(element, Locale.ENGLISH);
-        assertEquals("elem text", elemPointer.getValue());
-
-        Comment comment = new Comment("  comment data  ");
-        JDOMNodePointer commentPointer = new JDOMNodePointer(comment, Locale.ENGLISH);
-        assertEquals("comment data", commentPointer.getValue());
-
-        Text text = new Text("  text content  ");
-        JDOMNodePointer textPointer = new JDOMNodePointer(text, Locale.ENGLISH);
-        assertEquals("text content", textPointer.getValue());
-
-        CDATA cdata = new CDATA("  cdata content  ");
-        JDOMNodePointer cdataPointer = new JDOMNodePointer(cdata, Locale.ENGLISH);
-        assertEquals("cdata content", cdataPointer.getValue());
+        Comment comment = new Comment("  comment content  ");
+        JDOMNodePointer commentPtr = new JDOMNodePointer(comment, Locale.ENGLISH);
+        assertEquals("comment content", commentPtr.getValue());
 
         ProcessingInstruction pi = new ProcessingInstruction("target", "  pi data  ");
-        JDOMNodePointer piPointer = new JDOMNodePointer(pi, Locale.ENGLISH);
-        assertEquals("pi data", piPointer.getValue());
+        JDOMNodePointer piPtr = new JDOMNodePointer(pi, Locale.ENGLISH);
+        assertEquals("pi data", piPtr.getValue());
     }
 
-    // Tests setValue with String and another Element on Element node
+    // Tests setValue with String on Element and Text
     @Test
-    public void testSetValue_elementValue_updatesContent() {
-        Element element = new Element("elem");
-        JDOMNodePointer pointer = new JDOMNodePointer(element, Locale.ENGLISH);
+    public void testSetValue_stringOnElementAndText_updatesContent() {
+        Element elem = new Element("test");
+        JDOMNodePointer elemPtr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        elemPtr.setValue("new value");
+        assertEquals("new value", elem.getTextTrim());
 
-        pointer.setValue("new value");
-        assertEquals("new value", pointer.getValue());
-
-        Element source = new Element("source");
-        source.addContent(new Element("child1"));
-        source.addContent(new Text("text1"));
-        source.addContent(new Comment("comment1"));
-        source.addContent(new ProcessingInstruction("pi", "data"));
-        pointer.setValue(source);
-        assertEquals(4, element.getContent().size());
-    }
-
-    // Tests setValue with Text node removal when value is empty
-    @Test
-    public void testSetValue_textNodeEmpty_removesTextContent() {
-        Element parent = new Element("parent");
         Text textNode = new Text("initial");
-        parent.addContent(textNode);
-
-        JDOMNodePointer pointer = new JDOMNodePointer(textNode, Locale.ENGLISH);
-        pointer.setValue("");
-        assertEquals(0, parent.getContent().size());
+        elem.getContent().clear();
+        elem.addContent(textNode);
+        JDOMNodePointer textPtr = new JDOMNodePointer(elemPtr, textNode);
+        textPtr.setValue("updated");
+        assertEquals("updated", textNode.getText());
     }
 
-    // Tests getNamespaceURI with element, prefix, and document
+    // Tests isLeaf for Document and Element nodes
+    @Test
+    public void testIsLeaf_emptyAndNonEmptyNodes_returnsExpectedBoolean() {
+        Element emptyElem = new Element("empty");
+        JDOMNodePointer emptyPtr = new JDOMNodePointer(emptyElem, Locale.ENGLISH);
+        assertTrue(emptyPtr.isLeaf());
+
+        Element parentElem = new Element("parent");
+        parentElem.addContent(new Element("child"));
+        JDOMNodePointer parentPtr = new JDOMNodePointer(parentElem, Locale.ENGLISH);
+        assertFalse(parentPtr.isLeaf());
+
+        Text text = new Text("text");
+        JDOMNodePointer textPtr = new JDOMNodePointer(text, Locale.ENGLISH);
+        assertTrue(textPtr.isLeaf());
+    }
+
+    // Tests getNamespaceURI with prefix and default
     @Test
     public void testGetNamespaceURI_withAndWithoutPrefix_returnsCorrectURI() {
-        Namespace ns = Namespace.getNamespace("ex", "http://example.com/schema");
-        Element root = new Element("root", ns);
-        Document doc = new Document(root);
+        Element elem = new Element("child", "pfx", "http://example.com/pfx");
+        elem.addNamespaceDeclaration(Namespace.getNamespace("other", "http://example.com/other"));
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
 
-        JDOMNodePointer docPointer = new JDOMNodePointer(doc, Locale.ENGLISH);
-        assertEquals("http://example.com/schema", docPointer.getNamespaceURI("ex"));
-        assertNull(docPointer.getNamespaceURI("unknown"));
+        assertEquals("http://example.com/pfx", ptr.getNamespaceURI());
+        assertEquals("http://example.com/other", ptr.getNamespaceURI("other"));
+        assertNull(ptr.getNamespaceURI("unknown"));
 
-        JDOMNodePointer elemPointer = new JDOMNodePointer(root, Locale.ENGLISH);
-        assertEquals("http://example.com/schema", elemPointer.getNamespaceURI());
-        assertEquals("http://example.com/schema", elemPointer.getNamespaceURI("ex"));
-        assertNull(elemPointer.getNamespaceURI("unknown"));
-
-        Element noNsElem = new Element("plain");
-        JDOMNodePointer plainPointer = new JDOMNodePointer(noNsElem, Locale.ENGLISH);
-        assertNull(plainPointer.getNamespaceURI());
+        Document doc = new Document(elem);
+        JDOMNodePointer docPtr = new JDOMNodePointer(doc, Locale.ENGLISH);
+        assertEquals("http://example.com/pfx", docPtr.getNamespaceURI("pfx"));
     }
 
-    // Tests testNode with NodeNameTest, wildcard, and NodeTypeTest
+    // Tests testNode with NodeNameTest (matching, wildcard, and mismatch)
     @Test
-    public void testTestNode_variousNodeTests_evaluatesCorrectly() {
-        Element element = new Element("child", "ns", "http://example.com");
+    public void testTestNode_nodeNameTest_returnsCorrectMatchResult() {
+        Element elem = new Element("item", "http://example.com/ns");
 
-        assertTrue(JDOMNodePointer.testNode(null, element, null));
+        NodeNameTest exactTest = new NodeNameTest(new QName("item"), "http://example.com/ns");
+        assertTrue(JDOMNodePointer.testNode(null, elem, exactTest));
 
-        NodeNameTest matchTest = new NodeNameTest(new QName("child"), "http://example.com");
-        assertTrue(JDOMNodePointer.testNode(null, element, matchTest));
-
-        NodeNameTest mismatchNameTest = new NodeNameTest(new QName("other"), "http://example.com");
-        assertFalse(JDOMNodePointer.testNode(null, element, mismatchNameTest));
+        NodeNameTest wrongNameTest = new NodeNameTest(new QName("other"), "http://example.com/ns");
+        assertFalse(JDOMNodePointer.testNode(null, elem, wrongNameTest));
 
         NodeNameTest wildcardTest = new NodeNameTest(new QName(null, "*"));
-        assertTrue(JDOMNodePointer.testNode(null, element, wildcardTest));
-
-        NodeTypeTest nodeTypeNode = new NodeTypeTest(Compiler.NODE_TYPE_NODE);
-        assertTrue(JDOMNodePointer.testNode(null, element, nodeTypeNode));
+        assertTrue(JDOMNodePointer.testNode(null, elem, wildcardTest));
 
         Text text = new Text("content");
-        NodeTypeTest nodeTypeText = new NodeTypeTest(Compiler.NODE_TYPE_TEXT);
-        assertTrue(JDOMNodePointer.testNode(null, text, nodeTypeText));
-        assertFalse(JDOMNodePointer.testNode(null, element, nodeTypeText));
+        assertFalse(JDOMNodePointer.testNode(null, text, exactTest));
+    }
 
-        Comment comment = new Comment("comm");
-        NodeTypeTest nodeTypeComment = new NodeTypeTest(Compiler.NODE_TYPE_COMMENT);
-        assertTrue(JDOMNodePointer.testNode(null, comment, nodeTypeComment));
-
+    // Tests testNode with NodeTypeTest
+    @Test
+    public void testTestNode_nodeTypeTest_matchesExpectedTypes() {
+        Element elem = new Element("elem");
+        Text text = new Text("text");
+        Comment comment = new Comment("comment");
         ProcessingInstruction pi = new ProcessingInstruction("target", "data");
-        NodeTypeTest nodeTypePI = new NodeTypeTest(Compiler.NODE_TYPE_PI);
-        assertTrue(JDOMNodePointer.testNode(null, pi, nodeTypePI));
 
-        ProcessingInstructionTest piTestMatch = new ProcessingInstructionTest("target");
-        assertTrue(JDOMNodePointer.testNode(null, pi, piTestMatch));
+        assertTrue(JDOMNodePointer.testNode(null, elem, new NodeTypeTest(Compiler.NODE_TYPE_NODE)));
+        assertFalse(JDOMNodePointer.testNode(null, text, new NodeTypeTest(Compiler.NODE_TYPE_NODE)));
 
-        ProcessingInstructionTest piTestMismatch = new ProcessingInstructionTest("other");
-        assertFalse(JDOMNodePointer.testNode(null, pi, piTestMismatch));
+        assertTrue(JDOMNodePointer.testNode(null, text, new NodeTypeTest(Compiler.NODE_TYPE_TEXT)));
+        assertTrue(JDOMNodePointer.testNode(null, comment, new NodeTypeTest(Compiler.NODE_TYPE_COMMENT)));
+        assertTrue(JDOMNodePointer.testNode(null, pi, new NodeTypeTest(Compiler.NODE_TYPE_PI)));
     }
 
-    // Tests isLanguage with xml:lang attribute
+    // Tests testNode with ProcessingInstructionTest
     @Test
-    public void testIsLanguage_xmlLangAttributePresent_evaluatesLanguageCorrectly() {
-        Element root = new Element("root");
-        root.setAttribute("lang", "en-US", Namespace.XML_NAMESPACE);
-        Element child = new Element("child");
-        root.addContent(child);
+    public void testTestNode_processingInstructionTest_matchesTarget() {
+        ProcessingInstruction pi = new ProcessingInstruction("target", "data");
+        ProcessingInstructionTest matchTest = new ProcessingInstructionTest("target");
+        ProcessingInstructionTest diffTest = new ProcessingInstructionTest("other");
 
-        JDOMNodePointer childPointer = new JDOMNodePointer(child, Locale.ENGLISH);
-        assertTrue(childPointer.isLanguage("en"));
-        assertTrue(childPointer.isLanguage("en-US"));
-        assertFalse(childPointer.isLanguage("fr"));
+        assertTrue(JDOMNodePointer.testNode(null, pi, matchTest));
+        assertFalse(JDOMNodePointer.testNode(null, pi, diffTest));
+        assertFalse(JDOMNodePointer.testNode(null, new Element("elem"), matchTest));
     }
 
-    // Tests compareChildNodePointers between attributes and elements
+    // Tests compareChildNodePointers for attributes vs elements and sibling order
     @Test
-    public void testCompareChildNodePointers_differentChildren_ordersProperly() {
+    public void testCompareChildNodePointers_orderAndAttributes_returnsCorrectComparison() {
         Element parent = new Element("parent");
-        Attribute attr1 = new Attribute("id", "1");
-        Attribute attr2 = new Attribute("name", "test");
+        Attribute attr1 = new Attribute("a1", "v1");
+        Attribute attr2 = new Attribute("a2", "v2");
+        Element child1 = new Element("c1");
+        Element child2 = new Element("c2");
+
         parent.setAttribute(attr1);
         parent.setAttribute(attr2);
-
-        Element child1 = new Element("child1");
-        Element child2 = new Element("child2");
         parent.addContent(child1);
         parent.addContent(child2);
 
-        JDOMNodePointer parentPointer = new JDOMNodePointer(parent, Locale.ENGLISH);
-        JDOMNodePointer ptrAttr1 = new JDOMNodePointer(parentPointer, attr1);
-        JDOMNodePointer ptrAttr2 = new JDOMNodePointer(parentPointer, attr2);
-        JDOMNodePointer ptrChild1 = new JDOMNodePointer(parentPointer, child1);
-        JDOMNodePointer ptrChild2 = new JDOMNodePointer(parentPointer, child2);
+        JDOMNodePointer parentPtr = new JDOMNodePointer(parent, Locale.ENGLISH);
+        JDOMNodePointer attr1Ptr = new JDOMNodePointer(parentPtr, attr1);
+        JDOMNodePointer attr2Ptr = new JDOMNodePointer(parentPtr, attr2);
+        JDOMNodePointer child1Ptr = new JDOMNodePointer(parentPtr, child1);
+        JDOMNodePointer child2Ptr = new JDOMNodePointer(parentPtr, child2);
 
-        assertEquals(0, parentPointer.compareChildNodePointers(ptrAttr1, ptrAttr1));
-        assertEquals(-1, parentPointer.compareChildNodePointers(ptrAttr1, ptrAttr2));
-        assertEquals(1, parentPointer.compareChildNodePointers(ptrAttr2, ptrAttr1));
-
-        assertEquals(-1, parentPointer.compareChildNodePointers(ptrAttr1, ptrChild1));
-        assertEquals(1, parentPointer.compareChildNodePointers(ptrChild1, ptrAttr1));
-
-        assertEquals(-1, parentPointer.compareChildNodePointers(ptrChild1, ptrChild2));
-        assertEquals(1, parentPointer.compareChildNodePointers(ptrChild2, ptrChild1));
+        assertEquals(0, parentPtr.compareChildNodePointers(child1Ptr, child1Ptr));
+        assertEquals(-1, parentPtr.compareChildNodePointers(attr1Ptr, child1Ptr));
+        assertEquals(1, parentPtr.compareChildNodePointers(child1Ptr, attr1Ptr));
+        assertEquals(-1, parentPtr.compareChildNodePointers(attr1Ptr, attr2Ptr));
+        assertEquals(1, parentPtr.compareChildNodePointers(attr2Ptr, attr1Ptr));
+        assertEquals(-1, parentPtr.compareChildNodePointers(child1Ptr, child2Ptr));
+        assertEquals(1, parentPtr.compareChildNodePointers(child2Ptr, child1Ptr));
     }
 
     // Tests compareChildNodePointers exception when parent is not Element
     @Test(expected = RuntimeException.class)
-    public void testCompareChildNodePointers_nonElementNode_throwsException() {
+    public void testCompareChildNodePointers_nonElementParent_throwsRuntimeException() {
         Text text = new Text("text");
-        JDOMNodePointer textPointer = new JDOMNodePointer(text, Locale.ENGLISH);
-        JDOMNodePointer ptr1 = new JDOMNodePointer(textPointer, new Text("c1"));
-        JDOMNodePointer ptr2 = new JDOMNodePointer(textPointer, new Text("c2"));
-
-        textPointer.compareChildNodePointers(ptr1, ptr2);
+        JDOMNodePointer textPtr = new JDOMNodePointer(text, Locale.ENGLISH);
+        JDOMNodePointer childPtr1 = new JDOMNodePointer(textPtr, new Element("c1"));
+        JDOMNodePointer childPtr2 = new JDOMNodePointer(textPtr, new Element("c2"));
+        textPtr.compareChildNodePointers(childPtr1, childPtr2);
     }
 
-    // Tests asPath with id, element, text, and PI
+    // Tests isLanguage with xml:lang attribute inheritance
     @Test
-    public void testAsPath_variousNodeTypes_producesCorrectPath() {
-        Element root = new Element("root");
-        JDOMNodePointer idPointer = new JDOMNodePointer(root, Locale.ENGLISH, "id'123\"test");
-        assertEquals("id('id&apos;123&quot;test')", idPointer.asPath());
+    public void testIsLanguage_xmlLangAttribute_returnsCorrectBoolean() {
+        Element parent = new Element("parent");
+        parent.setAttribute("lang", "en-US", Namespace.XML_NAMESPACE);
+        Element child = new Element("child");
+        parent.addContent(child);
 
-        Element parent = new Element("root");
-        Element child1 = new Element("item");
-        Element child2 = new Element("item");
-        Text text = new Text("sample");
-        ProcessingInstruction pi = new ProcessingInstruction("target", "data");
-        parent.addContent(child1);
-        parent.addContent(child2);
-        parent.addContent(text);
-        parent.addContent(pi);
+        JDOMNodePointer parentPtr = new JDOMNodePointer(parent, Locale.ENGLISH);
+        JDOMNodePointer childPtr = new JDOMNodePointer(parentPtr, child);
 
-        JDOMNodePointer parentPointer = new JDOMNodePointer(parent, Locale.ENGLISH);
-        JDOMNodePointer child2Pointer = new JDOMNodePointer(parentPointer, child2);
-        assertEquals("/item[2]", child2Pointer.asPath());
-
-        JDOMNodePointer textPointer = new JDOMNodePointer(parentPointer, text);
-        assertEquals("/text()[1]", textPointer.asPath());
-
-        JDOMNodePointer piPointer = new JDOMNodePointer(parentPointer, pi);
-        assertEquals("/processing-instruction('target')[1]", piPointer.asPath());
+        assertTrue(childPtr.isLanguage("en"));
+        assertTrue(childPtr.isLanguage("en-US"));
+        assertFalse(childPtr.isLanguage("fr"));
     }
 
-    // Tests createAttribute for Element
-    @Test
-    public void testCreateAttribute_validName_createsAndReturnsPointer() {
-        Element element = new Element("elem");
-        JDOMNodePointer pointer = new JDOMNodePointer(element, Locale.ENGLISH);
-        JXPathContext context = JXPathContext.newContext(element);
-
-        NodePointer attrPointer = pointer.createAttribute(context, new QName("attr"));
-        assertNotNull(attrPointer);
-        assertEquals("", attrPointer.getValue());
-        assertEquals("attr", ((Attribute) attrPointer.getBaseValue()).getName());
-    }
-
-    // Tests createAttribute with unknown prefix throws exception
-    @Test(expected = JXPathException.class)
-    public void testCreateAttribute_unknownPrefix_throwsException() {
-        Element element = new Element("elem");
-        JDOMNodePointer pointer = new JDOMNodePointer(element, Locale.ENGLISH);
-        JXPathContext context = JXPathContext.newContext(element);
-
-        pointer.createAttribute(context, new QName("unknown", "attr"));
-    }
-
-    // Tests remove method on child node and exception on root
+    // Tests remove method on child element
     @Test
     public void testRemove_childElement_removesFromParent() {
-        Element root = new Element("root");
+        Element parent = new Element("parent");
         Element child = new Element("child");
-        root.addContent(child);
+        parent.addContent(child);
 
-        JDOMNodePointer childPointer = new JDOMNodePointer(child, Locale.ENGLISH);
-        childPointer.remove();
-        assertEquals(0, root.getContent().size());
+        JDOMNodePointer parentPtr = new JDOMNodePointer(parent, Locale.ENGLISH);
+        JDOMNodePointer childPtr = new JDOMNodePointer(parentPtr, child);
+
+        assertEquals(1, parent.getContent().size());
+        childPtr.remove();
+        assertEquals(0, parent.getContent().size());
     }
 
-    // Tests remove method throwing exception when root node has no parent
+    // Tests remove method throwing exception on root node without parent
     @Test(expected = JXPathException.class)
-    public void testRemove_rootElementWithoutParent_throwsException() {
+    public void testRemove_rootNodeWithoutParent_throwsJXPathException() {
         Element root = new Element("root");
-        JDOMNodePointer pointer = new JDOMNodePointer(root, Locale.ENGLISH);
-        pointer.remove();
+        JDOMNodePointer rootPtr = new JDOMNodePointer(root, Locale.ENGLISH);
+        rootPtr.remove();
     }
 
-    // Tests equals and hashCode methods
+    // Tests asPath with id, elements, text, and processing instruction
     @Test
-    public void testEqualsAndHashCode_sameAndDifferentObjects_worksCorrectly() {
+    public void testAsPath_variousNodes_returnsFormattedXPath() {
+        Element root = new Element("root");
+        Element child1 = new Element("item");
+        Element child2 = new Element("item");
+        Text text = new Text("hello");
+        ProcessingInstruction pi = new ProcessingInstruction("target", "data");
+
+        root.addContent(child1);
+        root.addContent(child2);
+        child2.addContent(text);
+        child2.addContent(pi);
+
+        JDOMNodePointer rootPtr = new JDOMNodePointer(root, Locale.ENGLISH);
+        JDOMNodePointer child1Ptr = new JDOMNodePointer(rootPtr, child1);
+        JDOMNodePointer child2Ptr = new JDOMNodePointer(rootPtr, child2);
+        JDOMNodePointer textPtr = new JDOMNodePointer(child2Ptr, text);
+        JDOMNodePointer piPtr = new JDOMNodePointer(child2Ptr, pi);
+
+        assertEquals("/item[1]", child1Ptr.asPath());
+        assertEquals("/item[2]", child2Ptr.asPath());
+        assertEquals("/item[2]/text()[1]", textPtr.asPath());
+        assertEquals("/item[2]/processing-instruction('target')[1]", piPtr.asPath());
+
+        JDOMNodePointer idPtr = new JDOMNodePointer(root, Locale.ENGLISH, "item'1'");
+        assertEquals("id('item&apos;1&apos;')", idPtr.asPath());
+    }
+
+    // Tests createAttribute with prefix and without prefix
+    @Test
+    public void testCreateAttribute_withAndWithoutPrefix_createsAttributeSuccessfully() {
+        Element elem = new Element("test");
+        elem.addNamespaceDeclaration(Namespace.getNamespace("pfx", "http://example.com/pfx"));
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        JXPathContext context = JXPathContext.newContext(elem);
+
+        NodePointer attrPtr = ptr.createAttribute(context, new QName("attr"));
+        assertNotNull(attrPtr);
+        assertEquals("", elem.getAttributeValue("attr"));
+
+        NodePointer nsAttrPtr = ptr.createAttribute(context, new QName("pfx", "nsAttr"));
+        assertNotNull(nsAttrPtr);
+        assertEquals("", elem.getAttributeValue("nsAttr", Namespace.getNamespace("pfx", "http://example.com/pfx")));
+    }
+
+    // Tests createAttribute with unknown prefix throwing exception
+    @Test(expected = JXPathException.class)
+    public void testCreateAttribute_unknownPrefix_throwsException() {
+        Element elem = new Element("test");
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        JXPathContext context = JXPathContext.newContext(elem);
+        ptr.createAttribute(context, new QName("unknown", "attr"));
+    }
+
+    // Tests equals and hashCode contracts
+    @Test
+    public void testEqualsAndHashCode_sameAndDifferentObjects_contractFulfilled() {
         Element elem1 = new Element("elem");
         Element elem2 = new Element("elem");
 
@@ -339,28 +336,145 @@ public class JDOMNodePointerTest {
         assertTrue(ptr1a.equals(ptr1a));
         assertTrue(ptr1a.equals(ptr1b));
         assertFalse(ptr1a.equals(ptr2));
-        assertFalse(ptr1a.equals(new Object()));
         assertFalse(ptr1a.equals(null));
+        assertFalse(ptr1a.equals("not-a-pointer"));
 
         assertEquals(ptr1a.hashCode(), ptr1b.hashCode());
     }
 
-    // Tests iterators creation
+    // Tests getPrefix and getLocalName helper methods
     @Test
-    public void testIterators_createNotNullIterators() {
-        Element elem = new Element("elem");
-        JDOMNodePointer pointer = new JDOMNodePointer(elem, Locale.ENGLISH);
+    public void testGetPrefixAndGetLocalName_variousNodes_returnsExpectedValues() {
+        Element elem = new Element("elem", "ns", "http://example.com");
+        Attribute attr = new Attribute("attr", "val", Namespace.getNamespace("pfx", "http://pfx.com"));
 
-        NodeIterator childIt = pointer.childIterator(null, false, null);
+        assertEquals("ns", JDOMNodePointer.getPrefix(elem));
+        assertEquals("elem", JDOMNodePointer.getLocalName(elem));
+        assertEquals("pfx", JDOMNodePointer.getPrefix(attr));
+        assertEquals("attr", JDOMNodePointer.getLocalName(attr));
+
+        assertNull(JDOMNodePointer.getPrefix(new Text("text")));
+        assertNull(JDOMNodePointer.getLocalName(new Text("text")));
+    }
+
+    // Tests iterator methods (childIterator, attributeIterator, namespaceIterator, namespacePointer)
+    @Test
+    public void testIterators_basicCreation_notNull() {
+        Element elem = new Element("test");
+        elem.setAttribute("a", "1");
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
+
+        NodeIterator childIt = ptr.childIterator(null, false, null);
         assertNotNull(childIt);
 
-        NodeIterator attrIt = pointer.attributeIterator(new QName("test"));
+        NodeIterator attrIt = ptr.attributeIterator(new QName("a"));
         assertNotNull(attrIt);
 
-        NodeIterator nsIt = pointer.namespaceIterator();
+        NodeIterator nsIt = ptr.namespaceIterator();
         assertNotNull(nsIt);
 
-        NodePointer nsPtr = pointer.namespacePointer("xml");
+        NodePointer nsPtr = ptr.namespacePointer("xml");
         assertNotNull(nsPtr);
+    }
+
+    @Test
+    public void testCreateChild_withAndWithoutValue_appendsChildren() {
+        Element elem = new Element("parent");
+        elem.addNamespaceDeclaration(Namespace.getNamespace("ns", "http://example.com"));
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        JXPathContext context = JXPathContext.newContext(elem);
+
+        NodePointer child1 = ptr.createChild(context, new QName("child"), 0);
+        assertNotNull(child1);
+        assertEquals(1, elem.getChildren("child").size());
+
+        NodePointer child2 = ptr.createChild(context, new QName("ns", "childWithNs"), 1, "value");
+        assertNotNull(child2);
+        assertEquals("value", elem.getChildTextTrim("childWithNs", Namespace.getNamespace("ns", "http://example.com")));
+    }
+
+    @Test(expected = JXPathException.class)
+    public void testCreateChild_unknownPrefix_throwsException() {
+        Element elem = new Element("parent");
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        JXPathContext context = JXPathContext.newContext(elem);
+        ptr.createChild(context, new QName("unknown", "child"), 0);
+    }
+
+    @Test
+    public void testSetValue_elementWithVariousTypes_setsProperContent() {
+        Element elem = new Element("parent");
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
+
+        ptr.setValue(new CDATA("cdata-val"));
+        assertEquals("cdata-val", elem.getTextTrim());
+
+        Element newChild = new Element("sub");
+        ptr.setValue(newChild);
+        assertEquals(1, elem.getChildren("sub").size());
+
+        List<Element> list = new ArrayList<Element>();
+        list.add(new Element("item1"));
+        list.add(new Element("item2"));
+        ptr.setValue(list);
+        assertEquals(2, elem.getChildren().size());
+
+        ptr.setValue(null);
+        assertEquals(0, elem.getContent().size());
+    }
+
+    @Test(expected = JXPathException.class)
+    public void testSetValue_documentNode_throwsException() {
+        Document doc = new Document(new Element("root"));
+        JDOMNodePointer docPtr = new JDOMNodePointer(doc, Locale.ENGLISH);
+        docPtr.setValue("value");
+    }
+
+    @Test
+    public void testRemove_attribute_removesAttributeFromParent() {
+        Element elem = new Element("parent");
+        Attribute attr = new Attribute("name", "value");
+        elem.setAttribute(attr);
+
+        JDOMNodePointer elemPtr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        JDOMNodePointer attrPtr = new JDOMNodePointer(elemPtr, attr);
+
+        assertNotNull(elem.getAttribute("name"));
+        attrPtr.remove();
+        assertNull(elem.getAttribute("name"));
+    }
+
+    @Test
+    public void testAsPath_documentAndAttribute_returnsCorrectXPath() {
+        Document doc = new Document(new Element("root"));
+        JDOMNodePointer docPtr = new JDOMNodePointer(doc, Locale.ENGLISH);
+        assertEquals("", docPtr.asPath());
+
+        Element elem = new Element("item");
+        Attribute attr = new Attribute("id", "123");
+        elem.setAttribute(attr);
+        JDOMNodePointer elemPtr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        JDOMNodePointer attrPtr = new JDOMNodePointer(elemPtr, attr);
+
+        assertEquals("/@id", attrPtr.asPath());
+    }
+
+    @Test
+    public void testGetBaseValueAndImmediateNode_returnsBackingNode() {
+        Element elem = new Element("test");
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
+
+        assertSame(elem, ptr.getBaseValue());
+        assertSame(elem, ptr.getImmediateNode());
+        assertFalse(ptr.isCollection());
+        assertEquals(1, ptr.getLength());
+    }
+
+    @Test
+    public void testGetNamespaceResolver_returnsValidResolver() {
+        Element elem = new Element("test");
+        JDOMNodePointer ptr = new JDOMNodePointer(elem, Locale.ENGLISH);
+        NamespaceResolver resolver = ptr.getNamespaceResolver();
+        assertNotNull(resolver);
     }
 }

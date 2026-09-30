@@ -1,44 +1,48 @@
 package com.fasterxml.jackson.databind;
 
+import org.junit.Before;
+import org.junit.Test;
+
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
+import java.io.InputStream;
+import java.io.Reader;
 import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.ArrayList;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.deser.DeserializationProblemHandler;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 
-import org.junit.Before;
-import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class ObjectMapperTest {
 
     private ObjectMapper mapper;
 
-    static class SimpleBean {
+    public static class SimpleBean {
         public int id;
         public String name;
 
-        public SimpleBean() { }
+        public SimpleBean() {}
 
         public SimpleBean(int id, String name) {
             this.id = id;
@@ -46,14 +50,34 @@ public class ObjectMapperTest {
         }
     }
 
-    static class MixInTarget {
-        public String hidden;
-        public String visible;
+    public static class ContainerBean {
+        public Object item;
+
+        public ContainerBean() {}
+
+        public ContainerBean(Object item) {
+            this.item = item;
+        }
     }
 
-    abstract static class MixInSource {
-        @JsonProperty("renamedHidden")
-        public String hidden;
+    public static class PrimitiveArrayBean {
+        public int[] numbers;
+
+        public PrimitiveArrayBean() {}
+
+        public PrimitiveArrayBean(int[] numbers) {
+            this.numbers = numbers;
+        }
+    }
+
+    public static class DateBean {
+        public Date date;
+
+        public DateBean() {}
+
+        public DateBean(Date date) {
+            this.date = date;
+        }
     }
 
     @Before
@@ -61,275 +85,348 @@ public class ObjectMapperTest {
         mapper = new ObjectMapper();
     }
 
-    // Tests simple serialization and deserialization of a POJO
+    // Tests default constructor and non-null initial configuration
     @Test
-    public void testReadAndWriteValue_simpleBean_success() throws Exception {
+    public void testConstructor_default_initializesSuccessfully() {
+        assertNotNull(mapper.getSerializationConfig());
+        assertNotNull(mapper.getDeserializationConfig());
+        assertNotNull(mapper.getNodeFactory());
+        assertNotNull(mapper.getTypeFactory());
+        assertNotNull(mapper.getFactory());
+    }
+
+    // Tests custom JsonFactory constructor
+    @Test
+    public void testConstructor_withCustomJsonFactory() {
+        JsonFactory jf = new JsonFactory();
+        ObjectMapper customMapper = new ObjectMapper(jf);
+        assertSame(jf, customMapper.getFactory());
+        assertNotNull(customMapper.getSerializationConfig());
+    }
+
+    // Tests serialization to JSON string and deserialization from string
+    @Test
+    public void testReadWriteValue_string_success() throws Exception {
         SimpleBean bean = new SimpleBean(1, "test");
         String json = mapper.writeValueAsString(bean);
         assertTrue(json.contains("\"id\":1"));
         assertTrue(json.contains("\"name\":\"test\""));
 
         SimpleBean result = mapper.readValue(json, SimpleBean.class);
-        assertNotNull(result);
         assertEquals(1, result.id);
         assertEquals("test", result.name);
     }
 
-    // Tests writeValue and readValue with byte array
+    // Tests serialization and deserialization using byte arrays
     @Test
-    public void testReadAndWriteValueAsBytes_simpleBean_success() throws Exception {
+    public void testReadWriteValue_byteArray_success() throws Exception {
         SimpleBean bean = new SimpleBean(42, "bytes");
         byte[] bytes = mapper.writeValueAsBytes(bean);
         assertNotNull(bytes);
+        assertTrue(bytes.length > 0);
 
         SimpleBean result = mapper.readValue(bytes, SimpleBean.class);
         assertEquals(42, result.id);
         assertEquals("bytes", result.name);
-
-        SimpleBean resultOffset = mapper.readValue(bytes, 0, bytes.length, SimpleBean.class);
-        assertEquals(42, resultOffset.id);
     }
 
-    // Tests readValue using TypeReference for generic collections
+    // Tests deserialization from InputStream and Reader
     @Test
-    public void testReadValue_typeReference_success() throws Exception {
-        String json = "[{\"id\":1,\"name\":\"A\"},{\"id\":2,\"name\":\"B\"}]";
-        List<SimpleBean> list = mapper.readValue(json, new TypeReference<List<SimpleBean>>() {});
-        assertNotNull(list);
-        assertEquals(2, list.size());
-        assertEquals("A", list.get(0).name);
-        assertEquals("B", list.get(1).name);
+    public void testReadValue_streamAndReader_success() throws Exception {
+        String json = "{\"id\":10,\"name\":\"stream\"}";
+        InputStream in = new ByteArrayInputStream(json.getBytes("UTF-8"));
+        SimpleBean fromStream = mapper.readValue(in, SimpleBean.class);
+        assertEquals(10, fromStream.id);
+
+        Reader reader = new StringReader(json);
+        SimpleBean fromReader = mapper.readValue(reader, SimpleBean.class);
+        assertEquals("stream", fromReader.name);
     }
 
-    // Tests tree model operations: readTree, writeTree, createObjectNode, createArrayNode
+    // Tests reading with TypeReference for generic collections
     @Test
-    public void testTreeModel_manipulation_success() throws Exception {
-        ObjectNode objectNode = mapper.createObjectNode();
-        objectNode.put("key", "value");
-        ArrayNode arrayNode = mapper.createArrayNode();
-        arrayNode.add(123);
-        objectNode.set("arr", arrayNode);
+    public void testReadValue_typeReference_deserializesGenericMap() throws Exception {
+        String json = "{\"key1\":\"value1\",\"key2\":\"value2\"}";
+        Map<String, String> result = mapper.readValue(json, new TypeReference<Map<String, String>>() {});
+        assertNotNull(result);
+        assertEquals("value1", result.get("key1"));
+        assertEquals("value2", result.get("key2"));
+    }
 
-        String json = mapper.writeValueAsString(objectNode);
-        JsonNode root = mapper.readTree(json);
+    // Tests tree model operations: createObjectNode, createArrayNode, readTree, writeTree
+    @Test
+    public void testTreeModel_manipulationAndReadTree_success() throws Exception {
+        ObjectNode objNode = mapper.createObjectNode();
+        objNode.put("count", 5);
+        ArrayNode arrNode = mapper.createArrayNode();
+        arrNode.add("element1");
+        objNode.set("list", arrNode);
 
-        assertTrue(root.isObject());
-        assertEquals("value", root.get("key").asText());
-        assertTrue(root.get("arr").isArray());
-        assertEquals(123, root.get("arr").get(0).asInt());
+        String json = mapper.writeValueAsString(objNode);
+        JsonNode rootNode = mapper.readTree(json);
+
+        assertTrue(rootNode.isObject());
+        assertEquals(5, rootNode.get("count").asInt());
+        assertTrue(rootNode.get("list").isArray());
+        assertEquals("element1", rootNode.get("list").get(0).asText());
     }
 
     // Tests valueToTree and treeToValue conversion
     @Test
     public void testTreeConversion_valueToTreeAndTreeToValue_success() throws Exception {
-        SimpleBean bean = new SimpleBean(10, "tree");
+        SimpleBean bean = new SimpleBean(99, "treeValue");
         JsonNode node = mapper.valueToTree(bean);
         assertNotNull(node);
-        assertEquals(10, node.get("id").asInt());
+        assertEquals(99, node.get("id").asInt());
 
-        SimpleBean converted = mapper.treeToValue(node, SimpleBean.class);
-        assertNotNull(converted);
-        assertEquals(10, converted.id);
-        assertEquals("tree", converted.name);
+        SimpleBean fromNode = mapper.treeToValue(node, SimpleBean.class);
+        assertEquals(99, fromNode.id);
+        assertEquals("treeValue", fromNode.name);
     }
 
-    // Tests convertValue between compatible structures
+    // Tests valueToTree with null input returns null
+    @Test
+    public void testValueToTree_nullInput_returnsNull() {
+        assertNull(mapper.valueToTree(null));
+    }
+
+    // Tests convertValue functionality between compatible types
     @Test
     public void testConvertValue_mapToBean_success() {
         Map<String, Object> map = new HashMap<String, Object>();
-        map.put("id", 99);
-        map.put("name", "mapBean");
+        map.put("id", 7);
+        map.put("name", "converted");
 
         SimpleBean bean = mapper.convertValue(map, SimpleBean.class);
-        assertNotNull(bean);
-        assertEquals(99, bean.id);
-        assertEquals("mapBean", bean.name);
-
-        Map<?, ?> result = mapper.convertValue(bean, Map.class);
-        assertEquals(99, result.get("id"));
-        assertEquals("mapBean", result.get("name"));
+        assertEquals(7, bean.id);
+        assertEquals("converted", bean.name);
     }
 
-    // Tests readTree with null / empty input
+    // Tests convertValue with null input returns null
     @Test
-    public void testReadTree_emptyOrNullString_returnsNull() throws Exception {
-        JsonNode node = mapper.readTree("");
-        assertNull(node);
-
-        JsonNode nullNode = mapper.readTree("null");
-        assertNotNull(nullNode);
-        assertTrue(nullNode.isNull());
+    public void testConvertValue_nullInput_returnsNull() {
+        SimpleBean result = mapper.convertValue(null, SimpleBean.class);
+        assertNull(result);
     }
 
-    // Tests exception on invalid JSON during readValue
-    @Test(expected = JsonMappingException.class)
-    public void testReadValue_invalidJsonStructure_throwsException() throws Exception {
-        mapper.readValue("{\"id\": \"not-an-int\"}", SimpleBean.class);
-    }
-
-    // Tests mapper copy creates an independent copy
+    // Tests copy() creates an independent mapper instance
     @Test
-    public void testCopy_configuredMapper_createsIndependentInstance() {
-        ObjectMapper copy = mapper.copy();
-        assertNotNull(copy);
-        assertNotSame(mapper, copy);
-        assertNotNull(copy.getDeserializationConfig());
-        assertNotNull(copy.getSerializationConfig());
+    public void testCopy_createsDistinctInstance() {
+        ObjectMapper copyMapper = mapper.copy();
+        assertNotNull(copyMapper);
+        assertNotSame(mapper, copyMapper);
     }
 
-    // Tests DefaultTypeResolverBuilder with various DefaultTyping rules
+    // Tests feature configuration on/off
     @Test
-    public void testDefaultTypeResolverBuilder_useForType_checksApplicability() {
-        TypeFactory tf = mapper.getTypeFactory();
-        JavaType objectType = tf.constructType(Object.class);
-        JavaType stringType = tf.constructType(String.class);
-        JavaType listType = tf.constructType(List.class);
-        JavaType arrayListType = tf.constructType(ArrayList.class);
-        JavaType intArrayType = tf.constructType(int[].class);
-        JavaType jsonNodeType = tf.constructType(JsonNode.class);
-
-        // JAVA_LANG_OBJECT
-        ObjectMapper.DefaultTypeResolverBuilder b1 = new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.JAVA_LANG_OBJECT);
-        assertTrue(b1.useForType(objectType));
-        assertFalse(b1.useForType(stringType));
-        assertFalse(b1.useForType(listType));
-
-        // OBJECT_AND_NON_CONCRETE
-        ObjectMapper.DefaultTypeResolverBuilder b2 = new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE);
-        assertTrue(b2.useForType(objectType));
-        assertTrue(b2.useForType(listType));
-        assertFalse(b2.useForType(arrayListType));
-        assertFalse(b2.useForType(stringType));
-        assertFalse(b2.useForType(jsonNodeType));
-
-        // NON_CONCRETE_AND_ARRAYS
-        ObjectMapper.DefaultTypeResolverBuilder b3 = new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.NON_CONCRETE_AND_ARRAYS);
-        assertTrue(b3.useForType(objectType));
-        assertTrue(b3.useForType(listType));
-        assertTrue(b3.useForType(tf.constructType(List[].class)));
-        assertFalse(b3.useForType(jsonNodeType));
-
-        // NON_FINAL
-        ObjectMapper.DefaultTypeResolverBuilder b4 = new ObjectMapper.DefaultTypeResolverBuilder(ObjectMapper.DefaultTyping.NON_FINAL);
-        assertTrue(b4.useForType(objectType));
-        assertTrue(b4.useForType(listType));
-        assertTrue(b4.useForType(arrayListType));
-        assertFalse(b4.useForType(stringType));
-        assertFalse(b4.useForType(jsonNodeType));
-    }
-
-    // Tests enableDefaultTyping serialization and deserialization
-    @Test
-    public void testEnableDefaultTyping_polymorphicRoundtrip_success() throws Exception {
-        mapper.enableDefaultTyping(ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE);
-        List<Object> list = new ArrayList<Object>();
-        list.add(new SimpleBean(5, "polymorphic"));
-
-        String json = mapper.writeValueAsString(list);
-        assertTrue(json.contains(SimpleBean.class.getName()));
-
-        List<?> result = mapper.readValue(json, List.class);
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertTrue(result.get(0) instanceof SimpleBean);
-        assertEquals(5, ((SimpleBean) result.get(0)).id);
-    }
-
-    // Tests mix-in annotations
-    @Test
-    public void testMixIns_addAndFindMixIn_success() throws Exception {
-        mapper.addMixIn(MixInTarget.class, MixInSource.class);
-        assertEquals(1, mapper.mixInCount());
-        assertEquals(MixInSource.class, mapper.findMixInClassFor(MixInTarget.class));
-
-        MixInTarget target = new MixInTarget();
-        target.hidden = "val1";
-        target.visible = "val2";
-
-        String json = mapper.writeValueAsString(target);
-        assertTrue(json.contains("renamedHidden"));
-        assertFalse(json.contains("\"hidden\""));
-
-        mapper.setMixIns(Collections.<Class<?>, Class<?>>emptyMap());
-        assertEquals(0, mapper.mixInCount());
-    }
-
-    // Tests features configuration for mapper, serializer, and deserializer
-    @Test
-    public void testConfigure_features_affectsConfiguration() {
-        mapper.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true);
-        assertTrue(mapper.isEnabled(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY));
-
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        assertTrue(mapper.isEnabled(SerializationFeature.INDENT_OUTPUT));
-
+    public void testConfigure_featureState_reflectedCorrectly() {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         assertFalse(mapper.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES));
 
-        mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-        assertTrue(mapper.isEnabled(JsonParser.Feature.ALLOW_COMMENTS));
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true);
+        assertTrue(mapper.isEnabled(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES));
+
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        assertTrue(mapper.isEnabled(SerializationFeature.INDENT_OUTPUT));
     }
 
-    // Tests canSerialize and canDeserialize query methods
+    // Tests canSerialize and canDeserialize checks
     @Test
-    public void testCanSerializeAndDeserialize_validTypes_returnsTrue() {
+    public void testCanSerializeAndDeserialize_validType_returnsTrue() {
         assertTrue(mapper.canSerialize(SimpleBean.class));
+        assertTrue(mapper.canDeserialize(mapper.constructType(SimpleBean.class)));
+
         AtomicReference<Throwable> cause = new AtomicReference<Throwable>();
         assertTrue(mapper.canSerialize(SimpleBean.class, cause));
         assertNull(cause.get());
-
-        JavaType type = mapper.constructType(SimpleBean.class);
-        assertTrue(mapper.canDeserialize(type));
-        assertTrue(mapper.canDeserialize(type, cause));
-        assertNull(cause.get());
     }
 
-    // Tests stream, reader, and string overloads for readValue and writeValue
+    // Tests DefaultTypeResolverBuilder useForType logic with JavaType for primitives
     @Test
-    public void testReadAndWrite_streamAndReaderVariants_success() throws Exception {
-        SimpleBean bean = new SimpleBean(7, "io");
+    public void testDefaultTyping_primitiveTypeCheck_doesNotApplyTypingToPrimitives() {
+        ObjectMapper.DefaultTypeResolverBuilder builder = new ObjectMapper.DefaultTypeResolverBuilder(
+                ObjectMapper.DefaultTyping.NON_FINAL);
 
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        mapper.writeValue(out, bean);
-        byte[] bytes = out.toByteArray();
+        JavaType intType = mapper.constructType(int.class);
+        JavaType longType = mapper.constructType(long.class);
+        JavaType booleanType = mapper.constructType(boolean.class);
 
-        SimpleBean fromStream = mapper.readValue(new ByteArrayInputStream(bytes), SimpleBean.class);
-        assertEquals(7, fromStream.id);
-
-        StringWriter writer = new StringWriter();
-        mapper.writeValue(writer, bean);
-        String json = writer.toString();
-
-        SimpleBean fromReader = mapper.readValue(new StringReader(json), SimpleBean.class);
-        assertEquals(7, fromReader.id);
+        assertFalse("Default typing should not apply to primitive int", builder.useForType(intType));
+        assertFalse("Default typing should not apply to primitive long", builder.useForType(longType));
+        assertFalse("Default typing should not apply to primitive boolean", builder.useForType(booleanType));
     }
 
-    // Tests ObjectReader and ObjectWriter construction and basic execution
+    // Tests DefaultTypeResolverBuilder useForType logic with JavaType for primitive arrays
     @Test
-    public void testReaderAndWriter_scopedExecution_success() throws Exception {
-        ObjectWriter writer = mapper.writerFor(SimpleBean.class);
-        SimpleBean bean = new SimpleBean(100, "scoped");
-        String json = writer.writeValueAsString(bean);
+    public void testDefaultTyping_primitiveArrayTypeCheck_underNonConcreteAndArrays() {
+        ObjectMapper.DefaultTypeResolverBuilder builder = new ObjectMapper.DefaultTypeResolverBuilder(
+                ObjectMapper.DefaultTyping.NON_CONCRETE_AND_ARRAYS);
 
-        ObjectReader reader = mapper.readerFor(SimpleBean.class);
-        SimpleBean result = reader.readValue(json);
-        assertEquals(100, result.id);
-        assertEquals("scoped", result.name);
+        JavaType intArrayType = mapper.constructType(int[].class);
+        JavaType stringArrayType = mapper.constructType(String[].class);
+        JavaType objectArrayType = mapper.constructType(Object[].class);
+
+        assertFalse("Default typing should not apply to primitive int array", builder.useForType(intArrayType));
+        assertFalse("Default typing should not apply to concrete String array", builder.useForType(stringArrayType));
+        assertTrue("Default typing should apply to Object array", builder.useForType(objectArrayType));
     }
 
-    // Tests problem handler registration and clearing
+    // Tests enableDefaultTyping serialization and deserialization of polymorphic Object fields
     @Test
-    public void testHandler_addAndClear_success() {
-        DeserializationProblemHandler handler = new DeserializationProblemHandler() {};
-        mapper.addHandler(handler);
-        mapper.clearProblemHandlers();
+    public void testDefaultTyping_roundTripWithObjectField_preservesTypeInfo() throws Exception {
+        mapper.enableDefaultTyping(ObjectMapper.DefaultTyping.OBJECT_AND_NON_CONCRETE);
+
+        ContainerBean container = new ContainerBean(new SimpleBean(123, "poly"));
+        String json = mapper.writeValueAsString(container);
+
+        assertTrue("JSON should contain type info", json.contains(SimpleBean.class.getName()));
+
+        ContainerBean result = mapper.readValue(json, ContainerBean.class);
+        assertNotNull(result.item);
+        assertTrue(result.item instanceof SimpleBean);
+        SimpleBean deserializedItem = (SimpleBean) result.item;
+        assertEquals(123, deserializedItem.id);
+        assertEquals("poly", deserializedItem.name);
+    }
+
+    // Tests enableDefaultTyping with primitive array fields
+    @Test
+    public void testDefaultTyping_primitiveArrayField_serializesAndDeserializesCorrectly() throws Exception {
+        mapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+
+        PrimitiveArrayBean bean = new PrimitiveArrayBean(new int[] { 1, 2, 3 });
+        String json = mapper.writeValueAsString(bean);
+
+        PrimitiveArrayBean result = mapper.readValue(json, PrimitiveArrayBean.class);
+        assertNotNull(result.numbers);
+        assertEquals(3, result.numbers.length);
+        assertEquals(1, result.numbers[0]);
+        assertEquals(2, result.numbers[1]);
+        assertEquals(3, result.numbers[2]);
+    }
+
+    // Tests disableDefaultTyping disables polymorphic type wrapper inclusion
+    @Test
+    public void testDisableDefaultTyping_removesTypeInfo() throws Exception {
+        mapper.enableDefaultTyping();
+        mapper.disableDefaultTyping();
+
+        ContainerBean container = new ContainerBean(new SimpleBean(1, "plain"));
+        String json = mapper.writeValueAsString(container);
+        assertFalse("JSON should not contain class type info when default typing is disabled",
+                json.contains(SimpleBean.class.getName()));
+    }
+
+    // Tests enableDefaultTyping with EXTERNAL_PROPERTY throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testEnableDefaultTyping_externalPropertyInclusion_throwsException() {
+        mapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.EXTERNAL_PROPERTY);
     }
 
     // Tests subtype registration
     @Test
-    public void testRegisterSubtypes_classesAndNamedTypes_success() {
-        mapper.registerSubtypes(SimpleBean.class);
+    public void testRegisterSubtypes_registersNamedSubtypes() {
         mapper.registerSubtypes(new NamedType(SimpleBean.class, "simple"));
         assertNotNull(mapper.getSubtypeResolver());
+    }
+
+    // Tests ObjectReader and ObjectWriter factory methods
+    @Test
+    public void testReaderAndWriter_constructValidInstances() throws Exception {
+        ObjectWriter writer = mapper.writer();
+        assertNotNull(writer);
+
+        ObjectReader reader = mapper.reader(SimpleBean.class);
+        assertNotNull(reader);
+
+        SimpleBean bean = new SimpleBean(8, "readerWriter");
+        String json = writer.writeValueAsString(bean);
+        SimpleBean parsed = reader.readValue(json);
+        assertEquals(8, parsed.id);
+        assertEquals("readerWriter", parsed.name);
+    }
+
+    // Tests empty input string throws JsonMappingException due to end of input
+    @Test(expected = JsonMappingException.class)
+    public void testReadValue_emptyString_throwsMappingException() throws Exception {
+        mapper.readValue("", SimpleBean.class);
+    }
+
+    // Tests version retrieval
+    @Test
+    public void testVersion_returnsNonNullVersion() {
+        Version v = mapper.version();
+        assertNotNull(v);
+        assertFalse(v.isUnknownVersion());
+    }
+
+    // Tests date format configuration
+    @Test
+    public void testDateFormat_customFormat_appliedCorrectly() throws Exception {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        mapper.setDateFormat(sdf);
+        assertEquals(sdf, mapper.getDateFormat());
+
+        Date d = sdf.parse("2023-01-15");
+        DateBean bean = new DateBean(d);
+        String json = mapper.writeValueAsString(bean);
+        assertTrue(json.contains("2023-01-15"));
+    }
+
+    // Tests locale and timezone configuration
+    @Test
+    public void testLocaleAndTimeZone_configuration() {
+        mapper.setLocale(Locale.FRANCE);
+        mapper.setTimeZone(TimeZone.getTimeZone("GMT+2"));
+        assertNotNull(mapper.getSerializationConfig().getLocale());
+        assertNotNull(mapper.getSerializationConfig().getTimeZone());
+    }
+
+    // Tests updating values into existing object instance
+    @Test
+    public void testUpdateValue_updatesExistingBean() throws Exception {
+        SimpleBean target = new SimpleBean(1, "original");
+        Map<String, Object> updates = new HashMap<String, Object>();
+        updates.put("name", "updated");
+
+        SimpleBean result = mapper.updateValue(target, updates);
+        assertSame(target, result);
+        assertEquals(1, result.id);
+        assertEquals("updated", result.name);
+    }
+
+    // Tests node factory setter and getter
+    @Test
+    public void testNodeFactory_customSetter() {
+        JsonNodeFactory customFactory = new JsonNodeFactory(true);
+        mapper.setNodeFactory(customFactory);
+        assertSame(customFactory, mapper.getNodeFactory());
+    }
+
+    // Tests setting visibility checker
+    @Test
+    public void testVisibility_configuration() {
+        mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+        assertNotNull(mapper.getVisibilityChecker());
+    }
+
+    // Tests setting annotation introspector
+    @Test
+    public void testAnnotationIntrospector_configuration() {
+        JacksonAnnotationIntrospector ai = new JacksonAnnotationIntrospector();
+        mapper.setAnnotationIntrospector(ai);
+        assertSame(ai, mapper.getSerializationConfig().getAnnotationIntrospector());
+    }
+
+    // Tests readValues returns MappingIterator
+    @Test
+    public void testReadValues_multipleValues_iteratesSuccessfully() throws Exception {
+        String json = "{\"id\":1,\"name\":\"a\"}{\"id\":2,\"name\":\"b\"}";
+        MappingIterator<SimpleBean> it = mapper.readValues(mapper.getFactory().createParser(json), SimpleBean.class);
+        assertTrue(it.hasNext());
+        assertEquals(1, it.next().id);
+        assertTrue(it.hasNext());
+        assertEquals(2, it.next().id);
+        assertFalse(it.hasNext());
     }
 }

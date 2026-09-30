@@ -2,178 +2,226 @@ package org.apache.commons.lang;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.io.Writer;
 import org.apache.commons.lang.exception.NestableRuntimeException;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class StringEscapeUtilsTest {
 
-    // Tests public constructor instantiation
+    // Tests constructor creation
     @Test
-    public void testConstructor_default_instanceNotNull() {
-        StringEscapeUtils instance = new StringEscapeUtils();
-        assertNotNull(instance);
+    public void testConstructor_defaultInstantiation_notNull() {
+        assertNotNull(new StringEscapeUtils());
     }
 
-    // Tests escapeJava with null input
+    // Tests null and empty inputs for escapeJava
     @Test
-    public void testEscapeJava_nullInput_returnsNull() {
+    public void testEscapeJava_nullAndEmpty_returnsSame() {
         assertNull(StringEscapeUtils.escapeJava(null));
-    }
-
-    // Tests escapeJava with basic and boundary characters
-    @Test
-    public void testEscapeJava_quotesAndBackslash_returnsEscapedString() {
-        assertEquals("He didn't say, \\\"Stop!\\\"", StringEscapeUtils.escapeJava("He didn't say, \"Stop!\""));
-        assertEquals("backslash\\\\quote\\\"", StringEscapeUtils.escapeJava("backslash\\quote\""));
         assertEquals("", StringEscapeUtils.escapeJava(""));
     }
 
-    // Tests escapeJava with control characters and unicode boundaries
+    // Tests control characters, quotes, and backslashes in escapeJava
     @Test
-    public void testEscapeJava_controlAndUnicodeChars_returnsEscapedUnicode() {
-        String input = "\b\t\n\f\r\u0001\u001F\u0080\u0100\u1000";
-        String expected = "\\b\\t\\n\\f\\r\\u0001\\u001F\\u0080\\u0100\\u1000";
-        assertEquals(expected, StringEscapeUtils.escapeJava(input));
+    public void testEscapeJava_controlCharactersAndQuotes_escapesCorrectly() {
+        assertEquals("\\b\\t\\n\\f\\r\\\"\\\\", StringEscapeUtils.escapeJava("\b\t\n\f\r\"\\"));
+        assertEquals("He didn't say, \\\"Stop!\\\"", StringEscapeUtils.escapeJava("He didn't say, \"Stop!\""));
     }
 
-    // Tests escapeJava using Writer and null Writer exception
+    // Tests various unicode boundary branches in escapeJava
     @Test
-    public void testEscapeJava_writerTarget_writesCorrectly() throws IOException {
+    public void testEscapeJava_unicodeRanges_escapesHex() {
+        assertEquals("\\u0001", StringEscapeUtils.escapeJava("\u0001"));
+        assertEquals("\\u0010", StringEscapeUtils.escapeJava("\u0010"));
+        assertEquals("\\u0080", StringEscapeUtils.escapeJava("\u0080"));
+        assertEquals("\\u0100", StringEscapeUtils.escapeJava("\u0100"));
+        assertEquals("\\u1000", StringEscapeUtils.escapeJava("\u1000"));
+    }
+
+    // Tests escapeJava with Writer and null handling
+    @Test
+    public void testEscapeJava_writerNormalAndNullInput_writesExpected() throws IOException {
         StringWriter writer = new StringWriter();
-        StringEscapeUtils.escapeJava(writer, "a\nb");
-        assertEquals("a\\nb", writer.toString());
+        StringEscapeUtils.escapeJava(writer, "test\n");
+        assertEquals("test\\n", writer.toString());
 
-        StringEscapeUtils.escapeJava(writer, null);
-        assertEquals("a\\nb", writer.toString());
+        StringWriter nullInputWriter = new StringWriter();
+        StringEscapeUtils.escapeJava(nullInputWriter, null);
+        assertEquals("", nullInputWriter.toString());
     }
 
-    // Tests escapeJava with null writer throws IllegalArgumentException
+    // Tests escapeJava with null Writer throwing IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testEscapeJava_nullWriter_throwsIllegalArgumentException() throws IOException {
-        StringEscapeUtils.escapeJava(null, "text");
+        StringEscapeUtils.escapeJava((Writer) null, "test");
     }
 
     // Tests escapeJavaScript escaping single quotes and forward slashes
     @Test
-    public void testEscapeJavaScript_singleQuoteAndSlash_returnsEscaped() {
+    public void testEscapeJavaScript_singleQuoteAndSlashes_escapesCorrectly() {
         assertNull(StringEscapeUtils.escapeJavaScript(null));
         assertEquals("He didn\\'t say, \\\"Stop!\\\"", StringEscapeUtils.escapeJavaScript("He didn't say, \"Stop!\""));
+        assertEquals("document.getElementById(\\'test\\')", StringEscapeUtils.escapeJavaScript("document.getElementById('test')"));
     }
 
-    // Tests escapeJavaScript using Writer and null Writer exception
+    // Tests escapeJavaScript with Writer
     @Test
-    public void testEscapeJavaScript_writerTarget_writesCorrectly() throws IOException {
+    public void testEscapeJavaScript_writerValidAndNull_behavesCorrectly() throws IOException {
         StringWriter writer = new StringWriter();
-        StringEscapeUtils.escapeJavaScript(writer, "It's 'ok'");
-        assertEquals("It\\'s \\'ok\\'", writer.toString());
+        StringEscapeUtils.escapeJavaScript(writer, "'hello'");
+        assertEquals("\\'hello\\'", writer.toString());
+
+        StringWriter nullStrWriter = new StringWriter();
+        StringEscapeUtils.escapeJavaScript(nullStrWriter, null);
+        assertEquals("", nullStrWriter.toString());
     }
 
-    // Tests escapeJavaScript with null writer throws IllegalArgumentException
+    // Tests escapeJavaScript with null Writer throwing IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testEscapeJavaScript_nullWriter_throwsIllegalArgumentException() throws IOException {
-        StringEscapeUtils.escapeJavaScript(null, "text");
+        StringEscapeUtils.escapeJavaScript((Writer) null, "test");
     }
 
-    // Tests unescapeJava with null input
+    // Tests unescapeJava with null and normal escaped characters
     @Test
-    public void testUnescapeJava_nullInput_returnsNull() {
+    public void testUnescapeJava_escapedCharacters_unescapesCorrectly() {
         assertNull(StringEscapeUtils.unescapeJava(null));
+        assertEquals("", StringEscapeUtils.unescapeJava(""));
+        assertEquals("\b\t\n\f\r'\"\\", StringEscapeUtils.unescapeJava("\\b\\t\\n\\f\\r\\'\\\"\\\\"));
+        assertEquals("abc", StringEscapeUtils.unescapeJava("abc"));
+        assertEquals("a", StringEscapeUtils.unescapeJava("\\a"));
     }
 
-    // Tests unescapeJava with standard escape sequences
+    // Tests unescapeJava unicode parsing and trailing slash branch
     @Test
-    public void testUnescapeJava_escapedSequences_returnsUnescapedString() {
-        String input = "\\b\\t\\n\\f\\r\\\'\\\"\\\\\\a";
-        String expected = "\b\t\n\f\r\'\"\\a";
-        assertEquals(expected, StringEscapeUtils.unescapeJava(input));
-        assertEquals("trailing slash\\", StringEscapeUtils.unescapeJava("trailing slash\\"));
+    public void testUnescapeJava_unicodeAndTrailingSlash_unescapesCorrectly() {
+        assertEquals("\u0041\u1234", StringEscapeUtils.unescapeJava("\\u0041\\u1234"));
+        assertEquals("trailing\\", StringEscapeUtils.unescapeJava("trailing\\"));
     }
 
-    // Tests unescapeJava with Unicode values
-    @Test
-    public void testUnescapeJava_unicodeSequence_returnsUnicodeCharacter() {
-        assertEquals("A\u0041\u00AE", StringEscapeUtils.unescapeJava("A\\u0041\\u00AE"));
-    }
-
-    // Tests unescapeJava with invalid Unicode sequence throwing NestableRuntimeException
+    // Tests unescapeJava invalid unicode handling throwing NestableRuntimeException
     @Test(expected = NestableRuntimeException.class)
     public void testUnescapeJava_invalidUnicode_throwsNestableRuntimeException() {
         StringEscapeUtils.unescapeJava("\\u00ZZ");
     }
 
-    // Tests unescapeJava with null Writer
+    // Tests unescapeJava with Writer and null handling
+    @Test
+    public void testUnescapeJava_writerValidAndNullInput_writesExpected() throws IOException {
+        StringWriter writer = new StringWriter();
+        StringEscapeUtils.unescapeJava(writer, "\\n");
+        assertEquals("\n", writer.toString());
+
+        StringWriter nullStrWriter = new StringWriter();
+        StringEscapeUtils.unescapeJava(nullStrWriter, null);
+        assertEquals("", nullStrWriter.toString());
+    }
+
+    // Tests unescapeJava with null Writer throwing IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testUnescapeJava_nullWriter_throwsIllegalArgumentException() throws IOException {
-        StringEscapeUtils.unescapeJava(null, "test");
+        StringEscapeUtils.unescapeJava((Writer) null, "test");
     }
 
-    // Tests unescapeJavaScript wrapper method
+    // Tests unescapeJavaScript delegations
     @Test
-    public void testUnescapeJavaScript_escapedString_returnsUnescapedString() throws IOException {
+    public void testUnescapeJavaScript_escapedLiterals_unescapesCorrectly() throws IOException {
         assertNull(StringEscapeUtils.unescapeJavaScript(null));
-        assertEquals("tab\tquote'double\"", StringEscapeUtils.unescapeJavaScript("tab\\tquote\\\'double\\\""));
+        assertEquals("He didn't say, \"Stop!\"", StringEscapeUtils.unescapeJavaScript("He didn\\'t say, \\\"Stop!\\\""));
 
         StringWriter writer = new StringWriter();
-        StringEscapeUtils.unescapeJavaScript(writer, "a\\nb");
-        assertEquals("a\nb", writer.toString());
+        StringEscapeUtils.unescapeJavaScript(writer, "\\'test\\'");
+        assertEquals("'test'", writer.toString());
+
+        StringWriter nullStrWriter = new StringWriter();
+        StringEscapeUtils.unescapeJavaScript(nullStrWriter, null);
+        assertEquals("", nullStrWriter.toString());
     }
 
-    // Tests escapeHtml and unescapeHtml
+    // Tests unescapeJavaScript with null Writer throwing IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testUnescapeJavaScript_nullWriter_throwsIllegalArgumentException() throws IOException {
+        StringEscapeUtils.unescapeJavaScript((Writer) null, "test");
+    }
+
+    // Tests escapeHtml and unescapeHtml methods
     @Test
-    public void testEscapeAndUnescapeHtml_validEntities_transformsCorrectly() throws IOException {
+    public void testEscapeAndUnescapeHtml_validAndNull_convertsProperly() throws IOException {
         assertNull(StringEscapeUtils.escapeHtml(null));
         assertNull(StringEscapeUtils.unescapeHtml(null));
 
-        String input = "\"bread\" & 'butter' < \u00A9 >";
-        String escaped = StringEscapeUtils.escapeHtml(input);
-        assertEquals("&quot;bread&quot; &amp; 'butter' &lt; &copy; &gt;", escaped);
-        assertEquals(input, StringEscapeUtils.unescapeHtml(escaped));
+        String raw = "\"bread\" & 'butter' <tag>";
+        String escaped = StringEscapeUtils.escapeHtml(raw);
+        assertEquals("&quot;bread&quot; &amp; 'butter' &lt;tag&gt;", escaped);
+        assertEquals(raw, StringEscapeUtils.unescapeHtml(escaped));
 
         StringWriter writer = new StringWriter();
-        StringEscapeUtils.escapeHtml(writer, "<Fran\u00E7ais>");
-        assertEquals("&lt;Fran&ccedil;ais&gt;", writer.toString());
+        StringEscapeUtils.escapeHtml(writer, "<b>");
+        assertEquals("&lt;b&gt;", writer.toString());
 
         StringWriter unescapeWriter = new StringWriter();
-        StringEscapeUtils.unescapeHtml(unescapeWriter, "&lt;Fran&ccedil;ais&gt;");
-        assertEquals("<Fran\u00E7ais>", unescapeWriter.toString());
+        StringEscapeUtils.unescapeHtml(unescapeWriter, "&lt;b&gt;");
+        assertEquals("<b>", unescapeWriter.toString());
+
+        StringWriter nullWriter = new StringWriter();
+        StringEscapeUtils.escapeHtml(nullWriter, null);
+        StringEscapeUtils.unescapeHtml(nullWriter, null);
+        assertEquals("", nullWriter.toString());
     }
 
-    // Tests escapeHtml and unescapeHtml with null writer
+    // Tests escapeHtml and unescapeHtml null Writer exceptions
     @Test(expected = IllegalArgumentException.class)
     public void testEscapeHtml_nullWriter_throwsIllegalArgumentException() throws IOException {
-        StringEscapeUtils.escapeHtml(null, "text");
+        StringEscapeUtils.escapeHtml(null, "test");
     }
 
-    // Tests escapeXml and unescapeXml
+    // Tests unescapeHtml null Writer exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testUnescapeHtml_nullWriter_throwsIllegalArgumentException() throws IOException {
+        StringEscapeUtils.unescapeHtml(null, "test");
+    }
+
+    // Tests escapeXml and unescapeXml methods
     @Test
-    public void testEscapeAndUnescapeXml_validEntities_transformsCorrectly() throws IOException {
+    public void testEscapeAndUnescapeXml_validAndNull_convertsProperly() throws IOException {
         assertNull(StringEscapeUtils.escapeXml(null));
         assertNull(StringEscapeUtils.unescapeXml(null));
 
-        String input = "<tag attr='value & \"other\"'>\u00A9</tag>";
-        String escaped = StringEscapeUtils.escapeXml(input);
-        assertEquals("&lt;tag attr=&apos;value &amp; &quot;other&quot;&gt;&#169;&lt;/tag&gt;", escaped);
-        assertEquals(input, StringEscapeUtils.unescapeXml(escaped));
+        String raw = "<abc>&\"'</abc>";
+        String escaped = StringEscapeUtils.escapeXml(raw);
+        assertEquals("&lt;abc&gt;&amp;&quot;&apos;&lt;/abc&gt;", escaped);
+        assertEquals(raw, StringEscapeUtils.unescapeXml(escaped));
 
         StringWriter writer = new StringWriter();
-        StringEscapeUtils.escapeXml(writer, "<abc>");
-        assertEquals("&lt;abc&gt;", writer.toString());
+        StringEscapeUtils.escapeXml(writer, "<foo>");
+        assertEquals("&lt;foo&gt;", writer.toString());
 
         StringWriter unescapeWriter = new StringWriter();
-        StringEscapeUtils.unescapeXml(unescapeWriter, "&lt;abc&gt;");
-        assertEquals("<abc>", unescapeWriter.toString());
+        StringEscapeUtils.unescapeXml(unescapeWriter, "&lt;foo&gt;");
+        assertEquals("<foo>", unescapeWriter.toString());
+
+        StringWriter nullWriter = new StringWriter();
+        StringEscapeUtils.escapeXml(nullWriter, null);
+        StringEscapeUtils.unescapeXml(nullWriter, null);
+        assertEquals("", nullWriter.toString());
     }
 
-    // Tests escapeXml and unescapeXml with null writer
+    // Tests escapeXml null Writer exception
     @Test(expected = IllegalArgumentException.class)
     public void testEscapeXml_nullWriter_throwsIllegalArgumentException() throws IOException {
-        StringEscapeUtils.escapeXml(null, "text");
+        StringEscapeUtils.escapeXml(null, "test");
     }
 
-    // Tests escapeSql with null and single quote replacement
+    // Tests unescapeXml null Writer exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testUnescapeXml_nullWriter_throwsIllegalArgumentException() throws IOException {
+        StringEscapeUtils.unescapeXml(null, "test");
+    }
+
+    // Tests escapeSql method
     @Test
-    public void testEscapeSql_singleQuotes_escapesCorrectly() {
+    public void testEscapeSql_singleQuotesAndNull_escapesCorrectly() {
         assertNull(StringEscapeUtils.escapeSql(null));
         assertEquals("", StringEscapeUtils.escapeSql(""));
         assertEquals("McHale''s Navy", StringEscapeUtils.escapeSql("McHale's Navy"));

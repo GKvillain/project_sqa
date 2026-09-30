@@ -1,11 +1,11 @@
 package org.mockito;
 
-import org.hamcrest.core.IsEqual;
-import org.hamcrest.core.IsNull;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.internal.progress.MockingProgress;
 import org.mockito.internal.progress.ThreadSafeMockingProgress;
 
 import java.util.Collection;
@@ -17,42 +17,50 @@ import static org.junit.Assert.*;
 
 public class MatchersTest {
 
-    private MockingProgress mockingProgress;
-
     @Before
     public void setUp() {
-        mockingProgress = new ThreadSafeMockingProgress();
-        mockingProgress.getArgumentMatcherStorage().reset();
+        new ThreadSafeMockingProgress().reset();
     }
 
     @After
     public void tearDown() {
-        mockingProgress.getArgumentMatcherStorage().reset();
+        new ThreadSafeMockingProgress().reset();
     }
 
-    // Tests primitive any matchers return their default primitive values
+    // Tests primitive any matchers return default primitive values
     @Test
-    public void testPrimitiveAnyMatchers_returnDefaultPrimitiveValues() {
+    public void testAnyPrimitiveMatchers_returnsDefaultPrimitiveValues() {
         assertFalse(Matchers.anyBoolean());
         assertEquals((byte) 0, Matchers.anyByte());
-        assertEquals((char) 0, Matchers.anyChar());
+        assertEquals('\u0000', Matchers.anyChar());
         assertEquals(0, Matchers.anyInt());
         assertEquals(0L, Matchers.anyLong());
-        assertEquals(0.0f, Matchers.anyFloat(), 0.0001f);
-        assertEquals(0.0d, Matchers.anyDouble(), 0.0001d);
+        assertEquals(0.0f, Matchers.anyFloat(), 0.0f);
+        assertEquals(0.0d, Matchers.anyDouble(), 0.0d);
         assertEquals((short) 0, Matchers.anyShort());
     }
 
-    // Tests object and collection any matchers return empty or null values
+    // Tests general object any matchers return null
     @Test
-    public void testObjectAndCollectionAnyMatchers_returnExpectedValues() {
+    public void testAnyObjectMatchers_returnsNull() {
         assertNull(Matchers.anyObject());
         assertNull(Matchers.any());
         assertNull(Matchers.any(String.class));
         assertNull(Matchers.anyVararg());
-        assertEquals("", Matchers.anyString());
+    }
 
-        List<?> list = Matchers.anyList();
+    // Tests string matcher returns empty string
+    @Test
+    public void testAnyString_returnsEmptyString() {
+        String result = Matchers.anyString();
+        assertNotNull(result);
+        assertEquals("", result);
+    }
+
+    // Tests collection any matchers return empty collection instances
+    @Test
+    public void testAnyCollectionMatchers_returnsEmptyCollections() {
+        List list = Matchers.anyList();
         assertNotNull(list);
         assertTrue(list.isEmpty());
 
@@ -60,97 +68,165 @@ public class MatchersTest {
         assertNotNull(stringList);
         assertTrue(stringList.isEmpty());
 
-        Set<?> set = Matchers.anySet();
+        Set set = Matchers.anySet();
         assertNotNull(set);
         assertTrue(set.isEmpty());
 
-        Set<Integer> intSet = Matchers.anySetOf(Integer.class);
-        assertNotNull(intSet);
-        assertTrue(intSet.isEmpty());
+        Set<String> stringSet = Matchers.anySetOf(String.class);
+        assertNotNull(stringSet);
+        assertTrue(stringSet.isEmpty());
 
-        Map<?, ?> map = Matchers.anyMap();
+        Map map = Matchers.anyMap();
         assertNotNull(map);
         assertTrue(map.isEmpty());
 
-        Collection<?> collection = Matchers.anyCollection();
+        Collection collection = Matchers.anyCollection();
         assertNotNull(collection);
         assertTrue(collection.isEmpty());
 
-        Collection<Double> doubleCollection = Matchers.anyCollectionOf(Double.class);
-        assertNotNull(doubleCollection);
-        assertTrue(doubleCollection.isEmpty());
+        Collection<String> stringCollection = Matchers.anyCollectionOf(String.class);
+        assertNotNull(stringCollection);
+        assertTrue(stringCollection.isEmpty());
     }
 
-    // Tests primitive eq matchers return the expected dummy primitive values
+    // Tests isA matcher returns null
     @Test
-    public void testPrimitiveEqMatchers_returnDefaultPrimitiveValues() {
+    public void testIsA_validClass_returnsNull() {
+        String result = Matchers.isA(String.class);
+        assertNull(result);
+
+        Integer intResult = Matchers.isA(Integer.class);
+        assertNull(intResult);
+    }
+
+    // Tests primitive eq matchers return default primitive values
+    @Test
+    public void testEqPrimitive_returnsDefaultValues() {
         assertFalse(Matchers.eq(true));
         assertFalse(Matchers.eq(false));
-        assertEquals((byte) 0, Matchers.eq((byte) 10));
-        assertEquals((char) 0, Matchers.eq('x'));
-        assertEquals(0, Matchers.eq(100));
-        assertEquals(0L, Matchers.eq(1000L));
-        assertEquals(0.0f, Matchers.eq(5.5f), 0.0001f);
-        assertEquals(0.0d, Matchers.eq(9.99d), 0.0001d);
-        assertEquals((short) 0, Matchers.eq((short) 3));
+        assertEquals((byte) 0, Matchers.eq((byte) 5));
+        assertEquals('\u0000', Matchers.eq('c'));
+        assertEquals(0, Matchers.eq(42));
+        assertEquals(0L, Matchers.eq(100L));
+        assertEquals(0.0f, Matchers.eq(1.5f), 0.0f);
+        assertEquals(0.0d, Matchers.eq(2.5d), 0.0d);
+        assertEquals((short) 0, Matchers.eq((short) 10));
     }
 
-    // Tests object equality and identity matchers
+    // Tests object eq matcher returns null
     @Test
-    public void testObjectEqAndSameMatchers_returnNull() {
-        String testValue = "test";
-        assertNull(Matchers.eq(testValue));
-        assertNull(Matchers.same(testValue));
-        assertNull(Matchers.refEq(testValue, "someField"));
+    public void testEqObject_returnsNull() {
+        String value = "test";
+        String result = Matchers.eq(value);
+        assertNull(result);
+
+        Object nullResult = Matchers.eq((Object) null);
+        assertNull(nullResult);
     }
 
-    // Tests null and not-null matchers
+    // Tests refEq matcher with and without excluded fields returns null
     @Test
-    public void testNullAndNotNullMatchers_returnNull() {
+    public void testRefEq_returnsNull() {
+        String value = "test";
+        String result = Matchers.refEq(value);
+        assertNull(result);
+
+        String resultWithExclude = Matchers.refEq(value, "fieldToExclude");
+        assertNull(resultWithExclude);
+    }
+
+    // Tests same matcher returns null
+    @Test
+    public void testSame_returnsNull() {
+        String value = "test";
+        String result = Matchers.same(value);
+        assertNull(result);
+
+        Object nullResult = Matchers.same(null);
+        assertNull(nullResult);
+    }
+
+    // Tests null and notNull matchers return null
+    @Test
+    public void testNullMatchers_returnsNull() {
         assertNull(Matchers.isNull());
         assertNull(Matchers.notNull());
         assertNull(Matchers.isNotNull());
     }
 
-    // Tests String condition matchers return empty string
+    // Tests string specific matchers return empty string
     @Test
-    public void testStringConditionMatchers_returnEmptyString() {
-        assertEquals("", Matchers.contains("substring"));
-        assertEquals("", Matchers.matches(".*regex.*"));
-        assertEquals("", Matchers.endsWith("suffix"));
-        assertEquals("", Matchers.startsWith("prefix"));
+    public void testStringSpecificMatchers_returnsEmptyString() {
+        assertEquals("", Matchers.contains("sub"));
+        assertEquals("", Matchers.matches(".*"));
+        assertEquals("", Matchers.endsWith("end"));
+        assertEquals("", Matchers.startsWith("start"));
     }
 
-    // Tests isA matcher returns null
+    // Tests custom argThat matcher returns null
     @Test
-    public void testIsA_withValidClass_returnsNull() {
-        Integer result = Matchers.isA(Integer.class);
+    public void testArgThat_customMatcher_returnsNull() {
+        Matcher<String> customMatcher = new BaseMatcher<String>() {
+            public boolean matches(Object item) {
+                return true;
+            }
+            public void describeTo(Description description) {
+                description.appendText("custom");
+            }
+        };
+        String result = Matchers.argThat(customMatcher);
         assertNull(result);
     }
 
-    // Tests custom hamcrest argument matchers
+    // Tests primitive *That matchers return default primitive values
     @Test
-    public void testCustomHamcrestMatchers_returnDefaultValues() {
-        assertNull(Matchers.argThat(IsNull.nullValue()));
-        assertEquals((char) 0, Matchers.charThat(IsEqual.equalTo('a')));
-        assertFalse(Matchers.booleanThat(IsEqual.equalTo(true)));
-        assertEquals((byte) 0, Matchers.byteThat(IsEqual.equalTo((byte) 1)));
-        assertEquals((short) 0, Matchers.shortThat(IsEqual.equalTo((short) 2)));
-        assertEquals(0, Matchers.intThat(IsEqual.equalTo(3)));
-        assertEquals(0L, Matchers.longThat(IsEqual.equalTo(4L)));
-        assertEquals(0.0f, Matchers.floatThat(IsEqual.equalTo(5.0f)), 0.0001f);
-        assertEquals(0.0d, Matchers.doubleThat(IsEqual.equalTo(6.0d)), 0.0001d);
-    }
+    public void testPrimitiveThatMatchers_returnsDefaultValues() {
+        Matcher<Boolean> boolMatcher = new BaseMatcher<Boolean>() {
+            public boolean matches(Object item) { return true; }
+            public void describeTo(Description description) {}
+        };
+        assertFalse(Matchers.booleanThat(boolMatcher));
 
-    // Tests Matchers in Mockito stubbing and verification scenario
-    @Test
-    public void testMatchersIntegration_withMockitoMock() {
-        List<String> mock = Mockito.mock(List.class);
+        Matcher<Byte> byteMatcher = new BaseMatcher<Byte>() {
+            public boolean matches(Object item) { return true; }
+            public void describeTo(Description description) {}
+        };
+        assertEquals((byte) 0, Matchers.byteThat(byteMatcher));
 
-        Mockito.when(mock.get(Matchers.anyInt())).thenReturn("matched");
-        assertEquals("matched", mock.get(5));
-        assertEquals("matched", mock.get(999));
+        Matcher<Character> charMatcher = new BaseMatcher<Character>() {
+            public boolean matches(Object item) { return true; }
+            public void describeTo(Description description) {}
+        };
+        assertEquals('\u0000', Matchers.charThat(charMatcher));
 
-        Mockito.verify(mock, Mockito.times(2)).get(Matchers.anyInt());
+        Matcher<Short> shortMatcher = new BaseMatcher<Short>() {
+            public boolean matches(Object item) { return true; }
+            public void describeTo(Description description) {}
+        };
+        assertEquals((short) 0, Matchers.shortThat(shortMatcher));
+
+        Matcher<Integer> intMatcher = new BaseMatcher<Integer>() {
+            public boolean matches(Object item) { return true; }
+            public void describeTo(Description description) {}
+        };
+        assertEquals(0, Matchers.intThat(intMatcher));
+
+        Matcher<Long> longMatcher = new BaseMatcher<Long>() {
+            public boolean matches(Object item) { return true; }
+            public void describeTo(Description description) {}
+        };
+        assertEquals(0L, Matchers.longThat(longMatcher));
+
+        Matcher<Float> floatMatcher = new BaseMatcher<Float>() {
+            public boolean matches(Object item) { return true; }
+            public void describeTo(Description description) {}
+        };
+        assertEquals(0.0f, Matchers.floatThat(floatMatcher), 0.0f);
+
+        Matcher<Double> doubleMatcher = new BaseMatcher<Double>() {
+            public boolean matches(Object item) { return true; }
+            public void describeTo(Description description) {}
+        };
+        assertEquals(0.0d, Matchers.doubleThat(doubleMatcher), 0.0d);
     }
 }

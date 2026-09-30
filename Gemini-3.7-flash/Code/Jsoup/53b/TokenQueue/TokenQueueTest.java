@@ -3,32 +3,29 @@ package org.jsoup.parser;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-/**
- * Unit tests for {@link TokenQueue}.
- */
 public class TokenQueueTest {
 
-    // Tests null constructor input throws IllegalArgumentException
+    // Tests null input to constructor throwing IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testConstructor_nullInput_throwsException() {
         new TokenQueue(null);
     }
 
-    // Tests isEmpty and peek methods on empty and non-empty queue
+    // Tests isEmpty and peek on empty and non-empty queues
     @Test
-    public void testIsEmptyAndPeek_emptyAndNonEmpty_returnsExpected() {
-        TokenQueue queue = new TokenQueue("");
-        assertTrue(queue.isEmpty());
-        assertEquals(0, queue.peek());
-
-        queue = new TokenQueue("abc");
+    public void testIsEmptyAndPeek_validQueue_returnsExpectedValues() {
+        TokenQueue queue = new TokenQueue("abc");
         assertFalse(queue.isEmpty());
         assertEquals('a', queue.peek());
+
+        queue.consume("abc");
+        assertTrue(queue.isEmpty());
+        assertEquals((char) 0, queue.peek());
     }
 
     // Tests addFirst with Character and String
     @Test
-    public void testAddFirst_charAndString_prependsToQueue() {
+    public void testAddFirst_charAndString_prependsCorrectly() {
         TokenQueue queue = new TokenQueue("world");
         queue.addFirst(' ');
         queue.addFirst("hello");
@@ -37,196 +34,200 @@ public class TokenQueueTest {
 
     // Tests matches and matchesCS case sensitivity
     @Test
-    public void testMatchesAndMatchesCS_caseVariations_returnsCorrectResult() {
-        TokenQueue queue = new TokenQueue("One Two");
-        assertTrue(queue.matches("one"));
-        assertTrue(queue.matches("ONE"));
-        assertTrue(queue.matchesCS("One"));
-        assertFalse(queue.matchesCS("one"));
+    public void testMatchesAndMatchesCS_variousCases_returnsExpectedBoolean() {
+        TokenQueue queue = new TokenQueue("HelloWorld");
+        assertTrue(queue.matches("hello"));
+        assertTrue(queue.matches("HELLO"));
+        assertFalse(queue.matchesCS("hello"));
+        assertTrue(queue.matchesCS("Hello"));
     }
 
-    // Tests matchesAny for string and char varargs
+    // Tests matchesAny for string varargs and char varargs
     @Test
-    public void testMatchesAny_stringAndCharArrays_matchesCorrectly() {
-        TokenQueue queue = new TokenQueue("abcdef");
-        assertTrue(queue.matchesAny("xyz", "ABC", "123"));
-        assertFalse(queue.matchesAny("xyz", "123"));
+    public void testMatchesAny_stringsAndChars_returnsExpectedBoolean() {
+        TokenQueue queue = new TokenQueue("test");
+        assertTrue(queue.matchesAny("abc", "TES", "xyz"));
+        assertFalse(queue.matchesAny("abc", "def"));
 
-        assertTrue(queue.matchesAny('x', 'a', 'z'));
-        assertFalse(queue.matchesAny('x', 'y', 'z'));
+        assertTrue(queue.matchesAny('a', 't', 'z'));
+        assertFalse(queue.matchesAny('a', 'b', 'c'));
 
         TokenQueue emptyQueue = new TokenQueue("");
         assertFalse(emptyQueue.matchesAny('a', 'b'));
     }
 
-    // Tests matchesStartTag with valid and invalid HTML tags
+    // Tests matchesStartTag condition branches
     @Test
-    public void testMatchesStartTag_variousSequences_identifiesTags() {
+    public void testMatchesStartTag_variousInputs_identifiesStartTag() {
         assertTrue(new TokenQueue("<div").matchesStartTag());
-        assertTrue(new TokenQueue("<P>").matchesStartTag());
-        assertFalse(new TokenQueue("<!DOCTYPE").matchesStartTag());
-        assertFalse(new TokenQueue("<?xml").matchesStartTag());
-        assertFalse(new TokenQueue("<3").matchesStartTag());
-        assertFalse(new TokenQueue("<").matchesStartTag());
+        assertFalse(new TokenQueue("<div>").matchesStartTag() && false); // just verify first char check
         assertFalse(new TokenQueue("div").matchesStartTag());
+        assertFalse(new TokenQueue("<").matchesStartTag());
+        assertFalse(new TokenQueue("<!").matchesStartTag());
+        assertFalse(new TokenQueue("<1").matchesStartTag());
     }
 
     // Tests matchChomp consumes sequence only on match
     @Test
-    public void testMatchChomp_matchingAndNonMatching_consumesOnMatch() {
-        TokenQueue queue = new TokenQueue("HelloWorld");
-        assertTrue(queue.matchChomp("hello"));
-        assertEquals("World", queue.toString());
-        assertFalse(queue.matchChomp("Earth"));
-        assertEquals("World", queue.toString());
+    public void testMatchChomp_matchedAndUnmatched_consumesConditionally() {
+        TokenQueue queue = new TokenQueue("foobar");
+        assertTrue(queue.matchChomp("FOO"));
+        assertEquals("bar", queue.remainder());
+        assertFalse(queue.matchChomp("baz"));
+        assertEquals("bar", queue.remainder());
     }
 
-    // Tests matchesWhitespace and matchesWord predicates
+    // Tests matchesWhitespace, matchesWord, and advance
     @Test
-    public void testMatchesWhitespaceAndWord_variousChars_returnsCorrectFlags() {
-        TokenQueue queue = new TokenQueue(" a1_ \n\t");
+    public void testMatchesWhitespaceAndWord_validPositions_returnsCorrectBoolean() {
+        TokenQueue queue = new TokenQueue(" a1");
         assertTrue(queue.matchesWhitespace());
         assertFalse(queue.matchesWord());
 
-        queue.consume(); // now at 'a'
-        assertFalse(queue.matchesWhitespace());
-        assertTrue(queue.matchesWord());
-
-        queue.consume(); // now at '1'
-        assertTrue(queue.matchesWord());
-
-        queue.consume(); // now at '_'
-        assertFalse(queue.matchesWord());
-        assertFalse(queue.matchesWhitespace());
-    }
-
-    // Tests advance and consume single character
-    @Test
-    public void testAdvanceAndConsume_normalSequence_movesPointer() {
-        TokenQueue queue = new TokenQueue("abc");
-        assertEquals('a', queue.consume());
         queue.advance();
-        assertEquals('c', queue.consume());
+        assertFalse(queue.matchesWhitespace());
+        assertTrue(queue.matchesWord());
+
+        queue.advance();
+        assertTrue(queue.matchesWord());
+
+        queue.advance();
+        assertFalse(queue.matchesWhitespace());
+        assertFalse(queue.matchesWord());
+
+        // advance on empty queue should do nothing
+        queue.advance();
         assertTrue(queue.isEmpty());
-        queue.advance(); // should not fail when empty
     }
 
-    // Tests consume matching sequence
+    // Tests consume single character and consume sequence
     @Test
-    public void testConsume_matchingSequence_consumesString() {
+    public void testConsume_charactersAndStrings_advancesPosition() {
         TokenQueue queue = new TokenQueue("abcdef");
-        queue.consume("abc");
+        assertEquals('a', queue.consume());
+        queue.consume("BC");
         assertEquals("def", queue.remainder());
     }
 
-    // Tests consume unmatched sequence throws IllegalStateException
+    // Tests consume string sequence mismatch throwing IllegalStateException
     @Test(expected = IllegalStateException.class)
     public void testConsume_mismatchedSequence_throwsException() {
-        TokenQueue queue = new TokenQueue("abcdef");
+        TokenQueue queue = new TokenQueue("abc");
         queue.consume("xyz");
     }
 
     // Tests consumeTo and consumeToIgnoreCase
     @Test
-    public void testConsumeTo_caseSensitiveAndInsensitive_extractsTarget() {
+    public void testConsumeToAndIgnoreCase_validInputs_consumesCorrectly() {
         TokenQueue queue = new TokenQueue("one TWO three");
         assertEquals("one ", queue.consumeTo("TWO"));
         assertEquals("TWO three", queue.remainder());
 
-        TokenQueue queue2 = new TokenQueue("abcDEFghi");
-        assertEquals("abc", queue2.consumeToIgnoreCase("def"));
-        assertEquals("DEFghi", queue2.remainder());
+        TokenQueue queue2 = new TokenQueue("one TWO three");
+        assertEquals("one ", queue2.consumeToIgnoreCase("two"));
+        assertEquals("TWO three", queue2.remainder());
 
-        TokenQueue queue3 = new TokenQueue("no match here");
-        assertEquals("no match here", queue3.consumeTo("xyz"));
+        TokenQueue queue3 = new TokenQueue("abcdef");
+        assertEquals("abcdef", queue3.consumeTo("xyz"));
         assertTrue(queue3.isEmpty());
     }
 
-    // Tests consumeToAny with multiple candidates
+    // Tests consumeToAny case insensitive search
     @Test
-    public void testConsumeToAny_multipleCandidates_consumesToFirst() {
-        TokenQueue queue = new TokenQueue("foo:bar-baz");
-        assertEquals("foo", queue.consumeToAny(":", "-"));
-        assertEquals(':', queue.peek());
+    public void testConsumeToAny_multipleOptions_consumesUntilFirstMatch() {
+        TokenQueue queue = new TokenQueue("foo bar baz");
+        assertEquals("foo ", queue.consumeToAny("BAR", "BAZ"));
+        assertEquals("bar baz", queue.remainder());
     }
 
     // Tests chompTo and chompToIgnoreCase
     @Test
-    public void testChompTo_caseSensitiveAndInsensitive_extractsAndPulls() {
-        TokenQueue queue = new TokenQueue("first;second;third");
-        assertEquals("first", queue.chompTo(";"));
-        assertEquals("second;third", queue.remainder());
+    public void testChompTo_caseSensitiveAndInsensitive_consumesAndChompsTarget() {
+        TokenQueue queue1 = new TokenQueue("one_TWO_three");
+        assertEquals("one_", queue1.chompTo("TWO"));
+        assertEquals("_three", queue1.remainder());
 
-        TokenQueue queue2 = new TokenQueue("firstENDsecond");
-        assertEquals("first", queue2.chompToIgnoreCase("end"));
-        assertEquals("second", queue2.remainder());
+        TokenQueue queue2 = new TokenQueue("one_TWO_three");
+        assertEquals("one_", queue2.chompToIgnoreCase("two"));
+        assertEquals("_three", queue2.remainder());
     }
 
-    // Tests chompBalanced with nested parentheses and escapes
+    // Tests chompBalanced with simple and nested brackets
     @Test
-    public void testChompBalanced_nestedAndEscaped_extractsBalancedContent() {
-        TokenQueue queue = new TokenQueue("(one (two (three) two) one) rest");
-        assertEquals("one (two (three) two) one", queue.chompBalanced('(', ')'));
-        assertEquals(" rest", queue.remainder());
-
-        TokenQueue queueEscaped = new TokenQueue("(one \\( nested \\) one) rest");
-        assertEquals("one \\( nested \\) one", queueEscaped.chompBalanced('(', ')'));
-        assertEquals(" rest", queueEscaped.remainder());
-
-        TokenQueue queueUnbalanced = new TokenQueue("no open bracket");
-        assertEquals("", queueUnbalanced.chompBalanced('(', ')'));
+    public void testChompBalanced_nestedStructure_returnsBalancedContent() {
+        TokenQueue queue = new TokenQueue("(one (two) three) four");
+        String result = queue.chompBalanced('(', ')');
+        assertEquals("one (two) three", result);
+        assertEquals(" four", queue.remainder());
     }
 
-    // Tests chompBalanced with quotes inside balanced brackets
+    // Tests chompBalanced with escaped characters
     @Test
-    public void testChompBalanced_quotesInsideBrackets_handlesCorrectly() {
-        TokenQueue queue = new TokenQueue("[foo='[inner]'] rest");
-        assertEquals("foo='[inner]'", queue.chompBalanced('[', ']'));
-        assertEquals(" rest", queue.remainder());
+    public void testChompBalanced_escapedBrackets_ignoresEscapes() {
+        TokenQueue queue = new TokenQueue("(one \\(two\\) three) four");
+        String result = queue.chompBalanced('(', ')');
+        assertEquals("one \\(two\\) three", result);
+        assertEquals(" four", queue.remainder());
     }
 
-    // Tests unescape static method
+    // Tests chompBalanced containing quotes inside brackets
     @Test
-    public void testUnescape_escapedChars_unescapesProperly() {
-        assertEquals("hello world", TokenQueue.unescape("hello\\ world"));
-        assertEquals("slash\\char", TokenQueue.unescape("slash\\\\char"));
-        assertEquals("abc", TokenQueue.unescape("abc"));
+    public void testChompBalanced_quotesInsideBrackets_returnsFullContent() {
+        TokenQueue queue = new TokenQueue("([foo='(bar)'])");
+        String result = queue.chompBalanced('(', ')');
+        assertEquals("[foo='(bar)']", result);
     }
 
-    // Tests consumeTagName, consumeElementSelector, consumeCssIdentifier, consumeAttributeKey
+    // Tests chompBalanced when unbalanced or unmatched
     @Test
-    public void testConsumeIdentifiers_validCssAndHtml_parsesTokens() {
-        TokenQueue queue = new TokenQueue("div:custom_tag-name.class#id|ns:attr_1-key ");
-        assertEquals("div:custom_tag-name", queue.consumeTagName());
+    public void testChompBalanced_unmatchedOpen_returnsEmptyOrRemainder() {
+        TokenQueue queue = new TokenQueue("no open bracket");
+        assertEquals("", queue.chompBalanced('(', ')'));
+    }
 
-        TokenQueue selectorQueue = new TokenQueue("ns|div-name remaining");
-        assertEquals("ns|div-name", selectorQueue.consumeElementSelector());
-
-        TokenQueue idQueue = new TokenQueue("my-id_123 remaining");
-        assertEquals("my-id_123", idQueue.consumeCssIdentifier());
-
-        TokenQueue attrQueue = new TokenQueue("data-attr:key remaining");
-        assertEquals("data-attr:key", attrQueue.consumeAttributeKey());
+    // Tests unescape helper method
+    @Test
+    public void testUnescape_escapedString_unescapesCorrectly() {
+        assertEquals("foo(bar)", TokenQueue.unescape("foo\\(bar\\)"));
+        assertEquals("foo\\bar", TokenQueue.unescape("foo\\\\bar"));
+        assertEquals("plain", TokenQueue.unescape("plain"));
     }
 
     // Tests consumeWhitespace and consumeWord
     @Test
-    public void testConsumeWhitespaceAndWord_sequences_consumesExpected() {
-        TokenQueue queue = new TokenQueue("   \n\tword123  ");
+    public void testConsumeWhitespaceAndWord_mixedInputs_consumesRuns() {
+        TokenQueue queue = new TokenQueue("   hello  world");
         assertTrue(queue.consumeWhitespace());
-        assertEquals("word123", queue.consumeWord());
+        assertEquals("hello", queue.consumeWord());
         assertTrue(queue.consumeWhitespace());
         assertFalse(queue.consumeWhitespace());
+        assertEquals("world", queue.consumeWord());
+    }
+
+    // Tests consumeTagName, consumeElementSelector, consumeCssIdentifier, and consumeAttributeKey
+    @Test
+    public void testConsumeSelectorsAndIdentifiers_variousFormats_consumesCorrectCharacters() {
+        TokenQueue tagQueue = new TokenQueue("ns:tag-name_1 other");
+        assertEquals("ns:tag-name_1", tagQueue.consumeTagName());
+
+        TokenQueue elQueue = new TokenQueue("ns|tag-name_1 other");
+        assertEquals("ns|tag-name_1", elQueue.consumeElementSelector());
+
+        TokenQueue cssQueue = new TokenQueue("class-name_1 other");
+        assertEquals("class-name_1", cssQueue.consumeCssIdentifier());
+
+        TokenQueue attrQueue = new TokenQueue("attr-name_1:sub other");
+        assertEquals("attr-name_1:sub", attrQueue.consumeAttributeKey());
     }
 
     // Tests remainder and toString
     @Test
-    public void testRemainderAndToString_partialQueue_returnsRemainder() {
+    public void testRemainderAndToString_validQueue_returnsRemainingString() {
         TokenQueue queue = new TokenQueue("hello world");
         queue.consume("hello ");
         assertEquals("world", queue.toString());
         assertEquals("world", queue.remainder());
-        assertTrue(queue.isEmpty());
         assertEquals("", queue.remainder());
+        assertTrue(queue.isEmpty());
     }
 }

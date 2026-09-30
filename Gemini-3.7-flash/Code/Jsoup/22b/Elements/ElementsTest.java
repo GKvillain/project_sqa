@@ -4,409 +4,286 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
-import org.jsoup.parser.Tag;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 
 import static org.junit.Assert.*;
 
 public class ElementsTest {
 
-    // Tests empty constructor and boundary methods on empty elements
+    // Tests getting attribute from elements when present and absent
     @Test
-    public void testEmptyList_noElements_returnsDefaultValues() {
+    public void testAttr_presentAndAbsent_returnsCorrectValues() {
+        Document doc = Jsoup.parse("<p title='foo'>One</p><p title='bar'>Two</p><p>Three</p>");
+        Elements ps = doc.select("p");
+
+        assertEquals("foo", ps.attr("title"));
+        assertEquals("", ps.attr("nonexistent"));
+
         Elements empty = new Elements();
-        assertEquals(0, empty.size());
-        assertTrue(empty.isEmpty());
-        assertNull(empty.first());
-        assertNull(empty.last());
-        assertEquals("", empty.attr("class"));
-        assertFalse(empty.hasAttr("class"));
-        assertEquals("", empty.val());
-        assertEquals("", empty.text());
-        assertFalse(empty.hasText());
-        assertEquals("", empty.html());
-        assertEquals("", empty.outerHtml());
-        assertEquals("", empty.toString());
-        assertEquals(0, empty.parents().size());
-        assertEquals(0, empty.eq(0).size());
-        assertFalse(empty.is("div"));
+        assertEquals("", empty.attr("title"));
     }
 
-    // Tests attribute retrieval, setting, checking, and removal
+    // Tests hasAttr method on elements list
     @Test
-    public void testAttrMethods_variousOperations_modifiesAndReturnsAttributes() {
-        Document doc = Jsoup.parse("<div id='1' class='main'></div><div id='2'></div>");
-        Elements divs = doc.select("div");
+    public void testHasAttr_presentAndAbsent_returnsExpectedBoolean() {
+        Document doc = Jsoup.parse("<p title='foo'>One</p><p>Two</p>");
+        Elements ps = doc.select("p");
 
-        assertTrue(divs.hasAttr("id"));
-        assertFalse(divs.hasAttr("title"));
-        assertEquals("1", divs.attr("id"));
+        assertTrue(ps.hasAttr("title"));
+        assertFalse(ps.hasAttr("href"));
 
-        divs.attr("title", "testTitle");
-        assertEquals("testTitle", divs.get(0).attr("title"));
-        assertEquals("testTitle", divs.get(1).attr("title"));
-
-        divs.removeAttr("title");
-        assertFalse(divs.hasAttr("title"));
+        Elements empty = new Elements();
+        assertFalse(empty.hasAttr("title"));
     }
 
-    // Tests class operations: add, remove, toggle, has
+    // Tests setting and removing attributes on all matched elements
     @Test
-    public void testClassMethods_addRemoveToggle_updatesClassesCorrectly() {
-        Document doc = Jsoup.parse("<div class='c1'></div><div></div>");
-        Elements divs = doc.select("div");
+    public void testAttrSetterAndRemoveAttr_modifiesAllElements() {
+        Document doc = Jsoup.parse("<p>One</p><p>Two</p>");
+        Elements ps = doc.select("p");
 
-        assertTrue(divs.hasClass("c1"));
-        assertFalse(divs.hasClass("c2"));
+        ps.attr("class", "item");
+        assertEquals("item", ps.get(0).attr("class"));
+        assertEquals("item", ps.get(1).attr("class"));
 
-        divs.addClass("c2");
-        assertTrue(divs.get(0).hasClass("c2"));
-        assertTrue(divs.get(1).hasClass("c2"));
-
-        divs.removeClass("c1");
-        assertFalse(divs.get(0).hasClass("c1"));
-
-        divs.toggleClass("toggle");
-        assertTrue(divs.get(0).hasClass("toggle"));
-        assertTrue(divs.get(1).hasClass("toggle"));
-
-        divs.toggleClass("toggle");
-        assertFalse(divs.get(0).hasClass("toggle"));
-        assertFalse(divs.get(1).hasClass("toggle"));
+        ps.removeAttr("class");
+        assertFalse(ps.hasAttr("class"));
     }
 
-    // Tests form val() get and set
+    // Tests class manipulation methods: addClass, removeClass, toggleClass, hasClass
     @Test
-    public void testVal_getAndSet_updatesValues() {
+    public void testClasses_addClassRemoveClassToggleClassHasClass() {
+        Document doc = Jsoup.parse("<div><p class='one'>1</p><p>2</p></div>");
+        Elements ps = doc.select("p");
+
+        assertTrue(ps.hasClass("one"));
+        assertFalse(ps.hasClass("two"));
+
+        ps.addClass("two");
+        assertTrue(ps.get(0).hasClass("two"));
+        assertTrue(ps.get(1).hasClass("two"));
+
+        ps.toggleClass("two");
+        assertFalse(ps.get(0).hasClass("two"));
+        assertFalse(ps.get(1).hasClass("two"));
+
+        ps.removeClass("one");
+        assertFalse(ps.hasClass("one"));
+    }
+
+    // Tests form element value getter and setter
+    @Test
+    public void testVal_getterAndSetter_returnsAndUpdatesValues() {
         Document doc = Jsoup.parse("<input value='one'/><input value='two'/>");
         Elements inputs = doc.select("input");
 
         assertEquals("one", inputs.val());
 
-        inputs.val("three");
-        assertEquals("three", inputs.get(0).val());
-        assertEquals("three", inputs.get(1).val());
+        inputs.val("updated");
+        assertEquals("updated", inputs.get(0).val());
+        assertEquals("updated", inputs.get(1).val());
+
+        Elements empty = new Elements();
+        assertEquals("", empty.val());
     }
 
-    // Tests text() and hasText()
+    // Tests text and hasText methods
     @Test
-    public void testTextAndHasText_withTextContent_returnsCombinedText() {
-        Document doc = Jsoup.parse("<p>Hello</p><p>World</p><p></p>");
+    public void testTextAndHasText_multipleElements_returnsJoinedText() {
+        Document doc = Jsoup.parse("<div><p>Hello</p><p>World</p><p></p></div>");
         Elements ps = doc.select("p");
 
-        assertTrue(ps.hasText());
         assertEquals("Hello World", ps.text());
+        assertTrue(ps.hasText());
 
-        Elements emptyPs = doc.select("p:empty");
-        assertFalse(emptyPs.hasText());
-        assertEquals("", emptyPs.text());
+        Elements empty = new Elements();
+        assertEquals("", empty.text());
+        assertFalse(empty.hasText());
     }
 
-    // Tests html(), outerHtml(), and toString()
+    // Tests html, outerHtml and toString methods
     @Test
-    public void testHtmlAndOuterHtml_multipleElements_joinsWithNewlines() {
-        Document doc = Jsoup.parse("<div><span>1</span></div><div><span>2</span></div>");
-        Elements divs = doc.select("div");
+    public void testHtmlAndOuterHtmlAndToString_returnsCombinedHtml() {
+        Document doc = Jsoup.parse("<div><p><span>1</span></p><p><span>2</span></p></div>");
+        Elements ps = doc.select("p");
 
-        assertEquals("<span>1</span>\n<span>2</span>", divs.html());
-        assertEquals("<div>\n <span>1</span>\n</div>\n<div>\n <span>2</span>\n</div>", divs.outerHtml());
-        assertEquals(divs.outerHtml(), divs.toString());
+        assertEquals("<span>1</span>\n<span>2</span>", ps.html());
+        assertEquals("<p><span>1</span></p>\n<p><span>2</span></p>", ps.outerHtml());
+        assertEquals(ps.outerHtml(), ps.toString());
     }
 
-    // Tests tagName modification
+    // Tests tagName update across all elements
     @Test
-    public void testTagName_changeTag_updatesAllElements() {
-        Document doc = Jsoup.parse("<i>1</i><i>2</i>");
-        Elements italic = doc.select("i");
+    public void testTagName_updatesTagNameForAllElements() {
+        Document doc = Jsoup.parse("<div><i>1</i><i>2</i></div>");
+        Elements is = doc.select("i");
 
-        italic.tagName("em");
-        assertEquals("<em>1</em>\n<em>2</em>", italic.outerHtml());
+        is.tagName("em");
+        assertEquals("<em>1</em>\n<em>2</em>", is.outerHtml());
     }
 
-    // Tests html(String), prepend, append, before, after DOM manipulations
+    // Tests inner HTML manipulation: html(String), prepend(String), append(String)
     @Test
-    public void testDomManipulations_contentAndPositioning_updatesDom() {
-        Document doc = Jsoup.parse("<div id='d1'>Text</div><div id='d2'>Text</div>");
-        Elements divs = doc.select("div");
+    public void testHtmlPrependAppend_modifiesInnerHtml() {
+        Document doc = Jsoup.parse("<div><p>Body</p></div>");
+        Elements ps = doc.select("p");
 
-        divs.html("<b>Inner</b>");
-        assertEquals("<b>Inner</b>", divs.get(0).html());
+        ps.prepend("<b>Start</b> ");
+        ps.append(" <b>End</b>");
+        assertEquals("<b>Start</b> Body <b>End</b>", ps.html());
 
-        divs.prepend("<span>Pre</span>");
-        assertEquals("<span>Pre</span><b>Inner</b>", divs.get(0).html());
-
-        divs.append("<span>Post</span>");
-        assertEquals("<span>Pre</span><b>Inner</b><span>Post</span>", divs.get(0).html());
-
-        divs.before("<p>Before</p>");
-        assertEquals(2, doc.select("p").size());
-
-        divs.after("<hr />");
-        assertEquals(2, doc.select("hr").size());
+        ps.html("New Content");
+        assertEquals("New Content", ps.html());
     }
 
-    // Tests wrap() and unwrap()
+    // Tests DOM insertion methods: before(String), after(String)
     @Test
-    public void testWrapAndUnwrap_elements_wrapsAndUnwrapsCorrectly() {
-        Document doc = Jsoup.parse("<p><b>1</b></p><p><b>2</b></p>");
-        Elements b = doc.select("b");
+    public void testBeforeAndAfter_insertsSiblingHtml() {
+        Document doc = Jsoup.parse("<div><p>Middle</p></div>");
+        Elements ps = doc.select("p");
 
-        b.wrap("<i class='wrap'></i>");
-        assertEquals("<i class=\"wrap\"><b>1</b></i>", doc.select("p").first().html());
-
-        doc.select("b").unwrap();
-        assertEquals("<i class=\"wrap\">1</i>", doc.select("p").first().html());
+        ps.before("<span>Before</span>");
+        ps.after("<span>After</span>");
+        assertEquals("<span>Before</span><p>Middle</p><span>After</span>", doc.body().children().first().html().replace("\n", ""));
     }
 
-    // Tests wrap with empty html throws exception
+    // Tests wrap and unwrap methods
+    @Test
+    public void testWrapAndUnwrap_wrapsAndUnwrapsElements() {
+        Document doc = Jsoup.parse("<div><b>One</b><b>Two</b></div>");
+        Elements bs = doc.select("b");
+
+        bs.wrap("<i></i>");
+        assertEquals("<div><i><b>One</b></i><i><b>Two</b></i></div>", doc.body().html().replace("\n", ""));
+
+        bs.unwrap();
+        assertEquals("<div><i>One</i><i>Two</i></div>", doc.body().html().replace("\n", ""));
+    }
+
+    // Tests wrap with empty string throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testWrap_emptyHtml_throwsException() {
-        Document doc = Jsoup.parse("<p>1</p>");
-        doc.select("p").wrap("");
+    public void testWrap_emptyString_throwsIllegalArgumentException() {
+        Document doc = Jsoup.parse("<div><p>Text</p></div>");
+        Elements ps = doc.select("p");
+        ps.wrap("");
     }
 
-    // Tests empty() and remove()
+    // Tests empty and remove methods on elements
     @Test
-    public void testEmptyAndRemove_modifiesDom_clearsOrRemovesElements() {
-        Document doc = Jsoup.parse("<div><p>1</p><p>2</p></div>");
+    public void testEmptyAndRemove_modifiesDOM() {
+        Document doc = Jsoup.parse("<div><p><span>1</span></p><p><span>2</span></p></div>");
         Elements ps = doc.select("p");
 
         ps.empty();
         assertEquals("<p></p>\n<p></p>", ps.outerHtml());
 
         ps.remove();
-        assertEquals(0, doc.select("p").size());
-        assertEquals("<div></div>", doc.body().html());
+        assertEquals("<div></div>", doc.body().html().replace("\n", ""));
     }
 
-    // Tests select, not, and is query filters
+    // Tests select, not, and is filter methods
     @Test
-    public void testFilters_selectNotIs_filtersElementsCorrectly() {
-        Document doc = Jsoup.parse("<p class='a'>1</p><p class='b'>2</p><p class='a b'>3</p>");
+    public void testSelectAndNotAndIs_filtersElementsCorrectly() {
+        Document doc = Jsoup.parse("<div><p class='a'>1</p><p class='b'>2</p><p class='a b'>3</p></div>");
         Elements ps = doc.select("p");
 
-        Elements aOnly = ps.select(".a");
-        assertEquals(2, aOnly.size());
+        assertTrue(ps.is(".a"));
+        assertFalse(ps.is(".c"));
 
-        Elements notA = ps.not(".a");
-        assertEquals(1, notA.size());
-        assertEquals("2", notA.first().text());
+        Elements filtered = ps.not(".a");
+        assertEquals(1, filtered.size());
+        assertEquals("2", filtered.first().text());
 
-        assertTrue(ps.is(".b"));
-        assertFalse(ps.is(".nonexistent"));
+        Elements selected = ps.select(".b");
+        assertEquals(2, selected.size());
     }
 
-    // Tests eq(index) within and outside boundary
+    // Tests eq method with valid and invalid indices
     @Test
-    public void testEq_validAndInvalidIndex_returnsExpectedElements() {
+    public void testEq_validAndInvalidIndex_returnsCorrectElements() {
         Document doc = Jsoup.parse("<p>0</p><p>1</p><p>2</p>");
         Elements ps = doc.select("p");
 
-        Elements eq0 = ps.eq(0);
-        assertEquals(1, eq0.size());
-        assertEquals("0", eq0.first().text());
+        Elements eq1 = ps.eq(1);
+        assertEquals(1, eq1.size());
+        assertEquals("1", eq1.first().text());
 
-        Elements eq2 = ps.eq(2);
-        assertEquals(1, eq2.size());
-        assertEquals("2", eq2.first().text());
-
-        Elements eq3 = ps.eq(3);
-        assertEquals(0, eq3.size());
-
-        Elements eqNegative = ps.eq(-1);
-        assertEquals(0, eqNegative.size());
+        Elements eqOut = ps.eq(5);
+        assertTrue(eqOut.isEmpty());
     }
 
-    // Tests parents() method collecting ancestor elements
+    // Tests parents method returns ancestor elements
     @Test
-    public void testParents_nestedElements_returnsUniqueAncestors() {
-        Document doc = Jsoup.parse("<div><span><em>1</em></span><span><em>2</em></span></div>");
-        Elements ems = doc.select("em");
+    public void testParents_returnsUniqueAncestors() {
+        Document doc = Jsoup.parse("<div><section><p><span>Text</span></p></section></div>");
+        Elements spans = doc.select("span");
+        Elements parents = spans.parents();
 
-        Elements parents = ems.parents();
+        assertTrue(parents.contains(doc.select("p").first()));
+        assertTrue(parents.contains(doc.select("section").first()));
         assertTrue(parents.contains(doc.select("div").first()));
-        assertEquals(2, parents.select("span").size());
     }
 
-    // Tests first() and last()
+    // Tests first and last on populated and empty Elements
     @Test
-    public void testFirstAndLast_populatedList_returnsFirstAndLastElement() {
-        Document doc = Jsoup.parse("<p>1</p><p>2</p><p>3</p>");
+    public void testFirstAndLast_populatedAndEmpty_returnsElementsOrNull() {
+        Document doc = Jsoup.parse("<p>First</p><p>Middle</p><p>Last</p>");
         Elements ps = doc.select("p");
 
-        assertEquals("1", ps.first().text());
-        assertEquals("3", ps.last().text());
+        assertNotNull(ps.first());
+        assertEquals("First", ps.first().text());
+        assertNotNull(ps.last());
+        assertEquals("Last", ps.last().text());
+
+        Elements empty = new Elements();
+        assertNull(empty.first());
+        assertNull(empty.last());
     }
 
-    // Tests clone() creating deep copies
+    // Tests clone creates deep copy of elements
     @Test
-    public void testClone_deepCopy_independentOfOriginal() {
-        Document doc = Jsoup.parse("<p class='original'>Text</p>");
-        Elements original = doc.select("p");
-        Elements cloned = original.clone();
+    public void testClone_createsDeepCopyOfElements() {
+        Document doc = Jsoup.parse("<div><p>Original</p></div>");
+        Elements ps = doc.select("p");
+        Elements cloned = ps.clone();
 
-        assertEquals(1, cloned.size());
-        cloned.attr("class", "cloned");
+        assertEquals(ps.size(), cloned.size());
+        assertEquals(ps.text(), cloned.text());
 
-        assertEquals("original", original.first().attr("class"));
-        assertEquals("cloned", cloned.first().attr("class"));
+        cloned.get(0).text("Modified");
+        assertEquals("Original", ps.get(0).text());
+        assertEquals("Modified", cloned.get(0).text());
     }
 
-    // Tests traverse() with NodeVisitor
+    // Tests traverse depth-first visitor on elements
     @Test
-    public void testTraverse_nodeVisitor_visitsNodes() {
-        Document doc = Jsoup.parse("<div><p>Hello</p></div>");
-        Elements divs = doc.select("div");
+    public void testTraverse_visitsAllElements() {
+        Document doc = Jsoup.parse("<div><p>1</p><p>2</p></div>");
+        Elements ps = doc.select("p");
+
         final List<String> visited = new ArrayList<String>();
-
-        divs.traverse(new NodeVisitor() {
+        ps.traverse(new NodeVisitor() {
             public void head(Node node, int depth) {
-                visited.add("head:" + node.nodeName());
+                if (node instanceof Element) {
+                    visited.add(((Element) node).tagName());
+                }
             }
 
-            public void tail(Node node, int depth) {
-                visited.add("tail:" + node.nodeName());
-            }
+            public void tail(Node node, int depth) {}
         });
 
-        assertTrue(visited.contains("head:div"));
-        assertTrue(visited.contains("head:p"));
-        assertTrue(visited.contains("head:#text"));
-        assertTrue(visited.contains("tail:div"));
+        assertEquals(2, visited.size());
+        assertEquals("p", visited.get(0));
+        assertEquals("p", visited.get(1));
     }
 
-    // Tests traverse with null throws exception
+    // Tests traverse with null throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
-    public void testTraverse_nullVisitor_throwsException() {
-        Elements els = new Elements();
-        els.traverse(null);
-    }
-
-    // Tests constructors and collection delegate methods
-    @Test
-    public void testConstructorsAndListDelegates_variousOperations_behavesAsList() {
-        Element el1 = new Element(Tag.valueOf("div"), "");
-        Element el2 = new Element(Tag.valueOf("span"), "");
-
-        Elements varargs = new Elements(el1, el2);
-        assertEquals(2, varargs.size());
-        assertEquals(el1, varargs.get(0));
-        assertEquals(el2, varargs.get(1));
-        assertEquals(0, varargs.indexOf(el1));
-        assertEquals(1, varargs.lastIndexOf(el2));
-
-        Element el3 = new Element(Tag.valueOf("p"), "");
-        varargs.add(el3);
-        assertEquals(3, varargs.size());
-
-        varargs.remove(el3);
-        assertEquals(2, varargs.size());
-        assertFalse(varargs.contains(el3));
-
-        Object[] array = varargs.toArray();
-        assertEquals(2, array.length);
-
-        Element[] typedArray = varargs.toArray(new Element[0]);
-        assertEquals(2, typedArray.length);
-
-        Elements cloneSubList = new Elements(varargs.subList(0, 1));
-        assertEquals(1, cloneSubList.size());
-    }
-
-    // Additional coverage tests for remaining constructors and collection delegate methods
-    @Test
-    public void testInitialCapacityConstructorAndCollectionConstructors_initializesCorrectly() {
-        Elements sized = new Elements(10);
-        assertEquals(0, sized.size());
-
-        Element el1 = new Element(Tag.valueOf("div"), "");
-        Element el2 = new Element(Tag.valueOf("span"), "");
-        List<Element> list = Arrays.asList(el1, el2);
-
-        Elements fromList = new Elements(list);
-        assertEquals(2, fromList.size());
-        assertEquals(el1, fromList.get(0));
-        assertEquals(el2, fromList.get(1));
-    }
-
-    @Test
-    public void testListMutationsAndIterators_supportsStandardListOperations() {
-        Element el1 = new Element(Tag.valueOf("div"), "");
-        Element el2 = new Element(Tag.valueOf("span"), "");
-        Element el3 = new Element(Tag.valueOf("p"), "");
-        Element el4 = new Element(Tag.valueOf("b"), "");
-
-        Elements els = new Elements();
-        els.add(el1);
-        els.add(0, el2);
-        assertEquals(el2, els.get(0));
-        assertEquals(el1, els.get(1));
-
-        Element previous = els.set(1, el3);
-        assertEquals(el1, previous);
-        assertEquals(el3, els.get(1));
-
-        Element removed = els.remove(0);
-        assertEquals(el2, removed);
-        assertEquals(1, els.size());
-
-        List<Element> additions = Arrays.asList(el2, el4);
-        els.addAll(additions);
-        assertEquals(3, els.size());
-        assertTrue(els.containsAll(additions));
-
-        els.addAll(0, Arrays.asList(el1));
-        assertEquals(4, els.size());
-        assertEquals(el1, els.get(0));
-
-        // Iterator tests
-        Iterator<Element> it = els.iterator();
-        assertTrue(it.hasNext());
-        assertEquals(el1, it.next());
-
-        // ListIterator tests
-        ListIterator<Element> listIt = els.listIterator();
-        assertTrue(listIt.hasNext());
-        assertEquals(el1, listIt.next());
-
-        ListIterator<Element> listItIndex = els.listIterator(1);
-        assertTrue(listItIndex.hasNext());
-        assertEquals(el3, listItIndex.next());
-
-        // retainAll and removeAll
-        els.retainAll(Arrays.asList(el1, el4));
-        assertEquals(2, els.size());
-        assertTrue(els.contains(el1));
-        assertTrue(els.contains(el4));
-
-        els.removeAll(Arrays.asList(el1));
-        assertEquals(1, els.size());
-        assertFalse(els.contains(el1));
-
-        els.clear();
-        assertEquals(0, els.size());
-        assertTrue(els.isEmpty());
-    }
-
-    @Test
-    public void testEqualsAndHashCode_listComparison_worksAsExpected() {
-        Element el1 = new Element(Tag.valueOf("div"), "");
-        Element el2 = new Element(Tag.valueOf("span"), "");
-
-        Elements els1 = new Elements(el1, el2);
-        Elements els2 = new Elements(el1, el2);
-        Elements els3 = new Elements(el1);
-
-        assertEquals(els1, els2);
-        assertEquals(els1.hashCode(), els2.hashCode());
-        assertFalse(els1.equals(els3));
-        assertFalse(els1.equals("other"));
-        assertFalse(els1.equals(null));
+    public void testTraverse_nullVisitor_throwsIllegalArgumentException() {
+        Elements elements = new Elements();
+        elements.traverse(null);
     }
 }

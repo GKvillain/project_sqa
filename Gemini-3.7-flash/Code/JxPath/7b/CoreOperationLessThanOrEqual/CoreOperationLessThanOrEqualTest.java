@@ -1,154 +1,134 @@
 package org.apache.commons.jxpath.ri.compiler;
 
+import org.apache.commons.jxpath.ri.EvalContext;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class CoreOperationLessThanOrEqualTest {
 
-    // Tests getSymbol method returns correct operator symbol
+    // Tests symbol representation
     @Test
-    public void testGetSymbol_standardCall_returnsCorrectSymbol() {
-        Constant arg1 = new Constant(1);
-        Constant arg2 = new Constant(2);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        assertEquals("<=", operation.getSymbol());
+    public void testGetSymbol_returnsCorrectSymbol() {
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant(Double.valueOf(1.0)),
+                new Constant(Double.valueOf(2.0))
+        );
+        assertEquals("<=", op.getSymbol());
     }
 
-    // Tests computeValue when left operand is strictly less than right operand
+    // Tests left less than right returns true
     @Test
     public void testComputeValue_leftLessThanRight_returnsTrue() {
-        Constant arg1 = new Constant(1.0);
-        Constant arg2 = new Constant(2.0);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant(Double.valueOf(1.0)),
+                new Constant(Double.valueOf(2.0))
+        );
+        Object result = op.computeValue((EvalContext) null);
         assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests computeValue when left operand is equal to right operand
+    // Tests left equal to right returns true
     @Test
-    public void testComputeValue_leftEqualsRight_returnsTrue() {
-        Constant arg1 = new Constant(5.5);
-        Constant arg2 = new Constant(5.5);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
+    public void testComputeValue_leftEqualToRight_returnsTrue() {
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant(Double.valueOf(2.0)),
+                new Constant(Double.valueOf(2.0))
+        );
+        Object result = op.computeValue((EvalContext) null);
         assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests computeValue when left operand is greater than right operand
+    // Tests left greater than right returns false
     @Test
     public void testComputeValue_leftGreaterThanRight_returnsFalse() {
-        Constant arg1 = new Constant(10.0);
-        Constant arg2 = new Constant(5.0);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant(Double.valueOf(3.0)),
+                new Constant(Double.valueOf(2.0))
+        );
+        Object result = op.computeValue((EvalContext) null);
         assertEquals(Boolean.FALSE, result);
     }
 
-    // Tests computeValue with negative numbers where left is less than right
+    // Tests negative values comparison returning true
     @Test
-    public void testComputeValue_negativeNumbersLeftLess_returnsTrue() {
-        Constant arg1 = new Constant(-10.0);
-        Constant arg2 = new Constant(-5.0);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
+    public void testComputeValue_negativeValuesLessThan_returnsTrue() {
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant(Double.valueOf(-5.0)),
+                new Constant(Double.valueOf(-2.0))
+        );
+        Object result = op.computeValue((EvalContext) null);
         assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests computeValue with negative numbers where left is greater than right
+    // Tests negative values comparison returning false
     @Test
-    public void testComputeValue_negativeNumbersLeftGreater_returnsFalse() {
-        Constant arg1 = new Constant(-1.0);
-        Constant arg2 = new Constant(-3.0);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
+    public void testComputeValue_negativeValuesGreaterThan_returnsFalse() {
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant(Double.valueOf(-1.0)),
+                new Constant(Double.valueOf(-3.0))
+        );
+        Object result = op.computeValue((EvalContext) null);
         assertEquals(Boolean.FALSE, result);
     }
 
-    // Tests computeValue with zero values on both sides
+    // Tests zero boundary comparison
     @Test
-    public void testComputeValue_zeros_returnsTrue() {
-        Constant arg1 = new Constant(0);
-        Constant arg2 = new Constant(0);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
+    public void testComputeValue_zeroBoundary_returnsTrue() {
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant(Double.valueOf(0.0)),
+                new Constant(Double.valueOf(0.0))
+        );
+        Object result = op.computeValue((EvalContext) null);
         assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests computeValue with numeric string constants
+    // Tests string numeric conversion and comparison
     @Test
-    public void testComputeValue_numericStringsLeftLess_returnsTrue() {
-        Constant arg1 = new Constant("4.5");
-        Constant arg2 = new Constant("5.0");
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
+    public void testComputeValue_stringOperands_returnsCorrectResult() {
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant("10"),
+                new Constant("20")
+        );
+        Object result = op.computeValue((EvalContext) null);
         assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests computeValue with numeric string constants where left is greater
-    @Test
-    public void testComputeValue_numericStringsLeftGreater_returnsFalse() {
-        Constant arg1 = new Constant("10.0");
-        Constant arg2 = new Constant("2.0");
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
-        assertEquals(Boolean.FALSE, result);
-    }
-
-    // Tests computeValue with boundary value Double.MIN_VALUE and Double.MAX_VALUE
-    @Test
-    public void testComputeValue_minAndMaxDouble_returnsTrue() {
-        Constant arg1 = new Constant(Double.MIN_VALUE);
-        Constant arg2 = new Constant(Double.MAX_VALUE);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
-        assertEquals(Boolean.TRUE, result);
-    }
-
-    // Tests computeValue with Double.POSITIVE_INFINITY
-    @Test
-    public void testComputeValue_infinityBoundary_returnsTrue() {
-        Constant arg1 = new Constant(Double.NEGATIVE_INFINITY);
-        Constant arg2 = new Constant(Double.POSITIVE_INFINITY);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
-        assertEquals(Boolean.TRUE, result);
-    }
-
-    // Tests computeValue with NaN operand
+    // Tests NaN comparison resulting in false
     @Test
     public void testComputeValue_nanOperand_returnsFalse() {
-        Constant arg1 = new Constant(Double.NaN);
-        Constant arg2 = new Constant(1.0);
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(arg1, arg2);
-        Object result = operation.computeValue(null);
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant("not_a_number"),
+                new Constant(Double.valueOf(1.0))
+        );
+        Object result = op.computeValue((EvalContext) null);
         assertEquals(Boolean.FALSE, result);
     }
 
-    // Tests evaluateCompare directly for negative, zero, and positive compare results
+    // Tests infinite boundary comparison
     @Test
-    public void testEvaluateCompare_differentComparisonResults() {
-        CoreOperationLessThanOrEqual operation = new CoreOperationLessThanOrEqual(new Constant(0), new Constant(0));
-        assertTrue(operation.evaluateCompare(-1));
-        assertTrue(operation.evaluateCompare(0));
-        assertFalse(operation.evaluateCompare(1));
+    public void testComputeValue_infinityOperands_returnsTrue() {
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant(Double.valueOf(Double.NEGATIVE_INFINITY)),
+                new Constant(Double.valueOf(Double.POSITIVE_INFINITY))
+        );
+        Object result = op.computeValue((EvalContext) null);
+        assertEquals(Boolean.TRUE, result);
     }
 
-    // Tests computeValue when operands are boolean expressions (evaluates true <= false and false <= true)
+    // Tests evaluateCompare directly
     @Test
-    public void testComputeValue_booleanExpressions() {
-        CoreOperationEqual trueExpr = new CoreOperationEqual(new Constant(1), new Constant(1));
-        CoreOperationEqual falseExpr = new CoreOperationEqual(new Constant(1), new Constant(2));
-
-        // false (0.0) <= true (1.0) -> true
-        CoreOperationLessThanOrEqual op1 = new CoreOperationLessThanOrEqual(falseExpr, trueExpr);
-        assertEquals(Boolean.TRUE, op1.computeValue(null));
-
-        // true (1.0) <= false (0.0) -> false
-        CoreOperationLessThanOrEqual op2 = new CoreOperationLessThanOrEqual(trueExpr, falseExpr);
-        assertEquals(Boolean.FALSE, op2.computeValue(null));
-
-        // true (1.0) <= true (1.0) -> true
-        CoreOperationLessThanOrEqual op3 = new CoreOperationLessThanOrEqual(trueExpr, trueExpr);
-        assertEquals(Boolean.TRUE, op3.computeValue(null));
+    public void testEvaluateCompare_variousValues() {
+        CoreOperationLessThanOrEqual op = new CoreOperationLessThanOrEqual(
+                new Constant(Double.valueOf(1.0)),
+                new Constant(Double.valueOf(2.0))
+        );
+        assertTrue(op.evaluateCompare(-1));
+        assertTrue(op.evaluateCompare(-100));
+        assertTrue(op.evaluateCompare(0));
+        assertFalse(op.evaluateCompare(1));
+        assertFalse(op.evaluateCompare(100));
     }
 }

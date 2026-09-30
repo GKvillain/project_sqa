@@ -5,163 +5,113 @@ import org.junit.Test;
 import org.mockito.exceptions.base.MockitoException;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class FinalMockCandidateFilterTest {
 
     private FinalMockCandidateFilter filter;
-    private SampleTarget target;
 
     public static class SampleTarget {
-        private String message;
-        private Integer count;
-        private Object customObject;
+        private String stringField;
+        public final int finalIntField = 42;
+        private Object objectField;
     }
 
     @Before
     public void setUp() {
         filter = new FinalMockCandidateFilter();
-        target = new SampleTarget();
     }
 
-    // Tests successful injection when exactly one matching mock is provided
+    // Tests injection when exactly one mock is provided
     @Test
-    public void testFilterCandidate_singleMatchingMock_injectsFieldAndReturnsTrue() throws Exception {
-        Field field = SampleTarget.class.getDeclaredField("message");
-        List<Object> mocks = Collections.<Object>singletonList("hello world");
+    public void testFilterCandidate_singleMatchingMock_injectsSuccessfully() throws Exception {
+        SampleTarget target = new SampleTarget();
+        Field field = SampleTarget.class.getDeclaredField("stringField");
+        List<Object> mocks = Collections.singletonList((Object) "injectedValue");
 
         OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
         assertNotNull(injecter);
 
-        boolean injected = injecter.thenInject();
-
-        assertTrue(injected);
-        assertEquals("hello world", target.message);
+        boolean result = injecter.thenInject();
+        assertTrue(result);
+        assertEquals("injectedValue", target.stringField);
     }
 
-    // Tests false return and no injection when mocks collection is empty (boundary: size 0)
+    // Tests false branch when mocks collection is empty
     @Test
-    public void testFilterCandidate_emptyMocksCollection_returnsFalseAndDoesNotInject() throws Exception {
-        Field field = SampleTarget.class.getDeclaredField("message");
+    public void testFilterCandidate_emptyMocks_returnsFalse() throws Exception {
+        SampleTarget target = new SampleTarget();
+        Field field = SampleTarget.class.getDeclaredField("stringField");
         List<Object> mocks = Collections.emptyList();
 
         OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
         assertNotNull(injecter);
 
-        boolean injected = injecter.thenInject();
-
-        assertFalse(injected);
-        assertNull(target.message);
+        boolean result = injecter.thenInject();
+        assertFalse(result);
+        assertNull(target.stringField);
     }
 
-    // Tests false return and no injection when multiple mocks are provided (boundary: size > 1)
+    // Tests false branch when more than one mock is provided
     @Test
-    public void testFilterCandidate_multipleMocks_returnsFalseAndDoesNotInject() throws Exception {
-        Field field = SampleTarget.class.getDeclaredField("message");
-        List<Object> mocks = Arrays.<Object>asList("first", "second");
+    public void testFilterCandidate_multipleMocks_returnsFalse() throws Exception {
+        SampleTarget target = new SampleTarget();
+        Field field = SampleTarget.class.getDeclaredField("stringField");
+        List<Object> mocks = Arrays.asList("mock1", "mock2");
 
         OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
         assertNotNull(injecter);
 
-        boolean injected = injecter.thenInject();
-
-        assertFalse(injected);
-        assertNull(target.message);
+        boolean result = injecter.thenInject();
+        assertFalse(result);
+        assertNull(target.stringField);
     }
 
-    // Tests successful injection with null mock candidate when size is 1
-    @Test
-    public void testFilterCandidate_singleNullMock_injectsNullAndReturnsTrue() throws Exception {
-        target.message = "initial";
-        Field field = SampleTarget.class.getDeclaredField("message");
-        List<Object> mocks = Collections.singletonList(null);
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        assertNotNull(injecter);
-
-        boolean injected = injecter.thenInject();
-
-        assertTrue(injected);
-        assertNull(target.message);
-    }
-
-    // Tests successful injection for non-String reference types
-    @Test
-    public void testFilterCandidate_singleIntegerMock_injectsSuccessfully() throws Exception {
-        Field field = SampleTarget.class.getDeclaredField("count");
-        Integer expectedValue = 42;
-        List<Object> mocks = Collections.<Object>singletonList(expectedValue);
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        assertNotNull(injecter);
-
-        boolean injected = injecter.thenInject();
-
-        assertTrue(injected);
-        assertEquals(expectedValue, target.count);
-    }
-
-    // Tests successful injection for generic Object field
-    @Test
-    public void testFilterCandidate_singleObjectMock_injectsSuccessfully() throws Exception {
-        Field field = SampleTarget.class.getDeclaredField("customObject");
-        Object expectedValue = new Object();
-        List<Object> mocks = Collections.singletonList(expectedValue);
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
-        assertNotNull(injecter);
-
-        boolean injected = injecter.thenInject();
-
-        assertTrue(injected);
-        assertEquals(expectedValue, target.customObject);
-    }
-
-    // Tests exception path when injecting incompatible type into field
+    // Tests exception handling when injection fails due to type mismatch
     @Test(expected = MockitoException.class)
     public void testFilterCandidate_incompatibleMockType_throwsMockitoException() throws Exception {
-        Field field = SampleTarget.class.getDeclaredField("count");
-        List<Object> mocks = Collections.<Object>singletonList("incompatible string");
+        SampleTarget target = new SampleTarget();
+        Field field = SampleTarget.class.getDeclaredField("stringField");
+        List<Object> mocks = Collections.singletonList((Object) Integer.valueOf(123));
 
         OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
         assertNotNull(injecter);
-
         injecter.thenInject();
     }
 
-    // Tests exception path when target instance is null for instance field
-    @Test(expected = MockitoException.class)
-    public void testFilterCandidate_nullTargetInstance_throwsMockitoException() throws Exception {
-        Field field = SampleTarget.class.getDeclaredField("message");
-        List<Object> mocks = Collections.<Object>singletonList("testValue");
-
-        OngoingInjecter injecter = filter.filterCandidate(mocks, field, null);
-        assertNotNull(injecter);
-
-        injecter.thenInject();
-    }
-
-    // Tests boundary condition with ArrayList containing exactly 3 items
+    // Tests injection with null element in single-element mock collection
     @Test
-    public void testFilterCandidate_threeMocks_returnsFalse() throws Exception {
-        Field field = SampleTarget.class.getDeclaredField("message");
-        List<Object> mocks = new ArrayList<Object>(Arrays.asList("a", "b", "c"));
+    public void testFilterCandidate_singleNullMock_injectsNullValue() throws Exception {
+        SampleTarget target = new SampleTarget();
+        target.stringField = "initial";
+        Field field = SampleTarget.class.getDeclaredField("stringField");
+        List<Object> mocks = Collections.singletonList((Object) null);
 
         OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
         assertNotNull(injecter);
 
-        boolean injected = injecter.thenInject();
+        boolean result = injecter.thenInject();
+        assertTrue(result);
+        assertNull(target.stringField);
+    }
 
-        assertFalse(injected);
-        assertNull(target.message);
+    // Tests injection on generic object field
+    @Test
+    public void testFilterCandidate_singleObjectMock_injectsReference() throws Exception {
+        SampleTarget target = new SampleTarget();
+        Field field = SampleTarget.class.getDeclaredField("objectField");
+        Object mockInstance = new Object();
+        List<Object> mocks = Collections.singletonList(mockInstance);
+
+        OngoingInjecter injecter = filter.filterCandidate(mocks, field, target);
+        assertNotNull(injecter);
+
+        boolean result = injecter.thenInject();
+        assertTrue(result);
+        assertSame(mockInstance, target.objectField);
     }
 }

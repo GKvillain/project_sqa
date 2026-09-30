@@ -2,232 +2,269 @@ package com.fasterxml.jackson.databind.deser.std;
 
 import java.io.IOException;
 
-import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.BeanProperty;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.TypeDeserializer;
-import com.fasterxml.jackson.databind.jsontype.TypeIdResolver;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 public class NullifyingDeserializerTest {
 
-    private NullifyingDeserializer deser;
-    private JsonFactory jsonFactory;
+    private final ObjectMapper mapper = new ObjectMapper();
+    private final JsonFactory jsonFactory = new JsonFactory();
 
-    @Before
-    public void setUp() {
-        deser = NullifyingDeserializer.instance;
-        jsonFactory = new JsonFactory();
-    }
-
-    // Tests singleton instance availability
+    // Tests singleton instance and constructor
     @Test
-    public void testInstance_singletonField_isNotNull() {
+    public void testInstance_notNull() {
         assertNotNull(NullifyingDeserializer.instance);
+        NullifyingDeserializer deser = new NullifyingDeserializer();
+        assertNotNull(deser);
     }
 
-    // Tests default constructor
+    // Tests deserialize with scalar int token
     @Test
-    public void testConstructor_newInstance_isNotNull() {
-        NullifyingDeserializer instance = new NullifyingDeserializer();
-        assertNotNull(instance);
-        assertEquals(Object.class, instance.handledType());
+    public void testDeserialize_scalarInt_returnsNull() throws IOException {
+        JsonParser p = jsonFactory.createParser("123");
+        p.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+        Object result = NullifyingDeserializer.instance.deserialize(p, ctxt);
+        assertNull(result);
+        p.close();
     }
 
-    // Tests deserialization of scalar string value
+    // Tests deserialize with scalar string token
     @Test
     public void testDeserialize_scalarString_returnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("\"hello world\"");
+        JsonParser p = jsonFactory.createParser("\"hello\"");
         p.nextToken();
-        Object result = deser.deserialize(p, null);
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+        Object result = NullifyingDeserializer.instance.deserialize(p, ctxt);
         assertNull(result);
         p.close();
     }
 
-    // Tests deserialization of scalar integer value
+    // Tests deserialize with array token
     @Test
-    public void testDeserialize_scalarNumber_returnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("12345");
-        p.nextToken();
-        Object result = deser.deserialize(p, null);
-        assertNull(result);
-        p.close();
-    }
-
-    // Tests deserialization of scalar boolean value
-    @Test
-    public void testDeserialize_scalarBoolean_returnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("true");
-        p.nextToken();
-        Object result = deser.deserialize(p, null);
-        assertNull(result);
-        p.close();
-    }
-
-    // Tests deserialization and skipping of JSON array
-    @Test
-    public void testDeserialize_arrayInput_skipsChildrenAndReturnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("[1, 2, [3, 4], {\"a\": 5}]");
-        p.nextToken();
-        Object result = deser.deserialize(p, null);
-        assertNull(result);
-        assertEquals(JsonToken.END_ARRAY, p.getCurrentToken());
-        p.close();
-    }
-
-    // Tests deserialization and skipping of JSON object
-    @Test
-    public void testDeserialize_objectInput_skipsChildrenAndReturnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("{\"k1\": \"v1\", \"k2\": [1, 2], \"k3\": {\"nested\": true}}");
-        p.nextToken();
-        Object result = deser.deserialize(p, null);
-        assertNull(result);
-        assertEquals(JsonToken.END_OBJECT, p.getCurrentToken());
-        p.close();
-    }
-
-    // Tests deserialization when parser points directly to FIELD_NAME token
-    @Test
-    public void testDeserialize_fieldNameToken_skipsChildrenAndReturnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("{\"field1\": \"val1\", \"field2\": 100}");
-        p.nextToken(); // START_OBJECT
-        p.nextToken(); // FIELD_NAME "field1"
-        assertEquals(JsonToken.FIELD_NAME, p.getCurrentToken());
-        Object result = deser.deserialize(p, null);
-        assertNull(result);
-        p.close();
-    }
-
-    // Tests deserializeWithType when current token is START_OBJECT
-    @Test
-    public void testDeserializeWithType_startObject_delegatesToTypeDeserializer() throws IOException {
-        JsonParser p = jsonFactory.createParser("{\"a\": 1}");
-        p.nextToken();
-        TypeDeserializer typeDeser = createStubTypeDeserializer("fromAnyResult");
-        Object result = deser.deserializeWithType(p, null, typeDeser);
-        assertEquals("fromAnyResult", result);
-        p.close();
-    }
-
-    // Tests deserializeWithType when current token is START_ARRAY
-    @Test
-    public void testDeserializeWithType_startArray_delegatesToTypeDeserializer() throws IOException {
+    public void testDeserialize_array_returnsNull() throws IOException {
         JsonParser p = jsonFactory.createParser("[1, 2, 3]");
         p.nextToken();
-        TypeDeserializer typeDeser = createStubTypeDeserializer("fromAnyArrayResult");
-        Object result = deser.deserializeWithType(p, null, typeDeser);
-        assertEquals("fromAnyArrayResult", result);
-        p.close();
-    }
-
-    // Tests deserializeWithType when current token is FIELD_NAME
-    @Test
-    public void testDeserializeWithType_fieldName_delegatesToTypeDeserializer() throws IOException {
-        JsonParser p = jsonFactory.createParser("{\"name\": \"value\"}");
-        p.nextToken(); // START_OBJECT
-        p.nextToken(); // FIELD_NAME
-        TypeDeserializer typeDeser = createStubTypeDeserializer("fromAnyFieldResult");
-        Object result = deser.deserializeWithType(p, null, typeDeser);
-        assertEquals("fromAnyFieldResult", result);
-        p.close();
-    }
-
-    // Tests deserializeWithType default branch on scalar string token
-    @Test
-    public void testDeserializeWithType_scalarStringToken_returnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("\"test-string\"");
-        p.nextToken();
-        TypeDeserializer typeDeser = createStubTypeDeserializer("unexpected");
-        Object result = deser.deserializeWithType(p, null, typeDeser);
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+        Object result = NullifyingDeserializer.instance.deserialize(p, ctxt);
         assertNull(result);
         p.close();
     }
 
-    // Tests deserializeWithType default branch on scalar int token
+    // Tests deserialize with start object token
     @Test
-    public void testDeserializeWithType_scalarNumberToken_returnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("999");
+    public void testDeserialize_object_returnsNull() throws IOException {
+        JsonParser p = jsonFactory.createParser("{\"key\":\"value\"}");
         p.nextToken();
-        TypeDeserializer typeDeser = createStubTypeDeserializer("unexpected");
-        Object result = deser.deserializeWithType(p, null, typeDeser);
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+        Object result = NullifyingDeserializer.instance.deserialize(p, ctxt);
         assertNull(result);
         p.close();
     }
 
-    // Tests deserializeWithType default branch on scalar boolean token
+    // Tests deserialize when parser is pointing to field name
     @Test
-    public void testDeserializeWithType_scalarBooleanToken_returnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("false");
-        p.nextToken();
-        TypeDeserializer typeDeser = createStubTypeDeserializer("unexpected");
-        Object result = deser.deserializeWithType(p, null, typeDeser);
+    public void testDeserialize_fieldNameToken_skipsAndReturnsNull() throws IOException {
+        JsonParser p = jsonFactory.createParser("{\"a\": 1, \"b\": 2}");
+        assertEquals(JsonToken.START_OBJECT, p.nextToken());
+        assertEquals(JsonToken.FIELD_NAME, p.nextToken());
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+        Object result = NullifyingDeserializer.instance.deserialize(p, ctxt);
         assertNull(result);
         p.close();
     }
 
-    // Tests deserializeWithType default branch on null token
+    // Tests deserializeWithType for START_OBJECT branch
     @Test
-    public void testDeserializeWithType_nullToken_returnsNull() throws IOException {
-        JsonParser p = jsonFactory.createParser("null");
+    public void testDeserializeWithType_startObject_delegatesToTypeDeserializer() throws IOException {
+        JsonParser p = jsonFactory.createParser("{\"type\":\"custom\",\"data\":123}");
         p.nextToken();
-        TypeDeserializer typeDeser = createStubTypeDeserializer("unexpected");
-        Object result = deser.deserializeWithType(p, null, typeDeser);
-        assertNull(result);
-        p.close();
-    }
+        DeserializationContext ctxt = mapper.getDeserializationContext();
 
-    private TypeDeserializer createStubTypeDeserializer(final Object anyReturnValue) {
-        return new TypeDeserializer() {
+        final boolean[] called = new boolean[1];
+        TypeDeserializer typeDeser = new TypeDeserializer() {
             @Override
-            public TypeDeserializer forProperty(BeanProperty prop) {
-                return this;
-            }
-
+            public TypeDeserializer forProperty(com.fasterxml.jackson.databind.BeanProperty prop) { return this; }
             @Override
-            public JsonTypeInfo.As getTypeInclusion() {
-                return JsonTypeInfo.As.WRAPPER_OBJECT;
-            }
-
+            public com.fasterxml.jackson.annotation.JsonTypeInfo.As getTypeInclusion() { return null; }
             @Override
-            public String getPropertyName() {
-                return null;
-            }
-
+            public String getPropertyName() { return null; }
             @Override
-            public TypeIdResolver getTypeIdResolver() {
-                return null;
-            }
-
+            public com.fasterxml.jackson.databind.jsontype.TypeIdResolver getTypeIdResolver() { return null; }
             @Override
-            public Class<?> getDefaultImpl() {
-                return null;
-            }
-
+            public Class<?> getDefaultImpl() { return null; }
             @Override
-            public Object deserializeTypedFromObject(JsonParser p, DeserializationContext ctxt) {
-                return null;
-            }
-
+            public Object deserializeTypedFromObject(JsonParser p, DeserializationContext ctxt) { return null; }
             @Override
-            public Object deserializeTypedFromArray(JsonParser p, DeserializationContext ctxt) {
-                return null;
-            }
-
+            public Object deserializeTypedFromArray(JsonParser p, DeserializationContext ctxt) { return null; }
             @Override
-            public Object deserializeTypedFromScalar(JsonParser p, DeserializationContext ctxt) {
-                return null;
-            }
-
+            public Object deserializeTypedFromScalar(JsonParser p, DeserializationContext ctxt) { return null; }
             @Override
             public Object deserializeTypedFromAny(JsonParser p, DeserializationContext ctxt) {
-                return anyReturnValue;
+                called[0] = true;
+                return "typedResult";
             }
         };
+
+        Object result = NullifyingDeserializer.instance.deserializeWithType(p, ctxt, typeDeser);
+        assertTrue(called[0]);
+        assertEquals("typedResult", result);
+        p.close();
+    }
+
+    // Tests deserializeWithType for START_ARRAY branch
+    @Test
+    public void testDeserializeWithType_startArray_delegatesToTypeDeserializer() throws IOException {
+        JsonParser p = jsonFactory.createParser("[1, 2]");
+        p.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        final boolean[] called = new boolean[1];
+        TypeDeserializer typeDeser = new TypeDeserializer() {
+            @Override
+            public TypeDeserializer forProperty(com.fasterxml.jackson.databind.BeanProperty prop) { return this; }
+            @Override
+            public com.fasterxml.jackson.annotation.JsonTypeInfo.As getTypeInclusion() { return null; }
+            @Override
+            public String getPropertyName() { return null; }
+            @Override
+            public com.fasterxml.jackson.databind.jsontype.TypeIdResolver getTypeIdResolver() { return null; }
+            @Override
+            public Class<?> getDefaultImpl() { return null; }
+            @Override
+            public Object deserializeTypedFromObject(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromArray(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromScalar(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromAny(JsonParser p, DeserializationContext ctxt) {
+                called[0] = true;
+                return "arrayResult";
+            }
+        };
+
+        Object result = NullifyingDeserializer.instance.deserializeWithType(p, ctxt, typeDeser);
+        assertTrue(called[0]);
+        assertEquals("arrayResult", result);
+        p.close();
+    }
+
+    // Tests deserializeWithType for FIELD_NAME branch
+    @Test
+    public void testDeserializeWithType_fieldName_delegatesToTypeDeserializer() throws IOException {
+        JsonParser p = jsonFactory.createParser("{\"field\": \"value\"}");
+        p.nextToken(); // START_OBJECT
+        p.nextToken(); // FIELD_NAME
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        final boolean[] called = new boolean[1];
+        TypeDeserializer typeDeser = new TypeDeserializer() {
+            @Override
+            public TypeDeserializer forProperty(com.fasterxml.jackson.databind.BeanProperty prop) { return this; }
+            @Override
+            public com.fasterxml.jackson.annotation.JsonTypeInfo.As getTypeInclusion() { return null; }
+            @Override
+            public String getPropertyName() { return null; }
+            @Override
+            public com.fasterxml.jackson.databind.jsontype.TypeIdResolver getTypeIdResolver() { return null; }
+            @Override
+            public Class<?> getDefaultImpl() { return null; }
+            @Override
+            public Object deserializeTypedFromObject(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromArray(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromScalar(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromAny(JsonParser p, DeserializationContext ctxt) {
+                called[0] = true;
+                return "fieldResult";
+            }
+        };
+
+        Object result = NullifyingDeserializer.instance.deserializeWithType(p, ctxt, typeDeser);
+        assertTrue(called[0]);
+        assertEquals("fieldResult", result);
+        p.close();
+    }
+
+    // Tests deserializeWithType for default switch branch (scalar int)
+    @Test
+    public void testDeserializeWithType_scalarInt_returnsNull() throws IOException {
+        JsonParser p = jsonFactory.createParser("123");
+        p.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        TypeDeserializer typeDeser = new TypeDeserializer() {
+            @Override
+            public TypeDeserializer forProperty(com.fasterxml.jackson.databind.BeanProperty prop) { return this; }
+            @Override
+            public com.fasterxml.jackson.annotation.JsonTypeInfo.As getTypeInclusion() { return null; }
+            @Override
+            public String getPropertyName() { return null; }
+            @Override
+            public com.fasterxml.jackson.databind.jsontype.TypeIdResolver getTypeIdResolver() { return null; }
+            @Override
+            public Class<?> getDefaultImpl() { return null; }
+            @Override
+            public Object deserializeTypedFromObject(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromArray(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromScalar(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromAny(JsonParser p, DeserializationContext ctxt) {
+                fail("deserializeTypedFromAny should not be called for scalar");
+                return null;
+            }
+        };
+
+        Object result = NullifyingDeserializer.instance.deserializeWithType(p, ctxt, typeDeser);
+        assertNull(result);
+        p.close();
+    }
+
+    // Tests deserializeWithType for default switch branch (scalar boolean)
+    @Test
+    public void testDeserializeWithType_scalarBoolean_returnsNull() throws IOException {
+        JsonParser p = jsonFactory.createParser("true");
+        p.nextToken();
+        DeserializationContext ctxt = mapper.getDeserializationContext();
+
+        TypeDeserializer typeDeser = new TypeDeserializer() {
+            @Override
+            public TypeDeserializer forProperty(com.fasterxml.jackson.databind.BeanProperty prop) { return this; }
+            @Override
+            public com.fasterxml.jackson.annotation.JsonTypeInfo.As getTypeInclusion() { return null; }
+            @Override
+            public String getPropertyName() { return null; }
+            @Override
+            public com.fasterxml.jackson.databind.jsontype.TypeIdResolver getTypeIdResolver() { return null; }
+            @Override
+            public Class<?> getDefaultImpl() { return null; }
+            @Override
+            public Object deserializeTypedFromObject(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromArray(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromScalar(JsonParser p, DeserializationContext ctxt) { return null; }
+            @Override
+            public Object deserializeTypedFromAny(JsonParser p, DeserializationContext ctxt) {
+                fail("deserializeTypedFromAny should not be called for boolean");
+                return null;
+            }
+        };
+
+        Object result = NullifyingDeserializer.instance.deserializeWithType(p, ctxt, typeDeser);
+        assertNull(result);
+        p.close();
     }
 }

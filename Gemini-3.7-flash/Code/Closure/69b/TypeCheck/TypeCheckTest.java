@@ -5,7 +5,10 @@ import com.google.javascript.rhino.Token;
 import com.google.javascript.rhino.jstype.JSTypeRegistry;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TypeCheckTest {
 
@@ -16,158 +19,191 @@ public class TypeCheckTest {
     compiler = new Compiler();
   }
 
-  private TypeCheck check(String js, DiagnosticType expectedWarning) {
-    return check("", js, expectedWarning);
-  }
+  private TypeCheck check(String js) {
+    CompilerOptions options = new CompilerOptions();
+    options.checkTypes = true;
+    compiler.init(new JSSourceFile[0], new JSSourceFile[0], options);
 
-  private TypeCheck check(String externs, String js, DiagnosticType expectedWarning) {
-    Node externsRoot = compiler.parseTestCode(externs);
+    Node externsRoot = new Node(Token.BLOCK);
     Node jsRoot = compiler.parseTestCode(js);
     new Node(Token.BLOCK, externsRoot, jsRoot);
 
     JSTypeRegistry registry = compiler.getTypeRegistry();
-    TypeCheck check = new TypeCheck(
-        compiler,
-        compiler.getReverseAbstractInterpreter(),
-        registry,
-        CheckLevel.WARNING,
-        CheckLevel.OFF);
+    ReverseAbstractInterpreter rai = compiler.getReverseAbstractInterpreter();
+    TypeCheck typeCheck = new TypeCheck(compiler, rai, registry);
+    typeCheck.processForTesting(externsRoot, jsRoot);
+    return typeCheck;
+  }
 
-    check.processForTesting(externsRoot, jsRoot);
-
-    if (expectedWarning != null) {
-      assertTrue("Expected at least one warning", compiler.getWarningCount() > 0);
-      boolean found = false;
-      for (JSError warning : compiler.getWarnings()) {
-        if (expectedWarning.key.equals(warning.getType().key)) {
+  private void check(String js, DiagnosticType expectedDiagnostic) {
+    check(js);
+    boolean found = false;
+    for (JSError warning : compiler.getWarnings()) {
+      if (warning.getType() == expectedDiagnostic) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      for (JSError error : compiler.getErrors()) {
+        if (error.getType() == expectedDiagnostic) {
           found = true;
           break;
         }
       }
-      assertTrue("Expected warning " + expectedWarning.key + " not found", found);
-    } else {
-      assertEquals("Expected no warnings", 0, compiler.getWarningCount());
-      assertEquals("Expected no errors", 0, compiler.getErrorCount());
     }
-    return check;
+    assertTrue("Expected diagnostic: " + expectedDiagnostic.key, found);
   }
 
-  // Tests function call expecting 'this' context when called as a free function (Closure 69 regression)
+  // Tests defect 69: function with explicit this-type called without a this object
   @Test
-  public void testVisitCall_functionWithExplicitThisTypeCalledWithoutThis_reportsExpectedThisType() {
-    String js = "/** @type {function(this:Array, number): undefined} */ var f;" +
-                "f(1);";
+  public void testVisitCall_functionWithExplicitThisCalledWithoutReceiver_reportsExpectedThisType() {
+    String js = "/** @type {function(this:Object)} */ function f() {} f();";
     check(js, TypeCheck.EXPECTED_THIS_TYPE);
   }
 
-  // Tests normal function call with valid arguments and return type
+  // Tests valid function call
   @Test
   public void testVisitCall_validCall_noWarnings() {
-    String js = "/** @param {number} x\n * @return {number} */ function f(x) { return x + 1; } f(10);";
-    check(js, null);
+    String js = "/** @param {number} x */ function f(x) {} f(1);";
+    check(js);
+    assertEquals(0, compiler.getWarningCount());
+    assertEquals(0, compiler.getErrorCount());
   }
 
-  // Tests calling a non-function value
+  // Tests call with wrong number of arguments
   @Test
-  public void testVisitCall_notCallableType_reportsNotCallable() {
-    String js = "var x = 123; x();";
+  public void testVisitCall_wrongArgumentCount_reportsWrongArgumentCount() {
+    String js = "function f(a, b) {} f(1);";
+    check(js, TypeCheck.WRONG_ARGUMENT_COUNT);
+  }
+
+  // Tests call on a non-callable object
+  @Test
+  public void testVisitCall_notCallable_reportsNotCallable() {
+    String js = "var x = 1; x();";
     check(js, TypeCheck.NOT_CALLABLE);
   }
 
-  // Tests calling a constructor function directly without 'new'
+  // Tests instantiation of a non-constructor
   @Test
-  public void testVisitCall_constructorCalledWithoutNew_reportsConstructorNotCallable() {
-    String js = "/** @constructor */ function Foo() {} Foo();";
-    check(js, TypeCheck.CONSTRUCTOR_NOT_CALLABLE);
-  }
-
-  // Tests function call with too few arguments
-  @Test
-  public void testVisitParameterList_tooFewArguments_reportsWrongArgumentCount() {
-    String js = "/** @param {number} a\n * @param {number} b */ function f(a, b) {} f(1);";
-    check(js, TypeCheck.WRONG_ARGUMENT_COUNT);
-  }
-
-  // Tests function call with too many arguments
-  @Test
-  public void testVisitParameterList_tooManyArguments_reportsWrongArgumentCount() {
-    String js = "/** @param {number} a */ function f(a) {} f(1, 2);";
-    check(js, TypeCheck.WRONG_ARGUMENT_COUNT);
-  }
-
-  // Tests instantiating a non-constructor with 'new'
-  @Test
-  public void testVisitNew_instantiateNonConstructor_reportsNotAConstructor() {
-    String js = "var x = 42; new x();";
+  public void testVisitNew_nonConstructor_reportsNotAConstructor() {
+    String js = "var x = 1; new x();";
     check(js, TypeCheck.NOT_A_CONSTRUCTOR);
   }
 
-  // Tests bitwise operator applied to invalid operand type
+  // Tests bad bitwise operation on non-integer
   @Test
   public void testVisitBinaryOperator_bitOperationOnString_reportsBitOperation() {
-    String js = "var x = 'hello'; var y = ~x;";
+    String js = "var x = ~'hello';";
     check(js, TypeCheck.BIT_OPERATION);
   }
 
-  // Tests shift operator applied to invalid operand type
+  // Tests deterministic equality test warning
   @Test
-  public void testVisitBinaryOperator_shiftOperationOnString_reportsBitOperation() {
-    String js = "var x = 'hello'; var y = x >> 2;";
-    check(js, TypeCheck.BIT_OPERATION);
+  public void testVisitBinaryOperator_deterministicTest_reportsDeterministicTest() {
+    String js = "var x = 1 === '1';";
+    check(js, TypeCheck.DETERMINISTIC_TEST_NO_RESULT);
   }
 
-  // Tests accessing nonexistent element on enum
+  // Tests deleting non-reference operand
   @Test
-  public void testCheckPropertyAccess_nonexistentEnumElement_reportsInexistentEnumElement() {
-    String js = "/** @enum {number} */ var MyEnum = { A: 1 }; var val = MyEnum.B;";
-    check(js, TypeCheck.INEXISTENT_ENUM_ELEMENT);
-  }
-
-  // Tests constructor extending an interface instead of a class
-  @Test
-  public void testVisitFunction_constructorExtendsInterface_reportsConflictingExtendedType() {
-    String js = "/** @interface */ function AnInterface() {} " +
-                "/** @constructor\n * @extends {AnInterface} */ function MyClass() {}";
-    check(js, TypeCheck.CONFLICTING_EXTENDED_TYPE);
-  }
-
-  // Tests interface implementing another interface instead of extending
-  @Test
-  public void testVisitFunction_interfaceImplementsInterface_reportsConflictingImplementedType() {
-    String js = "/** @interface */ function InterfaceA() {} " +
-                "/** @interface\n * @implements {InterfaceA} */ function InterfaceB() {}";
-    check(js, TypeCheck.CONFLICTING_IMPLEMENTED_TYPE);
-  }
-
-  // Tests constructor implementing a non-interface class
-  @Test
-  public void testVisitFunction_implementsNonInterface_reportsBadImplementedType() {
-    String js = "/** @constructor */ function ClassA() {} " +
-                "/** @constructor\n * @implements {ClassA} */ function ClassB() {}";
-    check(js, TypeCheck.BAD_IMPLEMENTED_TYPE);
-  }
-
-  // Tests function declaration masking existing variable
-  @Test
-  public void testShouldTraverse_functionMasksVariable_reportsFunctionMasksVariable() {
-    String js = "var myVar = 10; function myVar() {}";
-    check(js, TypeCheck.FUNCTION_MASKS_VARIABLE);
-  }
-
-  // Tests delete operator on invalid reference expression
-  @Test
-  public void testVisit_deleteInvalidOperand_reportsBadDelete() {
+  public void testVisitDelprop_nonReference_reportsBadDelete() {
     String js = "delete (1 + 2);";
     check(js, TypeCheck.BAD_DELETE);
   }
 
+  // Tests function masking a variable in outer scope
+  @Test
+  public void testVisitFunction_masksVariable_reportsFunctionMasksVariable() {
+    String js = "var foo = 1; function test() { function foo() {} }";
+    check(js, TypeCheck.FUNCTION_MASKS_VARIABLE);
+  }
+
+  // Tests inconsistent return type
+  @Test
+  public void testVisitReturn_inconsistentReturnType_reportsTypeMismatch() {
+    String js = "/** @return {number} */ function f() { return 'string'; }";
+    check(js);
+    assertTrue(compiler.getWarningCount() > 0 || compiler.getErrorCount() > 0);
+  }
+
   // Tests getTypedPercent calculation
   @Test
-  public void testGetTypedPercent_validTypedProgram_returnsExpectedPercentage() {
-    String js = "/** @type {number} */ var a = 1; /** @type {number} */ var b = 2;";
-    TypeCheck tc = check(js, null);
+  public void testGetTypedPercent_validCode_returnsValidPercentage() {
+    String js = "/** @type {number} */ var x = 10; var y = x + 5;";
+    TypeCheck tc = check(js);
     double percent = tc.getTypedPercent();
-    assertTrue("Typed percent should be greater than 0.0", percent > 0.0);
-    assertTrue("Typed percent should be <= 100.0", percent <= 100.0);
+    assertTrue(percent >= 0.0 && percent <= 100.0);
+  }
+
+  // Tests null node passed to check throws exception
+  @Test(expected = NullPointerException.class)
+  public void testCheck_nullNode_throwsException() {
+    TypeCheck typeCheck = new TypeCheck(
+        compiler,
+        compiler.getReverseAbstractInterpreter(),
+        compiler.getTypeRegistry());
+    typeCheck.check(null, false);
+  }
+
+  // Tests accessing nonexistent property on record type
+  @Test
+  public void testVisitGetProp_inexistentProperty_reportsInexistentProperty() {
+    String js = "/** @type {{a: number}} */ var obj = {a: 1}; var y = obj.b;";
+    check(js, TypeCheck.INEXISTENT_PROPERTY);
+  }
+
+  // Tests implementing non-interface constructor
+  @Test
+  public void testVisitFunction_implementNonInterface_reportsBadImplementedType() {
+    String js = "/** @constructor */ function Foo() {}\n" +
+                "/** @constructor\n * @implements {Foo} */ function Bar() {}";
+    check(js, TypeCheck.BAD_IMPLEMENTED_TYPE);
+  }
+
+  // Tests missing interface method implementation
+  @Test
+  public void testVisitFunction_unimplementedInterfaceMethod_reportsInterfaceMethodNotImplemented() {
+    String js = "/** @interface */ function Foo() {}\n" +
+                "Foo.prototype.bar = function() {};\n" +
+                "/** @constructor\n * @implements {Foo} */ function Bar() {}";
+    check(js, TypeCheck.INTERFACE_METHOD_NOT_IMPLEMENTED);
+  }
+
+  // Tests unknown method override
+  @Test
+  public void testVisitAssign_unknownOverride_reportsUnknownOverride() {
+    String js = "/** @constructor */ function Foo() {}\n" +
+                "/** @override */ Foo.prototype.bar = function() {};";
+    check(js, TypeCheck.UNKNOWN_OVERRIDE);
+  }
+
+  // Tests constructor called as function
+  @Test
+  public void testVisitCall_constructorCalledAsFunction_reportsConstructorNotCallable() {
+    String js = "/** @constructor */ function Foo() {}\nFoo();";
+    check(js, TypeCheck.CONSTRUCTOR_NOT_CALLABLE);
+  }
+
+  // Tests accessing inexistent enum element
+  @Test
+  public void testVisitGetProp_inexistentEnumElement_reportsInexistentEnumElement() {
+    String js = "/** @enum {number} */ var E = { A: 1 }; var x = E.B;";
+    check(js, TypeCheck.INEXISTENT_ENUM_ELEMENT);
+  }
+
+  // Tests overriding prototype with primitive value
+  @Test
+  public void testVisitAssign_overridePrototypeWithNonObject_reportsOverridingPrototypeWithNonObject() {
+    String js = "/** @constructor */ function Foo() {}\nFoo.prototype = 1;";
+    check(js, TypeCheck.OVERRIDING_PROTOTYPE_WITH_NON_OBJECT);
+  }
+
+  // Tests illegal property access on null
+  @Test
+  public void testVisitGetProp_accessOnNull_reportsIllegalPropertyAccess() {
+    String js = "/** @type {null} */ var x = null; var y = x.foo;";
+    check(js, TypeCheck.ILLEGAL_PROPERTY_ACCESS);
   }
 }

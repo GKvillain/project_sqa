@@ -25,293 +25,300 @@ public class CompilerTest {
     options = new CompilerOptions();
   }
 
-  // Tests basic compilation of a simple script
+  // Tests basic compilation with single extern and input file
   @Test
-  public void testCompile_simpleScript_succeeds() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "function alert(x) {}");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 1; alert(x);");
-    
+  public void testCompile_simpleInput_success() {
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "function alert(msg) {}");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 10; alert(x);");
+
     Result result = compiler.compile(extern, input, options);
+
     assertTrue(result.success);
     assertEquals(0, compiler.getErrorCount());
     assertNotNull(compiler.getRoot());
-    assertTrue(compiler.toSource().contains("var x=1;alert(x)"));
+    assertTrue(compiler.toSource().contains("var x=10"));
   }
 
-  // Tests compilation with multiple inputs and toSource generation
+  // Tests compilation with multiple input source files
   @Test
-  public void testCompile_multipleInputs_concatenatesOutput() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input1 = JSSourceFile.fromCode("input1.js", "var a = 1;");
-    JSSourceFile input2 = JSSourceFile.fromCode("input2.js", "var b = 2;");
-    
-    Result result = compiler.compile(new JSSourceFile[]{extern}, new JSSourceFile[]{input1, input2}, options);
-    assertTrue(result.success);
-    String source = compiler.toSource();
-    assertTrue(source.contains("var a=1;"));
-    assertTrue(source.contains("var b=2;"));
-  }
+  public void testCompile_multipleInputs_generatesCorrectSource() {
+    JSSourceFile[] externs = new JSSourceFile[] {
+        JSSourceFile.fromCode("externs.js", "")
+    };
+    JSSourceFile[] inputs = new JSSourceFile[] {
+        JSSourceFile.fromCode("f1.js", "var a = 1;"),
+        JSSourceFile.fromCode("f2.js", "var b = 2;")
+    };
 
-  // Tests toSourceArray returning code separated per input
-  @Test
-  public void testToSourceArray_multipleInputs_returnsCorrectArray() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input1 = JSSourceFile.fromCode("input1.js", "var a = 10;");
-    JSSourceFile input2 = JSSourceFile.fromCode("input2.js", "var b = 20;");
-    
-    compiler.compile(new JSSourceFile[]{extern}, new JSSourceFile[]{input1, input2}, options);
-    String[] sources = compiler.toSourceArray();
-    
-    assertEquals(2, sources.length);
-    assertTrue(sources[0].contains("var a=10"));
-    assertTrue(sources[1].contains("var b=20"));
-  }
+    Result result = compiler.compile(externs, inputs, options);
 
-  // Tests ECMASCRIPT5_STRICT language mode
-  @Test
-  public void testCompile_es5Strict_emitsUseStrict() {
-    options.setLanguageIn(LanguageMode.ECMASCRIPT5_STRICT);
-    
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
-    
-    Result result = compiler.compile(extern, input, options);
     assertTrue(result.success);
     String source = compiler.toSource();
     assertTrue(source.contains("var a=1"));
+    assertTrue(source.contains("var b=2"));
+
+    String[] sourceArray = compiler.toSourceArray();
+    assertEquals(2, sourceArray.length);
+    assertTrue(sourceArray[0].contains("var a=1"));
+    assertTrue(sourceArray[1].contains("var b=2"));
   }
 
-  // Tests compilation with JSModules
+  // Tests compilation error when JS contains syntax errors
   @Test
-  public void testCompile_modules_succeeds() {
-    JSModule rootModule = new JSModule("root");
-    rootModule.add(JSSourceFile.fromCode("root.js", "var m1 = 1;"));
-
-    JSModule depModule = new JSModule("dep");
-    depModule.add(JSSourceFile.fromCode("dep.js", "var m2 = 2;"));
-    depModule.addDependency(rootModule);
-
+  public void testCompile_syntaxError_reportsError() {
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    Result result = compiler.compile(new JSSourceFile[]{extern}, new JSModule[]{rootModule, depModule}, options);
-    
-    assertTrue(result.success);
-    String rootSource = compiler.toSource(rootModule);
-    String depSource = compiler.toSource(depModule);
-    assertTrue(rootSource.contains("var m1=1"));
-    assertTrue(depSource.contains("var m2=2"));
-  }
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = ;");
 
-  // Tests module dependency error when order is invalid
-  @Test
-  public void testCompile_invalidModuleOrder_reportsError() {
-    JSModule modA = new JSModule("modA");
-    modA.add(JSSourceFile.fromCode("a.js", "var a = 1;"));
+    Result result = compiler.compile(extern, input, options);
 
-    JSModule modB = new JSModule("modB");
-    modB.add(JSSourceFile.fromCode("b.js", "var b = 2;"));
-
-    // modA depends on modB, but modA is listed first
-    modA.addDependency(modB);
-
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    Result result = compiler.compile(new JSSourceFile[]{extern}, new JSModule[]{modA, modB}, options);
-    
     assertFalse(result.success);
+    assertTrue(compiler.getErrorCount() > 0);
     assertTrue(compiler.hasErrors());
-    assertEquals(1, compiler.getErrorCount());
   }
 
-  // Tests parseTestCode helper
+  // Tests module compilation with module dependencies
   @Test
-  public void testParseTestCode_validCode_returnsScriptNode() {
-    Node node = compiler.parseTestCode("var a = 1 + 2;");
+  public void testCompileModules_dependentModules_success() {
+    JSModule m1 = new JSModule("m1");
+    m1.add(JSSourceFile.fromCode("m1.js", "var x = 1;"));
+
+    JSModule m2 = new JSModule("m2");
+    m2.add(JSSourceFile.fromCode("m2.js", "var y = x + 1;"));
+    m2.addDependency(m1);
+
+    List<JSSourceFile> externs = new ArrayList<JSSourceFile>();
+    externs.add(JSSourceFile.fromCode("externs.js", ""));
+
+    List<JSModule> modules = new ArrayList<JSModule>();
+    modules.add(m1);
+    modules.add(m2);
+
+    Result result = compiler.compileModules(externs, modules, options);
+
+    assertTrue(result.success);
+    assertNotNull(compiler.getModuleGraph());
+    assertEquals("var x=1;", compiler.toSource(m1).trim());
+    assertEquals("var y=x+1;", compiler.toSource(m2).trim());
+  }
+
+  // Tests module dependency error when modules are in invalid order
+  @Test
+  public void testCompileModules_badDependencyOrder_reportsModuleDependencyError() {
+    JSModule m1 = new JSModule("m1");
+    m1.add(JSSourceFile.fromCode("m1.js", "var x = 1;"));
+
+    JSModule m2 = new JSModule("m2");
+    m2.add(JSSourceFile.fromCode("m2.js", "var y = 2;"));
+
+    // m1 depends on m2, but m1 is listed first
+    m1.addDependency(m2);
+
+    List<JSSourceFile> externs = new ArrayList<JSSourceFile>();
+    externs.add(JSSourceFile.fromCode("externs.js", ""));
+
+    List<JSModule> modules = new ArrayList<JSModule>();
+    modules.add(m1);
+    modules.add(m2);
+
+    Result result = compiler.compileModules(externs, modules, options);
+
+    assertFalse(result.success);
+    assertTrue(compiler.getErrorCount() > 0);
+    assertEquals("JSC_MODULE_DEPENDENCY_ERROR", compiler.getErrors()[0].getType().key);
+  }
+
+  // Tests compiling empty module list reports error
+  @Test
+  public void testInitModules_emptyModuleList_reportsError() {
+    List<JSSourceFile> externs = new ArrayList<JSSourceFile>();
+    List<JSModule> modules = new ArrayList<JSModule>();
+
+    compiler.initModules(externs, modules, options);
+
+    assertTrue(compiler.hasErrors());
+    assertEquals("JSC_EMPTY_MODULE_LIST_ERROR", compiler.getErrors()[0].getType().key);
+  }
+
+  // Tests duplicate input error reporting
+  @Test
+  public void testInitInputsByNameMap_duplicateInput_reportsDuplicateError() {
+    List<JSSourceFile> externs = new ArrayList<JSSourceFile>();
+    List<JSSourceFile> inputs = new ArrayList<JSSourceFile>();
+    inputs.add(JSSourceFile.fromCode("duplicate.js", "var a = 1;"));
+    inputs.add(JSSourceFile.fromCode("duplicate.js", "var b = 2;"));
+
+    compiler.init(externs, inputs, options);
+
+    assertTrue(compiler.hasErrors());
+    assertEquals("JSC_DUPLICATE_INPUT", compiler.getErrors()[0].getType().key);
+  }
+
+  // Tests parseTestCode returns valid AST and registers input
+  @Test
+  public void testParseTestCode_validJs_returnsNode() {
+    Node node = compiler.parseTestCode("var a = 42;");
+
     assertNotNull(node);
     assertEquals(Token.SCRIPT, node.getType());
-    assertEquals(0, compiler.getErrorCount());
+    assertNotNull(compiler.getInput(" [testcode] "));
   }
 
-  // Tests parseSyntheticCode helper
+  // Tests parseSyntheticCode with custom name
   @Test
-  public void testParseSyntheticCode_validCode_returnsScriptNode() {
-    Node node = compiler.parseSyntheticCode("custom.js", "var x = true;");
+  public void testParseSyntheticCode_customName_returnsNode() {
+    Node node = compiler.parseSyntheticCode("synth.js", "function test() { return 1; }");
+
     assertNotNull(node);
-    assertEquals(Token.SCRIPT, node.getType());
-    assertEquals(0, compiler.getErrorCount());
+    assertNotNull(compiler.getInput("synth.js"));
   }
 
-  // Tests newExternInput and duplicate extern input name error
+  // Tests newExternInput adds extern properly
+  @Test
+  public void testNewExternInput_validName_addsExtern() {
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 1;");
+    compiler.compile(extern, input, options);
+
+    CompilerInput newExtern = compiler.newExternInput("dynamicExtern.js");
+
+    assertNotNull(newExtern);
+    assertTrue(newExtern.isExtern());
+    assertEquals(newExtern, compiler.getInput("dynamicExtern.js"));
+  }
+
+  // Tests newExternInput with conflicting name throws exception
   @Test(expected = IllegalArgumentException.class)
-  public void testNewExternInput_duplicateName_throwsException() {
-    compiler.init(new JSSourceFile[]{}, new JSSourceFile[]{JSSourceFile.fromCode("input.js", "var x;")}, options);
-    compiler.parseInputs();
-    compiler.newExternInput("extern1.js");
-    compiler.newExternInput("extern1.js");
+  public void testNewExternInput_conflictingName_throwsException() {
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 1;");
+    compiler.compile(extern, input, options);
+
+    compiler.newExternInput("externs.js");
   }
 
-  // Tests removeInput successfully detaches node and removes entry
+  // Tests removeInput successfully removes input from AST
   @Test
   public void testRemoveInput_existingInput_removesSuccessfully() {
-    JSSourceFile input1 = JSSourceFile.fromCode("file1.js", "var a = 1;");
-    JSSourceFile input2 = JSSourceFile.fromCode("file2.js", "var b = 2;");
-    compiler.init(new JSSourceFile[]{}, new JSSourceFile[]{input1, input2}, options);
-    compiler.parseInputs();
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 1;");
+    compiler.compile(extern, input, options);
 
-    assertNotNull(compiler.getInput("file1.js"));
-    compiler.removeInput("file1.js");
-    assertNull(compiler.getInput("file1.js"));
-  }
-
-  // Tests removeInput on non-existent input does not fail
-  @Test
-  public void testRemoveInput_nonExistentInput_doesNothing() {
-    compiler.init(new JSSourceFile[]{}, new JSSourceFile[]{JSSourceFile.fromCode("input.js", "var a = 1;")}, options);
-    compiler.parseInputs();
-    compiler.removeInput("nonExistent.js");
     assertNotNull(compiler.getInput("input.js"));
+    compiler.removeInput("input.js");
+    assertNull(compiler.getInput("input.js"));
   }
 
-  // Tests CodeBuilder append, reset, line and column tracking, endsWith
+  // Tests languageMode and acceptEcmaScript5 branch coverage
   @Test
-  public void testCodeBuilder_variousOperations_tracksCorrectState() {
-    Compiler.CodeBuilder cb = new Compiler.CodeBuilder();
-    assertEquals(0, cb.getLength());
-    assertEquals(0, cb.getLineIndex());
-    assertEquals(0, cb.getColumnIndex());
-    assertEquals("", cb.toString());
+  public void testLanguageMode_ecmascript5Modes_returnsExpected() {
+    options.setLanguageIn(LanguageMode.ECMASCRIPT5);
+    compiler.initOptions(options);
+    assertTrue(compiler.acceptEcmaScript5());
+    assertEquals(LanguageMode.ECMASCRIPT5, compiler.languageMode());
 
-    cb.append("var x = 1;\nvar y = 2;");
-    assertEquals(21, cb.getLength());
+    options.setLanguageIn(LanguageMode.ECMASCRIPT5_STRICT);
+    compiler.initOptions(options);
+    assertTrue(compiler.acceptEcmaScript5());
+    assertEquals(LanguageMode.ECMASCRIPT5_STRICT, compiler.languageMode());
+
+    options.setLanguageIn(LanguageMode.ECMASCRIPT3);
+    compiler.initOptions(options);
+    assertFalse(compiler.acceptEcmaScript5());
+    assertEquals(LanguageMode.ECMASCRIPT3, compiler.languageMode());
+  }
+
+  // Tests CodeBuilder append, reset, line/col tracking and endsWith
+  @Test
+  public void testCodeBuilder_trackingAndEndsWith() {
+    Compiler.CodeBuilder cb = new Compiler.CodeBuilder();
+    cb.append("hello\nworld");
+
+    assertEquals("hello\nworld", cb.toString());
+    assertEquals(11, cb.getLength());
     assertEquals(1, cb.getLineIndex());
-    assertEquals(10, cb.getColumnIndex());
-    assertTrue(cb.endsWith(";"));
-    assertFalse(cb.endsWith("\n"));
+    assertEquals(5, cb.getColumnIndex());
+    assertTrue(cb.endsWith("world"));
+    assertFalse(cb.endsWith("hello"));
 
     cb.reset();
     assertEquals(0, cb.getLength());
     assertEquals(1, cb.getLineIndex());
-    assertEquals("", cb.toString());
   }
 
-  // Tests toSource with input delimiter option enabled
+  // Tests getState and setState for compiler intermediate state
   @Test
-  public void testToSource_withInputDelimiter_appendsDelimiter() {
-    options.printInputDelimiter = true;
-    options.inputDelimiter = "// INPUT: %name% (#%num%)";
-    
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("myInput.js", "var z = 42;");
-    
-    Result result = compiler.compile(extern, input, options);
-    assertTrue(result.success);
-    String source = compiler.toSource();
-    assertTrue(source.contains("// INPUT: myInput.js (#0)"));
-    assertTrue(source.contains("var z=42"));
-  }
-
-  // Tests uniqueNameIdSupplier generation and reset
-  @Test
-  public void testGetUniqueNameIdSupplier_andReset_incrementsCorrectly() {
-    com.google.common.base.Supplier<String> supplier = compiler.getUniqueNameIdSupplier();
-    assertEquals("0", supplier.get());
-    assertEquals("1", supplier.get());
-    assertEquals("2", supplier.get());
-
-    compiler.resetUniqueNameId();
-    assertEquals("0", supplier.get());
-  }
-
-  // Tests save and restore state (IntermediateState)
-  @Test
-  public void testGetState_andSetState_preservesState() {
+  public void testGetAndSetState_preservesState() {
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
     JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
-    
-    compiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input}, options);
-    compiler.parseInputs();
+    compiler.compile(extern, input, options);
 
     Compiler.IntermediateState state = compiler.getState();
     assertNotNull(state);
 
     Compiler newCompiler = new Compiler();
-    newCompiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input}, options);
+    newCompiler.initOptions(options);
     newCompiler.setState(state);
-    assertNotNull(newCompiler.getRoot());
+
+    assertEquals(state.externsRoot, newCompiler.externsRoot);
+    assertEquals(state.jsRoot, newCompiler.jsRoot);
   }
 
-  // Tests error reporting and error counting with custom ErrorManager
+  // Tests custom print stream constructor and error output
   @Test
-  public void testSetErrorManager_andReportError_updatesCounts() {
-    BasicErrorManager errorManager = new BasicErrorManager() {
-      @Override
-      public void println(CheckLevel level, JSError error) {}
-      @Override
-      public void printSummary() {}
-    };
-    compiler.setErrorManager(errorManager);
-    assertSame(errorManager, compiler.getErrorManager());
-
-    JSError error = JSError.make("test.js", 1, 0, CheckLevel.ERROR, Compiler.DUPLICATE_INPUT, "foo.js");
-    compiler.report(error);
-
-    assertEquals(1, compiler.getErrorCount());
-    assertEquals(0, compiler.getWarningCount());
-    assertTrue(compiler.hasErrors());
-    assertEquals(1, compiler.getErrors().length);
-  }
-
-  // Tests disableThreads setting
-  @Test
-  public void testDisableThreads_compilesSuccessfully() {
-    compiler.disableThreads();
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 100;");
-    
-    Result result = compiler.compile(extern, input, options);
-    assertTrue(result.success);
-    assertTrue(compiler.toSource().contains("var a=100"));
-  }
-
-  // Tests areNodesEqualForInlining with and without property disambiguation options
-  @Test
-  public void testAreNodesEqualForInlining_comparesNodes() {
-    Node n1 = Node.newString("foo");
-    Node n2 = Node.newString("foo");
-    Node n3 = Node.newString("bar");
-
-    compiler.initOptions(options);
-    assertTrue(compiler.areNodesEqualForInlining(n1, n2));
-    assertFalse(compiler.areNodesEqualForInlining(n1, n3));
-
-    options.disambiguateProperties = true;
-    assertTrue(compiler.areNodesEqualForInlining(n1, n2));
-    assertFalse(compiler.areNodesEqualForInlining(n1, n3));
-  }
-
-  // Tests constructor with PrintStream parameter
-  @Test
-  public void testConstructor_withPrintStream_initializes() {
+  public void testCompiler_printStreamConstructor_writesToStream() {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(baos);
     Compiler customCompiler = new Compiler(ps);
 
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 5;");
-    Result result = customCompiler.compile(extern, input, new CompilerOptions());
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var = ;");
+
+    customCompiler.compile(extern, input, options);
+
+    assertTrue(customCompiler.hasErrors());
+    assertTrue(baos.toString().length() > 0);
+  }
+
+  // Tests disableThreads flag execution path
+  @Test
+  public void testDisableThreads_compilesSuccessfully() {
+    compiler.disableThreads();
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 42;");
+
+    Result result = compiler.compile(extern, input, options);
+
     assertTrue(result.success);
+    assertEquals("var x=42;", compiler.toSource().trim());
   }
 
   // Tests getSourceLine and getSourceRegion
   @Test
-  public void testGetSourceLineAndRegion_validInput_returnsSourceInfo() {
+  public void testGetSourceLineAndRegion_validInput_returnsLineContent() {
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var line1 = 1;\nvar line2 = 2;\nvar line3 = 3;");
-    
-    compiler.init(new JSSourceFile[]{extern}, new JSSourceFile[]{input}, options);
-    compiler.parseInputs();
+    JSSourceFile input = JSSourceFile.fromCode("test.js", "line1;\nline2;\nline3;");
+    compiler.compile(extern, input, options);
 
-    assertEquals("var line1 = 1;", compiler.getSourceLine("input.js", 1));
-    assertEquals("var line2 = 2;", compiler.getSourceLine("input.js", 2));
-    assertNull(compiler.getSourceLine("input.js", 0));
-    assertNull(compiler.getSourceLine("nonExistent.js", 1));
+    assertEquals("line2;", compiler.getSourceLine("test.js", 2));
+    assertNull(compiler.getSourceLine("test.js", 0));
+    assertNull(compiler.getSourceLine("nonexistent.js", 1));
+
+    assertNotNull(compiler.getSourceRegion("test.js", 2));
+    assertNull(compiler.getSourceRegion("test.js", -1));
+  }
+
+  // Tests toSource formatting with input delimiter option
+  @Test
+  public void testToSource_withInputDelimiter_appendsDelimiter() {
+    options.printInputDelimiter = true;
+    options.inputDelimiter = "// [%name%]";
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
+    JSSourceFile input = JSSourceFile.fromCode("foo.js", "var x = 1;");
+
+    Result result = compiler.compile(extern, input, options);
+
+    assertTrue(result.success);
+    String source = compiler.toSource();
+    assertTrue(source.contains("// [foo.js]"));
   }
 }

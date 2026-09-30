@@ -2,296 +2,456 @@ package org.joda.time.base;
 
 import org.joda.time.Chronology;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeUtils;
+import org.joda.time.DateTimeZone;
 import org.joda.time.Duration;
 import org.joda.time.DurationFieldType;
-import org.joda.time.Interval;
+import org.joda.time.Instant;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
+import org.joda.time.Partial;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.joda.time.ReadableDuration;
 import org.joda.time.ReadableInstant;
 import org.joda.time.ReadablePartial;
+import org.joda.time.ReadablePeriod;
+import org.joda.time.YearMonth;
 import org.joda.time.chrono.ISOChronology;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 
 public class BasePeriodTest {
 
-    private static class MockBasePeriod extends BasePeriod {
+    private static class StubBasePeriod extends BasePeriod {
         private static final long serialVersionUID = 1L;
 
-        MockBasePeriod(int years, int months, int weeks, int days,
-                       int hours, int minutes, int seconds, int millis,
-                       PeriodType type) {
+        StubBasePeriod(int years, int months, int weeks, int days,
+                       int hours, int minutes, int seconds, int millis, PeriodType type) {
             super(years, months, weeks, days, hours, minutes, seconds, millis, type);
         }
 
-        MockBasePeriod(long startInstant, long endInstant, PeriodType type, Chronology chrono) {
+        StubBasePeriod(long startInstant, long endInstant, PeriodType type, Chronology chrono) {
             super(startInstant, endInstant, type, chrono);
         }
 
-        MockBasePeriod(ReadableInstant startInstant, ReadableInstant endInstant, PeriodType type) {
+        StubBasePeriod(ReadableInstant startInstant, ReadableInstant endInstant, PeriodType type) {
             super(startInstant, endInstant, type);
         }
 
-        MockBasePeriod(ReadablePartial start, ReadablePartial end, PeriodType type) {
+        StubBasePeriod(ReadablePartial start, ReadablePartial end, PeriodType type) {
             super(start, end, type);
         }
 
-        MockBasePeriod(ReadableInstant startInstant, ReadableDuration duration, PeriodType type) {
+        StubBasePeriod(ReadableInstant startInstant, ReadableDuration duration, PeriodType type) {
             super(startInstant, duration, type);
         }
 
-        MockBasePeriod(ReadableDuration duration, ReadableInstant endInstant, PeriodType type) {
+        StubBasePeriod(ReadableDuration duration, ReadableInstant endInstant, PeriodType type) {
             super(duration, endInstant, type);
         }
 
-        MockBasePeriod(long duration) {
+        StubBasePeriod(long duration) {
             super(duration);
         }
 
-        MockBasePeriod(long duration, PeriodType type, Chronology chrono) {
+        StubBasePeriod(long duration, PeriodType type, Chronology chrono) {
             super(duration, type, chrono);
         }
 
-        MockBasePeriod(Object period, PeriodType type, Chronology chrono) {
+        StubBasePeriod(Object period, PeriodType type, Chronology chrono) {
             super(period, type, chrono);
         }
 
-        MockBasePeriod(int[] values, PeriodType type) {
+        StubBasePeriod(int[] values, PeriodType type) {
             super(values, type);
         }
 
-        @Override
-        public void setField(DurationFieldType field, int value) {
-            super.setField(field, value);
+        public void publicSetField(DurationFieldType field, int value) {
+            setField(field, value);
         }
 
-        @Override
-        public void addField(DurationFieldType field, int value) {
-            super.addField(field, value);
+        public void publicAddField(DurationFieldType field, int value) {
+            addField(field, value);
         }
 
-        @Override
-        public void mergePeriod(org.joda.time.ReadablePeriod period) {
-            super.mergePeriod(period);
+        public void publicMergePeriod(ReadablePeriod period) {
+            mergePeriod(period);
         }
 
-        @Override
-        public void addPeriod(org.joda.time.ReadablePeriod period) {
-            super.addPeriod(period);
+        public void publicAddPeriod(ReadablePeriod period) {
+            addPeriod(period);
         }
 
-        @Override
-        public void setValue(int index, int value) {
-            super.setValue(index, value);
+        public void publicSetPeriod(ReadablePeriod period) {
+            setPeriod(period);
         }
 
-        @Override
-        public void setValues(int[] values) {
-            super.setValues(values);
+        public void publicSetPeriod(int years, int months, int weeks, int days,
+                                    int hours, int minutes, int seconds, int millis) {
+            setPeriod(years, months, weeks, days, hours, minutes, seconds, millis);
+        }
+
+        public void publicSetValue(int index, int value) {
+            setValue(index, value);
+        }
+
+        public void publicSetValues(int[] values) {
+            setValues(values);
         }
     }
 
-    // Tests duration constructor with standard period type calculation
+    // Tests constructor with long duration for 0 milliseconds
     @Test
-    public void testConstructor_longDuration_storesValues() {
-        long duration = 4 * 60 * 60 * 1000L + 5 * 60 * 1000L + 6 * 1000L + 7L;
-        MockBasePeriod period = new MockBasePeriod(duration);
-        assertEquals(4, period.get(DurationFieldType.hours()));
-        assertEquals(5, period.get(DurationFieldType.minutes()));
-        assertEquals(6, period.get(DurationFieldType.seconds()));
-        assertEquals(7, period.get(DurationFieldType.millis()));
-        assertEquals(0, period.get(DurationFieldType.days()));
-        assertEquals(0, period.get(DurationFieldType.weeks()));
-        assertEquals(0, period.get(DurationFieldType.months()));
-        assertEquals(0, period.get(DurationFieldType.years()));
-    }
-
-    // Tests constructor with all 8 field values and standard type
-    @Test
-    public void testConstructor_allFields_returnsCorrectValues() {
-        MockBasePeriod period = new MockBasePeriod(1, 2, 3, 4, 5, 6, 7, 8, PeriodType.standard());
+    public void testConstructor_longDurationZero_allZeroValues() {
+        StubBasePeriod period = new StubBasePeriod(0L);
         assertEquals(PeriodType.standard(), period.getPeriodType());
-        assertEquals(1, period.getYears());
-        assertEquals(2, period.getMonths());
-        assertEquals(3, period.getWeeks());
-        assertEquals(4, period.getDays());
-        assertEquals(5, period.getHours());
-        assertEquals(6, period.getMinutes());
-        assertEquals(7, period.getSeconds());
-        assertEquals(8, period.getMillis());
+        assertEquals(8, period.size());
+        assertEquals(0, period.getValue(0)); // years
+        assertEquals(0, period.getValue(1)); // months
+        assertEquals(0, period.getValue(2)); // weeks
+        assertEquals(0, period.getValue(3)); // days
+        assertEquals(0, period.getValue(4)); // hours
+        assertEquals(0, period.getValue(5)); // minutes
+        assertEquals(0, period.getValue(6)); // seconds
+        assertEquals(0, period.getValue(7)); // millis
     }
 
-    // Tests exception when non-zero value is supplied for unsupported field
+    // Tests 8-integer constructor with valid values
+    @Test
+    public void testConstructor_eightInts_setsAllFields() {
+        StubBasePeriod period = new StubBasePeriod(1, 2, 3, 4, 5, 6, 7, 8, PeriodType.standard());
+        assertEquals(1, period.getValue(0));
+        assertEquals(2, period.getValue(1));
+        assertEquals(3, period.getValue(2));
+        assertEquals(4, period.getValue(3));
+        assertEquals(5, period.getValue(4));
+        assertEquals(6, period.getValue(5));
+        assertEquals(7, period.getValue(6));
+        assertEquals(8, period.getValue(7));
+    }
+
+    // Tests 8-integer constructor with unsupported field non-zero throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_unsupportedFieldNonZero_throwsException() {
-        new MockBasePeriod(1, 0, 0, 0, 0, 0, 0, 0, PeriodType.time());
+    public void testConstructor_eightIntsUnsupportedFieldNonZero_throwsException() {
+        new StubBasePeriod(1, 0, 0, 0, 0, 0, 0, 0, PeriodType.time());
     }
 
-    // Tests constructor with start and end timestamps in milliseconds
+    // Tests ReadableInstant start and end constructor with both nulls
     @Test
-    public void testConstructor_longInstantsAndChronology_calculatesPeriod() {
-        long start = 1000000000L;
-        long end = start + (2 * 3600 + 30 * 60 + 15) * 1000L;
-        MockBasePeriod period = new MockBasePeriod(start, end, PeriodType.time(), ISOChronology.getInstanceUTC());
-        assertEquals(2, period.getHours());
-        assertEquals(30, period.getMinutes());
-        assertEquals(15, period.getSeconds());
-    }
-
-    // Tests constructor with null ReadableInstant parameters
-    @Test
-    public void testConstructor_nullReadableInstants_initializesZeroValues() {
-        MockBasePeriod period = new MockBasePeriod((ReadableInstant) null, (ReadableInstant) null, PeriodType.standard());
-        assertEquals(PeriodType.standard(), period.getPeriodType());
+    public void testConstructor_instantsNullBoth_initializesZeros() {
+        StubBasePeriod period = new StubBasePeriod((ReadableInstant) null, (ReadableInstant) null, PeriodType.standard());
+        assertEquals(8, period.size());
         for (int i = 0; i < period.size(); i++) {
             assertEquals(0, period.getValue(i));
         }
     }
 
-    // Tests constructor with valid ReadableInstant parameters
+    // Tests ReadableInstant start and end constructor with non-null instants
     @Test
-    public void testConstructor_validReadableInstants_calculatesPeriod() {
-        DateTime start = new DateTime(2020, 1, 1, 10, 0, 0, 0);
-        DateTime end = new DateTime(2020, 1, 1, 12, 30, 0, 0);
-        MockBasePeriod period = new MockBasePeriod(start, end, PeriodType.standard());
-        assertEquals(2, period.getHours());
-        assertEquals(30, period.getMinutes());
+    public void testConstructor_instantsNonNull_calculatesInterval() {
+        Instant start = new Instant(1000L);
+        Instant end = new Instant(61000L);
+        StubBasePeriod period = new StubBasePeriod(start, end, PeriodType.standard());
+        assertEquals(1, period.getValue(5)); // 1 minute
     }
 
-    // Tests constructor with BaseLocal partials (LocalDate)
+    // Tests ReadablePartial constructor with BaseLocal instances (LocalDate)
     @Test
-    public void testConstructor_baseLocalPartials_calculatesPeriod() {
+    public void testConstructor_partialsBaseLocal_calculatesPeriod() {
         LocalDate start = new LocalDate(2020, 1, 1);
-        LocalDate end = new LocalDate(2021, 3, 10);
-        MockBasePeriod period = new MockBasePeriod(start, end, PeriodType.yearMonthDay());
-        assertEquals(1, period.getYears());
-        assertEquals(2, period.getMonths());
-        assertEquals(9, period.getDays());
+        LocalDate end = new LocalDate(2021, 3, 5);
+        StubBasePeriod period = new StubBasePeriod(start, end, PeriodType.yearMonthDay());
+        assertEquals(1, period.getValue(0)); // 1 year
+        assertEquals(2, period.getValue(1)); // 2 months
+        assertEquals(4, period.getValue(2)); // 4 days
     }
 
-    // Tests exception when start partial is null
+    // Tests ReadablePartial constructor when start is null
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_nullStartPartial_throwsException() {
-        LocalDate end = new LocalDate(2020, 1, 1);
-        new MockBasePeriod(null, end, PeriodType.standard());
+    public void testConstructor_partialsNullStart_throwsException() {
+        LocalDate end = new LocalDate(2021, 1, 1);
+        new StubBasePeriod((ReadablePartial) null, end, PeriodType.standard());
     }
 
-    // Tests exception when partials have mismatched field types
+    // Tests ReadablePartial constructor when partials have different field types
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_mismatchedPartials_throwsException() {
+    public void testConstructor_partialsDifferentFieldTypes_throwsException() {
         LocalDate start = new LocalDate(2020, 1, 1);
         LocalTime end = new LocalTime(12, 0);
-        new MockBasePeriod(start, end, PeriodType.standard());
+        new StubBasePeriod(start, end, PeriodType.standard());
     }
 
-    // Tests constructor with start instant and duration
+    // Tests constructor with ReadableInstant and ReadableDuration
     @Test
-    public void testConstructor_instantAndDuration_calculatesPeriod() {
-        DateTime start = new DateTime(2020, 1, 1, 10, 0, 0, 0);
+    public void testConstructor_startInstantAndDuration_calculatesPeriod() {
+        Instant start = new Instant(0L);
+        Duration duration = new Duration(3600000L); // 1 hour
+        StubBasePeriod period = new StubBasePeriod(start, duration, PeriodType.time());
+        assertEquals(1, period.getValue(0)); // 1 hour
+    }
+
+    // Tests constructor with ReadableDuration and ReadableInstant
+    @Test
+    public void testConstructor_durationAndEndInstant_calculatesPeriod() {
+        Instant end = new Instant(3600000L);
         Duration duration = new Duration(3600000L);
-        MockBasePeriod period = new MockBasePeriod(start, duration, PeriodType.time());
-        assertEquals(1, period.getHours());
+        StubBasePeriod period = new StubBasePeriod(duration, end, PeriodType.time());
+        assertEquals(1, period.getValue(0)); // 1 hour
     }
 
-    // Tests constructor with duration and end instant
-    @Test
-    public void testConstructor_durationAndInstant_calculatesPeriod() {
-        DateTime end = new DateTime(2020, 1, 1, 10, 0, 0, 0);
-        Duration duration = new Duration(7200000L);
-        MockBasePeriod period = new MockBasePeriod(duration, end, PeriodType.time());
-        assertEquals(2, period.getHours());
-    }
-
-    // Tests constructor from another Period object via converter
+    // Tests constructor converting another period object
     @Test
     public void testConstructor_objectPeriod_convertsCorrectly() {
-        Period original = new Period(1, 2, 0, 4, 5, 6, 7, 8);
-        MockBasePeriod period = new MockBasePeriod(original, PeriodType.standard(), null);
-        assertEquals(1, period.getYears());
-        assertEquals(2, period.getMonths());
-        assertEquals(4, period.getDays());
+        Period source = Period.hours(5);
+        StubBasePeriod period = new StubBasePeriod(source, null, ISOChronology.getInstanceUTC());
+        assertEquals(5, period.getValue(4)); // hours field in standard PeriodType
     }
 
-    // Tests constructor with int array and PeriodType
+    // Tests toDurationFrom and toDurationTo calculations
     @Test
-    public void testConstructor_intValuesAndType_setsValuesDirectly() {
-        int[] values = new int[]{1, 2, 3, 4, 5, 6, 7, 8};
-        MockBasePeriod period = new MockBasePeriod(values, PeriodType.standard());
-        assertEquals(8, period.size());
-        assertEquals(1, period.getValue(0));
-        assertEquals(8, period.getValue(7));
-        assertEquals(DurationFieldType.years(), period.getFieldType(0));
+    public void testToDurationFromAndTo_validInstant_returnsCorrectDuration() {
+        StubBasePeriod period = new StubBasePeriod(0, 0, 0, 0, 2, 0, 0, 0, PeriodType.standard());
+        DateTime start = new DateTime(2020, 1, 1, 0, 0, DateTimeZone.UTC);
+        Duration durationFrom = period.toDurationFrom(start);
+        assertEquals(2 * 3600 * 1000L, durationFrom.getMillis());
+
+        Duration durationTo = period.toDurationTo(start);
+        assertEquals(2 * 3600 * 1000L, durationTo.getMillis());
     }
 
-    // Tests toDurationFrom calculation relative to an instant
+    // Tests setField and addField operations
     @Test
-    public void testToDurationFrom_validInstant_returnsCorrectDuration() {
-        MockBasePeriod period = new MockBasePeriod(0, 0, 0, 1, 2, 0, 0, 0, PeriodType.standard());
-        DateTime start = new DateTime(2020, 1, 1, 0, 0, 0, 0);
-        Duration duration = period.toDurationFrom(start);
-        assertEquals((24 + 2) * 3600 * 1000L, duration.getMillis());
+    public void testSetFieldAndAddField_validFields_updatesValues() {
+        StubBasePeriod period = new StubBasePeriod(new int[8], PeriodType.standard());
+        period.publicSetField(DurationFieldType.days(), 5);
+        assertEquals(5, period.getValue(3));
+
+        period.publicAddField(DurationFieldType.days(), 3);
+        assertEquals(8, period.getValue(3));
     }
 
-    // Tests toDurationTo calculation relative to an instant
-    @Test
-    public void testToDurationTo_validInstant_returnsCorrectDuration() {
-        MockBasePeriod period = new MockBasePeriod(0, 0, 0, 0, 1, 30, 0, 0, PeriodType.standard());
-        DateTime end = new DateTime(2020, 1, 1, 12, 0, 0, 0);
-        Duration duration = period.toDurationTo(end);
-        assertEquals((60 + 30) * 60 * 1000L, duration.getMillis());
-    }
-
-    // Tests setField and addField operations on supported and unsupported fields
-    @Test
-    public void testSetFieldAndAddField_validValues_updatesCorrectly() {
-        MockBasePeriod period = new MockBasePeriod(0, 0, 0, 0, 1, 10, 0, 0, PeriodType.time());
-        period.setField(DurationFieldType.hours(), 3);
-        assertEquals(3, period.getHours());
-        period.addField(DurationFieldType.hours(), 2);
-        assertEquals(5, period.getHours());
-    }
-
-    // Tests exception when setField is called with unsupported field and non-zero value
+    // Tests setField on unsupported field with non-zero value throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testSetField_unsupportedField_throwsException() {
-        MockBasePeriod period = new MockBasePeriod(0, 0, 0, 0, 1, 0, 0, 0, PeriodType.time());
-        period.setField(DurationFieldType.years(), 5);
+    public void testSetField_unsupportedFieldNonZero_throwsException() {
+        StubBasePeriod period = new StubBasePeriod(new int[4], PeriodType.time());
+        period.publicSetField(DurationFieldType.years(), 1);
     }
 
-    // Tests mergePeriod and addPeriod operations
+    // Tests addPeriod and mergePeriod methods
     @Test
-    public void testMergePeriodAndAddPeriod_validPeriods_updatesValues() {
-        MockBasePeriod period = new MockBasePeriod(1, 2, 0, 0, 0, 0, 0, 0, PeriodType.standard());
-        Period toMerge = new Period(0, 5, 0, 3, 0, 0, 0, 0);
-        period.mergePeriod(toMerge);
-        assertEquals(1, period.getYears());
-        assertEquals(5, period.getMonths());
-        assertEquals(3, period.getDays());
+    public void testAddPeriodAndMergePeriod_validPeriod_updatesValues() {
+        StubBasePeriod period = new StubBasePeriod(1, 1, 0, 0, 0, 0, 0, 0, PeriodType.standard());
+        Period other = new Period(2, 3, 0, 0, 0, 0, 0, 0);
 
-        Period toAdd = new Period(2, 1, 0, 0, 0, 0, 0, 0);
-        period.addPeriod(toAdd);
-        assertEquals(3, period.getYears());
-        assertEquals(6, period.getMonths());
-    }
+        period.publicAddPeriod(other);
+        assertEquals(3, period.getValue(0)); // 1 + 2 = 3 years
+        assertEquals(4, period.getValue(1)); // 1 + 3 = 4 months
 
-    // Tests setValue and setValues directly
-    @Test
-    public void testSetValueAndSetValues_validValues_updatesDirectly() {
-        MockBasePeriod period = new MockBasePeriod(0, 0, 0, 0, 0, 0, 0, 0, PeriodType.standard());
-        period.setValue(0, 10);
+        period.publicMergePeriod(Period.years(10));
         assertEquals(10, period.getValue(0));
+    }
 
-        int[] newValues = new int[]{1, 1, 1, 1, 1, 1, 1, 1};
-        period.setValues(newValues);
+    // Tests setPeriod and setValues
+    @Test
+    public void testSetPeriod_nullPeriod_resetsAllValuesToZero() {
+        StubBasePeriod period = new StubBasePeriod(1, 2, 3, 4, 5, 6, 7, 8, PeriodType.standard());
+        period.publicSetPeriod((ReadablePeriod) null);
         for (int i = 0; i < period.size(); i++) {
-            assertEquals(1, period.getValue(i));
+            assertEquals(0, period.getValue(i));
         }
+    }
+
+    // Tests setValue and getFieldType bounds
+    @Test
+    public void testGetFieldTypeAndSetValue_validIndex_returnsExpected() {
+        StubBasePeriod period = new StubBasePeriod(new int[8], PeriodType.standard());
+        assertEquals(DurationFieldType.years(), period.getFieldType(0));
+        period.publicSetValue(0, 42);
+        assertEquals(42, period.getValue(0));
+    }
+
+    // Tests ReadablePartial constructor when end is null
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructor_partialsNullEnd_throwsException() {
+        LocalDate start = new LocalDate(2020, 1, 1);
+        new StubBasePeriod(start, (ReadablePartial) null, PeriodType.standard());
+    }
+
+    // Tests ReadablePartial constructor when partials have different sizes
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructor_partialsDifferentSizes_throwsException() {
+        LocalDate start = new LocalDate(2020, 1, 1);
+        YearMonth end = new YearMonth(2020, 1);
+        new StubBasePeriod(start, end, PeriodType.standard());
+    }
+
+    // Tests ReadablePartial constructor with non-BaseLocal Partial
+    @Test
+    public void testConstructor_partialsNonBaseLocal_calculatesPeriod() {
+        Partial p1 = new Partial(org.joda.time.DateTimeFieldType.hourOfDay(), 10);
+        Partial p2 = new Partial(org.joda.time.DateTimeFieldType.hourOfDay(), 12);
+        StubBasePeriod period = new StubBasePeriod(p1, p2, PeriodType.time());
+        assertEquals(2, period.getValue(0)); // 2 hours
+    }
+
+    // Tests ReadablePartial constructor with empty partials (zero fields)
+    @Test
+    public void testConstructor_partialsZeroFields_initializesZeros() {
+        Partial p1 = new Partial();
+        Partial p2 = new Partial();
+        StubBasePeriod period = new StubBasePeriod(p1, p2, PeriodType.standard());
+        assertEquals(8, period.size());
+        for (int i = 0; i < period.size(); i++) {
+            assertEquals(0, period.getValue(i));
+        }
+    }
+
+    // Tests long start and end constructor
+    @Test
+    public void testConstructor_longStartEndInstant_calculatesCorrectly() {
+        StubBasePeriod period = new StubBasePeriod(1000L, 5000L, PeriodType.standard(), ISOChronology.getInstanceUTC());
+        assertEquals(4, period.getValue(6)); // 4 seconds
+    }
+
+    // Tests ReadableInstant constructor with start non-null and end null
+    @Test
+    public void testConstructor_startNonNullEndNull_calculatesInterval() {
+        Instant start = new Instant(DateTimeZone.getDefault());
+        StubBasePeriod period = new StubBasePeriod(start, (ReadableInstant) null, PeriodType.standard());
+        assertNotNull(period);
+    }
+
+    // Tests ReadableInstant constructor with start null and end non-null
+    @Test
+    public void testConstructor_startNullEndNonNull_calculatesInterval() {
+        Instant end = new Instant(DateTimeZone.getDefault());
+        StubBasePeriod period = new StubBasePeriod((ReadableInstant) null, end, PeriodType.standard());
+        assertNotNull(period);
+    }
+
+    // Tests constructor with ReadableInstant and null ReadableDuration
+    @Test
+    public void testConstructor_startInstantAndNullDuration_initializesZeros() {
+        Instant start = new Instant(0L);
+        StubBasePeriod period = new StubBasePeriod(start, (ReadableDuration) null, PeriodType.standard());
+        assertEquals(0, period.getValue(0));
+    }
+
+    // Tests constructor with null ReadableDuration and ReadableInstant
+    @Test
+    public void testConstructor_nullDurationAndEndInstant_initializesZeros() {
+        Instant end = new Instant(0L);
+        StubBasePeriod period = new StubBasePeriod((ReadableDuration) null, end, PeriodType.standard());
+        assertEquals(0, period.getValue(0));
+    }
+
+    // Tests constructor with null Object period
+    @Test
+    public void testConstructor_objectNull_initializesZeros() {
+        StubBasePeriod period = new StubBasePeriod((Object) null, PeriodType.standard(), ISOChronology.getInstanceUTC());
+        assertEquals(0, period.getValue(0));
+    }
+
+    // Tests constructor with string duration
+    @Test
+    public void testConstructor_objectString_convertsCorrectly() {
+        StubBasePeriod period = new StubBasePeriod("PT1H", PeriodType.standard(), null);
+        assertEquals(1, period.getValue(4)); // 1 hour
+    }
+
+    // Tests constructor with duration, PeriodType and Chronology
+    @Test
+    public void testConstructor_longDurationTypeAndChrono_calculatesPeriod() {
+        StubBasePeriod period = new StubBasePeriod(3600000L, PeriodType.standard(), ISOChronology.getInstanceUTC());
+        assertEquals(1, period.getValue(4)); // 1 hour
+    }
+
+    // Tests publicSetPeriod with 8 integer values
+    @Test
+    public void testSetPeriod_eightInts_setsValues() {
+        StubBasePeriod period = new StubBasePeriod(new int[8], PeriodType.standard());
+        period.publicSetPeriod(8, 7, 6, 5, 4, 3, 2, 1);
+        assertEquals(8, period.getValue(0));
+        assertEquals(7, period.getValue(1));
+        assertEquals(6, period.getValue(2));
+        assertEquals(5, period.getValue(3));
+        assertEquals(4, period.getValue(4));
+        assertEquals(3, period.getValue(5));
+        assertEquals(2, period.getValue(6));
+        assertEquals(1, period.getValue(7));
+    }
+
+    // Tests publicSetPeriod with 8 ints on unsupported field non-zero throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetPeriod_eightIntsUnsupportedFieldNonZero_throwsException() {
+        StubBasePeriod period = new StubBasePeriod(new int[4], PeriodType.time());
+        period.publicSetPeriod(1, 0, 0, 0, 0, 0, 0, 0);
+    }
+
+    // Tests setField on unsupported field with zero value does not throw
+    @Test
+    public void testSetField_unsupportedFieldZero_doesNotThrow() {
+        StubBasePeriod period = new StubBasePeriod(new int[4], PeriodType.time());
+        period.publicSetField(DurationFieldType.years(), 0);
+    }
+
+    // Tests addField with zero value does not alter values
+    @Test
+    public void testAddField_zeroValue_noOp() {
+        StubBasePeriod period = new StubBasePeriod(new int[8], PeriodType.standard());
+        period.publicAddField(DurationFieldType.years(), 0);
+        assertEquals(0, period.getValue(0));
+    }
+
+    // Tests addField on unsupported field with zero value does not throw
+    @Test
+    public void testAddField_unsupportedFieldZero_doesNotThrow() {
+        StubBasePeriod period = new StubBasePeriod(new int[4], PeriodType.time());
+        period.publicAddField(DurationFieldType.years(), 0);
+    }
+
+    // Tests addField on unsupported field with non-zero value throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddField_unsupportedFieldNonZero_throwsException() {
+        StubBasePeriod period = new StubBasePeriod(new int[4], PeriodType.time());
+        period.publicAddField(DurationFieldType.years(), 1);
+    }
+
+    // Tests mergePeriod with null period is a no-op
+    @Test
+    public void testMergePeriod_null_noOp() {
+        StubBasePeriod period = new StubBasePeriod(1, 2, 3, 4, 5, 6, 7, 8, PeriodType.standard());
+        period.publicMergePeriod(null);
+        assertEquals(1, period.getValue(0));
+    }
+
+    // Tests addPeriod with null period is a no-op
+    @Test
+    public void testAddPeriod_null_noOp() {
+        StubBasePeriod period = new StubBasePeriod(1, 2, 3, 4, 5, 6, 7, 8, PeriodType.standard());
+        period.publicAddPeriod(null);
+        assertEquals(1, period.getValue(0));
+    }
+
+    // Tests setValues sets all period values
+    @Test
+    public void testSetValues_validArray_updatesValues() {
+        StubBasePeriod period = new StubBasePeriod(new int[8], PeriodType.standard());
+        period.publicSetValues(new int[]{8, 7, 6, 5, 4, 3, 2, 1});
+        assertEquals(8, period.getValue(0));
+        assertEquals(1, period.getValue(7));
+    }
+
+    // Tests toDurationFrom and toDurationTo with null instant uses current time
+    @Test
+    public void testToDurationFromAndTo_nullInstant_calculatesDuration() {
+        StubBasePeriod period = new StubBasePeriod(0, 0, 0, 0, 1, 0, 0, 0, PeriodType.standard());
+        Duration durationFrom = period.toDurationFrom(null);
+        assertNotNull(durationFrom);
+        Duration durationTo = period.toDurationTo(null);
+        assertNotNull(durationTo);
     }
 }

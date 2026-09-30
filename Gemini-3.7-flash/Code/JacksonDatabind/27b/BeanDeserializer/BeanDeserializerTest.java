@@ -1,352 +1,469 @@
 package com.fasterxml.jackson.databind.deser;
 
+import java.io.IOException;
+import java.util.*;
+
+import org.junit.Test;
+import static org.junit.Assert.*;
+
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.*;
 
 public class BeanDeserializerTest {
 
     private final ObjectMapper MAPPER = new ObjectMapper();
 
-    // =======================================================================
-    // Helper POJOs
-    // =======================================================================
+    // Helper classes for testing various deserialization mechanisms
 
     static class SimpleBean {
-        public String name;
-        public int age;
+        public int x;
+        public String y;
 
-        public SimpleBean() {}
-
-        public SimpleBean(String name, int age) {
-            this.name = name;
-            this.age = age;
+        public SimpleBean() { }
+        public SimpleBean(int x, String y) {
+            this.x = x;
+            this.y = y;
         }
     }
 
     static class CreatorBean {
-        final String name;
-        final int age;
-        public String extra;
+        final int a;
+        final String b;
+        int c;
 
         @JsonCreator
-        public CreatorBean(@JsonProperty("name") String name, @JsonProperty("age") int age) {
-            this.name = name;
-            this.age = age;
+        public CreatorBean(@JsonProperty("a") int a, @JsonProperty("b") String b) {
+            this.a = a;
+            this.b = b;
+        }
+
+        public void setC(int c) {
+            this.c = c;
         }
     }
 
     static class AnySetterBean {
-        public String name;
-        private final Map<String, Object> any = new HashMap<String, Object>();
+        public int id;
+        public Map<String, Object> extra = new HashMap<String, Object>();
 
         @JsonAnySetter
-        public void setAny(String key, Object value) {
-            any.put(key, value);
-        }
-
-        public Map<String, Object> getAny() {
-            return any;
+        public void setExtra(String key, Object value) {
+            extra.put(key, value);
         }
     }
 
-    @JsonIgnoreProperties({"ignored1", "ignored2"})
+    @JsonIgnoreProperties({ "ignored1", "ignored2" })
     static class IgnorableBean {
-        public String name;
+        public int value;
     }
 
     static class Views {
-        static class Public {}
-        static class Internal extends Public {}
+        static class Public { }
+        static class Internal extends Public { }
     }
 
     static class ViewBean {
         @JsonView(Views.Public.class)
-        public String pub;
+        public int pub;
 
         @JsonView(Views.Internal.class)
-        public String priv;
+        public int internal;
     }
 
-    static class UnwrappedChild {
-        public String street;
-        public String city;
-    }
-
-    static class UnwrappedParent {
-        public String name;
+    static class UnwrappedContainer {
+        public int id;
         @JsonUnwrapped
-        public UnwrappedChild address;
+        public SimpleBean unwrapped;
     }
 
-    static class UnwrappedCreatorParent {
-        public String name;
+    static class PrefixedUnwrappedContainer {
+        public int id;
+        @JsonUnwrapped(prefix = "pre_")
+        public SimpleBean unwrapped;
+    }
+
+    static class CreatorUnwrappedContainer {
+        final int id;
         @JsonUnwrapped
-        public UnwrappedChild address;
+        public SimpleBean unwrapped;
 
         @JsonCreator
-        public UnwrappedCreatorParent(@JsonProperty("name") String name, @JsonProperty("address") UnwrappedChild address) {
-            this.name = name;
-            this.address = address;
-        }
-    }
-
-    @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "id")
-    static class IdentifiedBean {
-        public String name;
-        public IdentifiedBean next;
-    }
-
-    static class ExternalBase {
-        public int id;
-    }
-
-    static class ExternalSub extends ExternalBase {
-        public String value;
-    }
-
-    static class ExternalValueHolder {
-        public int id;
-
-        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "extType")
-        @JsonSubTypes({
-            @JsonSubTypes.Type(value = ExternalSub.class, name = "sub")
-        })
-        public ExternalBase value;
-        public String extType;
-
-        @JsonCreator
-        public ExternalValueHolder(@JsonProperty("id") int id,
-                                   @JsonProperty("value") ExternalBase value,
-                                   @JsonProperty("extType") String extType) {
+        public CreatorUnwrappedContainer(@JsonProperty("id") int id) {
             this.id = id;
-            this.value = value;
-            this.extType = extType;
         }
     }
 
-    static class ScalarCreatorBean {
-        String value;
+    // External type id test hierarchy
+    interface ExtInterface { }
+
+    static class ExtImpl1 implements ExtInterface {
+        public int value1;
+        public ExtImpl1() { }
+        public ExtImpl1(int v) { this.value1 = v; }
+    }
+
+    static class ExtImpl2 implements ExtInterface {
+        public String value2;
+        public ExtImpl2() { }
+        public ExtImpl2(String v) { this.value2 = v; }
+    }
+
+    static class ExternalTypeIdBean {
+        public String type;
+
+        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
+        @JsonSubTypes({
+            @JsonSubTypes.Type(value = ExtImpl1.class, name = "impl1"),
+            @JsonSubTypes.Type(value = ExtImpl2.class, name = "impl2")
+        })
+        public ExtInterface ext;
+    }
+
+    // Defects4J bug 27: External type id combined with @JsonCreator property-based creator
+    static class ExternalTypeIdCreatorBean {
+        final String name;
+        final String type;
+        final ExtInterface ext;
 
         @JsonCreator
-        public ScalarCreatorBean(String v) {
-            this.value = "str:" + v;
-        }
-
-        @JsonCreator
-        public ScalarCreatorBean(int v) {
-            this.value = "int:" + v;
-        }
-
-        @JsonCreator
-        public ScalarCreatorBean(double v) {
-            this.value = "double:" + v;
-        }
-
-        @JsonCreator
-        public ScalarCreatorBean(boolean v) {
-            this.value = "bool:" + v;
+        public ExternalTypeIdCreatorBean(
+                @JsonProperty("name") String name,
+                @JsonProperty("type") String type,
+                @JsonProperty("ext")
+                @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
+                @JsonSubTypes({
+                    @JsonSubTypes.Type(value = ExtImpl1.class, name = "impl1"),
+                    @JsonSubTypes.Type(value = ExtImpl2.class, name = "impl2")
+                }) ExtInterface ext) {
+            this.name = name;
+            this.type = type;
+            this.ext = ext;
         }
     }
 
-    // =======================================================================
-    // Test Cases
-    // =======================================================================
+    static class StringCtorBean {
+        final String val;
 
-    // Tests vanilla deserialization from standard JSON Object
+        @JsonCreator
+        public StringCtorBean(String s) {
+            this.val = s;
+        }
+    }
+
+    static class IntCtorBean {
+        final int val;
+
+        @JsonCreator
+        public IntCtorBean(int v) {
+            this.val = v;
+        }
+    }
+
+    static class DoubleCtorBean {
+        final double val;
+
+        @JsonCreator
+        public DoubleCtorBean(double v) {
+            this.val = v;
+        }
+    }
+
+    static class BooleanCtorBean {
+        final boolean val;
+
+        @JsonCreator
+        public BooleanCtorBean(boolean v) {
+            this.val = v;
+        }
+    }
+
+    @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@id")
+    static class IdNode {
+        public int val;
+        public IdNode next;
+
+        public IdNode() { }
+        public IdNode(int val) { this.val = val; }
+    }
+
+    static class Parent {
+        public int id;
+        @JsonManagedReference
+        public Child child;
+    }
+
+    static class Child {
+        public String name;
+        @JsonBackReference
+        public Parent parent;
+    }
+
+    @JsonDeserialize(builder = BuilderValueClass.Builder.class)
+    static class BuilderValueClass {
+        final int a;
+        final String b;
+
+        BuilderValueClass(int a, String b) {
+            this.a = a;
+            this.b = b;
+        }
+
+        @JsonPOJOBuilder(withPrefix = "with")
+        static class Builder {
+            private int a;
+            private String b;
+
+            public Builder withA(int a) {
+                this.a = a;
+                return this;
+            }
+
+            public Builder withB(String b) {
+                this.b = b;
+                return this;
+            }
+
+            public BuilderValueClass build() {
+                return new BuilderValueClass(a, b);
+            }
+        }
+    }
+
+    static class InjectedBean {
+        public int x;
+        @JacksonInject
+        public String injected;
+    }
+
+    // Tests defect 27: Property-based creator with external type id
     @Test
-    public void testDeserialize_standardBean_returnsCorrectInstance() throws Exception {
-        String json = "{\"name\":\"Bob\",\"age\":25}";
-        SimpleBean result = MAPPER.readValue(json, SimpleBean.class);
-
-        assertNotNull(result);
-        assertEquals("Bob", result.name);
-        assertEquals(25, result.age);
+    public void testDeserialize_externalTypeIdWithCreator_successfullyDeserializes() throws Exception {
+        String json = "{\"name\":\"test\",\"ext\":{\"value1\":42},\"type\":\"impl1\"}";
+        ExternalTypeIdCreatorBean bean = MAPPER.readValue(json, ExternalTypeIdCreatorBean.class);
+        assertNotNull(bean);
+        assertEquals("test", bean.name);
+        assertEquals("impl1", bean.type);
+        assertTrue(bean.ext instanceof ExtImpl1);
+        assertEquals(42, ((ExtImpl1) bean.ext).value1);
     }
 
-    // Tests updating an existing bean instance (deserialize with bean argument)
+    // Tests normal vanilla deserialization
     @Test
-    public void testDeserialize_updateExistingBean_mutatesTargetInstance() throws Exception {
-        SimpleBean bean = new SimpleBean("Alice", 20);
-        String json = "{\"age\":30}";
-        SimpleBean result = MAPPER.readerForUpdating(bean).readValue(json);
-
-        assertSame(bean, result);
-        assertEquals("Alice", result.name);
-        assertEquals(30, result.age);
+    public void testDeserialize_vanillaObject_returnsCorrectValues() throws Exception {
+        String json = "{\"x\":10,\"y\":\"hello\"}";
+        SimpleBean bean = MAPPER.readValue(json, SimpleBean.class);
+        assertNotNull(bean);
+        assertEquals(10, bean.x);
+        assertEquals("hello", bean.y);
     }
 
-    // Tests property-based creator deserialization
+    // Tests updating an existing bean instance (deserialize with value)
     @Test
-    public void testDeserializeUsingPropertyBased_validCreatorFields_buildsBeanCorrectly() throws Exception {
-        String json = "{\"extra\":\"bonus\",\"name\":\"Charlie\",\"age\":40}";
-        CreatorBean result = MAPPER.readValue(json, CreatorBean.class);
-
-        assertNotNull(result);
-        assertEquals("Charlie", result.name);
-        assertEquals(40, result.age);
-        assertEquals("bonus", result.extra);
+    public void testDeserialize_intoExistingBean_updatesValues() throws Exception {
+        SimpleBean bean = new SimpleBean(1, "initial");
+        SimpleBean updated = MAPPER.readerForUpdating(bean).readValue("{\"x\":99,\"y\":\"updated\"}");
+        assertSame(bean, updated);
+        assertEquals(99, bean.x);
+        assertEquals("updated", bean.y);
     }
 
-    // Tests handling of @JsonIgnoreProperties in bean deserialization
+    // Tests property-based creator deserialization with buffered properties
+    @Test
+    public void testDeserialize_propertyBasedCreator_createsInstance() throws Exception {
+        String json = "{\"c\":30,\"b\":\"text\",\"a\":20}";
+        CreatorBean bean = MAPPER.readValue(json, CreatorBean.class);
+        assertNotNull(bean);
+        assertEquals(20, bean.a);
+        assertEquals("text", bean.b);
+        assertEquals(30, bean.c);
+    }
+
+    // Tests ignorable properties handling
     @Test
     public void testDeserialize_ignorableProperties_skipsIgnoredFields() throws Exception {
-        String json = "{\"name\":\"David\",\"ignored1\":\"skipMe\",\"ignored2\":12345}";
-        IgnorableBean result = MAPPER.readValue(json, IgnorableBean.class);
-
-        assertNotNull(result);
-        assertEquals("David", result.name);
+        String json = "{\"ignored1\":\"foo\",\"value\":100,\"ignored2\":123}";
+        IgnorableBean bean = MAPPER.readValue(json, IgnorableBean.class);
+        assertNotNull(bean);
+        assertEquals(100, bean.value);
     }
 
-    // Tests @JsonAnySetter handling for unexpected/extra fields
+    // Tests any setter handling for unknown properties
     @Test
     public void testDeserialize_anySetter_capturesUnknownProperties() throws Exception {
-        String json = "{\"name\":\"Eve\",\"customField1\":\"val1\",\"customField2\":999}";
-        AnySetterBean result = MAPPER.readValue(json, AnySetterBean.class);
-
-        assertNotNull(result);
-        assertEquals("Eve", result.name);
-        assertEquals("val1", result.getAny().get("customField1"));
-        assertEquals(999, result.getAny().get("customField2"));
+        String json = "{\"id\":1,\"customField\":\"customValue\",\"otherNum\":5}";
+        AnySetterBean bean = MAPPER.readValue(json, AnySetterBean.class);
+        assertNotNull(bean);
+        assertEquals(1, bean.id);
+        assertEquals("customValue", bean.extra.get("customField"));
+        assertEquals(Integer.valueOf(5), bean.extra.get("otherNum"));
     }
 
-    // Tests deserialization with active @JsonView
+    // Tests deserialization with active view
     @Test
-    public void testDeserializeWithView_publicView_excludesPrivateProperty() throws Exception {
-        String json = "{\"pub\":\"visible\",\"priv\":\"hidden\"}";
-        ViewBean result = MAPPER.readerWithView(Views.Public.class)
+    public void testDeserialize_withView_onlyDeserializesVisibleProperties() throws Exception {
+        String json = "{\"pub\":10,\"internal\":20}";
+        ViewBean bean = MAPPER.readerWithView(Views.Public.class)
                 .forType(ViewBean.class)
                 .readValue(json);
-
-        assertNotNull(result);
-        assertEquals("visible", result.pub);
-        assertNull(result.priv);
+        assertNotNull(bean);
+        assertEquals(10, bean.pub);
+        assertEquals(0, bean.internal);
     }
 
-    // Tests deserialization with active @JsonView including internal views
+    // Tests unwrapped properties deserialization with default constructor
     @Test
-    public void testDeserializeWithView_internalView_includesAllProperties() throws Exception {
-        String json = "{\"pub\":\"visible\",\"priv\":\"secret\"}";
-        ViewBean result = MAPPER.readerWithView(Views.Internal.class)
-                .forType(ViewBean.class)
-                .readValue(json);
-
-        assertNotNull(result);
-        assertEquals("visible", result.pub);
-        assertEquals("secret", result.priv);
+    public void testDeserialize_unwrappedProperties_populatesNestedBean() throws Exception {
+        String json = "{\"id\":5,\"x\":12,\"y\":\"unwrapped\"}";
+        UnwrappedContainer bean = MAPPER.readValue(json, UnwrappedContainer.class);
+        assertNotNull(bean);
+        assertEquals(5, bean.id);
+        assertNotNull(bean.unwrapped);
+        assertEquals(12, bean.unwrapped.x);
+        assertEquals("unwrapped", bean.unwrapped.y);
     }
 
-    // Tests unwrapped property deserialization
+    // Tests unwrapped properties with prefix
     @Test
-    public void testDeserializeWithUnwrapped_flatJson_populatesNestedBean() throws Exception {
-        String json = "{\"name\":\"Frank\",\"street\":\"1st Main\",\"city\":\"Metro\"}";
-        UnwrappedParent result = MAPPER.readValue(json, UnwrappedParent.class);
-
-        assertNotNull(result);
-        assertEquals("Frank", result.name);
-        assertNotNull(result.address);
-        assertEquals("1st Main", result.address.street);
-        assertEquals("Metro", result.address.city);
+    public void testDeserialize_prefixedUnwrappedProperties_populatesNestedBean() throws Exception {
+        String json = "{\"id\":8,\"pre_x\":55,\"pre_y\":\"prefixed\"}";
+        PrefixedUnwrappedContainer bean = MAPPER.readValue(json, PrefixedUnwrappedContainer.class);
+        assertNotNull(bean);
+        assertEquals(8, bean.id);
+        assertNotNull(bean.unwrapped);
+        assertEquals(55, bean.unwrapped.x);
+        assertEquals("prefixed", bean.unwrapped.y);
     }
 
-    // Tests unwrapped property deserialization combined with @JsonCreator
+    // Tests unwrapped properties with property-based creator
     @Test
-    public void testDeserializeUsingPropertyBasedWithUnwrapped_flatJson_buildsBean() throws Exception {
-        String json = "{\"name\":\"Grace\",\"street\":\"2nd Ave\",\"city\":\"Gotham\"}";
-        UnwrappedCreatorParent result = MAPPER.readValue(json, UnwrappedCreatorParent.class);
-
-        assertNotNull(result);
-        assertEquals("Grace", result.name);
-        assertNotNull(result.address);
-        assertEquals("2nd Ave", result.address.street);
-        assertEquals("Gotham", result.address.city);
+    public void testDeserialize_unwrappedWithPropertyBasedCreator_populatesFields() throws Exception {
+        String json = "{\"id\":7,\"x\":14,\"y\":\"creatorUnwrapped\"}";
+        CreatorUnwrappedContainer bean = MAPPER.readValue(json, CreatorUnwrappedContainer.class);
+        assertNotNull(bean);
+        assertEquals(7, bean.id);
+        assertNotNull(bean.unwrapped);
+        assertEquals(14, bean.unwrapped.x);
+        assertEquals("creatorUnwrapped", bean.unwrapped.y);
     }
 
-    // Tests Object Id resolution (@JsonIdentityInfo)
+    // Tests external type id deserialization with default constructor
     @Test
-    public void testDeserializeWithObjectId_cyclicalOrSelfReference_resolvesId() throws Exception {
-        String json = "{\"id\":1,\"name\":\"Node1\",\"next\":1}";
-        IdentifiedBean result = MAPPER.readValue(json, IdentifiedBean.class);
-
-        assertNotNull(result);
-        assertEquals("Node1", result.name);
-        assertSame(result, result.next);
+    public void testDeserialize_externalTypeIdDefaultConstructor_populatesSubtype() throws Exception {
+        String json = "{\"type\":\"impl2\",\"ext\":{\"value2\":\"external\"}}";
+        ExternalTypeIdBean bean = MAPPER.readValue(json, ExternalTypeIdBean.class);
+        assertNotNull(bean);
+        assertEquals("impl2", bean.type);
+        assertTrue(bean.ext instanceof ExtImpl2);
+        assertEquals("external", ((ExtImpl2) bean.ext).value2);
     }
 
-    // Tests Property-based creator with External Type Id (Defects4J Bug 27 target branch)
+    // Tests delegating creator from String scalar
     @Test
-    public void testDeserializeUsingPropertyBasedWithExternalTypeId_typeFirst_deserializesSubtype() throws Exception {
-        String json = "{\"extType\":\"sub\",\"id\":42,\"value\":{\"id\":100,\"value\":\"childData\"}}";
-        ExternalValueHolder result = MAPPER.readValue(json, ExternalValueHolder.class);
-
-        assertNotNull(result);
-        assertEquals(42, result.id);
-        assertEquals("sub", result.extType);
-        assertTrue(result.value instanceof ExternalSub);
-        assertEquals("childData", ((ExternalSub) result.value).value);
+    public void testDeserialize_fromString_callsStringCreator() throws Exception {
+        String json = "\"testString\"";
+        StringCtorBean bean = MAPPER.readValue(json, StringCtorBean.class);
+        assertNotNull(bean);
+        assertEquals("testString", bean.val);
     }
 
-    // Tests Property-based creator with External Type Id when type property appears after value
+    // Tests delegating creator from Int scalar
     @Test
-    public void testDeserializeUsingPropertyBasedWithExternalTypeId_valueFirst_deserializesSubtype() throws Exception {
-        String json = "{\"id\":42,\"value\":{\"id\":100,\"value\":\"childData\"},\"extType\":\"sub\"}";
-        ExternalValueHolder result = MAPPER.readValue(json, ExternalValueHolder.class);
-
-        assertNotNull(result);
-        assertEquals(42, result.id);
-        assertEquals("sub", result.extType);
-        assertTrue(result.value instanceof ExternalSub);
-        assertEquals("childData", ((ExternalSub) result.value).value);
+    public void testDeserialize_fromInt_callsIntCreator() throws Exception {
+        String json = "12345";
+        IntCtorBean bean = MAPPER.readValue(json, IntCtorBean.class);
+        assertNotNull(bean);
+        assertEquals(12345, bean.val);
     }
 
-    // Tests deserialization from String scalar token via @JsonCreator
+    // Tests delegating creator from Double scalar
     @Test
-    public void testDeserializeFromString_stringToken_delegatesToCreator() throws Exception {
-        ScalarCreatorBean result = MAPPER.readValue("\"hello\"", ScalarCreatorBean.class);
-
-        assertNotNull(result);
-        assertEquals("str:hello", result.value);
+    public void testDeserialize_fromDouble_callsDoubleCreator() throws Exception {
+        String json = "3.1415";
+        DoubleCtorBean bean = MAPPER.readValue(json, DoubleCtorBean.class);
+        assertNotNull(bean);
+        assertEquals(3.1415, bean.val, 0.00001);
     }
 
-    // Tests deserialization from Integer scalar token via @JsonCreator
+    // Tests delegating creator from Boolean scalar
     @Test
-    public void testDeserializeFromNumber_intToken_delegatesToCreator() throws Exception {
-        ScalarCreatorBean result = MAPPER.readValue("123", ScalarCreatorBean.class);
-
-        assertNotNull(result);
-        assertEquals("int:123", result.value);
+    public void testDeserialize_fromBoolean_callsBooleanCreator() throws Exception {
+        String json = "true";
+        BooleanCtorBean bean = MAPPER.readValue(json, BooleanCtorBean.class);
+        assertNotNull(bean);
+        assertTrue(bean.val);
     }
 
-    // Tests deserialization from Double scalar token via @JsonCreator
-    @Test
-    public void testDeserializeFromDouble_floatToken_delegatesToCreator() throws Exception {
-        ScalarCreatorBean result = MAPPER.readValue("12.5", ScalarCreatorBean.class);
-
-        assertNotNull(result);
-        assertEquals("double:12.5", result.value);
-    }
-
-    // Tests deserialization from Boolean scalar token via @JsonCreator
-    @Test
-    public void testDeserializeFromBoolean_booleanToken_delegatesToCreator() throws Exception {
-        ScalarCreatorBean result = MAPPER.readValue("true", ScalarCreatorBean.class);
-
-        assertNotNull(result);
-        assertEquals("bool:true", result.value);
-    }
-
-    // Tests unknown property throwing exception on default settings
+    // Tests unknown property failure path
     @Test(expected = UnrecognizedPropertyException.class)
-    public void testDeserialize_unknownProperty_throwsUnrecognizedPropertyException() throws Exception {
-        String json = "{\"name\":\"Bob\",\"unknownProp\":\"xyz\"}";
+    public void testDeserialize_unknownProperty_throwsException() throws Exception {
+        String json = "{\"x\":1,\"unknown\":true}";
         MAPPER.readValue(json, SimpleBean.class);
+    }
+
+    // Tests deserialization with cyclic Object Identity
+    @Test
+    public void testDeserialize_withObjectIdentity_resolvesReferences() throws Exception {
+        String json = "{\"@id\":1,\"val\":100,\"next\":1}";
+        IdNode node = MAPPER.readValue(json, IdNode.class);
+        assertNotNull(node);
+        assertEquals(100, node.val);
+        assertSame(node, node.next);
+    }
+
+    // Tests deserialization with Managed and Back references
+    @Test
+    public void testDeserialize_managedAndBackReference_linksObjects() throws Exception {
+        String json = "{\"id\":10,\"child\":{\"name\":\"kid\"}}";
+        Parent parent = MAPPER.readValue(json, Parent.class);
+        assertNotNull(parent);
+        assertEquals(10, parent.id);
+        assertNotNull(parent.child);
+        assertEquals("kid", parent.child.name);
+        assertSame(parent, parent.child.parent);
+    }
+
+    // Tests builder-based deserialization
+    @Test
+    public void testDeserialize_withBuilder_buildsInstance() throws Exception {
+        String json = "{\"a\":42,\"b\":\"builderVal\"}";
+        BuilderValueClass val = MAPPER.readValue(json, BuilderValueClass.class);
+        assertNotNull(val);
+        assertEquals(42, val.a);
+        assertEquals("builderVal", val.b);
+    }
+
+    // Tests unwrap single value array feature
+    @Test
+    public void testDeserialize_unwrapSingleValueArray_successfullyDeserializes() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS);
+        SimpleBean bean = mapper.readValue("[{\"x\":5,\"y\":\"wrapped\"}]", SimpleBean.class);
+        assertNotNull(bean);
+        assertEquals(5, bean.x);
+        assertEquals("wrapped", bean.y);
+    }
+
+    // Tests null value deserialization
+    @Test
+    public void testDeserialize_nullLiteral_returnsNull() throws Exception {
+        SimpleBean bean = MAPPER.readValue("null", SimpleBean.class);
+        assertNull(bean);
+    }
+
+    // Tests injectable values support
+    @Test
+    public void testDeserialize_withJacksonInject_injectsValues() throws Exception {
+        InjectableValues.Std injectables = new InjectableValues.Std();
+        injectables.addValue(String.class.getName(), "injectedValue");
+        InjectedBean bean = MAPPER.reader(injectables)
+                .forType(InjectedBean.class)
+                .readValue("{\"x\":7}");
+        assertNotNull(bean);
+        assertEquals(7, bean.x);
+        assertEquals("injectedValue", bean.injected);
     }
 }

@@ -12,221 +12,264 @@ import static org.junit.Assert.*;
 
 public class XmlTreeBuilderTest {
 
-    private XmlTreeBuilder treeBuilder;
+    private XmlTreeBuilder xmlTreeBuilder;
 
     @Before
     public void setUp() {
-        treeBuilder = new XmlTreeBuilder();
+        xmlTreeBuilder = new XmlTreeBuilder();
     }
 
-    // Tests default settings preserving case
+    // Tests default parser settings
     @Test
-    public void testDefaultSettings_returnsPreserveCase() {
-        ParseSettings settings = treeBuilder.defaultSettings();
+    public void testDefaultSettings_default_preservesCase() {
+        ParseSettings settings = xmlTreeBuilder.defaultSettings();
         assertTrue(settings.preserveTagCase());
         assertTrue(settings.preserveAttributeCase());
     }
 
-    // Tests parsing valid XML from string with nested elements
+    // Tests basic XML parsing with nested elements and text nodes
     @Test
-    public void testParse_simpleXmlString_createsCorrectTree() {
+    public void testParse_simpleXmlString_createsCorrectDocumentTree() {
         String xml = "<root><child id=\"1\">Hello</child></root>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
-
-        assertEquals(Document.OutputSettings.Syntax.xml, doc.outputSettings().syntax());
-        assertEquals("root", doc.child(0).tagName());
-        assertEquals("child", doc.child(0).child(0).tagName());
-        assertEquals("1", doc.child(0).child(0).attr("id"));
-        assertEquals("Hello", doc.child(0).child(0).text());
-    }
-
-    // Tests parsing XML from Reader
-    @Test
-    public void testParse_readerInput_createsCorrectTree() {
-        String xml = "<item><name>Test</name></item>";
-        Document doc = treeBuilder.parse(new StringReader(xml), "http://example.com");
+        Document doc = xmlTreeBuilder.parse(xml, "http://example.com/");
 
         assertNotNull(doc);
-        assertEquals("item", doc.child(0).tagName());
-        assertEquals("Test", doc.child(0).child(0).text());
+        assertEquals(Document.OutputSettings.Syntax.xml, doc.outputSettings().syntax());
+        Element root = doc.child(0);
+        assertEquals("root", root.tagName());
+        assertEquals(1, root.children().size());
+
+        Element child = root.child(0);
+        assertEquals("child", child.tagName());
+        assertEquals("1", child.attr("id"));
+        assertEquals("Hello", child.text());
     }
 
-    // Tests self-closing tag for unknown XML tag
+    // Tests parsing with Reader input
     @Test
-    public void testInsert_selfClosingUnknownTag_setsSelfClosing() {
-        String xml = "<root><customSelfClosing attr=\"val\"/></root>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
+    public void testParse_readerInput_parsesSuccessfully() {
+        String xml = "<data><item>value</item></data>";
+        Document doc = xmlTreeBuilder.parse(new StringReader(xml), "");
 
-        Element customEl = doc.child(0).child(0);
-        assertEquals("customSelfClosing", customEl.tagName());
-        assertTrue(customEl.tag().isSelfClosing());
+        assertEquals(1, doc.children().size());
+        Element data = doc.child(0);
+        assertEquals("data", data.tagName());
+        assertEquals("value", data.child(0).text());
     }
 
-    // Tests self-closing tag for known HTML tag in XML mode
+    // Tests self-closing tag handling
     @Test
-    public void testInsert_selfClosingKnownTag_parsedCorrectly() {
-        String xml = "<root><br/><img src=\"pic.png\"/></root>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
+    public void testParse_selfClosingTag_createsElementWithoutStacking() {
+        String xml = "<root><empty attr=\"val\"/><sibling>text</sibling></root>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
 
         Element root = doc.child(0);
-        assertEquals("br", root.child(0).tagName());
-        assertEquals("img", root.child(1).tagName());
+        assertEquals(2, root.children().size());
+        assertEquals("empty", root.child(0).tagName());
+        assertEquals("val", root.child(0).attr("attr"));
+        assertEquals("sibling", root.child(1).tagName());
     }
 
-    // Tests normal comment insertion
+    // Tests parsing CDATA section
     @Test
-    public void testInsert_normalComment_createsCommentNode() {
-        String xml = "<root><!-- This is a comment --></root>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
+    public void testParse_cdataSection_createsCDataNode() {
+        String xml = "<root><![CDATA[<unescaped & content>]]></root>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
 
-        Node commentNode = doc.child(0).childNode(0);
-        assertTrue(commentNode instanceof Comment);
-        assertEquals(" This is a comment ", ((Comment) commentNode).getData());
+        Element root = doc.child(0);
+        assertEquals(1, root.childNodes().size());
+        assertTrue(root.childNode(0) instanceof CDataNode);
+        CDataNode cdata = (CDataNode) root.childNode(0);
+        assertEquals("<unescaped & content>", cdata.text());
     }
 
-    // Tests bogus comment containing XML declaration with '?'
+    // Tests parsing standard comment
     @Test
-    public void testInsert_xmlDeclarationQuestionMark_createsXmlDeclaration() {
+    public void testParse_standardComment_createsCommentNode() {
+        String xml = "<root><!-- this is a comment --></root>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
+
+        Element root = doc.child(0);
+        assertEquals(1, root.childNodes().size());
+        assertTrue(root.childNode(0) instanceof Comment);
+        Comment comment = (Comment) root.childNode(0);
+        assertEquals(" this is a comment ", comment.getData());
+    }
+
+    // Tests XML declaration parsing (bogus comment with ?)
+    @Test
+    public void testParse_xmlDeclaration_createsXmlDeclarationNode() {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root/>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
+        Document doc = xmlTreeBuilder.parse(xml, "");
 
-        Node declNode = doc.childNode(0);
-        assertTrue(declNode instanceof XmlDeclaration);
-        XmlDeclaration decl = (XmlDeclaration) declNode;
+        assertTrue(doc.childNode(0) instanceof XmlDeclaration);
+        XmlDeclaration decl = (XmlDeclaration) doc.childNode(0);
         assertEquals("xml", decl.name());
         assertEquals("1.0", decl.attr("version"));
         assertEquals("UTF-8", decl.attr("encoding"));
-        assertTrue(decl.outerHtml().startsWith("<?"));
     }
 
-    // Tests bogus comment containing XML declaration with '!'
+    // Tests bogus declaration starting with exclamation
     @Test
-    public void testInsert_xmlDeclarationExclamationMark_createsProcessingInstruction() {
-        String xml = "<!DOCTYPE html><root/>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
+    public void testParse_bogusDeclarationWithExclamation_createsXmlDeclarationNode() {
+        String xml = "<!foo version=\"1.0\"><root/>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
 
-        Node docTypeNode = doc.childNode(0);
-        assertTrue(docTypeNode instanceof DocumentType);
-        DocumentType docType = (DocumentType) docTypeNode;
-        assertEquals("html", docType.attr("name"));
+        assertTrue(doc.childNode(0) instanceof XmlDeclaration);
+        XmlDeclaration decl = (XmlDeclaration) doc.childNode(0);
+        assertEquals("foo", decl.name());
+        assertEquals("1.0", decl.attr("version"));
     }
 
-    // Tests bogus comment with '!' syntax parsed as declaration
+    // Tests DOCTYPE node creation
     @Test
-    public void testInsert_customDeclarationExclamation_createsXmlDeclaration() {
-        String xml = "<!CUSTOM val=\"123\"><root/>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
+    public void testParse_doctype_createsDocumentTypeNode() {
+        String xml = "<!DOCTYPE root PUBLIC \"-//W3C//DTD XML 1.0//EN\" \"http://example.com/dtd\"><root/>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
 
-        Node declNode = doc.childNode(0);
-        assertTrue(declNode instanceof XmlDeclaration);
-        XmlDeclaration decl = (XmlDeclaration) declNode;
-        assertTrue(decl.outerHtml().startsWith("<!"));
-        assertEquals("CUSTOM", decl.name());
-        assertEquals("123", decl.attr("val"));
+        assertTrue(doc.childNode(0) instanceof DocumentType);
+        DocumentType doctype = (DocumentType) doc.childNode(0);
+        assertEquals("root", doctype.attr("name"));
+        assertEquals("-//W3C//DTD XML 1.0//EN", doctype.attr("publicId"));
+        assertEquals("http://example.com/dtd", doctype.attr("systemId"));
     }
 
-    // Tests character data including CDATA node
+    // Tests unmatched closing tag skipping (not on stack)
     @Test
-    public void testInsert_cdataSection_createsCDataNode() {
-        String xml = "<root><![CDATA[some <raw> & data]]></root>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
-
-        Element root = doc.child(0);
-        assertEquals(1, root.childNodeSize());
-        assertTrue(root.childNode(0) instanceof CDataNode);
-        assertEquals("some <raw> & data", ((CDataNode) root.childNode(0)).text());
-    }
-
-    // Tests plain text node
-    @Test
-    public void testInsert_textNode_createsTextNode() {
-        String xml = "<root>Simple Text</root>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
-
-        Element root = doc.child(0);
-        assertTrue(root.childNode(0) instanceof TextNode);
-        assertEquals("Simple Text", ((TextNode) root.childNode(0)).getWholeText());
-    }
-
-    // Tests popStackToClose with matching end tag closing nested hierarchy
-    @Test
-    public void testPopStackToClose_nestedTags_popsCorrectly() {
-        String xml = "<root><a><b><c>text</c></b></a></root>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
-
-        Element root = doc.child(0);
-        assertEquals("a", root.child(0).tagName());
-        assertEquals("b", root.child(0).child(0).tagName());
-        assertEquals("c", root.child(0).child(0).child(0).tagName());
-        assertEquals("text", root.child(0).child(0).child(0).text());
-    }
-
-    // Tests popStackToClose with unmatched end tag (skipped)
-    @Test
-    public void testPopStackToClose_unmatchedEndTag_skippedGracefully() {
-        String xml = "<root></unmatched><child>content</child></root>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
+    public void testParse_unmatchedEndTag_ignoresGracefully() {
+        String xml = "<root><child>value</child></unmatched></root>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
 
         Element root = doc.child(0);
         assertEquals(1, root.children().size());
         assertEquals("child", root.child(0).tagName());
-        assertEquals("content", root.child(0).text());
     }
 
-    // Tests popStackToClose when closing tag is out of order
+    // Tests case normalization end-tag matching (Defects4J Bug 77 regression)
     @Test
-    public void testPopStackToClose_outOfOrderEndTag_popsStackUpToMatchedElement() {
-        String xml = "<root><first><second></first></root>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
+    public void testParse_normalizedCaseEndTag_popsStackCorrectly() {
+        String xml = "<DIV><SPAN>content</SPAN></DIV>";
+        Document doc = xmlTreeBuilder.parse(new StringReader(xml), "", ParseErrorList.noTracking(), ParseSettings.htmlDefault);
 
-        Element root = doc.child(0);
-        assertEquals(1, root.children().size());
-        assertEquals("first", root.child(0).tagName());
-        assertEquals("second", root.child(0).child(0).tagName());
+        Element div = doc.child(0);
+        assertEquals("div", div.tagName());
+        assertEquals(1, div.children().size());
+        assertEquals("span", div.child(0).tagName());
+        assertEquals("content", div.child(0).text());
+        assertEquals(1, doc.children().size());
     }
 
-    // Tests case-insensitive / normalized end tag handling (Defects4J 77 regression)
+    // Tests parseFragment with valid XML fragment
     @Test
-    public void testPopStackToClose_caseInsensitiveSettings_closesCorrectly() {
-        String xml = "<DIV><p>Hello</DIV>";
-        Document doc = Jsoup.parse(xml, "", Parser.xmlParser().settings(ParseSettings.htmlDefault));
-
-        assertEquals(1, doc.childNodeSize());
-        assertEquals("div", doc.child(0).tagName());
-        assertEquals("p", doc.child(0).child(0).tagName());
-    }
-
-    // Tests parsing XML fragment
-    @Test
-    public void testParseFragment_validFragment_returnsNodeList() {
-        String fragment = "<one>First</one><two>Second</two>";
-        List<Node> nodes = treeBuilder.parseFragment(fragment, "http://example.com", ParseErrorList.noTracking(), ParseSettings.preserveCase);
+    public void testParseFragment_validXmlString_returnsChildNodes() {
+        String fragment = "<item id=\"1\">A</item><item id=\"2\">B</item>";
+        List<Node> nodes = xmlTreeBuilder.parseFragment(fragment, "", ParseErrorList.noTracking(), ParseSettings.preserveCase);
 
         assertEquals(2, nodes.size());
         assertTrue(nodes.get(0) instanceof Element);
-        assertEquals("one", ((Element) nodes.get(0)).tagName());
-        assertEquals("First", ((Element) nodes.get(0)).text());
         assertTrue(nodes.get(1) instanceof Element);
-        assertEquals("two", ((Element) nodes.get(1)).tagName());
-        assertEquals("Second", ((Element) nodes.get(1)).text());
+
+        Element first = (Element) nodes.get(0);
+        Element second = (Element) nodes.get(1);
+
+        assertEquals("item", first.tagName());
+        assertEquals("1", first.attr("id"));
+        assertEquals("A", first.text());
+
+        assertEquals("item", second.tagName());
+        assertEquals("2", second.attr("id"));
+        assertEquals("B", second.text());
     }
 
-    // Tests Doctype node insertion with public and system identifier
+    // Tests preserving tag case sensitivity under default settings
     @Test
-    public void testInsert_doctypeWithIdentifiers_setsIdentifiersCorrectly() {
-        String xml = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\"><html/>";
-        Document doc = treeBuilder.parse(xml, "http://example.com");
+    public void testParse_mixedCaseTags_preservesCase() {
+        String xml = "<MixedCaseTag><CamelCaseChild>test</CamelCaseChild></MixedCaseTag>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
 
-        DocumentType docType = (DocumentType) doc.childNode(0);
-        assertEquals("html", docType.attr("name"));
-        assertEquals("-//W3C//DTD XHTML 1.0 Strict//EN", docType.attr("publicId"));
-        assertEquals("http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd", docType.attr("systemId"));
+        Element root = doc.child(0);
+        assertEquals("MixedCaseTag", root.tagName());
+        assertEquals("CamelCaseChild", root.child(0).tagName());
     }
 
-    // Tests empty XML input
+    // Tests out-of-order closing tags popping intermediate stack elements
     @Test
-    public void testParse_emptyString_returnsEmptyDoc() {
-        Document doc = treeBuilder.parse("", "http://example.com");
+    public void testParse_outOfOrderClosingTag_popsIntermediateElements() {
+        String xml = "<root><a><b>text</a></root>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
+
+        Element root = doc.child(0);
+        assertEquals(1, root.children().size());
+        Element a = root.child(0);
+        assertEquals("a", a.tagName());
+    }
+
+    @Test
+    public void testNewInstance_createsDistinctXmlTreeBuilder() {
+        TreeBuilder newBuilder = xmlTreeBuilder.newInstance();
+        assertNotNull(newBuilder);
+        assertTrue(newBuilder instanceof XmlTreeBuilder);
+        assertNotSame(xmlTreeBuilder, newBuilder);
+    }
+
+    @Test
+    public void testParseFragment_withContextElement_returnsNodes() {
+        Element context = new Element(Tag.valueOf("context"), "");
+        String fragment = "<child>value</child>";
+        List<Node> nodes = xmlTreeBuilder.parseFragment(fragment, context, "http://example.com/", ParseErrorList.noTracking(), ParseSettings.preserveCase);
+
+        assertNotNull(nodes);
+        assertEquals(1, nodes.size());
+        assertTrue(nodes.get(0) instanceof Element);
+        Element child = (Element) nodes.get(0);
+        assertEquals("child", child.tagName());
+        assertEquals("value", child.text());
+    }
+
+    @Test
+    public void testParse_emptyBogusComment_fallsBackToComment() {
+        String xml = "<?> <root/>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
+
+        assertTrue(doc.childNode(0) instanceof Comment);
+        Comment comment = (Comment) doc.childNode(0);
+        assertEquals("?", comment.getData());
+    }
+
+    @Test
+    public void testParse_doctypeWithoutIds_createsDocumentTypeNode() {
+        String xml = "<!DOCTYPE html><html/>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
+
+        assertTrue(doc.childNode(0) instanceof DocumentType);
+        DocumentType doctype = (DocumentType) doc.childNode(0);
+        assertEquals("html", doctype.attr("name"));
+        assertEquals("", doctype.attr("publicId"));
+        assertEquals("", doctype.attr("systemId"));
+    }
+
+    @Test
+    public void testParse_textNodeOutsideAndInsideElement_appendsCorrectly() {
+        String xml = "TextBefore<root>InsideText</root>TextAfter";
+        Document doc = xmlTreeBuilder.parse(xml, "");
+
+        assertEquals(3, doc.childNodeSize());
+        assertTrue(doc.childNode(0) instanceof TextNode);
+        assertEquals("TextBefore", ((TextNode) doc.childNode(0)).getWholeText());
+
+        assertTrue(doc.childNode(1) instanceof Element);
+        Element root = (Element) doc.childNode(1);
+        assertEquals("InsideText", root.text());
+
+        assertTrue(doc.childNode(2) instanceof TextNode);
+        assertEquals("TextAfter", ((TextNode) doc.childNode(2)).getWholeText());
+    }
+
+    @Test
+    public void testParse_closingTagOnEmptyStack_ignoresGracefully() {
+        String xml = "</closed>";
+        Document doc = xmlTreeBuilder.parse(xml, "");
+
         assertNotNull(doc);
         assertEquals(0, doc.children().size());
     }

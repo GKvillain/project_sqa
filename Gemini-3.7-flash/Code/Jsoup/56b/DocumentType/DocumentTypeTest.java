@@ -1,144 +1,188 @@
 package org.jsoup.nodes;
 
-import java.io.IOException;
+import org.jsoup.nodes.Document.OutputSettings;
+import org.jsoup.nodes.Document.OutputSettings.Syntax;
 import org.junit.Test;
+
+import java.io.IOException;
+
 import static org.junit.Assert.*;
 
 public class DocumentTypeTest {
 
-    // Tests nodeName returns "#doctype"
+    // Tests nodeName return value
     @Test
     public void testNodeName_default_returnsDoctypeNodeName() {
         DocumentType documentType = new DocumentType("html", "", "", "");
         assertEquals("#doctype", documentType.nodeName());
     }
 
-    // Tests public static constants
+    // Tests constructor setting initial attributes
     @Test
-    public void testConstants_valid_matchExpectedKeys() {
-        assertEquals("PUBLIC", DocumentType.PUBLIC_KEY);
-        assertEquals("SYSTEM", DocumentType.SYSTEM_KEY);
+    public void testConstructor_validArguments_setsAttributesCorrectly() {
+        DocumentType documentType = new DocumentType("html", "-//W3C//DTD HTML 4.01//EN", "http://www.w3.org/TR/html4/strict.dtd", "http://example.com");
+        assertEquals("html", documentType.attr("name"));
+        assertEquals("-//W3C//DTD HTML 4.01//EN", documentType.attr("publicId"));
+        assertEquals("http://www.w3.org/TR/html4/strict.dtd", documentType.attr("systemId"));
+        assertEquals("http://example.com", documentType.baseUri());
     }
 
-    // Tests HTML5 doctype output formatting (lowercase <!doctype html>)
+    // Tests 3-argument constructor
     @Test
-    public void testOuterHtml_html5DocType_returnsLowercaseDoctype() {
-        DocumentType documentType = new DocumentType("html", "", "", "");
-        assertEquals("<!doctype html>", documentType.outerHtml());
-    }
-
-    // Tests HTML syntax with public and system identifiers
-    @Test
-    public void testOuterHtml_publicAndSystemIds_returnsFormattedDoctype() {
-        DocumentType documentType = new DocumentType(
-            "html",
-            "-//W3C//DTD HTML 4.01//EN",
-            "http://www.w3.org/TR/html4/strict.dtd",
-            ""
-        );
-        assertEquals(
-            "<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">",
-            documentType.outerHtml()
-        );
-    }
-
-    // Tests doctype with public ID only
-    @Test
-    public void testOuterHtml_publicIdOnly_returnsDoctypeWithPublicId() {
-        DocumentType documentType = new DocumentType("html", "-//W3C//DTD HTML 4.01//EN", "", "");
-        assertEquals("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">", documentType.outerHtml());
-    }
-
-    // Tests doctype with system ID only
-    @Test
-    public void testOuterHtml_systemIdOnly_returnsDoctypeWithSystemId() throws IOException {
-        DocumentType documentType = new DocumentType("html", "", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd", "");
-        StringBuilder accum = new StringBuilder();
-        documentType.outerHtmlHead(accum, 0, new Document.OutputSettings());
-        assertTrue(accum.toString().contains("http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"));
-        assertTrue(accum.toString().startsWith("<!DOCTYPE"));
-    }
-
-    // Tests XML syntax produces uppercase <!DOCTYPE> even without public/system IDs
-    @Test
-    public void testOuterHtmlHead_xmlSyntax_returnsUppercaseDoctype() throws IOException {
-        DocumentType documentType = new DocumentType("html", "", "", "");
-        Document.OutputSettings settings = new Document.OutputSettings().syntax(Document.OutputSettings.Syntax.xml);
-        StringBuilder accum = new StringBuilder();
-        documentType.outerHtmlHead(accum, 0, settings);
-        assertEquals("<!DOCTYPE html>", accum.toString());
-    }
-
-    // Tests doctype with empty name
-    @Test
-    public void testOuterHtml_emptyName_returnsDoctypeWithoutName() {
-        DocumentType documentType = new DocumentType("", "", "", "");
-        assertEquals("<!doctype>", documentType.outerHtml());
-    }
-
-    // Tests doctype with whitespace-only attributes treated as blank
-    @Test
-    public void testOuterHtml_whitespaceAttributes_treatedAsBlank() {
-        DocumentType documentType = new DocumentType("html", "   ", "   ", "");
-        assertEquals("<!doctype html>", documentType.outerHtml());
-    }
-
-    // Tests doctype with null attributes
-    @Test
-    public void testOuterHtml_nullAttributes_treatedAsBlank() {
-        DocumentType documentType = new DocumentType("html", null, null, "");
-        assertEquals("<!doctype html>", documentType.outerHtml());
-    }
-
-    // Tests outerHtmlTail does not append anything
-    @Test
-    public void testOuterHtmlTail_default_doesNothing() {
-        DocumentType documentType = new DocumentType("html", "", "", "");
-        StringBuilder accum = new StringBuilder();
-        documentType.outerHtmlTail(accum, 0, new Document.OutputSettings());
-        assertEquals(0, accum.length());
-    }
-
-    // Tests three-argument constructor
-    @Test
-    public void testConstructor_threeArgs_initializesFields() {
-        DocumentType documentType = new DocumentType(
-            "html",
-            "-//W3C//DTD HTML 4.01//EN",
-            "http://www.w3.org/TR/html4/strict.dtd"
-        );
+    public void testConstructor_threeArgs_setsAttributesCorrectly() {
+        DocumentType documentType = new DocumentType("html", "-//W3C//DTD HTML 4.01//EN", "http://www.w3.org/TR/html4/strict.dtd");
         assertEquals("html", documentType.name());
         assertEquals("-//W3C//DTD HTML 4.01//EN", documentType.publicId());
         assertEquals("http://www.w3.org/TR/html4/strict.dtd", documentType.systemId());
     }
 
-    // Tests name(), publicId(), and systemId() getters
+    // Tests getter methods (name, publicId, systemId)
     @Test
     public void testGetters_validValues_returnCorrectStrings() {
-        DocumentType documentType = new DocumentType("html", "pubId", "sysId", "");
+        DocumentType documentType = new DocumentType("html", "pubId", "sysId");
         assertEquals("html", documentType.name());
         assertEquals("pubId", documentType.publicId());
         assertEquals("sysId", documentType.systemId());
     }
 
-    // Tests exact outerHtml formatting for systemId-only doctype
+    // Tests HTML5 doctype rendering in lowercase for HTML syntax
     @Test
-    public void testOuterHtml_systemIdOnlyExactFormat_returnsSystemDoctype() {
-        DocumentType documentType = new DocumentType("html", "", "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd", "");
-        assertEquals(
-            "<!DOCTYPE html SYSTEM \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">",
-            documentType.outerHtml()
-        );
+    public void testOuterHtmlHead_html5Doctype_rendersLowercaseDoctype() throws IOException {
+        DocumentType documentType = new DocumentType("html", "", "", "");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.html);
+
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!doctype html>", accum.toString());
     }
 
-    // Tests setPubSysKey with valid and null values
+    // Tests HTML5 doctype rendering in uppercase for XML syntax
     @Test
-    public void testSetPubSysKey_customAndNullValue_updatesOrIgnoresKey() {
+    public void testOuterHtmlHead_xmlSyntaxWithoutIds_rendersUppercaseDoctype() throws IOException {
         DocumentType documentType = new DocumentType("html", "", "", "");
-        documentType.setPubSysKey("SYSTEM");
-        assertEquals("SYSTEM", documentType.attr("pubSysKey"));
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.xml);
 
-        documentType.setPubSysKey(null);
-        assertEquals("SYSTEM", documentType.attr("pubSysKey"));
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!DOCTYPE html>", accum.toString());
+    }
+
+    // Tests XML syntax with public and system IDs
+    @Test
+    public void testOuterHtmlHead_xmlSyntaxWithIds_rendersUppercaseDoctypeWithIds() throws IOException {
+        DocumentType documentType = new DocumentType("html", "pub", "sys");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.xml);
+
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!DOCTYPE html PUBLIC \"pub\" \"sys\">", accum.toString());
+    }
+
+    // Tests doctype with both publicId and systemId
+    @Test
+    public void testOuterHtmlHead_publicAndSystemIds_rendersFullDoctype() throws IOException {
+        DocumentType documentType = new DocumentType("html", "-//W3C//DTD HTML 4.01//EN", "http://www.w3.org/TR/html4/strict.dtd", "");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.html);
+
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">", accum.toString());
+    }
+
+    // Tests doctype with publicId only
+    @Test
+    public void testOuterHtmlHead_publicIdOnly_rendersDoctypeWithPublicId() throws IOException {
+        DocumentType documentType = new DocumentType("html", "-//W3C//DTD XHTML 1.0 Strict//EN", "", "");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.html);
+
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\">", accum.toString());
+    }
+
+    // Tests doctype with systemId only
+    @Test
+    public void testOuterHtmlHead_systemIdOnly_rendersDoctypeWithSystemId() throws IOException {
+        DocumentType documentType = new DocumentType("html", "", "about:legacy-compat", "");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.html);
+
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!DOCTYPE html \"about:legacy-compat\">", accum.toString());
+    }
+
+    // Tests doctype with setPubSysKey explicitly set to SYSTEM
+    @Test
+    public void testSetPubSysKey_system_rendersSystemDoctype() throws IOException {
+        DocumentType documentType = new DocumentType("html", "", "http://example.com/dtd");
+        documentType.setPubSysKey("SYSTEM");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.html);
+
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!DOCTYPE html SYSTEM \"http://example.com/dtd\">", accum.toString());
+    }
+
+    // Tests doctype with setPubSysKey explicitly set to custom value
+    @Test
+    public void testSetPubSysKey_customValue_rendersCustomKey() throws IOException {
+        DocumentType documentType = new DocumentType("html", "pub", "sys");
+        documentType.setPubSysKey("CUSTOM");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.html);
+
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!DOCTYPE html CUSTOM \"pub\" \"sys\">", accum.toString());
+    }
+
+    // Tests doctype without name
+    @Test
+    public void testOuterHtmlHead_blankName_rendersDoctypeWithoutName() throws IOException {
+        DocumentType documentType = new DocumentType("", "", "", "");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.html);
+
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!doctype>", accum.toString());
+    }
+
+    // Tests XML syntax with blank name
+    @Test
+    public void testOuterHtmlHead_xmlSyntaxBlankName_rendersUppercaseDoctype() throws IOException {
+        DocumentType documentType = new DocumentType("", "", "");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings().syntax(Syntax.xml);
+
+        documentType.outerHtmlHead(accum, 0, settings);
+
+        assertEquals("<!DOCTYPE>", accum.toString());
+    }
+
+    // Tests outerHtmlTail has no effect
+    @Test
+    public void testOuterHtmlTail_anyState_appendsNothing() {
+        DocumentType documentType = new DocumentType("html", "pub", "sys", "");
+        StringBuilder accum = new StringBuilder();
+        OutputSettings settings = new OutputSettings();
+
+        documentType.outerHtmlTail(accum, 0, settings);
+
+        assertEquals("", accum.toString());
+    }
+
+    // Tests outerHtml helper method on Node
+    @Test
+    public void testOuterHtml_standardHtml5_returnsCorrectString() {
+        DocumentType documentType = new DocumentType("html", null, null, "");
+        assertEquals("<!doctype html>", documentType.outerHtml());
     }
 }

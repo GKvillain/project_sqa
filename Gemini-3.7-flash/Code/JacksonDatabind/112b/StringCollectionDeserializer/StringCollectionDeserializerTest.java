@@ -1,204 +1,238 @@
 package com.fasterxml.jackson.databind.deser.std;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import org.junit.Test;
+import static org.junit.Assert.*;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.deser.NullValueProvider;
-import com.fasterxml.jackson.databind.deser.ValueInstantiator;
+import com.fasterxml.jackson.databind.deser.impl.NullsConstantProvider;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.type.TypeFactory;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class StringCollectionDeserializerTest {
 
     private final ObjectMapper MAPPER = new ObjectMapper();
 
-    // Helper classes for testing Jackson annotations with StringCollectionDeserializer
     static class CustomStringDeserializer extends JsonDeserializer<String> {
         @Override
         public String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-            return p.getText().toUpperCase();
+            return p.getText() + "-custom";
         }
     }
 
-    static class CustomListWrapper {
-        @JsonDeserialize(contentUsing = CustomStringDeserializer.class)
+    static class SingleStringCollectionWrapper {
+        @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
         public Collection<String> values;
     }
 
-    static class SingleWrapListWrapper {
-        @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
-        public List<String> list;
-    }
-
-    static class SkipNullListWrapper {
+    static class SkipNullCollectionWrapper {
         @JsonSetter(contentNulls = Nulls.SKIP)
         public List<String> values;
     }
 
-    static class DelegatingListWrapper {
-        public final List<String> values;
+    static class DelegatingCollection {
+        private final Collection<String> values;
 
-        public DelegatingListWrapper(List<String> values) {
+        @JsonCreator
+        public DelegatingCollection(Collection<String> values) {
             this.values = values;
         }
 
-        public static DelegatingListWrapper fromString(String str) {
-            return new DelegatingListWrapper(Collections.singletonList(str));
+        public Collection<String> getValues() {
+            return values;
         }
     }
 
-    // Tests normal deserialization of standard JSON array to Collection/List/Set
+    // Tests normal deserialization of a standard JSON string array
     @Test
     public void testDeserialize_standardArray_returnsCollection() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
-        List<String> result = MAPPER.readValue("[\"a\", \"b\", \"c\"]", type);
-        assertEquals(Arrays.asList("a", "b", "c"), result);
+        List<String> result = MAPPER.readValue("[\"apple\", \"banana\", \"cherry\"]",
+                new TypeReference<List<String>>() {});
+
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        assertEquals("apple", result.get(0));
+        assertEquals("banana", result.get(1));
+        assertEquals("cherry", result.get(2));
     }
 
-    // Tests deserialization of empty JSON array
+    // Tests deserialization of an empty JSON array
     @Test
     public void testDeserialize_emptyArray_returnsEmptyCollection() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
-        List<String> result = MAPPER.readValue("[]", type);
+        Collection<String> result = MAPPER.readValue("[]",
+                new TypeReference<Collection<String>>() {});
+
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
 
     // Tests deserialization of array containing null elements
     @Test
-    public void testDeserialize_nullElementsInArray_retainsNull() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
-        List<String> result = MAPPER.readValue("[\"a\", null, \"b\"]", type);
-        assertEquals(Arrays.asList("a", null, "b"), result);
+    public void testDeserialize_arrayWithNull_preservesNull() throws Exception {
+        List<String> result = MAPPER.readValue("[\"a\", null, \"b\"]",
+                new TypeReference<List<String>>() {});
+
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        assertEquals("a", result.get(0));
+        assertNull(result.get(1));
+        assertEquals("b", result.get(2));
     }
 
-    // Tests deserialization with custom value deserializer (Defects4J 112b contextualization check)
+    // Tests skip nulls configuration in collection deserialization
     @Test
-    public void testDeserialize_customContentDeserializer_appliesCustomLogic() throws Exception {
-        CustomListWrapper wrapper = MAPPER.readValue("{\"values\": [\"abc\", \"def\"]}", CustomListWrapper.class);
+    public void testDeserialize_skipNulls_omitsNullValues() throws Exception {
+        SkipNullCollectionWrapper wrapper = MAPPER.readValue("{\"values\":[\"a\", null, \"b\"]}",
+                SkipNullCollectionWrapper.class);
+
         assertNotNull(wrapper.values);
-        assertEquals(Arrays.asList("ABC", "DEF"), new ArrayList<String>(wrapper.values));
+        assertEquals(2, wrapper.values.size());
+        assertEquals("a", wrapper.values.get(0));
+        assertEquals("b", wrapper.values.get(1));
     }
 
-    // Tests custom deserializer with null elements in array
+    // Tests deserialization with custom element value deserializer
     @Test
-    public void testDeserialize_customContentDeserializerWithNull_appliesNullHandling() throws Exception {
-        CustomListWrapper wrapper = MAPPER.readValue("{\"values\": [\"abc\", null]}", CustomListWrapper.class);
+    public void testDeserialize_customValueDeserializer_usesCustomLogic() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(String.class, new CustomStringDeserializer());
+        mapper.registerModule(module);
+
+        List<String> result = mapper.readValue("[\"first\", \"second\"]",
+                new TypeReference<List<String>>() {});
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals("first-custom", result.get(0));
+        assertEquals("second-custom", result.get(1));
+    }
+
+    // Tests single value unwrapping when enabled via JsonFormat annotation
+    @Test
+    public void testDeserialize_singleValueWithAnnotation_unwrapsSuccessfully() throws Exception {
+        SingleStringCollectionWrapper wrapper = MAPPER.readValue("{\"values\":\"singleItem\"}",
+                SingleStringCollectionWrapper.class);
+
         assertNotNull(wrapper.values);
-        assertEquals(Arrays.asList("ABC", null), new ArrayList<String>(wrapper.values));
+        assertEquals(1, wrapper.values.size());
+        assertEquals("singleItem", wrapper.values.iterator().next());
     }
 
-    // Tests ACCEPT_SINGLE_VALUE_AS_ARRAY feature enabled via ObjectMapper
+    // Tests single value unwrapping with global ACCEPT_SINGLE_VALUE_AS_ARRAY feature enabled
     @Test
-    public void testHandleNonArray_acceptSingleValueEnabled_returnsSingleElementList() throws Exception {
-        ObjectMapper mapper = new ObjectMapper().enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
-        List<String> result = mapper.readValue("\"single\"", type);
-        assertEquals(Collections.singletonList("single"), result);
+    public void testDeserialize_singleValueFeatureEnabled_returnsCollection() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+
+        List<String> result = mapper.readValue("\"singleElement\"",
+                new TypeReference<List<String>>() {});
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("singleElement", result.get(0));
     }
 
-    // Tests single value unwrapping via @JsonFormat annotation on property
+    // Tests single value unwrapping for null value when feature is enabled
     @Test
-    public void testHandleNonArray_jsonFormatAnnotation_unwrapsSingleValue() throws Exception {
-        SingleWrapListWrapper wrapper = MAPPER.readValue("{\"list\": \"singleValue\"}", SingleWrapListWrapper.class);
-        assertNotNull(wrapper.list);
-        assertEquals(Collections.singletonList("singleValue"), wrapper.list);
-    }
+    public void testDeserialize_singleNullFeatureEnabled_returnsCollectionWithNull() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
 
-    // Tests single value null when ACCEPT_SINGLE_VALUE_AS_ARRAY is enabled
-    @Test
-    public void testHandleNonArray_nullSingleValue_returnsListWithNull() throws Exception {
-        ObjectMapper mapper = new ObjectMapper().enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
-        List<String> result = mapper.readValue("null", type);
+        List<String> result = mapper.readValue("null",
+                new TypeReference<List<String>>() {});
+
         assertNull(result);
     }
 
-    // Tests non-array input when ACCEPT_SINGLE_VALUE_AS_ARRAY is disabled throws MismatchedInputException
+    // Tests exception path when non-array token is encountered and unwrapping is disabled
     @Test(expected = MismatchedInputException.class)
-    public void testHandleNonArray_singleValueDisabled_throwsException() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
-        MAPPER.readValue("123", type);
+    public void testDeserialize_singleValueFeatureDisabled_throwsException() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+
+        mapper.readValue("12345", new TypeReference<List<String>>() {});
     }
 
-    // Tests skipping null values using JsonSetter Nulls.SKIP
+    // Tests deserialization through delegating creator
     @Test
-    public void testDeserialize_skipNullValues_skipsNullInArray() throws Exception {
-        SkipNullListWrapper wrapper = MAPPER.readValue("{\"values\": [\"a\", null, \"b\"]}", SkipNullListWrapper.class);
-        assertNotNull(wrapper.values);
-        assertEquals(Arrays.asList("a", "b"), wrapper.values);
+    public void testDeserialize_delegatingCreator_createsInstance() throws Exception {
+        DelegatingCollection result = MAPPER.readValue("[\"x\", \"y\"]", DelegatingCollection.class);
+
+        assertNotNull(result);
+        assertNotNull(result.getValues());
+        assertEquals(2, result.getValues().size());
+        assertTrue(result.getValues().contains("x"));
+        assertTrue(result.getValues().contains("y"));
     }
 
-    // Tests isCachable method
+    // Tests isCachable method when standard vs custom deserializers are used
     @Test
-    public void testIsCachable_standardDeserializer_returnsTrue() {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
+    public void testIsCachable_standardAndCustomDeserializer_returnsExpectedBoolean() {
+        JavaType type = MAPPER.getTypeFactory().constructCollectionType(List.class, String.class);
+        StringCollectionDeserializer standardDeser = new StringCollectionDeserializer(type, null, null);
+
+        assertTrue(standardDeser.isCachable());
+
+        StringCollectionDeserializer customDeser = standardDeser.withResolved(
+                null, new CustomStringDeserializer(), null, Boolean.TRUE);
+
+        assertFalse(customDeser.isCachable());
+    }
+
+    // Tests withResolved method returns same instance if arguments match existing fields
+    @Test
+    public void testWithResolved_sameArguments_returnsSameInstance() {
+        JavaType type = MAPPER.getTypeFactory().constructCollectionType(List.class, String.class);
         StringCollectionDeserializer deser = new StringCollectionDeserializer(type, null, null);
-        assertTrue(deser.isCachable());
+
+        StringCollectionDeserializer resolved = deser.withResolved(null, null, null, null);
+
+        assertSame(deser, resolved);
     }
 
-    // Tests isCachable when custom deserializer is present
+    // Tests withResolved method returns new instance when configuration changes
     @Test
-    public void testIsCachable_withCustomDeserializer_returnsFalse() {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
-        StringCollectionDeserializer deser = new StringCollectionDeserializer(type, new CustomStringDeserializer(), null);
-        assertFalse(deser.isCachable());
+    public void testWithResolved_differentArguments_returnsNewInstance() {
+        JavaType type = MAPPER.getTypeFactory().constructCollectionType(List.class, String.class);
+        StringCollectionDeserializer deser = new StringCollectionDeserializer(type, null, null);
+        NullValueProvider nuller = NullsConstantProvider.nuller();
+
+        StringCollectionDeserializer resolved = deser.withResolved(null, null, nuller, Boolean.TRUE);
+
+        assertNotSame(deser, resolved);
     }
 
-    // Tests getContentDeserializer and getValueInstantiator methods
+    // Tests getContentDeserializer and getValueInstantiator getters
     @Test
-    public void testGetters_contentDeserializerAndValueInstantiator() {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
+    public void testGetContentDeserializerAndValueInstantiator_uninitialized_returnsNullOrSetValues() {
+        JavaType type = MAPPER.getTypeFactory().constructCollectionType(Set.class, String.class);
         CustomStringDeserializer customDeser = new CustomStringDeserializer();
         StringCollectionDeserializer deser = new StringCollectionDeserializer(type, customDeser, null);
+
         assertSame(customDeser, deser.getContentDeserializer());
         assertNull(deser.getValueInstantiator());
     }
 
-    // Tests withResolved returns same instance when identical parameters are passed
+    // Tests contextual creation with custom content deserializer and unwrapSingle
     @Test
-    public void testWithResolved_sameParameters_returnsThis() {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
-        StringCollectionDeserializer deser = new StringCollectionDeserializer(type, null, null);
-        StringCollectionDeserializer resolved = deser.withResolved(null, null, null, null);
-        assertSame(deser, resolved);
-    }
+    public void testCreateContextual_withCustomDeserializer_resolvesContextualDeserializer() throws Exception {
+        DeserializationContext ctxt = MAPPER.getDeserializationContext();
+        JavaType type = MAPPER.getTypeFactory().constructCollectionType(List.class, String.class);
+        StringCollectionDeserializer deser = new StringCollectionDeserializer(type, new CustomStringDeserializer(), null);
 
-    // Tests deserialization of numbers/booleans in String collection (converts to string)
-    @Test
-    public void testDeserialize_mixedTypesToString_convertsSuccessfully() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(List.class, String.class);
-        List<String> result = MAPPER.readValue("[123, true, \"hello\"]", type);
-        assertEquals(Arrays.asList("123", "true", "hello"), result);
-    }
+        JsonDeserializer<?> contextual = deser.createContextual(ctxt, null);
 
-    // Tests deserialization into Set collection type
-    @Test
-    public void testDeserialize_setCollection_returnsCorrectSet() throws Exception {
-        JavaType type = TypeFactory.defaultInstance().constructCollectionType(Set.class, String.class);
-        Set<String> result = MAPPER.readValue("[\"x\", \"y\", \"x\"]", type);
-        assertEquals(new HashSet<String>(Arrays.asList("x", "y")), result);
+        assertNotNull(contextual);
+        assertTrue(contextual instanceof StringCollectionDeserializer);
     }
 }

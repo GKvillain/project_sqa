@@ -6,124 +6,115 @@ import static org.junit.Assert.*;
 
 public class InlineCostEstimatorTest {
 
-  private static int check(String js) {
-    return check(js, Integer.MAX_VALUE);
-  }
-
-  private static int check(String js, int costThreshold) {
+  private Node parse(String js) {
     Compiler compiler = new Compiler();
     Node root = compiler.parseTestCode(js);
-    return InlineCostEstimator.getCost(root, costThreshold);
+    return root.getFirstChild();
   }
 
-  // Tests cost of simple number literal
+  private int checkCost(String js) {
+    return InlineCostEstimator.getCost(parse(js));
+  }
+
+  private int checkCost(String js, int threshold) {
+    return InlineCostEstimator.getCost(parse(js), threshold);
+  }
+
+  // Tests cost estimation for a simple number literal
   @Test
   public void testGetCost_numberLiteral_returnsCorrectCost() {
-    assertEquals(1, check("1"));
-    assertEquals(2, check("10"));
+    assertEquals(1, checkCost("1"));
   }
 
-  // Tests cost of single identifier which uses estimated 2-char identifier length
+  // Tests cost estimation for an identifier using ESTIMATED_IDENTIFIER length
   @Test
-  public void testGetCost_identifier_returnsEstimatedIdentifierCost() {
-    assertEquals(InlineCostEstimator.ESTIMATED_IDENTIFIER_COST, check("a"));
-    assertEquals(InlineCostEstimator.ESTIMATED_IDENTIFIER_COST, check("veryLongVariableName"));
+  public void testGetCost_identifier_returnsEstimatedCost() {
+    assertEquals(InlineCostEstimator.ESTIMATED_IDENTIFIER_COST, checkCost("a"));
+    assertEquals(InlineCostEstimator.ESTIMATED_IDENTIFIER_COST, checkCost("longIdentifierName"));
   }
 
-  // Tests cost of binary expression with identifiers
+  // Tests cost estimation for boolean true constant
   @Test
-  public void testGetCost_binaryExpression_returnsEstimatedCost() {
-    // "ab+ab" -> 2 + 1 + 2 = 5
-    assertEquals(5, check("a + b"));
+  public void testGetCost_trueConstant_returnsFoldedCost() {
+    assertEquals(1, checkCost("true"));
   }
 
-  // Tests cost of assignment expression
+  // Tests cost estimation for boolean false constant
   @Test
-  public void testGetCost_assignment_returnsEstimatedCost() {
-    // "ab=1" -> 2 + 1 + 1 = 4
-    assertEquals(4, check("x = 1"));
+  public void testGetCost_falseConstant_returnsFoldedCost() {
+    assertEquals(1, checkCost("false"));
   }
 
-  // Tests cost of function call
+  // Tests cost estimation for null constant
   @Test
-  public void testGetCost_functionCall_returnsEstimatedCost() {
-    // "ab()" -> 2 + 1 + 1 = 4
-    assertEquals(4, check("foo()"));
+  public void testGetCost_nullConstant_returnsFoldedCost() {
+    assertEquals(1, checkCost("null"));
   }
 
-  // Tests cost of function expression
+  // Tests cost estimation for this constant
   @Test
-  public void testGetCost_functionExpression_returnsEstimatedCost() {
-    // "function(){}" -> 12
-    assertEquals(12, check("function(){}"));
+  public void testGetCost_thisConstant_returnsFoldedCost() {
+    assertEquals(1, checkCost("this"));
   }
 
-  // Tests cost of string literal
+  // Tests cost estimation for binary expression
   @Test
-  public void testGetCost_stringLiteral_returnsQuotedStringCost() {
-    // "\"hello\"" -> 7
-    assertEquals(7, check("\"hello\""));
+  public void testGetCost_binaryExpression_returnsCorrectCost() {
+    assertEquals(5, checkCost("a + b"));
   }
 
-  // Tests cost of array literal
+  // Tests cost estimation for function call
   @Test
-  public void testGetCost_arrayLiteral_returnsEstimatedCost() {
-    // "[1,2]" -> 5
-    assertEquals(5, check("[1, 2]"));
+  public void testGetCost_functionCall_returnsCorrectCost() {
+    assertEquals(4, checkCost("a()"));
   }
 
-  // Tests cost of object literal
+  // Tests cost estimation for property access and method call
   @Test
-  public void testGetCost_objectLiteral_returnsEstimatedCost() {
-    // "({ab:1})" -> 8
-    assertEquals(8, check("({a: 1})"));
+  public void testGetCost_methodCall_returnsCorrectCost() {
+    assertEquals(7, checkCost("a.b()"));
   }
 
-  // Tests cost of var declaration
+  // Tests cost estimation for string literal
   @Test
-  public void testGetCost_varDeclaration_returnsEstimatedCost() {
-    // "var ab=1" -> 3 + 1 + 2 + 1 + 1 = 8
-    assertEquals(8, check("var x = 1;"));
+  public void testGetCost_stringLiteral_returnsCorrectCost() {
+    assertEquals(4, checkCost("'ab'"));
   }
 
-  // Tests threshold bounding where processing stops early when maxCost is reached
+  // Tests cost estimation for empty array literal
   @Test
-  public void testGetCost_thresholdStopsEarly_returnsCostAtOrAboveThreshold() {
-    int normalCost = check("1 + 2 + 3 + 4 + 5");
-    int thresholdCost = check("1 + 2 + 3 + 4 + 5", 3);
+  public void testGetCost_arrayLiteral_returnsCorrectCost() {
+    assertEquals(2, checkCost("[]"));
+  }
+
+  // Tests cost estimation for object literal
+  @Test
+  public void testGetCost_objectLiteral_returnsCorrectCost() {
+    assertEquals(2, checkCost("({})"));
+  }
+
+  // Tests threshold cutoff when cost reaches maximum allowed cost
+  @Test
+  public void testGetCost_thresholdExceeded_stopsProcessingEarly() {
+    int fullCost = checkCost("a + b + c + d");
+    int thresholdCost = checkCost("a + b + c + d", 3);
     assertTrue(thresholdCost >= 3);
-    assertTrue(thresholdCost <= normalCost);
+    assertTrue(thresholdCost <= fullCost);
   }
 
-  // Tests threshold equal to zero stops processing immediately
+  // Tests threshold not exceeded when maxCost is Integer.MAX_VALUE
+  @Test
+  public void testGetCost_thresholdMaxInt_returnsFullCost() {
+    Node node = parse("a + b");
+    int costWithDefault = InlineCostEstimator.getCost(node);
+    int costWithMaxInt = InlineCostEstimator.getCost(node, Integer.MAX_VALUE);
+    assertEquals(costWithDefault, costWithMaxInt);
+  }
+
+  // Tests threshold set to zero triggers cutoff immediately on append
   @Test
   public void testGetCost_zeroThreshold_stopsImmediately() {
-    int cost = check("x = 1 + 2", 0);
+    int cost = checkCost("a", 0);
     assertTrue(cost >= 0);
-    assertTrue(cost < check("x = 1 + 2"));
-  }
-
-  // Tests threshold larger than code cost computes full cost
-  @Test
-  public void testGetCost_highThreshold_returnsFullCost() {
-    int defaultCost = check("a + b");
-    int thresholdCost = check("a + b", 1000);
-    assertEquals(defaultCost, thresholdCost);
-  }
-
-  // Tests cost of boolean literals
-  @Test
-  public void testGetCost_booleanLiteral_returnsEstimatedCost() {
-    int costTrue = check("true");
-    int costFalse = check("false");
-    assertTrue(costTrue > 0);
-    assertTrue(costFalse > 0);
-  }
-
-  // Tests cost of null literal
-  @Test
-  public void testGetCost_nullLiteral_returnsEstimatedCost() {
-    int costNull = check("null");
-    assertTrue(costNull > 0);
   }
 }

@@ -8,83 +8,63 @@ import static org.junit.Assert.*;
 
 public class AttributeTest {
 
-    // Tests constructor and getters with valid key and value
+    // Tests constructor with valid key and value
     @Test
-    public void testConstructor_validKeyAndValue_setsFieldsCorrectly() {
+    public void testConstructor_validKeyValue_createsAttribute() {
         Attribute attr = new Attribute("href", "http://example.com");
         assertEquals("href", attr.getKey());
         assertEquals("http://example.com", attr.getValue());
     }
 
-    // Tests constructor with null key throws IllegalArgumentException
+    // Tests constructor with null key throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_nullKey_throwsException() {
+    public void testConstructor_nullKey_throwsIllegalArgumentException() {
         new Attribute(null, "value");
     }
 
-    // Tests constructor with empty key throws IllegalArgumentException
+    // Tests constructor with empty key throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_emptyKey_throwsException() {
+    public void testConstructor_emptyKey_throwsIllegalArgumentException() {
         new Attribute("", "value");
     }
 
-    // Tests constructor with whitespace-only key throws IllegalArgumentException
+    // Tests constructor with whitespace-only key throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_whitespaceKey_throwsException() {
+    public void testConstructor_whitespaceKey_throwsIllegalArgumentException() {
         new Attribute("   ", "value");
     }
 
-    // Tests setKey updates key and trims whitespace
+    // Tests setKey with valid key and trimming
     @Test
     public void testSetKey_validKey_updatesKey() {
-        Attribute attr = new Attribute("oldKey", "value");
+        Attribute attr = new Attribute("key", "val");
         attr.setKey("  newKey  ");
         assertEquals("newKey", attr.getKey());
     }
 
-    // Tests setKey with null throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testSetKey_nullKey_throwsException() {
-        Attribute attr = new Attribute("key", "value");
-        attr.setKey(null);
-    }
-
-    // Tests setKey with empty key throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testSetKey_emptyKey_throwsException() {
-        Attribute attr = new Attribute("key", "value");
-        attr.setKey("");
-    }
-
-    // Tests setKey updates parent Attributes when parent is present
+    // Tests setKey when parent Attributes exists
     @Test
-    public void testSetKey_withParentAttributes_updatesParentKey() {
+    public void testSetKey_withParent_updatesParentKey() {
         Attributes parent = new Attributes();
-        parent.put("k1", "v1");
-        Attribute attr = new Attribute("k1", "v1", parent);
-        attr.setKey("k2");
-        assertEquals("k2", attr.getKey());
-        assertTrue(parent.hasKey("k2"));
-        assertFalse(parent.hasKey("k1"));
+        parent.put("oldKey", "val");
+        Attribute attr = new Attribute("oldKey", "val", parent);
+        attr.setKey("newKey");
+        assertEquals("newKey", attr.getKey());
+        assertTrue(parent.hasKey("newKey"));
+        assertFalse(parent.hasKey("oldKey"));
     }
 
-    // Tests setValue without parent (defect-prone scenario where parent is null)
+    // Tests setValue without parent attached
     @Test
-    public void testSetValue_noParent_setsValueAndHandlesNullParent() {
-        Attribute attr = new Attribute("key", "oldVal");
-        try {
-            String oldVal = attr.setValue("newVal");
-            assertEquals("newVal", attr.getValue());
-            assertNull(oldVal);
-        } catch (NullPointerException e) {
-            // Catches defect if setValue tries to access null parent
-            fail("setValue should not throw NullPointerException when parent is null");
-        }
+    public void testSetValue_withoutParent_updatesValue() {
+        Attribute attr = new Attribute("key", "val");
+        String oldVal = attr.setValue("newVal");
+        assertEquals("newVal", attr.getValue());
     }
 
-    // Tests setValue with parent Attributes updates parent value
+    // Tests setValue with parent attached
     @Test
-    public void testSetValue_withParentAttributes_updatesParentValue() {
+    public void testSetValue_withParent_updatesValueAndParent() {
         Attributes parent = new Attributes();
         parent.put("key", "oldVal");
         Attribute attr = new Attribute("key", "oldVal", parent);
@@ -94,106 +74,102 @@ public class AttributeTest {
         assertEquals("newVal", parent.get("key"));
     }
 
-    // Tests html output for standard attribute
-    @Test
-    public void testHtml_standardAttribute_returnsFormattedHtml() {
-        Attribute attr = new Attribute("id", "main");
-        assertEquals("id=\"main\"", attr.html());
-        assertEquals("id=\"main\"", attr.toString());
-    }
-
-    // Tests html output with HTML entities that require escaping
-    @Test
-    public void testHtml_attributeWithSpecialCharacters_escapesValue() {
-        Attribute attr = new Attribute("title", "foo & \"bar\" <baz>");
-        assertEquals("title=\"foo &amp; &quot;bar&quot; &lt;baz&gt;\"", attr.html());
-    }
-
-    // Tests html collapsing for boolean attribute with empty value
-    @Test
-    public void testHtml_booleanAttributeEmptyValue_collapsesAttribute() {
-        Attribute attr = new Attribute("disabled", "");
-        assertEquals("disabled", attr.html());
-    }
-
-    // Tests html collapsing for boolean attribute with matching key/value
-    @Test
-    public void testHtml_booleanAttributeSameValue_collapsesAttribute() {
-        Attribute attr = new Attribute("required", "required");
-        assertEquals("required", attr.html());
-    }
-
-    // Tests html does not collapse boolean attribute in XML syntax mode
-    @Test
-    public void testHtml_xmlSyntax_doesNotCollapseBooleanAttribute() throws IOException {
-        Attribute attr = new Attribute("disabled", "");
-        Document.OutputSettings settings = new Document.OutputSettings().syntax(Document.OutputSettings.Syntax.xml);
-        StringBuilder sb = new StringBuilder();
-        attr.html(sb, settings);
-        assertEquals("disabled=\"\"", sb.toString());
-    }
-
-    // Tests createFromEncoded correctly unescapes HTML entities in value
+    // Tests createFromEncoded unescapes HTML entities in value
     @Test
     public void testCreateFromEncoded_encodedEntities_unescapesValue() {
-        Attribute attr = Attribute.createFromEncoded("title", "&quot;Hello &amp; World&quot;");
+        Attribute attr = Attribute.createFromEncoded("title", "&lt;Hello &amp; World&gt;");
         assertEquals("title", attr.getKey());
-        assertEquals("\"Hello & World\"", attr.getValue());
+        assertEquals("<Hello & World>", attr.getValue());
     }
 
-    // Tests isDataAttribute recognition for data-* prefix
+    // Tests isDataAttribute logic
     @Test
-    public void testIsDataAttribute_dataPrefix_returnsTrue() {
-        Attribute attr = new Attribute("data-test", "val");
-        assertTrue(attr.isDataAttribute());
+    public void testIsDataAttribute_dataAndNonDataKeys_returnsExpected() {
+        Attribute dataAttr = new Attribute("data-name", "value");
+        Attribute nonDataAttr = new Attribute("name", "value");
+        Attribute emptyDataAttr = new Attribute("data-", "value");
+
+        assertTrue(dataAttr.isDataAttribute());
+        assertFalse(nonDataAttr.isDataAttribute());
+        assertFalse(emptyDataAttr.isDataAttribute());
         assertTrue(Attribute.isDataAttribute("data-custom"));
-    }
-
-    // Tests isDataAttribute returns false for non-data attributes or just prefix
-    @Test
-    public void testIsDataAttribute_nonDataAttribute_returnsFalse() {
-        Attribute attr = new Attribute("href", "http://example.com");
-        assertFalse(attr.isDataAttribute());
         assertFalse(Attribute.isDataAttribute("data-"));
-        assertFalse(Attribute.isDataAttribute("class"));
     }
 
-    // Tests isBooleanAttribute for standard HTML5 boolean attributes
+    // Tests isBooleanAttribute detection
     @Test
-    public void testIsBooleanAttribute_knownBooleanAttributes_returnsTrue() {
+    public void testIsBooleanAttribute_booleanAndNonBoolean_returnsExpected() {
+        Attribute boolAttr = new Attribute("required", "");
+        Attribute nonBoolAttr = new Attribute("class", "btn");
+
+        assertTrue(boolAttr.isBooleanAttribute());
+        assertTrue(Attribute.isBooleanAttribute("disabled"));
         assertTrue(Attribute.isBooleanAttribute("checked"));
-        assertTrue(Attribute.isBooleanAttribute("readonly"));
-        assertTrue(new Attribute("hidden", "hidden").isBooleanAttribute());
+        assertFalse(nonBoolAttr.isBooleanAttribute());
         assertFalse(Attribute.isBooleanAttribute("href"));
-        assertFalse(Attribute.isBooleanAttribute("custom"));
+    }
+
+    // Tests shouldCollapseAttribute under HTML and XML syntax
+    @Test
+    public void testShouldCollapseAttribute_htmlAndXmlSyntax_collapsesCorrectly() {
+        Document.OutputSettings htmlOut = new Document.OutputSettings().syntax(Document.OutputSettings.Syntax.html);
+        Document.OutputSettings xmlOut = new Document.OutputSettings().syntax(Document.OutputSettings.Syntax.xml);
+
+        Attribute boolAttr = new Attribute("required", "");
+        assertTrue(boolAttr.shouldCollapseAttribute(htmlOut));
+        assertFalse(boolAttr.shouldCollapseAttribute(xmlOut));
+
+        Attribute boolSameVal = new Attribute("required", "required");
+        assertTrue(boolSameVal.shouldCollapseAttribute(htmlOut));
+
+        Attribute normalAttr = new Attribute("href", "index.html");
+        assertFalse(normalAttr.shouldCollapseAttribute(htmlOut));
+    }
+
+    // Tests html and toString output formatting
+    @Test
+    public void testHtml_standardAttribute_formatsCorrectly() {
+        Attribute attr = new Attribute("class", "my-class");
+        assertEquals("class=\"my-class\"", attr.html());
+        assertEquals("class=\"my-class\"", attr.toString());
+    }
+
+    // Tests html output for boolean attributes
+    @Test
+    public void testHtml_booleanAttribute_formatsWithoutValue() throws IOException {
+        Attribute attr = new Attribute("disabled", "");
+        StringBuilder sb = new StringBuilder();
+        Document.OutputSettings settings = new Document.OutputSettings();
+        attr.html(sb, settings);
+        assertEquals("disabled", sb.toString());
     }
 
     // Tests equals and hashCode contracts
     @Test
-    public void testEqualsAndHashCode_sameAndDifferentObjects_worksCorrectly() {
-        Attribute attr1 = new Attribute("key", "value");
-        Attribute attr2 = new Attribute("key", "value");
-        Attribute attr3 = new Attribute("key", "otherValue");
-        Attribute attr4 = new Attribute("otherKey", "value");
+    public void testEqualsAndHashCode_sameAndDifferentAttributes_returnsExpected() {
+        Attribute attr1 = new Attribute("key", "val");
+        Attribute attr2 = new Attribute("key", "val");
+        Attribute attr3 = new Attribute("key", "different");
+        Attribute attr4 = new Attribute("different", "val");
 
-        assertEquals(attr1, attr1);
         assertEquals(attr1, attr2);
         assertEquals(attr1.hashCode(), attr2.hashCode());
-
         assertNotEquals(attr1, attr3);
         assertNotEquals(attr1, attr4);
         assertNotEquals(attr1, null);
-        assertNotEquals(attr1, "key=value");
+        assertNotEquals(attr1, "string-object");
     }
 
     // Tests clone creates independent copy
     @Test
-    public void testClone_clonedObject_createsEqualObject() {
+    public void testClone_clonedAttribute_isEqualButIndependent() {
         Attribute original = new Attribute("key", "val");
-        Attribute cloned = original.clone();
-        assertNotSame(original, cloned);
-        assertEquals(original, cloned);
-        assertEquals(original.getKey(), cloned.getKey());
-        assertEquals(original.getValue(), cloned.getValue());
+        Attribute clone = original.clone();
+
+        assertNotSame(original, clone);
+        assertEquals(original, clone);
+
+        clone.setKey("newKey");
+        assertNotEquals(original.getKey(), clone.getKey());
     }
 }

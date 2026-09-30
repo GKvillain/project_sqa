@@ -1,9 +1,10 @@
 package org.joda.time;
 
+import java.util.Locale;
+import org.joda.time.chrono.GJChronology;
+import org.joda.time.chrono.ISOChronology;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Locale;
 
 import static org.junit.Assert.*;
 
@@ -11,332 +12,278 @@ public class MutableDateTimeTest {
 
     private static final DateTimeZone LONDON = DateTimeZone.forID("Europe/London");
     private static final DateTimeZone PARIS = DateTimeZone.forID("Europe/Paris");
-    private static final DateTimeZone UTC = DateTimeZone.UTC;
 
-    private MutableDateTime mutableDateTime;
+    private MutableDateTime dt;
 
     @Before
     public void setUp() {
-        // 2004-06-09T10:20:30.040Z
-        mutableDateTime = new MutableDateTime(2004, 6, 9, 10, 20, 30, 40, UTC);
+        dt = new MutableDateTime(2011, 10, 30, 2, 30, 0, 0, LONDON);
     }
 
-    // Tests static factory methods and constructors
+    // Tests zero addition using add(DurationFieldType, int)
     @Test
-    public void testFactoryAndConstructors_validInputs_createdCorrectly() {
+    public void testAdd_DurationFieldTypeZero_noChange() {
+        MutableDateTime mdt = new MutableDateTime(2011, 10, 30, 2, 30, 0, 0, LONDON);
+        long expectedMillis = mdt.getMillis();
+        mdt.add(DurationFieldType.years(), 0);
+        assertEquals(expectedMillis, mdt.getMillis());
+        mdt.add(DurationFieldType.months(), 0);
+        assertEquals(expectedMillis, mdt.getMillis());
+        mdt.add(DurationFieldType.days(), 0);
+        assertEquals(expectedMillis, mdt.getMillis());
+    }
+
+    // Tests null DurationFieldType throws IllegalArgumentException
+    @Test(expected = IllegalArgumentException.class)
+    public void testAdd_nullDurationFieldType_throwsException() {
+        dt.add((DurationFieldType) null, 1);
+    }
+
+    // Tests zero addition for specific addXxx methods
+    @Test
+    public void testAddMethods_zeroAmount_noChange() {
+        long expectedMillis = dt.getMillis();
+        dt.addYears(0);
+        assertEquals(expectedMillis, dt.getMillis());
+        dt.addMonths(0);
+        assertEquals(expectedMillis, dt.getMillis());
+        dt.addWeeks(0);
+        assertEquals(expectedMillis, dt.getMillis());
+        dt.addDays(0);
+        assertEquals(expectedMillis, dt.getMillis());
+        dt.addHours(0);
+        assertEquals(expectedMillis, dt.getMillis());
+        dt.addMinutes(0);
+        assertEquals(expectedMillis, dt.getMillis());
+        dt.addSeconds(0);
+        assertEquals(expectedMillis, dt.getMillis());
+        dt.addMillis(0);
+        assertEquals(expectedMillis, dt.getMillis());
+    }
+
+    // Tests non-zero additions for various date/time fields
+    @Test
+    public void testAddMethods_positiveValues_addsCorrectly() {
+        MutableDateTime mdt = new MutableDateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC);
+        mdt.addYears(1);
+        assertEquals(2001, mdt.getYear());
+        mdt.addMonths(2);
+        assertEquals(3, mdt.getMonthOfYear());
+        mdt.addDays(3);
+        assertEquals(4, mdt.getDayOfMonth());
+        mdt.addHours(4);
+        assertEquals(4, mdt.getHourOfDay());
+        mdt.addMinutes(5);
+        assertEquals(5, mdt.getMinuteOfHour());
+        mdt.addSeconds(6);
+        assertEquals(6, mdt.getSecondOfMinute());
+        mdt.addMillis(7);
+        assertEquals(7, mdt.getMillisOfSecond());
+    }
+
+    // Tests static now() and parse() methods
+    @Test
+    public void testNowAndParse_validInputs_success() {
         assertNotNull(MutableDateTime.now());
         assertNotNull(MutableDateTime.now(LONDON));
-        assertNotNull(MutableDateTime.now(org.joda.time.chrono.ISOChronology.getInstanceUTC()));
+        assertNotNull(MutableDateTime.now(ISOChronology.getInstanceUTC()));
 
-        MutableDateTime dtMillis = new MutableDateTime(1000L, LONDON);
-        assertEquals(1000L, dtMillis.getMillis());
-        assertEquals(LONDON, dtMillis.getZone());
-
-        MutableDateTime dtFields = new MutableDateTime(2010, 5, 20, 14, 30, 15, 500, PARIS);
-        assertEquals(2010, dtFields.getYear());
-        assertEquals(5, dtFields.getMonthOfYear());
-        assertEquals(20, dtFields.getDayOfMonth());
-        assertEquals(14, dtFields.getHourOfDay());
-        assertEquals(30, dtFields.getMinuteOfHour());
-        assertEquals(15, dtFields.getSecondOfMinute());
-        assertEquals(500, dtFields.getMillisOfSecond());
-        assertEquals(PARIS, dtFields.getZone());
+        MutableDateTime parsed = MutableDateTime.parse("2020-05-15T10:30:00.000Z");
+        assertEquals(2020, parsed.getYear());
+        assertEquals(5, parsed.getMonthOfYear());
+        assertEquals(15, parsed.getDayOfMonth());
     }
 
-    // Tests now() with null zone throws NullPointerException
+    // Tests static now(DateTimeZone) with null zone
     @Test(expected = NullPointerException.class)
     public void testNow_nullZone_throwsException() {
         MutableDateTime.now((DateTimeZone) null);
     }
 
-    // Tests now() with null chronology throws NullPointerException
+    // Tests static now(Chronology) with null chronology
     @Test(expected = NullPointerException.class)
     public void testNow_nullChronology_throwsException() {
         MutableDateTime.now((Chronology) null);
     }
 
-    // Tests parse method with valid string
+    // Tests constructors with different parameters
     @Test
-    public void testParse_validString_parsesSuccessfully() {
-        MutableDateTime parsed = MutableDateTime.parse("2004-06-09T10:20:30.040Z");
-        assertEquals(mutableDateTime.getMillis(), parsed.getMillis());
+    public void testConstructors_variousInputs_initializedCorrectly() {
+        MutableDateTime mdt1 = new MutableDateTime(1000L);
+        assertEquals(1000L, mdt1.getMillis());
+
+        MutableDateTime mdt2 = new MutableDateTime(1000L, PARIS);
+        assertEquals(1000L, mdt2.getMillis());
+        assertEquals(PARIS, mdt2.getZone());
+
+        MutableDateTime mdt3 = new MutableDateTime(1000L, GJChronology.getInstanceUTC());
+        assertEquals(GJChronology.getInstanceUTC(), mdt3.getChronology());
+
+        MutableDateTime mdt4 = new MutableDateTime("2010-06-01T12:00:00.000Z", DateTimeZone.UTC);
+        assertEquals(2010, mdt4.getYear());
+        assertEquals(DateTimeZone.UTC, mdt4.getZone());
     }
 
-    // Tests add method with zero and positive amounts during daylight savings (Defects4J Time-3)
+    // Tests rounding modes
     @Test
-    public void testAdd_zeroAmount_doesNotChangeInstant() {
-        DateTimeZone zone = DateTimeZone.forID("Europe/London");
-        // 2011-10-30T01:30:00.000 BST (just before DST fallback)
-        MutableDateTime dt = new MutableDateTime(2011, 10, 30, 1, 30, 0, 0, zone);
-        long originalMillis = dt.getMillis();
+    public void testRounding_variousModes_roundsProperly() {
+        MutableDateTime mdt = new MutableDateTime(2000, 1, 1, 10, 20, 30, 500, DateTimeZone.UTC);
+        DateTimeField minuteField = mdt.getChronology().minuteOfHour();
 
-        dt.add(DurationFieldType.years(), 0);
-        assertEquals(originalMillis, dt.getMillis());
+        mdt.setRounding(minuteField, MutableDateTime.ROUND_FLOOR);
+        assertEquals(MutableDateTime.ROUND_FLOOR, mdt.getRoundingMode());
+        assertEquals(minuteField, mdt.getRoundingField());
+        assertEquals(0, mdt.getSecondOfMinute());
+        assertEquals(0, mdt.getMillisOfSecond());
 
-        dt.add(DurationFieldType.months(), 0);
-        assertEquals(originalMillis, dt.getMillis());
+        mdt.setMillis(new DateTime(2000, 1, 1, 10, 20, 30, 0, DateTimeZone.UTC).getMillis());
+        mdt.setRounding(minuteField, MutableDateTime.ROUND_CEILING);
+        assertEquals(21, mdt.getMinuteOfHour());
 
-        dt.add(DurationFieldType.weeks(), 0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.add(DurationFieldType.days(), 0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.add(DurationFieldType.hours(), 0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.add(DurationFieldType.minutes(), 0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.add(DurationFieldType.seconds(), 0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.add(DurationFieldType.millis(), 0);
-        assertEquals(originalMillis, dt.getMillis());
-    }
-
-    // Tests field specific add methods with zero amount
-    @Test
-    public void testAddSpecificFields_zeroAmount_doesNotChangeInstant() {
-        DateTimeZone zone = DateTimeZone.forID("Europe/London");
-        MutableDateTime dt = new MutableDateTime(2011, 10, 30, 1, 30, 0, 0, zone);
-        long originalMillis = dt.getMillis();
-
-        dt.addYears(0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.addMonths(0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.addWeeks(0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.addDays(0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.addHours(0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.addMinutes(0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.addSeconds(0);
-        assertEquals(originalMillis, dt.getMillis());
-
-        dt.addMillis(0);
-        assertEquals(originalMillis, dt.getMillis());
-    }
-
-    // Tests add with null DurationFieldType throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testAdd_nullDurationFieldType_throwsException() {
-        mutableDateTime.add((DurationFieldType) null, 1);
-    }
-
-    // Tests set with null DateTimeFieldType throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testSet_nullDateTimeFieldType_throwsException() {
-        mutableDateTime.set((DateTimeFieldType) null, 1);
-    }
-
-    // Tests individual field setters and adders
-    @Test
-    public void testFieldSettersAndAdders_validValues_updatesCorrectly() {
-        mutableDateTime.setYear(2005);
-        assertEquals(2005, mutableDateTime.getYear());
-
-        mutableDateTime.addYears(2);
-        assertEquals(2007, mutableDateTime.getYear());
-
-        mutableDateTime.setMonthOfYear(12);
-        assertEquals(12, mutableDateTime.getMonthOfYear());
-
-        mutableDateTime.addMonths(2);
-        assertEquals(2008, mutableDateTime.getYear());
-        assertEquals(2, mutableDateTime.getMonthOfYear());
-
-        mutableDateTime.setDayOfMonth(15);
-        assertEquals(15, mutableDateTime.getDayOfMonth());
-
-        mutableDateTime.addDays(10);
-        assertEquals(25, mutableDateTime.getDayOfMonth());
-
-        mutableDateTime.setHourOfDay(18);
-        assertEquals(18, mutableDateTime.getHourOfDay());
-
-        mutableDateTime.addHours(3);
-        assertEquals(21, mutableDateTime.getHourOfDay());
-
-        mutableDateTime.setMinuteOfHour(45);
-        assertEquals(45, mutableDateTime.getMinuteOfHour());
-
-        mutableDateTime.addMinutes(15);
-        assertEquals(22, mutableDateTime.getHourOfDay());
-        assertEquals(0, mutableDateTime.getMinuteOfHour());
-
-        mutableDateTime.setSecondOfMinute(50);
-        assertEquals(50, mutableDateTime.getSecondOfMinute());
-
-        mutableDateTime.addSeconds(12);
-        assertEquals(1, mutableDateTime.getMinuteOfHour());
-        assertEquals(2, mutableDateTime.getSecondOfMinute());
-
-        mutableDateTime.setMillisOfSecond(300);
-        assertEquals(300, mutableDateTime.getMillisOfSecond());
-
-        mutableDateTime.addMillis(800);
-        assertEquals(3, mutableDateTime.getSecondOfMinute());
-        assertEquals(100, mutableDateTime.getMillisOfSecond());
-    }
-
-    // Tests setDate, setTime and setDateTime methods
-    @Test
-    public void testSetDateAndSetTime_variousInputs_setsExpectedFields() {
-        mutableDateTime.setDate(2015, 8, 20);
-        assertEquals(2015, mutableDateTime.getYear());
-        assertEquals(8, mutableDateTime.getMonthOfYear());
-        assertEquals(20, mutableDateTime.getDayOfMonth());
-        assertEquals(10, mutableDateTime.getHourOfDay());
-
-        mutableDateTime.setTime(14, 25, 35, 450);
-        assertEquals(2015, mutableDateTime.getYear());
-        assertEquals(14, mutableDateTime.getHourOfDay());
-        assertEquals(25, mutableDateTime.getMinuteOfHour());
-        assertEquals(35, mutableDateTime.getSecondOfMinute());
-        assertEquals(450, mutableDateTime.getMillisOfSecond());
-
-        mutableDateTime.setDateTime(2020, 1, 2, 3, 4, 5, 6);
-        assertEquals(2020, mutableDateTime.getYear());
-        assertEquals(1, mutableDateTime.getMonthOfYear());
-        assertEquals(2, mutableDateTime.getDayOfMonth());
-        assertEquals(3, mutableDateTime.getHourOfDay());
-        assertEquals(4, mutableDateTime.getMinuteOfHour());
-        assertEquals(5, mutableDateTime.getSecondOfMinute());
-        assertEquals(6, mutableDateTime.getMillisOfSecond());
-    }
-
-    // Tests add with ReadableDuration and ReadablePeriod
-    @Test
-    public void testAdd_readableDurationAndPeriod_updatesMillis() {
-        Duration duration = new Duration(5000L);
-        mutableDateTime.add(duration);
-        assertEquals(35, mutableDateTime.getSecondOfMinute());
-
-        mutableDateTime.add(duration, 2);
-        assertEquals(45, mutableDateTime.getSecondOfMinute());
-
-        mutableDateTime.add((ReadableDuration) null);
-        assertEquals(45, mutableDateTime.getSecondOfMinute());
-
-        Period period = Period.days(1);
-        mutableDateTime.add(period);
-        assertEquals(10, mutableDateTime.getDayOfMonth());
-
-        mutableDateTime.add((ReadablePeriod) null);
-        assertEquals(10, mutableDateTime.getDayOfMonth());
-    }
-
-    // Tests rounding modes and behavior
-    @Test
-    public void testRounding_allModes_roundsCorrectly() {
-        DateTimeField minuteField = mutableDateTime.getChronology().minuteOfHour();
-
-        // Round Floor
-        mutableDateTime.setRounding(minuteField, MutableDateTime.ROUND_FLOOR);
-        assertEquals(minuteField, mutableDateTime.getRoundingField());
-        assertEquals(MutableDateTime.ROUND_FLOOR, mutableDateTime.getRoundingMode());
-        assertEquals(0, mutableDateTime.getSecondOfMinute());
-        assertEquals(0, mutableDateTime.getMillisOfSecond());
-
-        // Round Ceiling
-        mutableDateTime.setMillis(1000L * 60 + 1000); // 00:01:01
-        mutableDateTime.setRounding(minuteField, MutableDateTime.ROUND_CEILING);
-        assertEquals(2, mutableDateTime.getMinuteOfHour());
-
-        // Round Half Floor
-        mutableDateTime.setRounding(minuteField, MutableDateTime.ROUND_HALF_FLOOR);
-        assertEquals(MutableDateTime.ROUND_HALF_FLOOR, mutableDateTime.getRoundingMode());
-
-        // Round Half Ceiling
-        mutableDateTime.setRounding(minuteField, MutableDateTime.ROUND_HALF_CEILING);
-        assertEquals(MutableDateTime.ROUND_HALF_CEILING, mutableDateTime.getRoundingMode());
-
-        // Round Half Even
-        mutableDateTime.setRounding(minuteField, MutableDateTime.ROUND_HALF_EVEN);
-        assertEquals(MutableDateTime.ROUND_HALF_EVEN, mutableDateTime.getRoundingMode());
-
-        // Disable rounding
-        mutableDateTime.setRounding(null);
-        assertNull(mutableDateTime.getRoundingField());
-        assertEquals(MutableDateTime.ROUND_NONE, mutableDateTime.getRoundingMode());
+        mdt.setRounding(null);
+        assertEquals(MutableDateTime.ROUND_NONE, mdt.getRoundingMode());
+        assertNull(mdt.getRoundingField());
     }
 
     // Tests invalid rounding mode throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testSetRounding_invalidMode_throwsException() {
-        DateTimeField minuteField = mutableDateTime.getChronology().minuteOfHour();
-        mutableDateTime.setRounding(minuteField, 999);
+        dt.setRounding(dt.getChronology().minuteOfHour(), 999);
     }
 
     // Tests setZone and setZoneRetainFields
     @Test
-    public void testZoneTransitions_setZoneAndSetZoneRetainFields() {
-        long originalMillis = mutableDateTime.getMillis();
-        mutableDateTime.setZone(PARIS);
-        assertEquals(originalMillis, mutableDateTime.getMillis());
-        assertEquals(PARIS, mutableDateTime.getZone());
+    public void testSetZoneAndRetainFields_validZone_correctMillis() {
+        MutableDateTime mdt = new MutableDateTime(2000, 1, 1, 12, 0, 0, 0, DateTimeZone.UTC);
+        long originalMillis = mdt.getMillis();
+        mdt.setZone(PARIS);
+        assertEquals(originalMillis, mdt.getMillis());
+        assertEquals(PARIS, mdt.getZone());
 
-        mutableDateTime.setZoneRetainFields(UTC);
-        assertEquals(UTC, mutableDateTime.getZone());
-        assertEquals(12, mutableDateTime.getHourOfDay()); // Paris is UTC+2 in June, retaining gives 12 UTC
+        mdt.setZoneRetainFields(DateTimeZone.UTC);
+        assertEquals(12, mdt.getHourOfDay());
+        assertEquals(DateTimeZone.UTC, mdt.getZone());
     }
 
-    // Tests Property accessor and operations
+    // Tests setDate, setTime, and setDateTime methods
     @Test
-    public void testPropertyOperations_modifyAndRound() {
-        MutableDateTime.Property yearProp = mutableDateTime.year();
-        assertNotNull(yearProp.getField());
-        assertEquals(mutableDateTime, yearProp.getMutableDateTime());
+    public void testSetDateAndSetTime_variousOverloads_updatedProperly() {
+        MutableDateTime mdt = new MutableDateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC);
 
-        yearProp.add(5);
-        assertEquals(2009, mutableDateTime.getYear());
+        mdt.setDate(2005, 5, 20);
+        assertEquals(2005, mdt.getYear());
+        assertEquals(5, mdt.getMonthOfYear());
+        assertEquals(20, mdt.getDayOfMonth());
 
-        yearProp.set(2012);
-        assertEquals(2012, mutableDateTime.getYear());
+        mdt.setTime(14, 30, 45, 250);
+        assertEquals(14, mdt.getHourOfDay());
+        assertEquals(30, mdt.getMinuteOfHour());
+        assertEquals(45, mdt.getSecondOfMinute());
+        assertEquals(250, mdt.getMillisOfSecond());
 
-        yearProp.set("2015", Locale.ENGLISH);
-        assertEquals(2015, mutableDateTime.getYear());
-
-        MutableDateTime.Property minuteProp = mutableDateTime.minuteOfHour();
-        minuteProp.roundFloor();
-        assertEquals(0, mutableDateTime.getSecondOfMinute());
-        assertEquals(0, mutableDateTime.getMillisOfSecond());
-
-        minuteProp.roundCeiling();
-        minuteProp.roundHalfFloor();
-        minuteProp.roundHalfCeiling();
-        minuteProp.roundHalfEven();
-        assertNotNull(minuteProp.getChronology());
+        mdt.setDateTime(2010, 8, 12, 9, 15, 20, 100);
+        assertEquals(2010, mdt.getYear());
+        assertEquals(8, mdt.getMonthOfYear());
+        assertEquals(12, mdt.getDayOfMonth());
+        assertEquals(9, mdt.getHourOfDay());
     }
 
-    // Tests property method with unsupported field throws IllegalArgumentException
+    // Tests setter methods for individual fields
+    @Test
+    public void testIndividualFieldSets_validValues_updatedCorrectly() {
+        MutableDateTime mdt = new MutableDateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC);
+
+        mdt.setYear(2008);
+        assertEquals(2008, mdt.getYear());
+        mdt.setWeekyear(2009);
+        assertEquals(2009, mdt.getWeekyear());
+        mdt.setMonthOfYear(6);
+        assertEquals(6, mdt.getMonthOfYear());
+        mdt.setWeekOfWeekyear(10);
+        assertEquals(10, mdt.getWeekOfWeekyear());
+        mdt.setDayOfYear(100);
+        assertEquals(100, mdt.getDayOfYear());
+        mdt.setDayOfMonth(15);
+        assertEquals(15, mdt.getDayOfMonth());
+        mdt.setDayOfWeek(3);
+        assertEquals(3, mdt.getDayOfWeek());
+        mdt.setHourOfDay(18);
+        assertEquals(18, mdt.getHourOfDay());
+        mdt.setMinuteOfDay(500);
+        assertEquals(500, mdt.getMinuteOfDay());
+        mdt.setMinuteOfHour(25);
+        assertEquals(25, mdt.getMinuteOfHour());
+        mdt.setSecondOfDay(3600);
+        assertEquals(3600, mdt.getSecondOfDay());
+        mdt.setSecondOfMinute(40);
+        assertEquals(40, mdt.getSecondOfMinute());
+        mdt.setMillisOfDay(12345);
+        assertEquals(12345, mdt.getMillisOfDay());
+        mdt.setMillisOfSecond(999);
+        assertEquals(999, mdt.getMillisOfSecond());
+    }
+
+    // Tests add(ReadableDuration) and add(ReadablePeriod)
+    @Test
+    public void testAddReadableDurationAndPeriod_validInputs_success() {
+        MutableDateTime mdt = new MutableDateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC);
+
+        mdt.add((ReadableDuration) null);
+        assertEquals(2000, mdt.getYear());
+
+        mdt.add(new Duration(1000L), 2);
+        assertEquals(2000L, mdt.getMillis() - new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeZone.UTC).getMillis());
+
+        mdt.add((ReadablePeriod) null);
+        mdt.add(Period.days(2), 3);
+        assertEquals(7, mdt.getDayOfMonth());
+    }
+
+    // Tests property access and operations
+    @Test
+    public void testPropertyOperations_validManipulations_correctResults() {
+        MutableDateTime mdt = new MutableDateTime(2000, 1, 1, 10, 20, 30, 40, DateTimeZone.UTC);
+        MutableDateTime.Property yearProp = mdt.year();
+
+        assertEquals(2000, yearProp.get());
+        assertEquals(mdt, yearProp.getMutableDateTime());
+        assertEquals(mdt.getChronology().year(), yearProp.getField());
+
+        yearProp.set(2005);
+        assertEquals(2005, mdt.getYear());
+
+        yearProp.add(2);
+        assertEquals(2007, mdt.getYear());
+
+        yearProp.addWrapField(1);
+        assertEquals(2008, mdt.getYear());
+
+        mdt.monthOfYear().set("March", Locale.ENGLISH);
+        assertEquals(3, mdt.getMonthOfYear());
+
+        mdt.secondOfMinute().roundFloor();
+        assertEquals(0, mdt.getMillisOfSecond());
+    }
+
+    // Tests null property field type throws IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testProperty_nullFieldType_throwsException() {
-        mutableDateTime.property(null);
+        dt.property(null);
     }
 
-    // Tests clone, copy and toString methods
+    // Tests clone, copy, and toString
     @Test
-    public void testCloneCopyAndToString_validState_producesCorrectResults() {
-        MutableDateTime copy = mutableDateTime.copy();
-        assertEquals(mutableDateTime, copy);
-        assertNotSame(mutableDateTime, copy);
+    public void testCloneCopyAndToString_validInstance_consistentState() {
+        MutableDateTime copy = dt.copy();
+        assertEquals(dt.getMillis(), copy.getMillis());
+        assertEquals(dt.getChronology(), copy.getChronology());
+        assertNotSame(dt, copy);
 
-        Object cloned = mutableDateTime.clone();
-        assertEquals(mutableDateTime, cloned);
-        assertNotSame(mutableDateTime, cloned);
+        Object clone = dt.clone();
+        assertTrue(clone instanceof MutableDateTime);
+        assertEquals(dt, clone);
+        assertNotSame(dt, clone);
 
-        String str = mutableDateTime.toString();
-        assertTrue(str.startsWith("2004-06-09T10:20:30.040"));
+        assertNotNull(dt.toString());
     }
 }

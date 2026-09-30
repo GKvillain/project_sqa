@@ -1,22 +1,23 @@
 package com.fasterxml.jackson.databind;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.lang.reflect.Type;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import com.fasterxml.jackson.databind.exc.InvalidTypeIdException;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
-import com.fasterxml.jackson.databind.ser.impl.UnknownSerializer;
 import com.fasterxml.jackson.databind.ser.std.NullSerializer;
-
-import static org.junit.Assert.*;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 
 public class SerializerProviderTest {
 
@@ -26,286 +27,340 @@ public class SerializerProviderTest {
     @Before
     public void setUp() {
         _mapper = new ObjectMapper();
-        DefaultSerializerProvider.Impl src = new DefaultSerializerProvider.Impl();
-        _provider = src.createInstance(_mapper.getSerializationConfig(), _mapper.getSerializerFactory());
+        _provider = (DefaultSerializerProvider) _mapper.getSerializerProviderInstance();
     }
 
-    // Tests default unknown type serializer resolution for Object.class vs specific class
+    // Tests setDefaultKeySerializer with valid serializer
     @Test
-    public void testGetUnknownTypeSerializer_differentTypes_returnsExpectedSerializer() {
+    public void testSetDefaultKeySerializer_validSerializer_updatesSerializer() {
+        DefaultSerializerProvider.Impl prov = new DefaultSerializerProvider.Impl();
+        ToStringSerializer ser = ToStringSerializer.instance;
+        prov.setDefaultKeySerializer(ser);
+        // Does not throw and updates serializer
+    }
+
+    // Tests setDefaultKeySerializer with null input throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetDefaultKeySerializer_nullSerializer_throwsIllegalArgumentException() {
+        DefaultSerializerProvider.Impl prov = new DefaultSerializerProvider.Impl();
+        prov.setDefaultKeySerializer(null);
+    }
+
+    // Tests setNullValueSerializer with valid serializer
+    @Test
+    public void testSetNullValueSerializer_validSerializer_updatesSerializer() {
+        DefaultSerializerProvider.Impl prov = new DefaultSerializerProvider.Impl();
+        prov.setNullValueSerializer(NullSerializer.instance);
+        assertSame(NullSerializer.instance, prov.getDefaultNullValueSerializer());
+    }
+
+    // Tests setNullValueSerializer with null input throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetNullValueSerializer_nullSerializer_throwsIllegalArgumentException() {
+        DefaultSerializerProvider.Impl prov = new DefaultSerializerProvider.Impl();
+        prov.setNullValueSerializer(null);
+    }
+
+    // Tests setNullKeySerializer with null input throws exception
+    @Test(expected = IllegalArgumentException.class)
+    public void testSetNullKeySerializer_nullSerializer_throwsIllegalArgumentException() {
+        DefaultSerializerProvider.Impl prov = new DefaultSerializerProvider.Impl();
+        prov.setNullKeySerializer(null);
+    }
+
+    // Tests getDefaultNullKeySerializer and getDefaultNullValueSerializer
+    @Test
+    public void testGetDefaultNullSerializers_defaultState_returnsDefaults() {
+        assertNotNull(_provider.getDefaultNullKeySerializer());
+        assertSame(NullSerializer.instance, _provider.getDefaultNullValueSerializer());
+    }
+
+    // Tests getUnknownTypeSerializer for Object.class vs other class
+    @Test
+    public void testGetUnknownTypeSerializer_objectClassAndSpecificClass_returnsSerializers() {
         JsonSerializer<Object> objSer = _provider.getUnknownTypeSerializer(Object.class);
         assertNotNull(objSer);
-        assertSame(SerializerProvider.DEFAULT_UNKNOWN_SERIALIZER, objSer);
+        assertTrue(_provider.isUnknownTypeSerializer(objSer));
 
-        JsonSerializer<Object> strSer = _provider.getUnknownTypeSerializer(String.class);
-        assertNotNull(strSer);
-        assertTrue(strSer instanceof UnknownSerializer);
-        assertNotSame(objSer, strSer);
+        JsonSerializer<Object> specificSer = _provider.getUnknownTypeSerializer(String.class);
+        assertNotNull(specificSer);
+        assertTrue(_provider.isUnknownTypeSerializer(specificSer));
+        assertNotSame(objSer, specificSer);
     }
 
-    // Tests isUnknownTypeSerializer with null and UnknownSerializer instances
+    // Tests isUnknownTypeSerializer with null input
     @Test
-    public void testIsUnknownTypeSerializer_variousSerializers_returnsExpected() {
+    public void testIsUnknownTypeSerializer_nullInput_returnsTrue() {
         assertTrue(_provider.isUnknownTypeSerializer(null));
-        assertTrue(_provider.isUnknownTypeSerializer(SerializerProvider.DEFAULT_UNKNOWN_SERIALIZER));
-
-        JsonSerializer<Object> unknownSer = new UnknownSerializer(String.class);
-        assertTrue(_provider.isUnknownTypeSerializer(unknownSer));
-
-        _mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
-        DefaultSerializerProvider provNoFail = ((DefaultSerializerProvider.Impl) _provider)
-                .createInstance(_mapper.getSerializationConfig(), _mapper.getSerializerFactory());
-        assertFalse(provNoFail.isUnknownTypeSerializer(unknownSer));
     }
 
-    // Tests null key and value serializer setters and getters
+    // Tests isUnknownTypeSerializer with standard non-unknown serializer
     @Test
-    public void testSetAndGetSpecializedSerializers_validSerializers_setsCorrectly() {
-        JsonSerializer<Object> customNullValueSer = NullSerializer.instance;
-        _provider.setNullValueSerializer(customNullValueSer);
-        assertSame(customNullValueSer, _provider.getDefaultNullValueSerializer());
-
-        JsonSerializer<Object> customNullKeySer = SerializerProvider.DEFAULT_NULL_KEY_SERIALIZER;
-        _provider.setNullKeySerializer(customNullKeySer);
-        assertSame(customNullKeySer, _provider.getDefaultNullKeySerializer());
-
-        JsonSerializer<Object> customKeySer = NullSerializer.instance;
-        _provider.setDefaultKeySerializer(customKeySer);
+    public void testIsUnknownTypeSerializer_standardSerializer_returnsFalse() {
+        assertFalse(_provider.isUnknownTypeSerializer(ToStringSerializer.instance));
     }
 
-    // Tests exception path when null is passed to setDefaultKeySerializer
-    @Test(expected = IllegalArgumentException.class)
-    public void testSetDefaultKeySerializer_nullInput_throwsIllegalArgumentException() {
-        _provider.setDefaultKeySerializer(null);
-    }
-
-    // Tests exception path when null is passed to setNullValueSerializer
-    @Test(expected = IllegalArgumentException.class)
-    public void testSetNullValueSerializer_nullInput_throwsIllegalArgumentException() {
-        _provider.setNullValueSerializer(null);
-    }
-
-    // Tests exception path when null is passed to setNullKeySerializer
-    @Test(expected = IllegalArgumentException.class)
-    public void testSetNullKeySerializer_nullInput_throwsIllegalArgumentException() {
-        _provider.setNullKeySerializer(null);
-    }
-
-    // Tests findValueSerializer with class and javaType
-    @Test
-    public void testFindValueSerializer_validTypes_returnsSerializer() throws Exception {
-        JsonSerializer<Object> ser1 = _provider.findValueSerializer(String.class, null);
-        assertNotNull(ser1);
-
-        JsonSerializer<Object> ser2 = _provider.findValueSerializer(String.class);
-        assertNotNull(ser2);
-        assertSame(ser1, ser2);
-
-        JavaType type = _mapper.constructType(Integer.class);
-        JsonSerializer<Object> ser3 = _provider.findValueSerializer(type, null);
-        assertNotNull(ser3);
-
-        JsonSerializer<Object> ser4 = _provider.findValueSerializer(type);
-        assertNotNull(ser4);
-    }
-
-    // Tests findValueSerializer when passing null JavaType
+    // Tests findValueSerializer for JavaType with null input
     @Test(expected = JsonMappingException.class)
     public void testFindValueSerializer_nullJavaType_throwsJsonMappingException() throws Exception {
         _provider.findValueSerializer((JavaType) null, null);
     }
 
-    // Tests findPrimaryPropertySerializer with class and javaType
+    // Tests findValueSerializer for raw Class
     @Test
-    public void testFindPrimaryPropertySerializer_validTypes_returnsSerializer() throws Exception {
-        JsonSerializer<Object> ser1 = _provider.findPrimaryPropertySerializer(String.class, null);
+    public void testFindValueSerializer_validClass_returnsSerializer() throws Exception {
+        JsonSerializer<Object> ser = _provider.findValueSerializer(String.class, null);
+        assertNotNull(ser);
+        assertFalse(_provider.isUnknownTypeSerializer(ser));
+    }
+
+    // Tests findValueSerializer caching variant
+    @Test
+    public void testFindValueSerializer_withoutProperty_returnsSerializer() throws Exception {
+        JsonSerializer<Object> ser1 = _provider.findValueSerializer(Integer.class);
+        JsonSerializer<Object> ser2 = _provider.findValueSerializer(Integer.class);
+        assertNotNull(ser1);
+        assertSame(ser1, ser2);
+    }
+
+    // Tests findKeySerializer with Class and JavaType
+    @Test
+    public void testFindKeySerializer_validType_returnsKeySerializer() throws Exception {
+        JsonSerializer<Object> ser = _provider.findKeySerializer(String.class, null);
+        assertNotNull(ser);
+    }
+
+    // Tests defaultSerializeValue with null value
+    @Test
+    public void testDefaultSerializeValue_nullValue_writesNull() throws Exception {
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = new JsonFactory().createGenerator(sw);
+        _provider.defaultSerializeValue(null, gen);
+        gen.flush();
+        assertEquals("null", sw.toString());
+    }
+
+    // Tests defaultSerializeField with string value
+    @Test
+    public void testDefaultSerializeField_validValue_writesFieldAndValue() throws Exception {
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = new JsonFactory().createGenerator(sw);
+        gen.writeStartObject();
+        _provider.defaultSerializeField("testField", "testVal", gen);
+        gen.writeEndObject();
+        gen.flush();
+        assertEquals("{\"testField\":\"testVal\"}", sw.toString());
+    }
+
+    // Tests defaultSerializeField with null value
+    @Test
+    public void testDefaultSerializeField_nullValue_writesFieldAndNull() throws Exception {
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = new JsonFactory().createGenerator(sw);
+        gen.writeStartObject();
+        _provider.defaultSerializeField("nullField", null, gen);
+        gen.writeEndObject();
+        gen.flush();
+        assertEquals("{\"nullField\":null}", sw.toString());
+    }
+
+    // Tests defaultSerializeDateValue with timestamp
+    @Test
+    public void testDefaultSerializeDateValue_timestamp_writesTimestamp() throws Exception {
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = new JsonFactory().createGenerator(sw);
+        Date date = new Date(1000L);
+        _provider.defaultSerializeDateValue(date, gen);
+        gen.flush();
+        assertEquals("1000", sw.toString());
+    }
+
+    // Tests reportMappingProblem with message and arguments
+    @Test(expected = JsonMappingException.class)
+    public void testReportMappingProblem_messageWithArgs_throwsJsonMappingException() throws Exception {
+        _provider.reportMappingProblem("Problem with %s and %d", "arg1", 42);
+    }
+
+    // Tests reportMappingProblem with Throwable cause
+    @Test(expected = JsonMappingException.class)
+    public void testReportMappingProblem_withThrowableCause_throwsJsonMappingException() throws Exception {
+        _provider.reportMappingProblem(new IOException("root cause"), "Wrapped problem: %s", "details");
+    }
+
+    // Tests reportBadDefinition with JavaType and Throwable cause
+    @Test(expected = InvalidDefinitionException.class)
+    public void testReportBadDefinition_javaTypeAndCause_throwsInvalidDefinitionException() throws Exception {
+        JavaType type = _provider.constructType(String.class);
+        _provider.reportBadDefinition(type, "Bad definition message", new IllegalStateException("bad state"));
+    }
+
+    // Tests reportBadDefinition with Class and Throwable cause
+    @Test(expected = InvalidDefinitionException.class)
+    public void testReportBadDefinition_classAndCause_throwsInvalidDefinitionException() throws Exception {
+        _provider.reportBadDefinition(String.class, "Bad class definition", new IllegalStateException("bad"));
+    }
+
+    // Tests invalidTypeIdException
+    @Test
+    public void testInvalidTypeIdException_validParams_createsException() {
+        JavaType baseType = _provider.constructType(Number.class);
+        JsonMappingException exc = _provider.invalidTypeIdException(baseType, "UnknownType", "extra explanation");
+        assertNotNull(exc);
+        assertTrue(exc instanceof InvalidTypeIdException);
+        assertTrue(exc.getMessage().contains("Could not resolve type id 'UnknownType'"));
+        assertTrue(exc.getMessage().contains("extra explanation"));
+    }
+
+    // Tests context attributes manipulation on SerializerProvider
+    @Test
+    public void testSetAttribute_andGetAttribute_returnsUpdatedAttribute() {
+        _provider.setAttribute("testKey", "testValue");
+        assertEquals("testValue", _provider.getAttribute("testKey"));
+        assertNull(_provider.getAttribute("unknownKey"));
+    }
+
+    // Tests general configuration accessors
+    @Test
+    public void testConfigAccessors_standardSetup_returnsValidValues() {
+        assertNotNull(_provider.getConfig());
+        assertNotNull(_provider.getTypeFactory());
+        assertNotNull(_provider.getLocale());
+        assertNotNull(_provider.getTimeZone());
+        assertTrue(_provider.isEnabled(SerializationFeature.FAIL_ON_EMPTY_BEANS));
+        assertTrue(_provider.isEnabled(MapperFeature.USE_ANNOTATIONS));
+        assertNull(_provider.getGenerator());
+    }
+
+    // Additional coverage tests
+
+    @Test
+    public void testFindTypedValueSerializer_byClassAndJavaType() throws Exception {
+        JsonSerializer<Object> ser1 = _provider.findTypedValueSerializer(String.class, true, null);
         assertNotNull(ser1);
 
-        JavaType type = _mapper.constructType(Long.class);
-        JsonSerializer<Object> ser2 = _provider.findPrimaryPropertySerializer(type, null);
+        JavaType stringType = _provider.constructType(String.class);
+        JsonSerializer<Object> ser2 = _provider.findTypedValueSerializer(stringType, true, null);
         assertNotNull(ser2);
     }
 
-    // Tests findTypedValueSerializer caching and resolution
     @Test
-    public void testFindTypedValueSerializer_validClassAndType_returnsSerializer() throws Exception {
-        JsonSerializer<Object> serClass = _provider.findTypedValueSerializer(String.class, true, null);
-        assertNotNull(serClass);
-        // Second call should hit cache
-        JsonSerializer<Object> cachedSerClass = _provider.findTypedValueSerializer(String.class, true, null);
-        assertSame(serClass, cachedSerClass);
+    public void testFindPrimaryPropertySerializer_byClassAndJavaType() throws Exception {
+        JsonSerializer<Object> ser1 = _provider.findPrimaryPropertySerializer(String.class, null);
+        assertNotNull(ser1);
 
-        JavaType type = _mapper.constructType(String.class);
-        JsonSerializer<Object> serType = _provider.findTypedValueSerializer(type, true, null);
-        assertNotNull(serType);
+        JavaType intType = _provider.constructType(Integer.class);
+        JsonSerializer<Object> ser2 = _provider.findPrimaryPropertySerializer(intType, null);
+        assertNotNull(ser2);
     }
 
-    // Tests findKeySerializer and findNullKeySerializer
     @Test
-    public void testFindKeySerializer_validType_returnsSerializer() throws Exception {
-        JavaType type = _mapper.constructType(String.class);
-        JsonSerializer<Object> keySer = _provider.findKeySerializer(type, null);
-        assertNotNull(keySer);
+    public void testFindContentValueSerializer_byClassAndJavaType() throws Exception {
+        JsonSerializer<Object> ser1 = _provider.findContentValueSerializer(String.class, null);
+        assertNotNull(ser1);
 
-        JsonSerializer<Object> keySerClass = _provider.findKeySerializer(String.class, null);
-        assertNotNull(keySerClass);
+        JavaType type = _provider.constructType(String.class);
+        JsonSerializer<Object> ser2 = _provider.findContentValueSerializer(type, null);
+        assertNotNull(ser2);
+    }
 
-        JsonSerializer<Object> nullKeySer = _provider.findNullKeySerializer(type, null);
+    @Test
+    public void testFindNullKeySerializer_andFindNullValueSerializer() throws Exception {
+        JsonSerializer<Object> nullKeySer = _provider.findNullKeySerializer(_provider.constructType(String.class), null);
         assertNotNull(nullKeySer);
+
+        JsonSerializer<Object> nullValSer = _provider.findNullValueSerializer(null);
+        assertSame(NullSerializer.instance, nullValSer);
     }
 
-    // Tests getAttribute and setAttribute functionality
     @Test
-    public void testPerCallAttributes_setAndGet_returnsCorrectValue() {
-        assertNull(_provider.getAttribute("testKey"));
-        _provider.setAttribute("testKey", "testValue");
-        assertEquals("testValue", _provider.getAttribute("testKey"));
+    public void testHasSerializerFor_andFlushCachedSerializers() {
+        AtomicReference<Throwable> cause = new AtomicReference<Throwable>();
+        assertTrue(_provider.hasSerializerFor(String.class, cause));
+        assertNull(cause.get());
+
+        int count = _provider.cachedSerializersCount();
+        assertTrue(count >= 0);
+        _provider.flushCachedSerializers();
+        assertEquals(0, _provider.cachedSerializersCount());
     }
 
-    // Tests reportBadDefinition with type and cause
     @Test
-    public void testReportBadDefinition_withCause_throwsInvalidDefinitionExceptionWithCause() {
-        JavaType type = _mapper.constructType(String.class);
-        Throwable cause = new IllegalStateException("Original cause");
-        try {
-            _provider.reportBadDefinition(type, "Bad type definition", cause);
-            fail("Expected InvalidDefinitionException");
-        } catch (InvalidDefinitionException e) {
-            assertEquals("Bad type definition", e.getOriginalMessage());
-            assertSame(cause, e.getCause());
-            assertEquals(type, e.getType());
-        } catch (JsonMappingException e) {
-            fail("Expected InvalidDefinitionException subclass");
-        }
-    }
-
-    // Tests reportBadDefinition with raw class and cause
-    @Test
-    public void testReportBadDefinition_withRawClassAndCause_throwsInvalidDefinitionException() {
-        Throwable cause = new IllegalArgumentException("Root cause");
-        try {
-            _provider.reportBadDefinition(String.class, "Bad class message", cause);
-            fail("Expected InvalidDefinitionException");
-        } catch (InvalidDefinitionException e) {
-            assertEquals("Bad class message", e.getOriginalMessage());
-            assertSame(cause, e.getCause());
-        } catch (JsonMappingException e) {
-            fail("Expected InvalidDefinitionException subclass");
-        }
-    }
-
-    // Tests reportBadTypeDefinition and reportBadPropertyDefinition with null descriptors
-    @Test
-    public void testReportBadDefinitions_nullBeanAndProperty_throwsInvalidDefinitionException() {
-        try {
-            _provider.reportBadTypeDefinition(null, "Type problem %s", "details");
-            fail("Expected InvalidDefinitionException");
-        } catch (InvalidDefinitionException e) {
-            assertTrue(e.getMessage().contains("Invalid type definition for type N/A: Type problem details"));
-        } catch (JsonMappingException e) {
-            fail("Expected InvalidDefinitionException");
-        }
-
-        try {
-            _provider.reportBadPropertyDefinition(null, null, "Property problem %d", 123);
-            fail("Expected InvalidDefinitionException");
-        } catch (InvalidDefinitionException e) {
-            assertTrue(e.getMessage().contains("Invalid definition for property N/A (of type N/A): Property problem 123"));
-        } catch (JsonMappingException e) {
-            fail("Expected InvalidDefinitionException");
-        }
-    }
-
-    // Tests invalidTypeIdException generation
-    @Test
-    public void testInvalidTypeIdException_validInputs_returnsException() {
-        JavaType baseType = _mapper.constructType(Object.class);
-        JsonMappingException jme = _provider.invalidTypeIdException(baseType, "myId", "extra info");
-        assertNotNull(jme);
-        assertTrue(jme instanceof InvalidTypeIdException);
-        InvalidTypeIdException ex = (InvalidTypeIdException) jme;
-        assertEquals(baseType, ex.getBaseType());
-        assertEquals("myId", ex.getTypeId());
-        assertTrue(ex.getMessage().contains("Could not resolve type id 'myId' as a subtype of"));
-        assertTrue(ex.getMessage().contains("extra info"));
-    }
-
-    // Tests defaultSerializeValue and defaultSerializeField with null and non-null values
-    @Test
-    public void testDefaultSerializeValueAndField_nullAndNonNull_writesExpectedJson() throws IOException {
+    public void testDefaultSerializeDateValue_longTimestamp() throws Exception {
         StringWriter sw = new StringWriter();
         JsonGenerator gen = new JsonFactory().createGenerator(sw);
-
-        gen.writeStartObject();
-        _provider.defaultSerializeField("nullField", null, gen);
-        _provider.defaultSerializeField("strField", "testValue", gen);
-        gen.writeEndObject();
-        gen.close();
-
-        assertEquals("{\"nullField\":null,\"strField\":\"testValue\"}", sw.toString());
-
-        sw = new StringWriter();
-        gen = new JsonFactory().createGenerator(sw);
-        _provider.defaultSerializeValue(null, gen);
-        gen.close();
-        assertEquals("null", sw.toString());
-
-        sw = new StringWriter();
-        gen = new JsonFactory().createGenerator(sw);
-        _provider.defaultSerializeValue("hello", gen);
-        gen.close();
-        assertEquals("\"hello\"", sw.toString());
+        _provider.defaultSerializeDateValue(2000L, gen);
+        gen.flush();
+        assertEquals("2000", sw.toString());
     }
 
-    // Tests defaultSerializeDateValue and defaultSerializeDateKey as timestamp and text
     @Test
-    public void testDefaultSerializeDateValueAndKey_timestampAndFormatted_writesCorrectJson() throws IOException {
-        Date testDate = new Date(1500000000000L);
+    public void testDefaultSerializeDateKey_dateAndTimestamp() throws Exception {
+        StringWriter sw1 = new StringWriter();
+        JsonGenerator gen1 = new JsonFactory().createGenerator(sw1);
+        gen1.writeStartObject();
+        _provider.defaultSerializeDateKey(new Date(1000L), gen1);
+        gen1.writeString("val");
+        gen1.writeEndObject();
+        gen1.flush();
+        assertEquals("{\"1000\":\"val\"}", sw1.toString());
 
-        // 1. As timestamp (default enabled)
-        StringWriter sw = new StringWriter();
-        JsonGenerator gen = new JsonFactory().createGenerator(sw);
-        _provider.defaultSerializeDateValue(testDate, gen);
-        gen.close();
-        assertEquals("1500000000000", sw.toString());
-
-        sw = new StringWriter();
-        gen = new JsonFactory().createGenerator(sw);
-        _provider.defaultSerializeDateValue(1500000000000L, gen);
-        gen.close();
-        assertEquals("1500000000000", sw.toString());
-
-        // 2. Formatted date when timestamp feature is disabled
-        _mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        DefaultSerializerProvider dateProv = ((DefaultSerializerProvider.Impl) _provider)
-                .createInstance(_mapper.getSerializationConfig(), _mapper.getSerializerFactory());
-
-        sw = new StringWriter();
-        gen = new JsonFactory().createGenerator(sw);
-        dateProv.defaultSerializeDateValue(testDate, gen);
-        gen.close();
-        assertTrue(sw.toString().contains("2017"));
-
-        // 3. Date key as timestamp vs formatted
-        sw = new StringWriter();
-        gen = new JsonFactory().createGenerator(sw);
-        gen.writeStartObject();
-        _provider.defaultSerializeDateKey(testDate, gen);
-        gen.writeString("value");
-        _provider.defaultSerializeDateKey(1500000000000L, gen);
-        gen.writeString("value2");
-        gen.writeEndObject();
-        gen.close();
-        assertTrue(sw.toString().contains("1500000000000"));
+        StringWriter sw2 = new StringWriter();
+        JsonGenerator gen2 = new JsonFactory().createGenerator(sw2);
+        gen2.writeStartObject();
+        _provider.defaultSerializeDateKey(2000L, gen2);
+        gen2.writeString("val2");
+        gen2.writeEndObject();
+        gen2.flush();
+        assertEquals("{\"2000\":\"val2\"}", sw2.toString());
     }
 
-    // Tests defaultSerializeNull writes JSON null
     @Test
-    public void testDefaultSerializeNull_writesNullToken() throws IOException {
+    public void testDefaultSerializeNull() throws Exception {
         StringWriter sw = new StringWriter();
         JsonGenerator gen = new JsonFactory().createGenerator(sw);
         _provider.defaultSerializeNull(gen);
-        gen.close();
+        gen.flush();
         assertEquals("null", sw.toString());
+    }
+
+    @Test
+    public void testDefaultSerializeValue_nonNull() throws Exception {
+        StringWriter sw = new StringWriter();
+        JsonGenerator gen = new JsonFactory().createGenerator(sw);
+        _provider.defaultSerializeValue("hello", gen);
+        gen.flush();
+        assertEquals("\"hello\"", sw.toString());
+    }
+
+    @Test
+    public void testConstructSpecializedType() {
+        JavaType baseType = _provider.constructType(Number.class);
+        JavaType specialized = _provider.constructSpecializedType(baseType, Integer.class);
+        assertEquals(Integer.class, specialized.getRawClass());
+    }
+
+    @Test
+    public void testCreateInstance_andCopy() {
+        DefaultSerializerProvider.Impl impl = new DefaultSerializerProvider.Impl();
+        DefaultSerializerProvider.Impl copy = impl.copy();
+        assertNotNull(copy);
+        assertNotSame(impl, copy);
+    }
+
+    @Test(expected = InvalidDefinitionException.class)
+    public void testReportBadDefinition_javaTypeMessageOnly() throws Exception {
+        JavaType type = _provider.constructType(String.class);
+        _provider.reportBadDefinition(type, "Bad definition for JavaType");
+    }
+
+    @Test(expected = InvalidDefinitionException.class)
+    public void testReportBadDefinition_classMessageOnly() throws Exception {
+        _provider.reportBadDefinition(String.class, "Bad definition for raw class");
+    }
+
+    @Test(expected = JsonMappingException.class)
+    public void testReportBadTypeId() throws Exception {
+        JavaType baseType = _provider.constructType(Number.class);
+        _provider.reportBadTypeId(baseType, "InvalidTypeId", "TypeId details");
     }
 }

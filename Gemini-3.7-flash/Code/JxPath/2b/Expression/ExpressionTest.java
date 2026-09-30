@@ -1,34 +1,37 @@
 package org.apache.commons.jxpath.ri.compiler;
 
+import org.apache.commons.jxpath.JXPathContext;
 import org.apache.commons.jxpath.Pointer;
 import org.apache.commons.jxpath.ri.EvalContext;
 import org.apache.commons.jxpath.ri.QName;
 import org.apache.commons.jxpath.ri.model.NodePointer;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 public class ExpressionTest {
 
-    private static class MockExpression extends Expression {
+    private static class TestExpression extends Expression {
         private final boolean contextDependentValue;
-        private int computeContextDependentCalls = 0;
-        private Object computeResult;
+        private final Object computeResult;
+        private int computeContextDependentCallCount = 0;
 
-        MockExpression(boolean contextDependentValue, Object computeResult) {
+        public TestExpression(boolean contextDependentValue, Object computeResult) {
             this.contextDependentValue = contextDependentValue;
             this.computeResult = computeResult;
         }
 
         public boolean computeContextDependent() {
-            computeContextDependentCalls++;
+            computeContextDependentCallCount++;
             return contextDependentValue;
         }
 
@@ -39,12 +42,16 @@ public class ExpressionTest {
         public Object compute(EvalContext context) {
             return computeResult;
         }
+
+        public int getComputeContextDependentCallCount() {
+            return computeContextDependentCallCount;
+        }
     }
 
-    private static class DummyPointer implements Pointer {
+    private static class MockPointer implements Pointer {
         private final Object value;
 
-        DummyPointer(Object value) {
+        public MockPointer(Object value) {
             this.value = value;
         }
 
@@ -72,160 +79,141 @@ public class ExpressionTest {
         }
 
         public String asPath() {
-            return "/dummy";
+            return "/";
+        }
+
+        public JXPathContext getRelativeContext(JXPathContext context) {
+            return null;
         }
     }
 
-    // Tests static constants defined on Expression
+    // Tests context dependency caching when context dependent is false
     @Test
-    public void testConstants_validValues() {
-        assertEquals(0.0, Expression.ZERO.doubleValue(), 0.0);
-        assertEquals(1.0, Expression.ONE.doubleValue(), 0.0);
-        assertTrue(Double.isNaN(Expression.NOT_A_NUMBER.doubleValue()));
-    }
-
-    // Tests isContextDependent returns true and caches result
-    @Test
-    public void testIsContextDependent_trueResult_cachedCorrectly() {
-        MockExpression expr = new MockExpression(true, null);
-        assertTrue(expr.isContextDependent());
-        assertTrue(expr.isContextDependent());
-        assertEquals(1, expr.computeContextDependentCalls);
-    }
-
-    // Tests isContextDependent returns false and caches result
-    @Test
-    public void testIsContextDependent_falseResult_cachedCorrectly() {
-        MockExpression expr = new MockExpression(false, null);
+    public void testIsContextDependent_whenFalse_returnsFalseAndCachesResult() {
+        TestExpression expr = new TestExpression(false, null);
         assertFalse(expr.isContextDependent());
+        assertEquals(1, expr.getComputeContextDependentCallCount());
+
+        // Second call should return cached value without recomputing
         assertFalse(expr.isContextDependent());
-        assertEquals(1, expr.computeContextDependentCalls);
+        assertEquals(1, expr.getComputeContextDependentCallCount());
     }
 
-    // Tests iterate when compute returns a standard collection
+    // Tests context dependency caching when context dependent is true
     @Test
-    public void testIterate_collectionResult_returnsValueIterator() {
-        List list = Arrays.asList("a", "b", "c");
-        MockExpression expr = new MockExpression(false, list);
+    public void testIsContextDependent_whenTrue_returnsTrueAndCachesResult() {
+        TestExpression expr = new TestExpression(true, null);
+        assertTrue(expr.isContextDependent());
+        assertEquals(1, expr.getComputeContextDependentCallCount());
 
-        Iterator it = expr.iterate(null);
-        assertNotNull(it);
-        assertTrue(it.hasNext());
-        assertEquals("a", it.next());
-        assertEquals("b", it.next());
-        assertEquals("c", it.next());
-        assertFalse(it.hasNext());
+        // Second call should return cached value without recomputing
+        assertTrue(expr.isContextDependent());
+        assertEquals(1, expr.getComputeContextDependentCallCount());
     }
 
-    // Tests iterate when compute returns null
+    // Tests iterate method when compute returns a simple object
+    @Test
+    public void testIterate_simpleObject_returnsIterator() {
+        TestExpression expr = new TestExpression(false, "testValue");
+        Iterator iterator = expr.iterate(null);
+        assertNotNull(iterator);
+        assertTrue(iterator.hasNext());
+        assertEquals("testValue", iterator.next());
+        assertFalse(iterator.hasNext());
+    }
+
+    // Tests iterate method when compute returns null
     @Test
     public void testIterate_nullResult_returnsEmptyIterator() {
-        MockExpression expr = new MockExpression(false, null);
-        Iterator it = expr.iterate(null);
-        assertNotNull(it);
-        assertFalse(it.hasNext());
+        TestExpression expr = new TestExpression(false, null);
+        Iterator iterator = expr.iterate(null);
+        assertNotNull(iterator);
+        assertFalse(iterator.hasNext());
     }
 
-    // Tests iteratePointers when compute returns null
+    // Tests iteratePointers method when compute returns null
     @Test
     public void testIteratePointers_nullResult_returnsEmptyIterator() {
-        MockExpression expr = new MockExpression(false, null);
-        Iterator it = expr.iteratePointers(null);
-        assertNotNull(it);
-        assertFalse(it.hasNext());
+        TestExpression expr = new TestExpression(false, null);
+        Iterator iterator = expr.iteratePointers(null);
+        assertNotNull(iterator);
+        assertFalse(iterator.hasNext());
     }
 
-    // Tests PointerIterator hasNext and next with non-Pointer items
+    // Tests ValueIterator with Pointer elements
     @Test
-    public void testPointerIterator_nonPointerItems_wrapsInNodePointer() {
-        List items = Arrays.asList("first", "second");
-        QName qname = new QName(null, "value");
-        Expression.PointerIterator it = new Expression.PointerIterator(items.iterator(), qname, Locale.US);
+    public void testValueIterator_withPointer_unwrapsPointerValue() {
+        Pointer pointer1 = new MockPointer("value1");
+        Pointer pointer2 = new MockPointer("value2");
+        Iterator sourceIterator = Arrays.asList(pointer1, pointer2).iterator();
 
-        assertTrue(it.hasNext());
-        Object first = it.next();
-        assertTrue(first instanceof NodePointer);
-        assertEquals("first", ((NodePointer) first).getValue());
+        Expression.ValueIterator valueIterator = new Expression.ValueIterator(sourceIterator);
 
-        assertTrue(it.hasNext());
-        Object second = it.next();
-        assertTrue(second instanceof NodePointer);
-        assertEquals("second", ((NodePointer) second).getValue());
-
-        assertFalse(it.hasNext());
+        assertTrue(valueIterator.hasNext());
+        assertEquals("value1", valueIterator.next());
+        assertTrue(valueIterator.hasNext());
+        assertEquals("value2", valueIterator.next());
+        assertFalse(valueIterator.hasNext());
     }
 
-    // Tests PointerIterator hasNext and next with existing Pointer items
+    // Tests ValueIterator with non-Pointer elements
     @Test
-    public void testPointerIterator_existingPointerItems_returnsAsIs() {
-        Pointer p1 = new DummyPointer("val1");
-        Pointer p2 = new DummyPointer("val2");
-        List items = Arrays.asList(p1, p2);
-        QName qname = new QName(null, "value");
-        Expression.PointerIterator it = new Expression.PointerIterator(items.iterator(), qname, Locale.US);
+    public void testValueIterator_withNonPointer_returnsObjectAsIs() {
+        Iterator sourceIterator = Arrays.asList("rawString", Integer.valueOf(42)).iterator();
 
-        assertTrue(it.hasNext());
-        assertSame(p1, it.next());
-        assertTrue(it.hasNext());
-        assertSame(p2, it.next());
-        assertFalse(it.hasNext());
+        Expression.ValueIterator valueIterator = new Expression.ValueIterator(sourceIterator);
+
+        assertTrue(valueIterator.hasNext());
+        assertEquals("rawString", valueIterator.next());
+        assertTrue(valueIterator.hasNext());
+        assertEquals(Integer.valueOf(42), valueIterator.next());
+        assertFalse(valueIterator.hasNext());
     }
 
-    // Tests PointerIterator remove throws UnsupportedOperationException
+    // Tests ValueIterator remove operation throws UnsupportedOperationException
     @Test(expected = UnsupportedOperationException.class)
-    public void testPointerIterator_remove_throwsException() {
-        List items = Collections.singletonList("item");
-        Expression.PointerIterator it = new Expression.PointerIterator(items.iterator(), new QName(null, "val"), Locale.US);
-        it.remove();
+    public void testValueIterator_remove_throwsUnsupportedOperationException() {
+        Iterator sourceIterator = Collections.singletonList("item").iterator();
+        Expression.ValueIterator valueIterator = new Expression.ValueIterator(sourceIterator);
+        valueIterator.remove();
     }
 
-    // Tests ValueIterator hasNext and next with Pointer items
+    // Tests PointerIterator with existing Pointer element
     @Test
-    public void testValueIterator_pointerItems_unwrapsValues() {
-        Pointer p1 = new DummyPointer("unwrapped1");
-        Pointer p2 = new DummyPointer("unwrapped2");
-        List items = Arrays.asList(p1, p2);
-        Expression.ValueIterator it = new Expression.ValueIterator(items.iterator());
+    public void testPointerIterator_withExistingPointer_returnsSamePointer() {
+        Pointer pointer = new MockPointer("pointerData");
+        Iterator sourceIterator = Collections.singletonList(pointer).iterator();
+        QName qname = new QName(null, "value");
 
-        assertTrue(it.hasNext());
-        assertEquals("unwrapped1", it.next());
-        assertTrue(it.hasNext());
-        assertEquals("unwrapped2", it.next());
-        assertFalse(it.hasNext());
+        Expression.PointerIterator pointerIterator = new Expression.PointerIterator(sourceIterator, qname, Locale.US);
+
+        assertTrue(pointerIterator.hasNext());
+        Object result = pointerIterator.next();
+        assertSame(pointer, result);
+        assertFalse(pointerIterator.hasNext());
     }
 
-    // Tests ValueIterator hasNext and next with non-Pointer items
+    // Tests PointerIterator with non-Pointer element wrapping into NodePointer
     @Test
-    public void testValueIterator_nonPointerItems_returnsDirectValues() {
-        List items = Arrays.asList("direct1", "direct2");
-        Expression.ValueIterator it = new Expression.ValueIterator(items.iterator());
+    public void testPointerIterator_withNonPointer_wrapsInNodePointer() {
+        Iterator sourceIterator = Collections.singletonList("nonPointerValue").iterator();
+        QName qname = new QName(null, "value");
 
-        assertTrue(it.hasNext());
-        assertEquals("direct1", it.next());
-        assertTrue(it.hasNext());
-        assertEquals("direct2", it.next());
-        assertFalse(it.hasNext());
+        Expression.PointerIterator pointerIterator = new Expression.PointerIterator(sourceIterator, qname, Locale.US);
+
+        assertTrue(pointerIterator.hasNext());
+        Object result = pointerIterator.next();
+        assertTrue(result instanceof NodePointer);
+        assertEquals("nonPointerValue", ((NodePointer) result).getValue());
+        assertFalse(pointerIterator.hasNext());
     }
 
-    // Tests ValueIterator remove throws UnsupportedOperationException
+    // Tests PointerIterator remove operation throws UnsupportedOperationException
     @Test(expected = UnsupportedOperationException.class)
-    public void testValueIterator_remove_throwsException() {
-        List items = Collections.singletonList("item");
-        Expression.ValueIterator it = new Expression.ValueIterator(items.iterator());
-        it.remove();
-    }
-
-    // Tests ValueIterator on empty iterator
-    @Test
-    public void testValueIterator_emptyIterator_hasNextReturnsFalse() {
-        Expression.ValueIterator it = new Expression.ValueIterator(Collections.EMPTY_LIST.iterator());
-        assertFalse(it.hasNext());
-    }
-
-    // Tests PointerIterator on empty iterator
-    @Test
-    public void testPointerIterator_emptyIterator_hasNextReturnsFalse() {
-        Expression.PointerIterator it = new Expression.PointerIterator(Collections.EMPTY_LIST.iterator(), new QName("test"), Locale.ENGLISH);
-        assertFalse(it.hasNext());
+    public void testPointerIterator_remove_throwsUnsupportedOperationException() {
+        Iterator sourceIterator = Collections.singletonList("item").iterator();
+        QName qname = new QName(null, "value");
+        Expression.PointerIterator pointerIterator = new Expression.PointerIterator(sourceIterator, qname, Locale.US);
+        pointerIterator.remove();
     }
 }

@@ -14,102 +14,174 @@ public class CollapseVariableDeclarationsTest extends CompilerTestCase {
     return 1;
   }
 
-  // Tests collapsing multiple consecutive var declarations with initializers
+  // Tests collapsing multiple simple var declarations into a single var
   @Test
-  public void testCollapsing_multipleVarsWithInitializers_collapsesIntoSingleVar() {
-    test("var a = 1; var b = 2; var c = 3;", "var a = 1, b = 2, c = 3;");
+  public void testProcess_multipleVars_collapsesIntoSingleVar() {
+    test("var a; var b; var c;",
+         "var a, b, c;");
   }
 
-  // Tests collapsing multiple consecutive var declarations without initializers
+  // Tests collapsing initialized var declarations
   @Test
-  public void testCollapsing_multipleVarsWithoutInitializers_collapsesIntoSingleVar() {
-    test("var a; var b; var c;", "var a, b, c;");
+  public void testProcess_initializedVars_collapsesIntoSingleVar() {
+    test("var a = 1; var b = 2; var c = 3;",
+         "var a = 1, b = 2, c = 3;");
   }
 
-  // Tests collapsing a mix of initialized and uninitialized vars
+  // Tests collapsing mix of initialized and uninitialized vars
   @Test
-  public void testCollapsing_mixedVarsWithAndWithoutInitializers_collapsesIntoSingleVar() {
-    test("var a; var b = 1; var c = 2;", "var a, b = 1, c = 2;");
+  public void testProcess_mixedInitializedAndUninitialized_collapsesCorrectly() {
+    test("var a; var b = 1; var c = 2;",
+         "var a, b = 1, c = 2;");
+    test("var a = 1; var b; var c = 2;",
+         "var a = 1, b, c = 2;");
   }
 
-  // Tests redeclaration of an already initialized variable
+  // Tests collapsing multi-declaration var statements
   @Test
-  public void testCollapsing_redeclarationOfInitializedVar_collapsesIntoSingleVar() {
-    test("var a = 1; a = 2;", "var a = 1, a = 2;");
+  public void testProcess_multiVarStatements_collapsesIntoSingleVar() {
+    test("var a = 1, b = 2; var c = 3, d = 4;",
+         "var a = 1, b = 2, c = 3, d = 4;");
   }
 
-  // Tests collapsing initialized vars followed by reassignments
+  // Tests that intervening non-collapsible statement splits collapse chains
   @Test
-  public void testCollapsing_initializedVarsFollowedByReassignments_collapses() {
-    test("var a = 1; var b = 2; a = 3; b = 4;", "var a = 1, b = 2, a = 3, b = 4;");
-  }
-
-  // Tests that stub vars without initializers blacklist subsequent redeclarations
-  @Test
-  public void testCollapsing_stubVarAssignment_doesNotCollapseAssignment() {
-    testSame("var a; a = 1;");
-  }
-
-  // Tests that stub vars in a multi-var statement blacklist subsequent redeclarations
-  @Test
-  public void testCollapsing_stubVarInMultiDeclaration_doesNotCollapseSubsequentAssignment() {
-    test("var a; var b = 1; a = 2;", "var a, b = 1; a = 2;");
-  }
-
-  // Tests that vars in if-then and else branches are not collapsed
-  @Test
-  public void testCollapsing_varsInIfElseBranches_doesNotCollapse() {
-    testSame("if (x) var a; else var b;");
-  }
-
-  // Tests that vars inside a block under an if statement are collapsed
-  @Test
-  public void testCollapsing_varsInsideIfBlock_collapses() {
-    test("if (x) { var a; var b; }", "if (x) { var a, b; }");
-  }
-
-  // Tests that non-assignment statements interrupt the collapsing chain
-  @Test
-  public void testCollapsing_separatedStatements_collapsesOnlyAdjacentVars() {
+  public void testProcess_interveningStatement_splitsCollapses() {
     test("var a = 1; var b = 2; foo(); var c = 3; var d = 4;",
          "var a = 1, b = 2; foo(); var c = 3, d = 4;");
   }
 
-  // Tests that property assignments on objects are not collapsed into var declarations
+  // Tests that single var followed by non-var is unchanged
   @Test
-  public void testCollapsing_propertyAssignment_doesNotCollapse() {
-    testSame("var a = {}; a.b = 1; var c = 2;");
+  public void testProcess_singleVarWithInterveningStatement_doesNotChange() {
+    testSame("var a = 1; foo(); var b = 2;");
   }
 
-  // Tests single var declaration remains unchanged
+  // Tests that vars directly under an IF node are not collapsed
   @Test
-  public void testCollapsing_singleVarDeclaration_remainsUnchanged() {
+  public void testProcess_varsUnderIf_doesNotCollapse() {
+    testSame("if (x) var a = 1; else var b = 2;");
+  }
+
+  // Tests collapsing inside function bodies
+  @Test
+  public void testProcess_varsInsideFunction_collapsesInsideFunction() {
+    test("function f() { var a = 1; var b = 2; return a + b; }",
+         "function f() { var a = 1, b = 2; return a + b; }");
+  }
+
+  // Tests that assignment to a stub var is not redeclared due to stub blacklisting
+  @Test
+  public void testProcess_assignmentToStubVar_doesNotRedeclare() {
+    testSame("var a; a = 1;");
+    testSame("var a, b; a = 1; b = 2;");
+  }
+
+  // Tests collapsing initialized var followed by assignment to the same var
+  @Test
+  public void testProcess_varFollowedByReassignment_collapsesCorrectly() {
+    test("var a = 1; a = 2;",
+         "var a = 1, a = 2;");
+  }
+
+  // Tests collapsing initialized var followed by reassignment and another var
+  @Test
+  public void testProcess_varReassignmentAndFollowedByVar_collapsesAll() {
+    test("var a = 1; a = 2; var b = 3;",
+         "var a = 1, a = 2, b = 3;");
+  }
+
+  // Tests that assignment to variable in outer scope is not redeclared
+  @Test
+  public void testProcess_assignmentToOuterScopeVar_doesNotRedeclare() {
+    testSame("var a = 1; function f() { a = 2; var b = 3; }");
+  }
+
+  // Tests that assignment to property or complex LHS is not redeclared
+  @Test
+  public void testProcess_propertyAssignment_doesNotCollapse() {
+    testSame("var a = 1; a.b = 2; var c = 3;");
+  }
+
+  // Tests that undeclared variable assignment is not collapsed
+  @Test
+  public void testProcess_undeclaredVariableAssignment_doesNotCollapse() {
+    testSame("var a = 1; x = 2; var b = 3;");
+  }
+
+  // Tests single isolated var declaration remains unchanged
+  @Test
+  public void testProcess_singleVarDeclaration_doesNotChange() {
     testSame("var a = 1;");
+    testSame("var a;");
   }
 
-  // Tests collapsing var declarations inside function scope
+  // Tests collapsing multiple consecutive reassignments following var declaration
   @Test
-  public void testCollapsing_insideFunction_collapses() {
-    test("function f() { var a = 1; var b = 2; }",
-         "function f() { var a = 1, b = 2; }");
+  public void testProcess_multipleReassignments_collapsesAll() {
+    test("var a = 1; a = 2; a = 3;",
+         "var a = 1, a = 2, a = 3;");
   }
 
-  // Tests collapsing across different scopes does not merge outer and inner vars
+  // Tests collapsing reassignments of previously declared initialized vars in same chain
   @Test
-  public void testCollapsing_nestedScopes_collapsesSeparately() {
-    test("var a = 1; function f() { var b = 2; var c = 3; } var d = 4;",
-         "var a = 1; function f() { var b = 2, c = 3; } var d = 4;");
+  public void testProcess_reassignmentOfEarlierDeclaredVar_collapses() {
+    test("var a = 1; var b = 2; a = 3; b = 4;",
+         "var a = 1, b = 2, a = 3, b = 4;");
   }
 
-  // Tests collapsing with complex RHS expressions
+  // Tests that compound assignments are not collapsed into var declarations
   @Test
-  public void testCollapsing_complexRhsExpressions_collapses() {
-    test("var a = 1 + 2; var b = a * 3;", "var a = 1 + 2, b = a * 3;");
+  public void testProcess_compoundAssignment_doesNotCollapse() {
+    testSame("var a = 1; a += 2;");
+    testSame("var a = 1; a -= 2; var b = 3;");
   }
 
-  // Tests collapsing a mix of redeclaration and new var declaration
+  // Tests that unary increment or decrement operations are not collapsed
   @Test
-  public void testCollapsing_redeclarationFollowedByVar_collapses() {
-    test("var a = 1; a = 2; var b = 3;", "var a = 1, a = 2, b = 3;");
+  public void testProcess_incrementDecrement_doesNotCollapse() {
+    testSame("var a = 1; ++a;");
+    testSame("var a = 1; a++; var b = 2;");
+  }
+
+  // Tests collapsing var declarations inside a block statement
+  @Test
+  public void testProcess_varsInBlock_collapsesInsideBlock() {
+    test("{ var a = 1; var b = 2; }",
+         "{ var a = 1, b = 2; }");
+  }
+
+  // Tests collapsing var declarations inside try, catch, and finally blocks
+  @Test
+  public void testProcess_varsInTryCatchFinally_collapsesInEachBlock() {
+    test("try { var a = 1; var b = 2; } catch (e) { var c = 3; var d = 4; } finally { var e = 5; var f = 6; }",
+         "try { var a = 1, b = 2; } catch (e) { var c = 3, d = 4; } finally { var e = 5, f = 6; }");
+  }
+
+  // Tests collapsing var declarations inside switch case statements
+  @Test
+  public void testProcess_varsInSwitch_collapsesInCase() {
+    test("switch (x) { case 1: var a = 1; var b = 2; break; }",
+         "switch (x) { case 1: var a = 1, b = 2; break; }");
+  }
+
+  // Tests collapsing var declarations inside loops
+  @Test
+  public void testProcess_varsInLoops_collapsesInBody() {
+    test("while (true) { var a = 1; var b = 2; }",
+         "while (true) { var a = 1, b = 2; }");
+    test("do { var a = 1; var b = 2; } while (true);",
+         "do { var a = 1, b = 2; } while (true);");
+    test("for (;;) { var a = 1; var b = 2; }",
+         "for (;;) { var a = 1, b = 2; }");
+    test("for (var a in obj) { var b = 1; var c = 2; }",
+         "for (var a in obj) { var b = 1, c = 2; }");
+  }
+
+  // Tests collapsing var declarations initialized with function expressions
+  @Test
+  public void testProcess_functionExpressions_collapsesCorrectly() {
+    test("var a = function() {}; var b = function() {};",
+         "var a = function() {}, b = function() {};");
   }
 }

@@ -1,15 +1,17 @@
 package com.fasterxml.jackson.databind.jsontype.impl;
 
+import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.FileHandler;
+
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
-
-import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.FileHandler;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -20,141 +22,129 @@ public class SubTypeValidatorTest {
     private SubTypeValidator validator;
     private TypeFactory typeFactory;
 
-    // Helper dummy types for testing
-    static class SafeBean {
-        private String name;
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
-    }
-
-    interface SafeInterface {
-        void doSomething();
-    }
-
     @Before
     public void setUp() {
         validator = SubTypeValidator.instance();
         typeFactory = TypeFactory.defaultInstance();
     }
 
-    // Tests singleton instance retrieval
+    // Tests singleton instance is not null
     @Test
-    public void testInstance_always_returnsNonNullSingleton() {
-        SubTypeValidator instance1 = SubTypeValidator.instance();
-        SubTypeValidator instance2 = SubTypeValidator.instance();
-        assertNotNull(instance1);
-        assertSame(instance1, instance2);
+    public void testInstance_default_returnsNonNullSingleton() {
+        SubTypeValidator inst1 = SubTypeValidator.instance();
+        SubTypeValidator inst2 = SubTypeValidator.instance();
+        assertNotNull(inst1);
+        assertSame(inst1, inst2);
     }
 
-    // Tests normal case with standard JDK class
+    // Tests protected constructor can be instantiated
     @Test
-    public void testValidateSubType_safeJdkClass_noExceptionThrown() throws Exception {
+    public void testConstructor_newSubclass_initializesCorrectly() {
+        SubTypeValidator customValidator = new SubTypeValidator();
+        assertNotNull(customValidator);
+        assertNotNull(customValidator._cfgIllegalClassNames);
+        assertTrue(customValidator._cfgIllegalClassNames.contains("java.util.logging.FileHandler"));
+    }
+
+    // Tests DEFAULT_NO_DESER_CLASS_NAMES contains expected default illegal classes
+    @Test
+    public void testDefaultNoDeserClassNames_checkContents_containsExpectedClasses() {
+        Set<String> illegalSet = SubTypeValidator.DEFAULT_NO_DESER_CLASS_NAMES;
+        assertNotNull(illegalSet);
+        assertTrue(illegalSet.contains("java.util.logging.FileHandler"));
+        assertTrue(illegalSet.contains("java.rmi.server.UnicastRemoteObject"));
+        assertTrue(illegalSet.contains("org.apache.commons.collections.functors.InvokerTransformer"));
+        assertTrue(illegalSet.contains("org.apache.commons.collections.functors.InstantiateTransformer"));
+        assertTrue(illegalSet.contains("com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl"));
+        assertTrue(illegalSet.contains("com.sun.rowset.JdbcRowSetImpl"));
+        assertTrue(illegalSet.contains("org.apache.tomcat.dbcp.dbcp2.BasicDataSource"));
+        assertTrue(illegalSet.contains("com.sun.org.apache.bcel.internal.util.ClassLoader"));
+    }
+
+    // Tests validation succeeds for standard safe class
+    @Test
+    public void testValidateSubType_safeClass_noExceptionThrown() throws Exception {
         JavaType type = typeFactory.constructType(String.class);
         validator.validateSubType(null, type);
     }
 
-    // Tests normal case with standard JDK collection
+    // Tests validation succeeds for collection safe class
     @Test
-    public void testValidateSubType_safeJdkCollection_noExceptionThrown() throws Exception {
+    public void testValidateSubType_safeCollectionClass_noExceptionThrown() throws Exception {
         JavaType type = typeFactory.constructType(ArrayList.class);
         validator.validateSubType(null, type);
     }
 
-    // Tests normal case with standard JDK map
+    // Tests validation succeeds for interface type
     @Test
-    public void testValidateSubType_safeJdkMap_noExceptionThrown() throws Exception {
-        JavaType type = typeFactory.constructType(HashMap.class);
+    public void testValidateSubType_interfaceType_noExceptionThrown() throws Exception {
+        JavaType type = typeFactory.constructType(List.class);
         validator.validateSubType(null, type);
     }
 
-    // Tests root Object class
+    // Tests validation succeeds for map interface type
+    @Test
+    public void testValidateSubType_mapInterfaceType_noExceptionThrown() throws Exception {
+        JavaType type = typeFactory.constructType(Map.class);
+        validator.validateSubType(null, type);
+    }
+
+    // Tests validation succeeds for Object class
     @Test
     public void testValidateSubType_objectClass_noExceptionThrown() throws Exception {
         JavaType type = typeFactory.constructType(Object.class);
         validator.validateSubType(null, type);
     }
 
-    // Tests branch for interface type (isInterface true)
-    @Test
-    public void testValidateSubType_jdkInterface_noExceptionThrown() throws Exception {
-        JavaType type = typeFactory.constructType(List.class);
-        validator.validateSubType(null, type);
-    }
-
-    // Tests branch for custom interface
-    @Test
-    public void testValidateSubType_customInterface_noExceptionThrown() throws Exception {
-        JavaType type = typeFactory.constructType(SafeInterface.class);
-        validator.validateSubType(null, type);
-    }
-
-    // Tests branch for custom class (isInterface false, not spring, not blacklisted)
-    @Test
-    public void testValidateSubType_customSafeClass_noExceptionThrown() throws Exception {
-        JavaType type = typeFactory.constructType(SafeBean.class);
-        validator.validateSubType(null, type);
-    }
-
-    // Tests exception path for blacklisted JDK class FileHandler
+    // Tests illegal JDK class FileHandler throws JsonMappingException
     @Test(expected = JsonMappingException.class)
-    public void testValidateSubType_blacklistedFileHandler_throwsJsonMappingException() throws Exception {
+    public void testValidateSubType_fileHandlerClass_throwsJsonMappingException() throws Exception {
         JavaType type = typeFactory.constructType(FileHandler.class);
         validator.validateSubType(null, type);
     }
 
-    // Tests exception path and error message for blacklisted FileHandler
-    @Test
-    public void testValidateSubType_blacklistedFileHandler_containsDescriptiveErrorMessage() {
-        JavaType type = typeFactory.constructType(FileHandler.class);
-        try {
-            validator.validateSubType(null, type);
-            fail("Expected JsonMappingException for illegal type: FileHandler");
-        } catch (JsonMappingException e) {
-            String message = e.getMessage();
-            assertNotNull(message);
-            assertTrue(message.contains("Illegal type"));
-            assertTrue(message.contains("FileHandler"));
-            assertTrue(message.contains("prevented for security reasons"));
-        }
-    }
-
-    // Tests exception path for blacklisted JDK class UnicastRemoteObject
+    // Tests illegal JDK class UnicastRemoteObject throws JsonMappingException
     @Test(expected = JsonMappingException.class)
-    public void testValidateSubType_blacklistedUnicastRemoteObject_throwsJsonMappingException() throws Exception {
+    public void testValidateSubType_unicastRemoteObjectClass_throwsJsonMappingException() throws Exception {
         JavaType type = typeFactory.constructType(UnicastRemoteObject.class);
         validator.validateSubType(null, type);
     }
 
-    // Tests exception path and error message for blacklisted UnicastRemoteObject
+    // Tests exception message contains expected details
     @Test
-    public void testValidateSubType_blacklistedUnicastRemoteObject_containsDescriptiveErrorMessage() {
-        JavaType type = typeFactory.constructType(UnicastRemoteObject.class);
+    public void testValidateSubType_illegalClass_verifyExceptionMessage() {
+        JavaType type = typeFactory.constructType(FileHandler.class);
         try {
             validator.validateSubType(null, type);
-            fail("Expected JsonMappingException for illegal type: UnicastRemoteObject");
+            fail("Expected JsonMappingException to be thrown");
         } catch (JsonMappingException e) {
-            String message = e.getMessage();
-            assertNotNull(message);
-            assertTrue(message.contains("Illegal type"));
-            assertTrue(message.contains("UnicastRemoteObject"));
-            assertTrue(message.contains("prevented for security reasons"));
+            String msg = e.getMessage();
+            assertTrue(msg.contains("Illegal type (java.util.logging.FileHandler) to deserialize"));
+            assertTrue(msg.contains("prevented for security reasons"));
         }
     }
 
-    // Tests exception path for blacklisted com.sun.rowset.JdbcRowSetImpl if available on classpath
+    // Tests custom illegal set correctly blocks configured class
+    @Test(expected = JsonMappingException.class)
+    public void testValidateSubType_customIllegalClass_throwsJsonMappingException() throws Exception {
+        SubTypeValidator customValidator = new SubTypeValidator();
+        Set<String> customSet = new HashSet<String>();
+        customSet.add(Integer.class.getName());
+        customValidator._cfgIllegalClassNames = Collections.unmodifiableSet(customSet);
+
+        JavaType type = typeFactory.constructType(Integer.class);
+        customValidator.validateSubType(null, type);
+    }
+
+    // Tests custom illegal set allows non-listed class
     @Test
-    public void testValidateSubType_blacklistedJdbcRowSetImpl_throwsJsonMappingException() {
-        try {
-            Class<?> clazz = Class.forName("com.sun.rowset.JdbcRowSetImpl");
-            JavaType type = typeFactory.constructType(clazz);
-            try {
-                validator.validateSubType(null, type);
-                fail("Expected JsonMappingException for illegal type: JdbcRowSetImpl");
-            } catch (JsonMappingException e) {
-                assertTrue(e.getMessage().contains("JdbcRowSetImpl"));
-            }
-        } catch (ClassNotFoundException ignored) {
-            // Class not present in runtime environment, skip assertion
-        }
+    public void testValidateSubType_customIllegalSetUnlistedClass_success() throws Exception {
+        SubTypeValidator customValidator = new SubTypeValidator();
+        Set<String> customSet = new HashSet<String>();
+        customSet.add(Integer.class.getName());
+        customValidator._cfgIllegalClassNames = Collections.unmodifiableSet(customSet);
+
+        JavaType type = typeFactory.constructType(String.class);
+        customValidator.validateSubType(null, type);
     }
 }

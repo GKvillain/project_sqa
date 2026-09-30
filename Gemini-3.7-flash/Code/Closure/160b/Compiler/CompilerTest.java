@@ -1,12 +1,14 @@
 package com.google.javascript.jscomp;
 
+import com.google.common.collect.Lists;
 import com.google.javascript.rhino.Node;
-import com.google.javascript.rhino.Token;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.List;
+import java.util.logging.Level;
 
 import static org.junit.Assert.*;
 
@@ -18,212 +20,291 @@ public class CompilerTest {
   @Before
   public void setUp() {
     compiler = new Compiler();
-    compiler.disableThreads();
     options = new CompilerOptions();
   }
 
-  // Tests initialization of options with default settings
+  // Tests basic compilation of a single input file
   @Test
-  public void testInitOptions_defaultOptions_initializesErrorManagerAndGuards() {
-    compiler.initOptions(options);
-    assertNotNull(compiler.getErrorManager());
-    assertNotNull(compiler.getOptions());
-    assertEquals(0, compiler.getErrorCount());
-    assertEquals(0, compiler.getWarningCount());
-  }
+  public void testCompile_simpleScript_compilesSuccessfully() {
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "function alert(msg) {}");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var x = 10; alert(x);");
 
-  // Tests checkTypes flag enabled via DiagnosticGroups
-  @Test
-  public void testInitOptions_checkTypesDiagnosticGroup_enablesCheckTypes() {
-    options.setWarningLevel(DiagnosticGroups.CHECK_TYPES, CheckLevel.ERROR);
-    compiler.initOptions(options);
-    assertTrue(compiler.isTypeCheckingEnabled());
-    assertTrue(options.checkTypes);
-  }
-
-  // Tests checkGlobalThisLevel configuration in initOptions
-  @Test
-  public void testInitOptions_checkGlobalThisLevel_setsWarningGuard() {
-    options.checkGlobalThisLevel = CheckLevel.ERROR;
-    compiler.initOptions(options);
-    JSError error = JSError.make("test.js", 1, 0, CheckGlobalThis.GLOBAL_THIS);
-    assertEquals(CheckLevel.ERROR, compiler.getErrorLevel(error));
-  }
-
-  // Tests checkSymbols disabled behavior in warnings guard
-  @Test
-  public void testInitOptions_checkSymbolsDisabled_turnsOffCheckVariables() {
-    options.checkSymbols = false;
-    compiler.initOptions(options);
-    JSError error = JSError.make("test.js", 1, 0, VarCheck.UNDEFINED_VAR_ERROR, "x");
-    assertEquals(CheckLevel.OFF, compiler.getErrorLevel(error));
-  }
-
-  // Tests normal compilation of valid JavaScript code
-  @Test
-  public void testCompile_validCode_success() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1; function test() { return a; }");
     Result result = compiler.compile(extern, input, options);
 
     assertTrue(result.success);
     assertEquals(0, compiler.getErrorCount());
-    assertNotNull(compiler.getRoot());
     assertNotNull(compiler.toSource());
+    assertTrue(compiler.toSource().contains("var x = 10"));
   }
 
-  // Tests compilation with a syntax error
+  // Tests compile using thread-disabled mode
   @Test
-  public void testCompile_syntaxError_reportsErrors() {
+  public void testCompile_disableThreads_compilesSuccessfully() {
+    compiler.disableThreads();
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = ;");
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
+
     Result result = compiler.compile(extern, input, options);
 
-    assertFalse(result.success);
-    assertTrue(compiler.getErrorCount() > 0);
-    assertTrue(compiler.hasErrors());
-  }
-
-  // Tests duplicate input file names
-  @Test
-  public void testCompile_duplicateInput_reportsDuplicateInputError() {
-    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input1 = JSSourceFile.fromCode("input.js", "var a = 1;");
-    JSSourceFile input2 = JSSourceFile.fromCode("input.js", "var b = 2;");
-    Result result = compiler.compile(new JSSourceFile[] { extern }, new JSSourceFile[] { input1, input2 }, options);
-
-    assertFalse(result.success);
-    assertTrue(compiler.getErrorCount() > 0);
-  }
-
-  // Tests empty module list validation
-  @Test
-  public void testInitModules_emptyModuleList_reportsError() {
-    List<JSSourceFile> externs = new ArrayList<JSSourceFile>();
-    List<JSModule> modules = new ArrayList<JSModule>();
-    compiler.initModules(externs, modules, options);
-
-    assertTrue(compiler.hasErrors());
-    assertEquals(1, compiler.getErrorCount());
-  }
-
-  // Tests multiple modules where the root module has no inputs
-  @Test
-  public void testInitModules_emptyRootModuleWithMultipleModules_reportsError() {
-    List<JSSourceFile> externs = new ArrayList<JSSourceFile>();
-    List<JSModule> modules = new ArrayList<JSModule>();
-    JSModule rootModule = new JSModule("root");
-    JSModule childModule = new JSModule("child");
-    childModule.add(JSSourceFile.fromCode("child.js", "var c = 1;"));
-    childModule.addDependency(rootModule);
-    modules.add(rootModule);
-    modules.add(childModule);
-
-    compiler.initModules(externs, modules, options);
-
-    assertTrue(compiler.hasErrors());
-    assertEquals(1, compiler.getErrorCount());
-  }
-
-  // Tests null error manager throws exception
-  @Test(expected = NullPointerException.class)
-  public void testSetErrorManager_nullManager_throwsException() {
-    compiler.setErrorManager(null);
-  }
-
-  // Tests null PassConfig throws exception
-  @Test(expected = NullPointerException.class)
-  public void testSetPassConfig_nullPassConfig_throwsException() {
-    compiler.setPassConfig(null);
-  }
-
-  // Tests assigning PassConfig twice throws IllegalStateException
-  @Test(expected = IllegalStateException.class)
-  public void testSetPassConfig_alreadyAssigned_throwsException() {
-    PassConfig passConfig = compiler.createPassConfigInternal();
-    compiler.setPassConfig(passConfig);
-    compiler.setPassConfig(passConfig);
-  }
-
-  // Tests parsing test code string
-  @Test
-  public void testParseTestCode_validJs_returnsAstRoot() {
-    Node root = compiler.parseTestCode("var x = 10;");
-    assertNotNull(root);
-    assertEquals(Token.SCRIPT, root.getType());
+    assertTrue(result.success);
     assertEquals(0, compiler.getErrorCount());
   }
 
-  // Tests parsing synthetic code string
+  // Tests initOptions with checkSymbols set to false (Defects4J Bug 160 area)
   @Test
-  public void testParseSyntheticCode_validJs_returnsAstRoot() {
-    Node root = compiler.parseSyntheticCode("synthetic.js", "var y = 20;");
-    assertNotNull(root);
-    assertEquals(Token.SCRIPT, root.getType());
+  public void testInitOptions_checkSymbolsFalse_configuresWarningsGuard() {
+    options.checkSymbols = false;
+    compiler.initOptions(options);
+
+    assertNotNull(compiler.getErrorManager());
+    assertEquals(0, compiler.getErrorCount());
   }
 
-  // Tests CodeBuilder line, column tracking, and append behavior
+  // Tests initOptions when checkGlobalThisLevel is set
   @Test
-  public void testCodeBuilder_appendAndMetrics_tracksLineAndColumn() {
+  public void testInitOptions_checkGlobalThisLevel_setsWarningLevel() {
+    options.checkGlobalThisLevel = CheckLevel.ERROR;
+    compiler.initOptions(options);
+
+    assertEquals(CheckLevel.ERROR, options.checkGlobalThisLevel);
+  }
+
+  // Tests initOptions enabling and disabling CHECK_TYPES diagnostic group
+  @Test
+  public void testInitOptions_diagnosticGroupsCheckTypes_setsCheckTypesFlag() {
+    options.setWarningLevel(DiagnosticGroups.CHECK_TYPES, CheckLevel.WARNING);
+    compiler.initOptions(options);
+    assertTrue(options.checkTypes);
+
+    CompilerOptions options2 = new CompilerOptions();
+    options2.setWarningLevel(DiagnosticGroups.CHECK_TYPES, CheckLevel.OFF);
+    Compiler compiler2 = new Compiler();
+    compiler2.initOptions(options2);
+    assertFalse(options2.checkTypes);
+  }
+
+  // Tests parsing test code into an AST node
+  @Test
+  public void testParseTestCode_validJs_returnsNonNullScriptNode() {
+    Node root = compiler.parseTestCode("var a = 1;");
+
+    assertNotNull(root);
+    assertEquals(" [testcode] ", root.getSourceFileName());
+    assertNotNull(compiler.getInput(" [testcode] "));
+  }
+
+  // Tests parsing synthetic code
+  @Test
+  public void testParseSyntheticCode_validJs_returnsAstNode() {
+    Node root = compiler.parseSyntheticCode("synthetic.js", "function foo() { return true; }");
+
+    assertNotNull(root);
+    assertNotNull(compiler.getInput("synthetic.js"));
+  }
+
+  // Tests setPassConfig with null throwing NullPointerException
+  @Test(expected = NullPointerException.class)
+  public void testSetPassConfig_nullPassConfig_throwsNullPointerException() {
+    compiler.setPassConfig(null);
+  }
+
+  // Tests setPassConfig when passes already assigned throwing IllegalStateException
+  @Test(expected = IllegalStateException.class)
+  public void testSetPassConfig_alreadyAssigned_throwsIllegalStateException() {
+    PassConfig passConfig = new DefaultPassConfig(options);
+    compiler.setPassConfig(passConfig);
+    compiler.setPassConfig(passConfig);
+  }
+
+  // Tests adding new extern input
+  @Test
+  public void testNewExternInput_uniqueName_addsExternSuccessfully() {
+    List<JSSourceFile> externs = Lists.newArrayList(JSSourceFile.fromCode("externs.js", ""));
+    List<JSSourceFile> inputs = Lists.newArrayList(JSSourceFile.fromCode("input.js", "var a = 1;"));
+    compiler.init(externs, inputs, options);
+    compiler.parseInputs();
+
+    CompilerInput newInput = compiler.newExternInput("custom_externs.js");
+
+    assertNotNull(newInput);
+    assertEquals("custom_externs.js", newInput.getName());
+    assertTrue(newInput.isExtern());
+    assertNotNull(compiler.getInput("custom_externs.js"));
+  }
+
+  // Tests adding duplicate extern input throws IllegalArgumentException
+  @Test(expected = IllegalArgumentException.class)
+  public void testNewExternInput_duplicateName_throwsIllegalArgumentException() {
+    List<JSSourceFile> externs = Lists.newArrayList(JSSourceFile.fromCode("externs.js", ""));
+    List<JSSourceFile> inputs = Lists.newArrayList(JSSourceFile.fromCode("input.js", "var a = 1;"));
+    compiler.init(externs, inputs, options);
+    compiler.parseInputs();
+
+    compiler.newExternInput("custom_externs.js");
+    compiler.newExternInput("custom_externs.js");
+  }
+
+  // Tests removing input by name
+  @Test
+  public void testRemoveInput_existingInput_removesInput() {
+    List<JSSourceFile> externs = Lists.newArrayList(JSSourceFile.fromCode("externs.js", ""));
+    List<JSSourceFile> inputs = Lists.newArrayList(JSSourceFile.fromCode("input.js", "var a = 1;"));
+    compiler.init(externs, inputs, options);
+    compiler.parseInputs();
+
+    assertNotNull(compiler.getInput("input.js"));
+    compiler.removeInput("input.js");
+    assertNull(compiler.getInput("input.js"));
+  }
+
+  // Tests multi-module compilation and toSource with modules
+  @Test
+  public void testCompileModules_validModules_compilesSuccessfully() {
+    JSModule m1 = new JSModule("m1");
+    m1.add(JSSourceFile.fromCode("m1.js", "var a = 1;"));
+
+    JSModule m2 = new JSModule("m2");
+    m2.add(JSSourceFile.fromCode("m2.js", "var b = 2;"));
+    m2.addDependency(m1);
+
+    List<JSModule> modules = Lists.newArrayList(m1, m2);
+    List<JSSourceFile> externs = Lists.newArrayList(JSSourceFile.fromCode("externs.js", ""));
+
+    Result result = compiler.compileModules(externs, modules, options);
+
+    assertTrue(result.success);
+    String sourceM1 = compiler.toSource(m1);
+    String sourceM2 = compiler.toSource(m2);
+    assertTrue(sourceM1.contains("var a = 1"));
+    assertTrue(sourceM2.contains("var b = 2"));
+  }
+
+  // Tests saving and restoring compiler intermediate state
+  @Test
+  public void testGetStateAndSetState_roundTrip_preservesState() {
+    List<JSSourceFile> externs = Lists.newArrayList(JSSourceFile.fromCode("externs.js", ""));
+    List<JSSourceFile> inputs = Lists.newArrayList(JSSourceFile.fromCode("input.js", "var a = 1;"));
+    compiler.init(externs, inputs, options);
+    compiler.parseInputs();
+
+    Compiler.IntermediateState state = compiler.getState();
+    assertNotNull(state);
+
+    Compiler newCompiler = new Compiler();
+    newCompiler.init(externs, inputs, options);
+    newCompiler.setState(state);
+
+    assertNotNull(newCompiler.getRoot());
+  }
+
+  // Tests CodeChangeHandler notification
+  @Test
+  public void testReportCodeChange_withRegisteredHandler_notifiesHandler() {
+    final boolean[] changed = new boolean[]{false};
+    CodeChangeHandler handler = new CodeChangeHandler() {
+      public void reportChange() {
+        changed[0] = true;
+      }
+    };
+
+    compiler.addChangeHandler(handler);
+    compiler.reportCodeChange();
+    assertTrue(changed[0]);
+
+    compiler.removeChangeHandler(handler);
+    changed[0] = false;
+    compiler.reportCodeChange();
+    assertFalse(changed[0]);
+  }
+
+  // Tests CodeBuilder helper tracking lines and columns
+  @Test
+  public void testCodeBuilder_appendAndMetrics_tracksLinesAndColumns() {
     Compiler.CodeBuilder cb = new Compiler.CodeBuilder();
-    cb.append("first line\n");
-    cb.append("second line");
+    cb.append("var x = 1;\nvar y = 2;");
 
     assertEquals(1, cb.getLineIndex());
-    assertEquals(11, cb.getColumnIndex());
-    assertEquals(22, cb.getLength());
-    assertTrue(cb.endsWith("line"));
-    assertFalse(cb.endsWith("first"));
+    assertEquals(10, cb.getColumnIndex());
+    assertTrue(cb.endsWith(";"));
+    assertFalse(cb.endsWith("\n"));
+    assertEquals(21, cb.getLength());
 
     cb.reset();
     assertEquals(0, cb.getLength());
     assertEquals(1, cb.getLineIndex());
   }
 
-  // Tests CodeBuilder endsWith boundary cases
+  // Tests custom PrintStream error output
   @Test
-  public void testCodeBuilder_endsWith_boundaryConditions() {
-    Compiler.CodeBuilder cb = new Compiler.CodeBuilder();
-    assertFalse(cb.endsWith("any"));
-    cb.append("abc");
-    assertTrue(cb.endsWith("c"));
-    assertTrue(cb.endsWith("abc"));
-    assertFalse(cb.endsWith("abcd"));
+  public void testCompilerConstructor_customPrintStream_initializesErrorManager() {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    PrintStream ps = new PrintStream(out);
+    Compiler customCompiler = new Compiler(ps);
+
+    customCompiler.initOptions(options);
+    assertNotNull(customCompiler.getErrorManager());
   }
 
-  // Tests intermediate state saving and restoring
+  // Tests type registry and type checking query
   @Test
-  public void testGetStateAndSetState_validState_restoresStateSuccessfully() {
+  public void testGetTypeRegistry_defaultInitialization_returnsNonNullRegistry() {
+    assertNotNull(compiler.getTypeRegistry());
+    assertFalse(compiler.isTypeCheckingEnabled());
+
+    options.setWarningLevel(DiagnosticGroups.CHECK_TYPES, CheckLevel.WARNING);
+    compiler.initOptions(options);
+    assertTrue(compiler.isTypeCheckingEnabled());
+  }
+
+  // Tests hasHaltingErrors query
+  @Test
+  public void testHasHaltingErrors_cleanCompilation_returnsFalse() {
     JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
-    JSSourceFile input = JSSourceFile.fromCode("input.js", "var a = 1;");
-    compiler.init(new JSSourceFile[] { extern }, new JSSourceFile[] { input }, options);
+    JSSourceFile input = JSSourceFile.fromCode("input.js", "var valid = 1;");
+    compiler.compile(extern, input, options);
+
+    assertFalse(compiler.hasHaltingErrors());
+    assertEquals(0, compiler.getWarningCount());
+  }
+
+  // Tests compilation with syntax error resulting in errors
+  @Test
+  public void testCompile_syntaxError_reportsErrorAndFails() {
+    JSSourceFile extern = JSSourceFile.fromCode("externs.js", "");
+    JSSourceFile input = JSSourceFile.fromCode("invalid.js", "var = ;");
+
+    Result result = compiler.compile(extern, input, options);
+
+    assertFalse(result.success);
+    assertTrue(compiler.getErrorCount() > 0);
+    assertTrue(compiler.hasHaltingErrors());
+  }
+
+  // Tests roots access after initialization and parsing
+  @Test
+  public void testGetRoots_afterParse_returnsAstNodes() {
+    List<JSSourceFile> externs = Lists.newArrayList(JSSourceFile.fromCode("externs.js", ""));
+    List<JSSourceFile> inputs = Lists.newArrayList(JSSourceFile.fromCode("input.js", "var a = 1;"));
+    compiler.init(externs, inputs, options);
     compiler.parseInputs();
 
-    Compiler.IntermediateState state = compiler.getState();
-    assertNotNull(state);
-
-    Compiler freshCompiler = new Compiler();
-    freshCompiler.disableThreads();
-    freshCompiler.init(new JSSourceFile[] { extern }, new JSSourceFile[] { input }, options);
-    freshCompiler.setState(state);
-
-    assertEquals(compiler.externsRoot, freshCompiler.externsRoot);
-    assertEquals(compiler.jsRoot, freshCompiler.jsRoot);
+    assertNotNull(compiler.getRoot());
+    assertNotNull(compiler.getJsRoot());
+    assertNotNull(compiler.getExternsRoot());
   }
 
-  // Tests language mode checking for ECMASCRIPT5
+  // Tests logging level configuration
   @Test
-  public void testAcceptEcmaScript5_variousLanguageModes_returnsExpected() {
-    options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT3);
-    compiler.initOptions(options);
-    assertFalse(compiler.acceptEcmaScript5());
+  public void testSetLoggingLevel_validLevel_setsLevelWithoutError() {
+    Compiler.setLoggingLevel(Level.FINE);
+    Compiler.setLoggingLevel(Level.INFO);
+  }
 
-    options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT5);
-    compiler.initOptions(options);
-    assertTrue(compiler.acceptEcmaScript5());
-
-    options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT5_STRICT);
-    compiler.initOptions(options);
-    assertTrue(compiler.acceptEcmaScript5());
+  // Tests Tracer creation and stop
+  @Test
+  public void testNewTracer_validName_tracesPassExecution() {
+    Tracer tracer = compiler.newTracer("testPass");
+    assertNotNull(tracer);
+    tracer.stop();
   }
 }

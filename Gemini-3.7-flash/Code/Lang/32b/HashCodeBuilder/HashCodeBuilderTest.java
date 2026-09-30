@@ -2,217 +2,229 @@ package org.apache.commons.lang3.builder;
 
 import org.junit.Test;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class HashCodeBuilderTest {
 
-    static class TestObject {
-        private int a;
+    static class SimpleObject {
+        private final int value;
 
-        public TestObject(int a) {
-            this.a = a;
+        public SimpleObject(int value) {
+            this.value = value;
         }
 
-        public int getA() {
-            return a;
-        }
-
-        public void setA(int a) {
-            this.a = a;
+        public int getValue() {
+            return value;
         }
     }
 
-    static class TestSubObject extends TestObject {
-        private int b;
-        @SuppressWarnings("unused")
-        private transient int t;
-
-        public TestSubObject(int a, int b, int t) {
-            super(a);
-            this.b = b;
-            this.t = t;
-        }
+    static class ParentObject {
+        private final int parentValue = 10;
     }
 
-    static class ReflectionTestCycleA {
-        ReflectionTestCycleB b;
+    static class ChildObject extends ParentObject {
+        private final int childValue = 20;
+        private transient int transientValue = 30;
+        private static int staticValue = 40;
     }
 
-    static class ReflectionTestCycleB {
-        ReflectionTestCycleA a;
+    static class CyclicA {
+        CyclicB b;
+        int value = 1;
     }
 
-    // Tests default constructor and manual appending of primitives
+    static class CyclicB {
+        CyclicA a;
+        int value = 2;
+    }
+
+    // Tests default constructor and toHashCode / hashCode contract
     @Test
-    public void testAppend_primitiveTypes_computesExpectedHashCode() {
-        HashCodeBuilder builder = new HashCodeBuilder(17, 37);
-        builder.append(true);
-        builder.append((byte) 1);
-        builder.append('a');
-        builder.append(1.0d);
-        builder.append(1.0f);
-        builder.append(1);
-        builder.append(1L);
-        builder.append((short) 1);
-        builder.append("test");
-        builder.appendSuper(100);
-
-        int expected = 17;
-        expected = expected * 37 + 0;
-        expected = expected * 37 + 1;
-        expected = expected * 37 + 'a';
-        expected = expected * 37 + ((int) (Double.doubleToLongBits(1.0d) ^ (Double.doubleToLongBits(1.0d) >> 32)));
-        expected = expected * 37 + Float.floatToIntBits(1.0f);
-        expected = expected * 37 + 1;
-        expected = expected * 37 + ((int) (1L ^ (1L >> 32)));
-        expected = expected * 37 + 1;
-        expected = expected * 37 + "test".hashCode();
-        expected = expected * 37 + 100;
-
-        assertEquals(expected, builder.toHashCode());
-        assertEquals(expected, builder.hashCode());
-    }
-
-    // Tests null values and arrays of primitives and objects
-    @Test
-    public void testAppend_arraysAndNulls_computesCorrectly() {
+    public void testConstructor_default_computesInitialTotal() {
         HashCodeBuilder builder = new HashCodeBuilder();
-        builder.append((Object) null);
-        builder.append((boolean[]) null);
-        builder.append((byte[]) null);
-        builder.append((char[]) null);
-        builder.append((double[]) null);
-        builder.append((float[]) null);
-        builder.append((int[]) null);
-        builder.append((long[]) null);
-        builder.append((short[]) null);
-        builder.append((Object[]) null);
-
-        builder.append(new boolean[]{true, false});
-        builder.append(new byte[]{1, 2});
-        builder.append(new char[]{'a', 'b'});
-        builder.append(new double[]{1.0, 2.0});
-        builder.append(new float[]{1.0f, 2.0f});
-        builder.append(new int[]{1, 2});
-        builder.append(new long[]{1L, 2L});
-        builder.append(new short[]{1, 2});
-        builder.append(new Object[]{"a", "b"});
-        builder.append(new Object[]{new int[]{1, 2}});
-
-        assertTrue(builder.toHashCode() != 0);
+        assertEquals(17, builder.toHashCode());
+        assertEquals(17, builder.hashCode());
     }
 
-    // Tests constructor exception on even initial value
-    @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_evenInitialValue_throwsException() {
-        new HashCodeBuilder(2, 37);
+    // Tests custom valid initial and multiplier values
+    @Test
+    public void testConstructor_customOddParameters_computesInitialTotal() {
+        HashCodeBuilder builder = new HashCodeBuilder(19, 41);
+        assertEquals(19, builder.toHashCode());
     }
 
-    // Tests constructor exception on zero initial value
+    // Tests exception path for zero initial number
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_zeroInitialValue_throwsException() {
+    public void testConstructor_zeroInitialNumber_throwsException() {
         new HashCodeBuilder(0, 37);
     }
 
-    // Tests constructor exception on even multiplier
+    // Tests exception path for even initial number
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_evenMultiplier_throwsException() {
-        new HashCodeBuilder(17, 2);
+    public void testConstructor_evenInitialNumber_throwsException() {
+        new HashCodeBuilder(18, 37);
     }
 
-    // Tests constructor exception on zero multiplier
+    // Tests exception path for zero multiplier number
     @Test(expected = IllegalArgumentException.class)
     public void testConstructor_zeroMultiplier_throwsException() {
         new HashCodeBuilder(17, 0);
     }
 
-    // Tests basic reflectionHashCode
+    // Tests exception path for even multiplier number
+    @Test(expected = IllegalArgumentException.class)
+    public void testConstructor_evenMultiplier_throwsException() {
+        new HashCodeBuilder(17, 38);
+    }
+
+    // Tests primitive boolean and boolean array appending
     @Test
-    public void testReflectionHashCode_validObject_calculatesHashCode() {
-        TestObject obj = new TestObject(42);
+    public void testAppend_booleanAndBooleanArray_returnsCorrectHashCode() {
+        HashCodeBuilder builder = new HashCodeBuilder(17, 37);
+        builder.append(true).append(false);
+        int expected = (17 * 37 + 0) * 37 + 1;
+        assertEquals(expected, builder.toHashCode());
+
+        HashCodeBuilder arrayBuilder = new HashCodeBuilder(17, 37);
+        arrayBuilder.append((boolean[]) null);
+        assertEquals(17 * 37, arrayBuilder.toHashCode());
+
+        HashCodeBuilder arrayBuilder2 = new HashCodeBuilder(17, 37);
+        arrayBuilder2.append(new boolean[]{true, false});
+        assertEquals(expected, arrayBuilder2.toHashCode());
+    }
+
+    // Tests primitive byte, char, short, int, long, float, double and their arrays
+    @Test
+    public void testAppend_primitivesAndArrays_returnsCorrectHashCode() {
+        HashCodeBuilder builder = new HashCodeBuilder(17, 37);
+        builder.append((byte) 1)
+               .append('a')
+               .append((short) 2)
+               .append(3)
+               .append(4L)
+               .append(5.0f)
+               .append(6.0d);
+        assertTrue(builder.toHashCode() != 17);
+
+        HashCodeBuilder nullArrayBuilder = new HashCodeBuilder(17, 37);
+        nullArrayBuilder.append((byte[]) null)
+                        .append((char[]) null)
+                        .append((short[]) null)
+                        .append((int[]) null)
+                        .append((long[]) null)
+                        .append((float[]) null)
+                        .append((double[]) null);
+        assertTrue(nullArrayBuilder.toHashCode() != 17);
+
+        HashCodeBuilder arrayBuilder = new HashCodeBuilder(17, 37);
+        arrayBuilder.append(new byte[]{1})
+                    .append(new char[]{'a'})
+                    .append(new short[]{2})
+                    .append(new int[]{3})
+                    .append(new long[]{4L})
+                    .append(new float[]{5.0f})
+                    .append(new double[]{6.0d});
+        assertTrue(arrayBuilder.toHashCode() != 17);
+    }
+
+    // Tests Object, nested primitive arrays, and multi-dimensional Object arrays
+    @Test
+    public void testAppend_objectAndNestedArrays_returnsCorrectHashCode() {
+        HashCodeBuilder builder = new HashCodeBuilder(17, 37);
+        builder.append("test")
+               .append((Object) null)
+               .append((Object) new int[]{1, 2})
+               .append((Object) new Object[]{"sub", null});
+        assertTrue(builder.toHashCode() != 17);
+
+        HashCodeBuilder objArrayBuilder = new HashCodeBuilder(17, 37);
+        objArrayBuilder.append((Object[]) null);
+        assertEquals(17 * 37, objArrayBuilder.toHashCode());
+    }
+
+    // Tests appendSuper method
+    @Test
+    public void testAppendSuper_validSuperHashCode_updatesRunningTotal() {
+        HashCodeBuilder builder = new HashCodeBuilder(17, 37);
+        builder.appendSuper(100);
+        assertEquals(17 * 37 + 100, builder.toHashCode());
+    }
+
+    // Tests basic reflectionHashCode invocation on a simple object
+    @Test
+    public void testReflectionHashCode_simpleObject_computesHashCode() {
+        SimpleObject obj = new SimpleObject(42);
         int expected = (17 * 37 + 42);
         assertEquals(expected, HashCodeBuilder.reflectionHashCode(obj));
     }
 
-    // Tests reflectionHashCode with transient fields flag true and false
-    @Test
-    public void testReflectionHashCode_transientFields_handledCorrectly() {
-        TestSubObject obj = new TestSubObject(1, 2, 3);
-        int hashWithoutTransients = HashCodeBuilder.reflectionHashCode(obj, false);
-        int hashWithTransients = HashCodeBuilder.reflectionHashCode(obj, true);
-
-        int expectedWithout = ((17 * 37 + 2) * 37 + 1);
-        int expectedWith = (((17 * 37 + 2) * 37 + 3) * 37 + 1);
-
-        assertEquals(expectedWithout, hashWithoutTransients);
-        assertEquals(expectedWith, hashWithTransients);
-    }
-
     // Tests reflectionHashCode with excludeFields array
     @Test
-    public void testReflectionHashCode_excludeFields_excludesCorrectFields() {
-        TestSubObject obj = new TestSubObject(1, 2, 3);
-        int hash = HashCodeBuilder.reflectionHashCode(obj, new String[]{"b"});
-        int expected = 17 * 37 + 1;
-        assertEquals(expected, hash);
+    public void testReflectionHashCode_excludeFields_ignoresSpecifiedFields() {
+        SimpleObject obj = new SimpleObject(42);
+        int codeExcluded = HashCodeBuilder.reflectionHashCode(obj, new String[]{"value"});
+        assertEquals(17, codeExcluded);
     }
 
     // Tests reflectionHashCode with excludeFields collection
     @Test
-    public void testReflectionHashCode_excludeFieldsCollection_excludesCorrectFields() {
-        TestSubObject obj = new TestSubObject(1, 2, 3);
-        Collection<String> excludes = new ArrayList<String>();
-        excludes.add("b");
-        int hash = HashCodeBuilder.reflectionHashCode(obj, excludes);
-        int expected = 17 * 37 + 1;
-        assertEquals(expected, hash);
+    public void testReflectionHashCode_excludeFieldsCollection_ignoresSpecifiedFields() {
+        SimpleObject obj = new SimpleObject(42);
+        List<String> excludes = new ArrayList<String>();
+        excludes.add("value");
+        int codeExcluded = HashCodeBuilder.reflectionHashCode(obj, excludes);
+        assertEquals(17, codeExcluded);
     }
 
-    // Tests reflectionHashCode up to specified superclass
+    // Tests reflectionHashCode with transient fields and inheritance
     @Test
-    public void testReflectionHashCode_reflectUpToClass_stopsAtSpecifiedClass() {
-        TestSubObject obj = new TestSubObject(1, 2, 3);
-        int hash = HashCodeBuilder.reflectionHashCode(17, 37, obj, false, TestSubObject.class);
-        int expected = 17 * 37 + 2;
-        assertEquals(expected, hash);
+    public void testReflectionHashCode_hierarchyAndTransients_handlesHierarchyCorrectly() {
+        ChildObject obj = new ChildObject();
+        int withoutTransients = HashCodeBuilder.reflectionHashCode(obj, false);
+        int withTransients = HashCodeBuilder.reflectionHashCode(obj, true);
+        assertTrue(withoutTransients != withTransients);
+
+        int upToChild = HashCodeBuilder.reflectionHashCode(17, 37, obj, false, ChildObject.class);
+        int upToParent = HashCodeBuilder.reflectionHashCode(17, 37, obj, false, ParentObject.class);
+        assertTrue(upToChild != upToParent);
     }
 
-    // Tests reflectionHashCode with null target object
-    @Test(expected = IllegalArgumentException.class)
-    public void testReflectionHashCode_nullObject_throwsException() {
-        HashCodeBuilder.reflectionHashCode(null);
-    }
-
-    // Tests cyclical references handling in reflectionHashCode (Lang-32 defect prevention)
+    // Tests reflectionHashCode with cyclic reference to detect infinite loop / recursion defects
     @Test
     public void testReflectionHashCode_cyclicalReference_avoidsInfiniteLoop() {
-        ReflectionTestCycleA a = new ReflectionTestCycleA();
-        ReflectionTestCycleB b = new ReflectionTestCycleB();
+        CyclicA a = new CyclicA();
+        CyclicB b = new CyclicB();
         a.b = b;
         b.a = a;
 
         int hashA = HashCodeBuilder.reflectionHashCode(a);
         int hashB = HashCodeBuilder.reflectionHashCode(b);
-
         assertTrue(hashA != 0);
         assertTrue(hashB != 0);
         assertFalse(HashCodeBuilder.isRegistered(a));
         assertFalse(HashCodeBuilder.isRegistered(b));
     }
 
-    // Tests registry methods directly for registration lifecycle
+    // Tests registry operations directly
     @Test
-    public void testRegistry_registerAndUnregister_registryStateMaintained() {
+    public void testRegistry_registerAndUnregister_managesThreadLocalState() {
         Object obj = new Object();
         assertFalse(HashCodeBuilder.isRegistered(obj));
         HashCodeBuilder.register(obj);
         assertTrue(HashCodeBuilder.isRegistered(obj));
         HashCodeBuilder.unregister(obj);
         assertFalse(HashCodeBuilder.isRegistered(obj));
+        assertNotNull(HashCodeBuilder.getRegistry());
+    }
+
+    // Tests reflectionHashCode null argument exception path
+    @Test(expected = IllegalArgumentException.class)
+    public void testReflectionHashCode_nullObject_throwsException() {
+        HashCodeBuilder.reflectionHashCode(null);
     }
 }

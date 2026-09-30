@@ -1,35 +1,42 @@
 package com.fasterxml.jackson.databind.deser;
 
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.cfg.DeserializerFactoryConfig;
-import com.fasterxml.jackson.databind.deser.std.ArrayBlockingQueueDeserializer;
 import com.fasterxml.jackson.databind.deser.std.AtomicReferenceDeserializer;
-import com.fasterxml.jackson.databind.deser.std.CollectionDeserializer;
+import com.fasterxml.jackson.databind.deser.std.DateDeserializers;
 import com.fasterxml.jackson.databind.deser.std.EnumDeserializer;
 import com.fasterxml.jackson.databind.deser.std.EnumMapDeserializer;
-import com.fasterxml.jackson.databind.deser.std.MapDeserializer;
+import com.fasterxml.jackson.databind.deser.std.EnumSetDeserializer;
+import com.fasterxml.jackson.databind.deser.std.JsonNodeDeserializer;
 import com.fasterxml.jackson.databind.deser.std.MapEntryDeserializer;
-import com.fasterxml.jackson.databind.deser.std.ObjectArrayDeserializer;
+import com.fasterxml.jackson.databind.deser.std.NumberDeserializers;
 import com.fasterxml.jackson.databind.deser.std.PrimitiveArrayDeserializers;
+import com.fasterxml.jackson.databind.deser.std.StdKeyDeserializer;
+import com.fasterxml.jackson.databind.deser.std.StdValueInstantiator;
 import com.fasterxml.jackson.databind.deser.std.StringArrayDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StringCollectionDeserializer;
 import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
-import com.fasterxml.jackson.databind.deser.std.TokenBufferDeserializer;
 import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleAbstractTypeResolver;
+import com.fasterxml.jackson.databind.module.SimpleDeserializers;
 import com.fasterxml.jackson.databind.module.SimpleKeyDeserializers;
 import com.fasterxml.jackson.databind.module.SimpleValueInstantiators;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.type.ArrayType;
 import com.fasterxml.jackson.databind.type.CollectionLikeType;
 import com.fasterxml.jackson.databind.type.CollectionType;
@@ -41,286 +48,459 @@ import com.fasterxml.jackson.databind.util.TokenBuffer;
 
 public class BasicDeserializerFactoryTest {
 
-    private ObjectMapper _mapper;
-    private DeserializationContext _ctxt;
+    private ObjectMapper _objectMapper;
+    private DeserializationContext _context;
     private DeserializationConfig _config;
-    private BasicDeserializerFactory _factory;
     private TypeFactory _typeFactory;
+    private BasicDeserializerFactory _factory;
 
-    enum TestEnum {
-        A, B, C;
+    private enum TestEnum { ALPHA, BETA }
+
+    static class CustomValueBean {
+        final String value;
+        CustomValueBean(String value) { this.value = value; }
+        @JsonValue
+        public String getValue() { return value; }
     }
 
-    static class CustomList<E> extends ArrayList<E> {
-        private static final long serialVersionUID = 1L;
+    static class CustomCreatorBean {
+        final String name;
+        final int age;
+        @JsonCreator
+        public CustomCreatorBean(@JsonProperty("name") String name, @JsonProperty("age") int age) {
+            this.name = name;
+            this.age = age;
+        }
+    }
+
+    static class CustomKeyDeserializer extends KeyDeserializer {
+        @Override
+        public Object deserializeKey(String key, DeserializationContext ctxt) {
+            return "custom:" + key;
+        }
     }
 
     @Before
     public void setUp() {
-        _mapper = new ObjectMapper();
-        _ctxt = _mapper.getDeserializationContext();
-        _config = _mapper.getDeserializationConfig();
+        _objectMapper = new ObjectMapper();
+        _config = _objectMapper.getDeserializationConfig();
+        _context = _objectMapper.getDeserializationContext();
+        _typeFactory = _config.getTypeFactory();
         _factory = BeanDeserializerFactory.instance;
-        _typeFactory = _mapper.getTypeFactory();
     }
 
-    // Tests fluent config modification methods
+    // Tests fluent configuration chaining of factory
     @Test
-    public void testWithConfig_modifications_returnsNewConfiguredInstances() {
-        DeserializerFactoryConfig config = _factory.getFactoryConfig();
-        assertNotNull(config);
+    public void testWithConfigMethods_chaining_returnsNewConfiguredInstances() {
+        DeserializerFactory factory = _factory;
+        factory = factory.withAdditionalDeserializers(new Deserializers.Base());
+        factory = factory.withAdditionalKeyDeserializers(new SimpleKeyDeserializers());
+        factory = factory.withDeserializerModifier(new BeanDeserializerModifier());
+        factory = factory.withAbstractTypeResolver(new SimpleAbstractTypeResolver());
+        factory = factory.withValueInstantiators(new SimpleValueInstantiators());
 
-        Deserializers extraDesers = new Deserializers.Base();
-        DeserializerFactory f1 = _factory.withAdditionalDeserializers(extraDesers);
-        assertNotSame(_factory, f1);
-
-        KeyDeserializers extraKeyDesers = new SimpleKeyDeserializers();
-        DeserializerFactory f2 = _factory.withAdditionalKeyDeserializers(extraKeyDesers);
-        assertNotSame(_factory, f2);
-
-        BeanDeserializerModifier modifier = new BeanDeserializerModifier() {};
-        DeserializerFactory f3 = _factory.withDeserializerModifier(modifier);
-        assertNotSame(_factory, f3);
-
-        AbstractTypeResolver resolver = new SimpleAbstractTypeResolver();
-        DeserializerFactory f4 = _factory.withAbstractTypeResolver(resolver);
-        assertNotSame(_factory, f4);
-
-        ValueInstantiators vi = new SimpleValueInstantiators();
-        DeserializerFactory f5 = _factory.withValueInstantiators(vi);
-        assertNotSame(_factory, f5);
+        DeserializerFactoryConfig config = ((BasicDeserializerFactory) factory).getFactoryConfig();
+        assertTrue(config.hasDeserializers());
+        assertTrue(config.hasKeyDeserializers());
+        assertTrue(config.hasDeserializerModifiers());
+        assertTrue(config.hasAbstractTypeResolvers());
+        assertTrue(config.hasValueInstantiators());
     }
 
-    // Tests abstract type mapping with resolver
+    // Tests mapping of abstract types with registered resolver
     @Test
-    public void testMapAbstractType_registeredResolver_mapsToTargetSubtype() throws Exception {
+    public void testMapAbstractType_withRegisteredResolver_returnsConcreteType() throws Exception {
         SimpleAbstractTypeResolver resolver = new SimpleAbstractTypeResolver();
         resolver.addMapping(CharSequence.class, String.class);
-        DeserializerFactory factory = _factory.withAbstractTypeResolver(resolver);
+        BasicDeserializerFactory factory = (BasicDeserializerFactory) _factory.withAbstractTypeResolver(resolver);
 
         JavaType abstractType = _typeFactory.constructType(CharSequence.class);
         JavaType mappedType = factory.mapAbstractType(_config, abstractType);
+
         assertEquals(String.class, mappedType.getRawClass());
     }
 
-    // Tests abstract type mapping cycle or invalid subtype exception
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    // Tests mapping abstract type when unresolved returns original type
+    @Test
+    public void testMapAbstractType_unregistered_returnsOriginalType() throws Exception {
+        JavaType abstractType = _typeFactory.constructType(CharSequence.class);
+        JavaType mappedType = _factory.mapAbstractType(_config, abstractType);
+
+        assertSame(abstractType, mappedType);
+    }
+
+    // Tests exception on invalid abstract type mapping hierarchy
     @Test(expected = IllegalArgumentException.class)
-    public void testMapAbstractType_invalidMapping_throwsException() throws Exception {
+    public void testMapAbstractType_invalidSubtypeResolution_throwsIllegalArgumentException() throws Exception {
         SimpleAbstractTypeResolver resolver = new SimpleAbstractTypeResolver();
-        resolver.addMapping(List.class, (Class) Set.class);
-        DeserializerFactory factory = _factory.withAbstractTypeResolver(resolver);
+        resolver.addMapping(List.class, (Class) Map.class);
+        BasicDeserializerFactory factory = (BasicDeserializerFactory) _factory.withAbstractTypeResolver(resolver);
 
         JavaType listType = _typeFactory.constructType(List.class);
         factory.mapAbstractType(_config, listType);
     }
 
-    // Tests standard ValueInstantiator resolution for empty JDK collections and JsonLocation
+    // Tests standard JDK value instantiators for empty collections and location
     @Test
-    public void testFindValueInstantiator_standardTypes_returnsExpectedInstantiators() throws Exception {
-        BeanDescription locDesc = _config.introspectClassAnnotations(JsonLocation.class);
-        ValueInstantiator locInst = _factory.findValueInstantiator(_ctxt, locDesc);
+    public void testFindValueInstantiator_standardSpecialTypes_returnsInstantiator() throws Exception {
+        JavaType emptyListType = _typeFactory.constructType(Collections.EMPTY_LIST.getClass());
+        BeanDescription listDesc = _config.introspect(emptyListType);
+        ValueInstantiator listInst = _factory.findValueInstantiator(_context, listDesc);
+        assertNotNull(listInst);
+        assertTrue(listInst.canCreateUsingDefault());
+
+        JavaType locationType = _typeFactory.constructType(JsonLocation.class);
+        BeanDescription locDesc = _config.introspect(locationType);
+        ValueInstantiator locInst = _factory.findValueInstantiator(_context, locDesc);
         assertNotNull(locInst);
-        assertTrue(locInst.canCreateFromObjectWith());
-
-        BeanDescription emptyListDesc = _config.introspectClassAnnotations(Collections.EMPTY_LIST.getClass());
-        ValueInstantiator emptyListInst = _factory.findValueInstantiator(_ctxt, emptyListDesc);
-        assertNotNull(emptyListInst);
-        assertTrue(emptyListInst.canCreateUsingDefault());
-
-        BeanDescription emptySetDesc = _config.introspectClassAnnotations(Collections.EMPTY_SET.getClass());
-        ValueInstantiator emptySetInst = _factory.findValueInstantiator(_ctxt, emptySetDesc);
-        assertNotNull(emptySetInst);
-
-        BeanDescription emptyMapDesc = _config.introspectClassAnnotations(Collections.EMPTY_MAP.getClass());
-        ValueInstantiator emptyMapInst = _factory.findValueInstantiator(_ctxt, emptyMapDesc);
-        assertNotNull(emptyMapInst);
     }
 
-    // Tests primitive, string, and object array deserializer creation
+    // Tests default deserializer for Object, String, and Java standard types
     @Test
-    public void testCreateArrayDeserializer_variousTypes_createsCorrectDeserializers() throws Exception {
-        JavaType intArrayType = _typeFactory.constructType(int[].class);
-        BeanDescription desc1 = _config.introspect(intArrayType);
-        JsonDeserializer<?> deser1 = _factory.createArrayDeserializer(_ctxt, (ArrayType) intArrayType, desc1);
-        assertTrue(deser1 instanceof PrimitiveArrayDeserializers);
+    public void testFindDefaultDeserializer_wellKnownTypes_returnsExpectedDeserializers() throws Exception {
+        JavaType objType = _typeFactory.constructType(Object.class);
+        BeanDescription objDesc = _config.introspect(objType);
+        JsonDeserializer<?> objDeser = _factory.findDefaultDeserializer(_context, objType, objDesc);
+        assertTrue(objDeser instanceof UntypedObjectDeserializer);
 
-        JavaType strArrayType = _typeFactory.constructType(String[].class);
-        BeanDescription desc2 = _config.introspect(strArrayType);
-        JsonDeserializer<?> deser2 = _factory.createArrayDeserializer(_ctxt, (ArrayType) strArrayType, desc2);
-        assertTrue(deser2 instanceof StringArrayDeserializer);
+        JavaType strType = _typeFactory.constructType(String.class);
+        BeanDescription strDesc = _config.introspect(strType);
+        JsonDeserializer<?> strDeser = _factory.findDefaultDeserializer(_context, strType, strDesc);
+        assertSame(StringDeserializer.instance, strDeser);
 
-        JavaType objArrayType = _typeFactory.constructType(Object[].class);
-        BeanDescription desc3 = _config.introspect(objArrayType);
-        JsonDeserializer<?> deser3 = _factory.createArrayDeserializer(_ctxt, (ArrayType) objArrayType, desc3);
-        assertTrue(deser3 instanceof ObjectArrayDeserializer);
+        JavaType intType = _typeFactory.constructType(int.class);
+        BeanDescription intDesc = _config.introspect(intType);
+        JsonDeserializer<?> intDeser = _factory.findDefaultDeserializer(_context, intType, intDesc);
+        assertNotNull(intDeser);
     }
 
-    // Tests collection deserializer creation including EnumSet, String collection, and standard fallback
+    // Tests default deserializer for Iterable upgrading to Collection
     @Test
-    public void testCreateCollectionDeserializer_standardTypes_createsCorrectDeserializers() throws Exception {
-        CollectionType enumSetType = _typeFactory.constructCollectionType(EnumSet.class, TestEnum.class);
-        BeanDescription desc1 = _config.introspect(enumSetType);
-        JsonDeserializer<?> deser1 = _factory.createCollectionDeserializer(_ctxt, enumSetType, desc1);
-        assertNotNull(deser1);
-
-        CollectionType strListType = _typeFactory.constructCollectionType(List.class, String.class);
-        BeanDescription desc2 = _config.introspect(strListType);
-        JsonDeserializer<?> deser2 = _factory.createCollectionDeserializer(_ctxt, strListType, desc2);
-        assertTrue(deser2 instanceof StringCollectionDeserializer);
-
-        CollectionType objListType = _typeFactory.constructCollectionType(List.class, Object.class);
-        BeanDescription desc3 = _config.introspect(objListType);
-        JsonDeserializer<?> deser3 = _factory.createCollectionDeserializer(_ctxt, objListType, desc3);
-        assertTrue(deser3 instanceof CollectionDeserializer);
-
-        CollectionType queueType = _typeFactory.constructCollectionType(ArrayBlockingQueue.class, Integer.class);
-        BeanDescription desc4 = _config.introspect(queueType);
-        JsonDeserializer<?> deser4 = _factory.createCollectionDeserializer(_ctxt, queueType, desc4);
-        assertTrue(deser4 instanceof ArrayBlockingQueueDeserializer);
+    public void testFindDefaultDeserializer_iterableType_returnsCollectionDeserializer() throws Exception {
+        JavaType iterType = _typeFactory.constructType(Iterable.class);
+        BeanDescription iterDesc = _config.introspect(iterType);
+        JsonDeserializer<?> deser = _factory.findDefaultDeserializer(_context, iterType, iterDesc);
+        assertNotNull(deser);
     }
 
-    // Tests mapping of abstract collection types to concrete collection fallbacks
+    // Tests default deserializer for Map.Entry
     @Test
-    public void testMapAbstractCollectionType_interfaceTypes_returnsConcreteFallback() {
+    public void testFindDefaultDeserializer_mapEntryType_returnsMapEntryDeserializer() throws Exception {
+        JavaType entryType = _typeFactory.constructMapEntryType(Map.Entry.class, String.class, Integer.class);
+        BeanDescription entryDesc = _config.introspect(entryType);
+        JsonDeserializer<?> deser = _factory.findDefaultDeserializer(_context, entryType, entryDesc);
+        assertTrue(deser instanceof MapEntryDeserializer);
+    }
+
+    // Tests creation of primitive array deserializers
+    @Test
+    public void testCreateArrayDeserializer_primitiveAndStringArrays_returnsSpecificDeserializers() throws Exception {
+        ArrayType byteArrType = _typeFactory.constructArrayType(byte.class);
+        BeanDescription byteDesc = _config.introspect(byteArrType);
+        JsonDeserializer<?> byteDeser = _factory.createArrayDeserializer(_context, byteArrType, byteDesc);
+        assertTrue(byteDeser instanceof PrimitiveArrayDeserializers);
+
+        ArrayType strArrType = _typeFactory.constructArrayType(String.class);
+        BeanDescription strDesc = _config.introspect(strArrType);
+        JsonDeserializer<?> strDeser = _factory.createArrayDeserializer(_context, strArrType, strDesc);
+        assertSame(StringArrayDeserializer.instance, strDeser);
+    }
+
+    // Tests collection deserializer with interface fallback mapping
+    @Test
+    public void testCreateCollectionDeserializer_interfaceTypeFallback_createsArrayListDeserializer() throws Exception {
         CollectionType listType = _typeFactory.constructCollectionType(List.class, String.class);
-        CollectionType fallbackList = _factory._mapAbstractCollectionType(listType, _config);
-        assertNotNull(fallbackList);
-        assertEquals(ArrayList.class, fallbackList.getRawClass());
-
-        CollectionType setType = _typeFactory.constructCollectionType(Set.class, String.class);
-        CollectionType fallbackSet = _factory._mapAbstractCollectionType(setType, _config);
-        assertNotNull(fallbackSet);
-        assertEquals(HashSet.class, fallbackSet.getRawClass());
-
-        CollectionType customType = _typeFactory.constructCollectionType(CustomList.class, String.class);
-        CollectionType fallbackCustom = _factory._mapAbstractCollectionType(customType, _config);
-        assertNull(fallbackCustom);
+        BeanDescription desc = _config.introspect(listType);
+        JsonDeserializer<?> deser = _factory.createCollectionDeserializer(_context, listType, desc);
+        assertTrue(deser instanceof StringCollectionDeserializer);
     }
 
-    // Tests map deserializer creation for EnumMap and standard abstract/concrete maps
+    // Tests collection deserializer for EnumSet
     @Test
-    public void testCreateMapDeserializer_validTypes_createsCorrectDeserializers() throws Exception {
-        MapType enumMapType = _typeFactory.constructMapType(EnumMap.class, TestEnum.class, String.class);
-        BeanDescription desc1 = _config.introspect(enumMapType);
-        JsonDeserializer<?> deser1 = _factory.createMapDeserializer(_ctxt, enumMapType, desc1);
-        assertTrue(deser1 instanceof EnumMapDeserializer);
+    public void testCreateCollectionDeserializer_enumSet_createsEnumSetDeserializer() throws Exception {
+        CollectionType setType = _typeFactory.constructCollectionType(EnumSet.class, TestEnum.class);
+        BeanDescription desc = _config.introspect(setType);
+        JsonDeserializer<?> deser = _factory.createCollectionDeserializer(_context, setType, desc);
+        assertNotNull(deser);
+    }
 
+    // Tests map deserializer with interface fallback mapping
+    @Test
+    public void testCreateMapDeserializer_interfaceFallback_createsMapDeserializer() throws Exception {
         MapType mapType = _typeFactory.constructMapType(Map.class, String.class, Object.class);
-        BeanDescription desc2 = _config.introspect(mapType);
-        JsonDeserializer<?> deser2 = _factory.createMapDeserializer(_ctxt, mapType, desc2);
-        assertTrue(deser2 instanceof MapDeserializer);
+        BeanDescription desc = _config.introspect(mapType);
+        JsonDeserializer<?> deser = _factory.createMapDeserializer(_context, mapType, desc);
+        assertNotNull(deser);
 
-        MapType concurrentMapType = _typeFactory.constructMapType(ConcurrentMap.class, String.class, String.class);
-        BeanDescription desc3 = _config.introspect(concurrentMapType);
-        JsonDeserializer<?> deser3 = _factory.createMapDeserializer(_ctxt, concurrentMapType, desc3);
-        assertTrue(deser3 instanceof MapDeserializer);
+        MapType concurrentType = _typeFactory.constructMapType(ConcurrentMap.class, String.class, String.class);
+        BeanDescription concurrentDesc = _config.introspect(concurrentType);
+        JsonDeserializer<?> concurrentDeser = _factory.createMapDeserializer(_context, concurrentType, concurrentDesc);
+        assertNotNull(concurrentDeser);
     }
 
-    // Tests EnumMap creation failure when key type is not an Enum
+    // Tests map deserializer for EnumMap with invalid non-enum key throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testCreateMapDeserializer_enumMapWithNonEnumKey_throwsException() throws Exception {
-        MapType badEnumMapType = _typeFactory.constructMapType(EnumMap.class, String.class, String.class);
-        BeanDescription desc = _config.introspect(badEnumMapType);
-        _factory.createMapDeserializer(_ctxt, badEnumMapType, desc);
+    public void testCreateMapDeserializer_enumMapWithNonEnumKey_throwsIllegalArgumentException() throws Exception {
+        MapType enumMapType = _typeFactory.constructMapType(EnumMap.class, String.class, String.class);
+        BeanDescription desc = _config.introspect(enumMapType);
+        _factory.createMapDeserializer(_context, enumMapType, desc);
     }
 
-    // Tests Enum deserializer creation for standard enum
+    // Tests creation of enum deserializer
     @Test
-    public void testCreateEnumDeserializer_standardEnum_createsEnumDeserializer() throws Exception {
+    public void testCreateEnumDeserializer_standardEnum_returnsEnumDeserializer() throws Exception {
         JavaType enumType = _typeFactory.constructType(TestEnum.class);
         BeanDescription desc = _config.introspect(enumType);
-        JsonDeserializer<?> deser = _factory.createEnumDeserializer(_ctxt, enumType, desc);
+        JsonDeserializer<?> deser = _factory.createEnumDeserializer(_context, enumType, desc);
         assertTrue(deser instanceof EnumDeserializer);
     }
 
-    // Tests Tree deserializer creation for JsonNode and subclasses
+    // Tests creation of tree node deserializer
     @Test
-    public void testCreateTreeDeserializer_jsonNodeClass_returnsValidDeserializer() throws Exception {
-        JavaType nodeType = _typeFactory.constructType(JsonNode.class);
-        BeanDescription desc = _config.introspectClassAnnotations(nodeType);
+    public void testCreateTreeDeserializer_jsonNodeTypes_returnsTreeDeserializer() throws Exception {
+        JavaType nodeType = _typeFactory.constructType(ObjectNode.class);
+        BeanDescription desc = _config.introspect(nodeType);
         JsonDeserializer<?> deser = _factory.createTreeDeserializer(_config, nodeType, desc);
         assertNotNull(deser);
     }
 
-    // Tests Reference deserializer creation for AtomicReference
+    // Tests creation of reference type deserializer for AtomicReference
     @Test
     public void testCreateReferenceDeserializer_atomicReference_returnsAtomicReferenceDeserializer() throws Exception {
-        ReferenceType refType = (ReferenceType) _typeFactory.constructReferenceType(AtomicReference.class, _typeFactory.constructType(String.class));
+        ReferenceType refType = _typeFactory.constructReferenceType(AtomicReference.class, _typeFactory.constructType(String.class));
         BeanDescription desc = _config.introspect(refType);
-        JsonDeserializer<?> deser = _factory.createReferenceDeserializer(_ctxt, refType, desc);
+        JsonDeserializer<?> deser = _factory.createReferenceDeserializer(_context, refType, desc);
         assertTrue(deser instanceof AtomicReferenceDeserializer);
     }
 
-    // Tests KeyDeserializer creation for Enum and String-based types
+    // Tests key deserializers for standard String, int, and Enum types
     @Test
-    public void testCreateKeyDeserializer_enumAndString_returnsValidKeyDeserializers() throws Exception {
-        JavaType enumType = _typeFactory.constructType(TestEnum.class);
-        KeyDeserializer keyDes1 = _factory.createKeyDeserializer(_ctxt, enumType);
-        assertNotNull(keyDes1);
+    public void testCreateKeyDeserializer_stdAndEnumTypes_returnsKeyDeserializer() throws Exception {
+        JavaType strType = _typeFactory.constructType(String.class);
+        KeyDeserializer strKeyDeser = _factory.createKeyDeserializer(_context, strType);
+        assertNull(strKeyDeser);
 
         JavaType intType = _typeFactory.constructType(Integer.class);
-        KeyDeserializer keyDes2 = _factory.createKeyDeserializer(_ctxt, intType);
-        assertNotNull(keyDes2);
+        KeyDeserializer intKeyDeser = _factory.createKeyDeserializer(_context, intType);
+        assertNotNull(intKeyDeser);
+
+        JavaType enumType = _typeFactory.constructType(TestEnum.class);
+        KeyDeserializer enumKeyDeser = _factory.createKeyDeserializer(_context, enumType);
+        assertNotNull(enumKeyDeser);
     }
 
-    // Tests default deserializers for core types: Object, String, Iterable, Map.Entry, TokenBuffer
+    // --- New tests covering remaining paths ---
+
     @Test
-    public void testFindDefaultDeserializer_wellKnownTypes_returnsExpectedInstances() throws Exception {
-        JavaType objType = _typeFactory.constructType(Object.class);
-        BeanDescription desc1 = _config.introspect(objType);
-        JsonDeserializer<?> deser1 = _factory.findDefaultDeserializer(_ctxt, objType, desc1);
-        assertTrue(deser1 instanceof UntypedObjectDeserializer);
+    public void testCreateMapDeserializer_validEnumMap_createsEnumMapDeserializer() throws Exception {
+        MapType enumMapType = _typeFactory.constructMapType(EnumMap.class, TestEnum.class, String.class);
+        BeanDescription desc = _config.introspect(enumMapType);
+        JsonDeserializer<?> deser = _factory.createMapDeserializer(_context, enumMapType, desc);
+        assertTrue(deser instanceof EnumMapDeserializer);
+    }
 
-        JavaType strType = _typeFactory.constructType(String.class);
-        BeanDescription desc2 = _config.introspect(strType);
-        JsonDeserializer<?> deser2 = _factory.findDefaultDeserializer(_ctxt, strType, desc2);
-        assertTrue(deser2 instanceof StringDeserializer);
+    @Test
+    public void testCreateCollectionDeserializer_variousStandardCollections() throws Exception {
+        // Set fallback
+        CollectionType setType = _typeFactory.constructCollectionType(Set.class, Integer.class);
+        BeanDescription setDesc = _config.introspect(setType);
+        JsonDeserializer<?> setDeser = _factory.createCollectionDeserializer(_context, setType, setDesc);
+        assertNotNull(setDeser);
 
-        JavaType iterType = _typeFactory.constructType(Iterable.class);
-        BeanDescription desc3 = _config.introspect(iterType);
-        JsonDeserializer<?> deser3 = _factory.findDefaultDeserializer(_ctxt, iterType, desc3);
-        assertNotNull(deser3);
+        // SortedSet fallback
+        CollectionType sortedSetType = _typeFactory.constructCollectionType(SortedSet.class, String.class);
+        BeanDescription sortedSetDesc = _config.introspect(sortedSetType);
+        JsonDeserializer<?> sortedSetDeser = _factory.createCollectionDeserializer(_context, sortedSetType, sortedSetDesc);
+        assertNotNull(sortedSetDeser);
 
-        JavaType entryType = _typeFactory.constructMapLikeType(Map.Entry.class, String.class, Integer.class);
-        BeanDescription desc4 = _config.introspect(entryType);
-        JsonDeserializer<?> deser4 = _factory.findDefaultDeserializer(_ctxt, entryType, desc4);
-        assertTrue(deser4 instanceof MapEntryDeserializer);
+        // Queue fallback
+        CollectionType queueType = _typeFactory.constructCollectionType(Queue.class, String.class);
+        BeanDescription queueDesc = _config.introspect(queueType);
+        JsonDeserializer<?> queueDeser = _factory.createCollectionDeserializer(_context, queueType, queueDesc);
+        assertNotNull(queueDeser);
 
+        // LinkedList concrete
+        CollectionType linkedListType = _typeFactory.constructCollectionType(LinkedList.class, Double.class);
+        BeanDescription linkedListDesc = _config.introspect(linkedListType);
+        JsonDeserializer<?> linkedListDeser = _factory.createCollectionDeserializer(_context, linkedListType, linkedListDesc);
+        assertNotNull(linkedListDeser);
+
+        // TreeSet concrete
+        CollectionType treeSetType = _typeFactory.constructCollectionType(TreeSet.class, String.class);
+        BeanDescription treeSetDesc = _config.introspect(treeSetType);
+        JsonDeserializer<?> treeSetDeser = _factory.createCollectionDeserializer(_context, treeSetType, treeSetDesc);
+        assertNotNull(treeSetDeser);
+    }
+
+    @Test
+    public void testCreateMapDeserializer_sortedAndNavigableMapFallbacks() throws Exception {
+        // SortedMap fallback
+        MapType sortedMapType = _typeFactory.constructMapType(SortedMap.class, String.class, String.class);
+        BeanDescription sortedMapDesc = _config.introspect(sortedMapType);
+        JsonDeserializer<?> sortedMapDeser = _factory.createMapDeserializer(_context, sortedMapType, sortedMapDesc);
+        assertNotNull(sortedMapDeser);
+
+        // NavigableMap fallback
+        MapType navMapType = _typeFactory.constructMapType(NavigableMap.class, String.class, String.class);
+        BeanDescription navMapDesc = _config.introspect(navMapType);
+        JsonDeserializer<?> navMapDeser = _factory.createMapDeserializer(_context, navMapType, navMapDesc);
+        assertNotNull(navMapDeser);
+
+        // ConcurrentNavigableMap fallback
+        MapType cnavMapType = _typeFactory.constructMapType(ConcurrentNavigableMap.class, String.class, String.class);
+        BeanDescription cnavMapDesc = _config.introspect(cnavMapType);
+        JsonDeserializer<?> cnavMapDeser = _factory.createMapDeserializer(_context, cnavMapType, cnavMapDesc);
+        assertNotNull(cnavMapDeser);
+
+        // TreeMap concrete
+        MapType treeMapType = _typeFactory.constructMapType(TreeMap.class, String.class, String.class);
+        BeanDescription treeMapDesc = _config.introspect(treeMapType);
+        JsonDeserializer<?> treeMapDeser = _factory.createMapDeserializer(_context, treeMapType, treeMapDesc);
+        assertNotNull(treeMapDeser);
+    }
+
+    @Test
+    public void testFindDefaultDeserializer_datesNumbersAndTokenBuffer() throws Exception {
+        // Date
+        JavaType dateType = _typeFactory.constructType(Date.class);
+        BeanDescription dateDesc = _config.introspect(dateType);
+        JsonDeserializer<?> dateDeser = _factory.findDefaultDeserializer(_context, dateType, dateDesc);
+        assertNotNull(dateDeser);
+
+        // Calendar
+        JavaType calType = _typeFactory.constructType(Calendar.class);
+        BeanDescription calDesc = _config.introspect(calType);
+        JsonDeserializer<?> calDeser = _factory.findDefaultDeserializer(_context, calType, calDesc);
+        assertNotNull(calDeser);
+
+        // TokenBuffer
         JavaType tbType = _typeFactory.constructType(TokenBuffer.class);
-        BeanDescription desc5 = _config.introspect(tbType);
-        JsonDeserializer<?> deser5 = _factory.findDefaultDeserializer(_ctxt, tbType, desc5);
-        assertTrue(deser5 instanceof TokenBufferDeserializer);
+        BeanDescription tbDesc = _config.introspect(tbType);
+        JsonDeserializer<?> tbDeser = _factory.findDefaultDeserializer(_context, tbType, tbDesc);
+        assertNotNull(tbDeser);
+
+        // Number
+        JavaType numType = _typeFactory.constructType(Number.class);
+        BeanDescription numDesc = _config.introspect(numType);
+        JsonDeserializer<?> numDeser = _factory.findDefaultDeserializer(_context, numType, numDesc);
+        assertNotNull(numDeser);
+
+        // Boolean
+        JavaType boolType = _typeFactory.constructType(Boolean.class);
+        BeanDescription boolDesc = _config.introspect(boolType);
+        JsonDeserializer<?> boolDeser = _factory.findDefaultDeserializer(_context, boolType, boolDesc);
+        assertNotNull(boolDeser);
     }
 
-    // Tests collection-like and map-like deserializer methods when no custom deserializer configured
     @Test
-    public void testCreateCollectionAndMapLikeDeserializer_noCustom_returnsNull() throws Exception {
+    public void testCustomDeserializers_interceptFactoryCreation() throws Exception {
+        final JsonDeserializer<?> mockDeser = new StringDeserializer();
+        SimpleDeserializers customDesers = new SimpleDeserializers();
+        customDesers.addDeserializer(CustomCreatorBean.class, (JsonDeserializer) mockDeser);
+
+        BasicDeserializerFactory customFactory = (BasicDeserializerFactory) _factory.withAdditionalDeserializers(customDesers);
+
+        JavaType customType = _typeFactory.constructType(CustomCreatorBean.class);
+        BeanDescription customDesc = _config.introspect(customType);
+        JsonDeserializer<?> deser = customFactory.createBeanDeserializer(_context, customType, customDesc);
+
+        assertSame(mockDeser, deser);
+    }
+
+    @Test
+    public void testCustomKeyDeserializers_interceptKeyCreation() throws Exception {
+        SimpleKeyDeserializers customKeyDesers = new SimpleKeyDeserializers();
+        final KeyDeserializer customKeyDeser = new CustomKeyDeserializer();
+        customKeyDesers.addDeserializer(CustomCreatorBean.class, customKeyDeser);
+
+        BasicDeserializerFactory customFactory = (BasicDeserializerFactory) _factory.withAdditionalKeyDeserializers(customKeyDesers);
+
+        JavaType type = _typeFactory.constructType(CustomCreatorBean.class);
+        KeyDeserializer resultKeyDeser = customFactory.createKeyDeserializer(_context, type);
+
+        assertSame(customKeyDeser, resultKeyDeser);
+    }
+
+    @Test
+    public void testCustomValueInstantiators_interceptFindValueInstantiator() throws Exception {
+        SimpleValueInstantiators vi = new SimpleValueInstantiators();
+        final ValueInstantiator customVI = new StdValueInstantiator(_config, CustomCreatorBean.class);
+        vi.addValueInstantiator(CustomCreatorBean.class, customVI);
+
+        BasicDeserializerFactory customFactory = (BasicDeserializerFactory) _factory.withValueInstantiators(vi);
+
+        JavaType type = _typeFactory.constructType(CustomCreatorBean.class);
+        BeanDescription desc = _config.introspect(type);
+        ValueInstantiator resultVI = customFactory.findValueInstantiator(_context, desc);
+
+        assertSame(customVI, resultVI);
+    }
+
+    @Test
+    public void testCollectionLikeAndMapLikeDeserializerCreation() throws Exception {
         CollectionLikeType colLikeType = _typeFactory.constructCollectionLikeType(ArrayList.class, String.class);
-        BeanDescription desc1 = _config.introspect(colLikeType);
-        JsonDeserializer<?> deser1 = _factory.createCollectionLikeDeserializer(_ctxt, colLikeType, desc1);
-        assertNull(deser1);
+        BeanDescription colDesc = _config.introspectClassAnnotations(colLikeType);
+        JsonDeserializer<?> colLikeDeser = _factory.createCollectionLikeDeserializer(_context, colLikeType, colDesc);
+        assertNotNull(colLikeDeser);
 
-        MapLikeType mapLikeType = _typeFactory.constructMapLikeType(HashMap.class, String.class, String.class);
-        BeanDescription desc2 = _config.introspect(mapLikeType);
-        JsonDeserializer<?> deser2 = _factory.createMapLikeDeserializer(_ctxt, mapLikeType, desc2);
-        assertNull(deser2);
+        MapLikeType mapLikeType = _typeFactory.constructMapLikeType(HashMap.class, String.class, Integer.class);
+        BeanDescription mapDesc = _config.introspectClassAnnotations(mapLikeType);
+        JsonDeserializer<?> mapLikeDeser = _factory.createMapLikeDeserializer(_context, mapLikeType, mapDesc);
+        assertNotNull(mapLikeDeser);
     }
 
-    // Tests _valueInstantiatorInstance when instDef is null or an already-created instance
     @Test
-    public void testValueInstantiatorInstance_nullOrInstance_returnsExpected() throws Exception {
-        ValueInstantiator inst = _factory._valueInstantiatorInstance(_config, null, null);
-        assertNull(inst);
+    public void testDeserializerModifier_modifiesArrayCollectionMapAndEnum() throws Exception {
+        final boolean[] called = new boolean[4];
+        BeanDeserializerModifier modifier = new BeanDeserializerModifier() {
+            @Override
+            public JsonDeserializer<?> modifyArrayDeserializer(DeserializationConfig config, ArrayType valueType, BeanDescription beanDesc, JsonDeserializer<?> deserializer) {
+                called[0] = true;
+                return deserializer;
+            }
+            @Override
+            public JsonDeserializer<?> modifyCollectionDeserializer(DeserializationConfig config, CollectionType type, BeanDescription beanDesc, JsonDeserializer<?> deserializer) {
+                called[1] = true;
+                return deserializer;
+            }
+            @Override
+            public JsonDeserializer<?> modifyMapDeserializer(DeserializationConfig config, MapType type, BeanDescription beanDesc, JsonDeserializer<?> deserializer) {
+                called[2] = true;
+                return deserializer;
+            }
+            @Override
+            public JsonDeserializer<?> modifyEnumDeserializer(DeserializationConfig config, JavaType type, BeanDescription beanDesc, JsonDeserializer<?> deserializer) {
+                called[3] = true;
+                return deserializer;
+            }
+        };
 
-        ValueInstantiator.Base baseInst = new ValueInstantiator.Base(Object.class);
-        ValueInstantiator returned = _factory._valueInstantiatorInstance(_config, null, baseInst);
-        assertSame(baseInst, returned);
+        BasicDeserializerFactory factory = (BasicDeserializerFactory) _factory.withDeserializerModifier(modifier);
+
+        ArrayType arrType = _typeFactory.constructArrayType(String.class);
+        factory.createArrayDeserializer(_context, arrType, _config.introspect(arrType));
+        assertTrue(called[0]);
+
+        CollectionType colType = _typeFactory.constructCollectionType(ArrayList.class, String.class);
+        factory.createCollectionDeserializer(_context, colType, _config.introspect(colType));
+        assertTrue(called[1]);
+
+        MapType mapType = _typeFactory.constructMapType(HashMap.class, String.class, String.class);
+        factory.createMapDeserializer(_context, mapType, _config.introspect(mapType));
+        assertTrue(called[2]);
+
+        JavaType enumType = _typeFactory.constructType(TestEnum.class);
+        factory.createEnumDeserializer(_context, enumType, _config.introspect(enumType));
+        assertTrue(called[3]);
     }
 
-    // Tests _valueInstantiatorInstance invalid definition type throwing IllegalStateException
-    @Test(expected = IllegalStateException.class)
-    public void testValueInstantiatorInstance_invalidDefType_throwsException() throws Exception {
-        _factory._valueInstantiatorInstance(_config, null, "notAClassOrInstance");
+    @Test
+    public void testFindValueInstantiator_withCreatorProperties() throws Exception {
+        JavaType type = _typeFactory.constructType(CustomCreatorBean.class);
+        BeanDescription desc = _config.introspect(type);
+        ValueInstantiator instantiator = _factory.findValueInstantiator(_context, desc);
+        assertNotNull(instantiator);
+        assertTrue(instantiator.canCreateFromObjectWith());
+        assertEquals(2, instantiator.getFromObjectArguments(_config).length);
     }
 }

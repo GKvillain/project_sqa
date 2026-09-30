@@ -1,17 +1,19 @@
 package org.mockito.internal.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.exceptions.misusing.NotAMockException;
 import org.mockito.internal.MockHandlerInterface;
 import org.mockito.internal.creation.MockSettingsImpl;
-import org.mockito.stubbing.Answer;
-import org.mockito.invocation.InvocationOnMock;
-
-import java.io.Serializable;
-import java.util.List;
-
-import static org.junit.Assert.*;
 
 public class MockUtilTest {
 
@@ -22,119 +24,126 @@ public class MockUtilTest {
         mockUtil = new MockUtil();
     }
 
-    // Tests isMock with null input
+    // Tests creating mock for standard interface
+    @Test
+    public void testCreateMock_interfaceClass_returnsMockInstance() {
+        MockSettingsImpl settings = new MockSettingsImpl();
+        List<?> mock = mockUtil.createMock(List.class, settings);
+
+        assertNotNull(mock);
+        assertTrue(mockUtil.isMock(mock));
+    }
+
+    // Tests creating mock for concrete class
+    @Test
+    public void testCreateMock_concreteClass_returnsMockInstance() {
+        MockSettingsImpl settings = new MockSettingsImpl();
+        ArrayList<?> mock = mockUtil.createMock(ArrayList.class, settings);
+
+        assertNotNull(mock);
+        assertTrue(mockUtil.isMock(mock));
+    }
+
+    // Tests creating mock with extra interfaces
+    @Test
+    public void testCreateMock_withExtraInterfaces_implementsInterfaces() {
+        MockSettingsImpl settings = new MockSettingsImpl();
+        settings.extraInterfaces(Serializable.class);
+        List<?> mock = mockUtil.createMock(List.class, settings);
+
+        assertNotNull(mock);
+        assertTrue(mock instanceof Serializable);
+        assertTrue(mockUtil.isMock(mock));
+    }
+
+    // Tests creating mock with spied instance copies state
+    @Test
+    public void testCreateMock_withSpiedInstance_createsMockSpy() {
+        ArrayList<String> spied = new ArrayList<String>();
+        spied.add("item");
+
+        MockSettingsImpl settings = new MockSettingsImpl();
+        settings.spiedInstance(spied);
+
+        ArrayList<?> mock = mockUtil.createMock(ArrayList.class, settings);
+
+        assertNotNull(mock);
+        assertTrue(mockUtil.isMock(mock));
+    }
+
+    // Tests isMock returns true for valid mock
+    @Test
+    public void testIsMock_validMock_returnsTrue() {
+        MockSettingsImpl settings = new MockSettingsImpl();
+        List<?> mock = mockUtil.createMock(List.class, settings);
+
+        assertTrue(mockUtil.isMock(mock));
+    }
+
+    // Tests isMock returns false for null input
     @Test
     public void testIsMock_nullInput_returnsFalse() {
         assertFalse(mockUtil.isMock(null));
     }
 
-    // Tests isMock with non-mock object
+    // Tests isMock returns false for non-mock standard object
     @Test
-    public void testIsMock_nonMockObject_returnsFalse() {
-        assertFalse(mockUtil.isMock("A regular string"));
+    public void testIsMock_regularObject_returnsFalse() {
+        assertFalse(mockUtil.isMock("regularString"));
         assertFalse(mockUtil.isMock(new Object()));
     }
 
-    // Tests isMock with valid mock instance
+    // Tests getMockHandler returns valid handler for mock
     @Test
-    public void testIsMock_validMock_returnsTrue() {
+    public void testGetMockHandler_validMock_returnsMockHandler() {
         MockSettingsImpl settings = new MockSettingsImpl();
-        List<?> mockList = mockUtil.createMock(List.class, settings);
+        List<?> mock = mockUtil.createMock(List.class, settings);
 
-        assertTrue(mockUtil.isMock(mockList));
-    }
-
-    // Tests getMockHandler with null input
-    @Test(expected = NotAMockException.class)
-    public void testGetMockHandler_nullInput_throwsNotAMockException() {
-        mockUtil.getMockHandler(null);
-    }
-
-    // Tests getMockHandler with non-mock object
-    @Test(expected = NotAMockException.class)
-    public void testGetMockHandler_nonMockObject_throwsNotAMockException() {
-        mockUtil.getMockHandler("Not a mock");
-    }
-
-    // Tests getMockHandler with valid mock
-    @Test
-    public void testGetMockHandler_validMock_returnsHandler() {
-        MockSettingsImpl settings = new MockSettingsImpl();
-        List<?> mockList = mockUtil.createMock(List.class, settings);
-
-        MockHandlerInterface<?> handler = mockUtil.getMockHandler(mockList);
+        MockHandlerInterface<?> handler = mockUtil.getMockHandler(mock);
 
         assertNotNull(handler);
         assertNotNull(handler.getMockSettings());
     }
 
-    // Tests getMockName with valid mock
+    // Tests getMockHandler throws NotAMockException on null input
+    @Test(expected = NotAMockException.class)
+    public void testGetMockHandler_nullInput_throwsException() {
+        mockUtil.getMockHandler(null);
+    }
+
+    // Tests getMockHandler throws NotAMockException on non-mock object
+    @Test(expected = NotAMockException.class)
+    public void testGetMockHandler_nonMockObject_throwsException() {
+        mockUtil.getMockHandler(new ArrayList<String>());
+    }
+
+    // Tests resetMock resets callback on existing mock
+    @Test
+    public void testResetMock_validMock_resetsSuccessfully() {
+        MockSettingsImpl settings = new MockSettingsImpl();
+        List<?> mock = mockUtil.createMock(List.class, settings);
+
+        mockUtil.resetMock(mock);
+
+        assertTrue(mockUtil.isMock(mock));
+        assertNotNull(mockUtil.getMockHandler(mock));
+    }
+
+    // Tests getMockName returns non-null MockName
     @Test
     public void testGetMockName_validMock_returnsMockName() {
         MockSettingsImpl settings = new MockSettingsImpl();
-        List<?> mockList = mockUtil.createMock(List.class, settings);
-
-        MockName mockName = mockUtil.getMockName(mockList);
-
-        assertNotNull(mockName);
-        assertTrue(mockName.toString().contains("list"));
-    }
-
-    // Tests createMock with a class type
-    @Test
-    public void testCreateMock_classType_createsMockSuccessfully() {
-        SampleClass mock = mockUtil.createMock(SampleClass.class, new MockSettingsImpl());
-
-        assertNotNull(mock);
-        assertTrue(mockUtil.isMock(mock));
-    }
-
-    // Tests createMock with extra interfaces
-    @Test
-    public void testCreateMock_extraInterfaces_implementsInterfaces() {
-        MockSettingsImpl settings = new MockSettingsImpl();
-        settings.extraInterfaces(Serializable.class);
-
         List<?> mock = mockUtil.createMock(List.class, settings);
 
-        assertNotNull(mock);
-        assertTrue(mockUtil.isMock(mock));
-        assertTrue(mock instanceof Serializable);
-    }
+        MockName mockName = mockUtil.getMockName(mock);
 
-    // Tests createMock with spied instance
-    @Test
-    public void testCreateMock_withSpiedInstance_createsSpy() {
-        SampleClass toSpy = new SampleClass();
-        toSpy.setValue("test-value");
-
-        MockSettingsImpl settings = new MockSettingsImpl();
-        settings.spiedInstance(toSpy);
-
-        SampleClass spy = mockUtil.createMock(SampleClass.class, settings);
-
-        assertNotNull(spy);
-        assertTrue(mockUtil.isMock(spy));
-        assertEquals("test-value", spy.getValue());
-    }
-
-    // Tests resetMock with valid mock
-    @Test
-    public void testResetMock_validMock_resetsHandler() {
-        MockSettingsImpl settings = new MockSettingsImpl();
-        List<?> mockList = mockUtil.createMock(List.class, settings);
-
-        MockHandlerInterface<?> oldHandler = mockUtil.getMockHandler(mockList);
-        mockUtil.resetMock(mockList);
-        MockHandlerInterface<?> newHandler = mockUtil.getMockHandler(mockList);
-
-        assertNotNull(newHandler);
-        assertNotSame(oldHandler, newHandler);
+        assertNotNull(mockName);
+        assertNotNull(mockName.toString());
     }
 
     // Tests custom CreationValidator constructor
     @Test
-    public void testConstructor_customCreationValidator_initializedCorrectly() {
+    public void testConstructor_customCreationValidator_createsMockCorrectly() {
         CreationValidator validator = new CreationValidator();
         MockUtil customMockUtil = new MockUtil(validator);
 
@@ -145,69 +154,52 @@ public class MockUtilTest {
         assertTrue(customMockUtil.isMock(mock));
     }
 
-    // Tests createMock with serializable setting enabled
+    // Tests resetMock throws NotAMockException on null input
+    @Test(expected = NotAMockException.class)
+    public void testResetMock_nullInput_throwsException() {
+        mockUtil.resetMock(null);
+    }
+
+    // Tests resetMock throws NotAMockException on non-mock object
+    @Test(expected = NotAMockException.class)
+    public void testResetMock_nonMockObject_throwsException() {
+        mockUtil.resetMock(new Object());
+    }
+
+    // Tests getMockName throws NotAMockException on null input
+    @Test(expected = NotAMockException.class)
+    public void testGetMockName_nullInput_throwsException() {
+        mockUtil.getMockName(null);
+    }
+
+    // Tests getMockName throws NotAMockException on non-mock object
+    @Test(expected = NotAMockException.class)
+    public void testGetMockName_nonMockObject_throwsException() {
+        mockUtil.getMockName(new Object());
+    }
+
+    // Tests getMockName returns configured mock name
     @Test
-    public void testCreateMock_serializable_implementsSerializable() {
+    public void testGetMockName_customName_returnsConfiguredMockName() {
+        MockSettingsImpl settings = new MockSettingsImpl();
+        settings.name("customMockName");
+        List<?> mock = mockUtil.createMock(List.class, settings);
+
+        MockName mockName = mockUtil.getMockName(mock);
+
+        assertNotNull(mockName);
+        assertEquals("customMockName", mockName.toString());
+    }
+
+    // Tests creating mock with serializable setting
+    @Test
+    public void testCreateMock_serializableSetting_implementsSerializable() {
         MockSettingsImpl settings = new MockSettingsImpl();
         settings.serializable();
-
         List<?> mock = mockUtil.createMock(List.class, settings);
 
         assertNotNull(mock);
-        assertTrue(mockUtil.isMock(mock));
         assertTrue(mock instanceof Serializable);
-    }
-
-    // Tests createMock with serializable and extra interfaces
-    @Test
-    public void testCreateMock_serializableAndExtraInterfaces_implementsAll() {
-        MockSettingsImpl settings = new MockSettingsImpl();
-        settings.serializable();
-        settings.extraInterfaces(Cloneable.class);
-
-        List<?> mock = mockUtil.createMock(List.class, settings);
-
-        assertNotNull(mock);
         assertTrue(mockUtil.isMock(mock));
-        assertTrue(mock instanceof Serializable);
-        assertTrue(mock instanceof Cloneable);
-    }
-
-    // Tests createMock with custom name
-    @Test
-    public void testCreateMock_customMockName_returnsCustomName() {
-        MockSettingsImpl settings = new MockSettingsImpl();
-        settings.name("myCustomMock");
-
-        List<?> mock = mockUtil.createMock(List.class, settings);
-
-        assertEquals("myCustomMock", mockUtil.getMockName(mock).toString());
-    }
-
-    // Tests createMock with custom default answer
-    @Test
-    public void testCreateMock_withDefaultAnswer_usesConfiguredAnswer() {
-        MockSettingsImpl settings = new MockSettingsImpl();
-        settings.defaultAnswer(new Answer<Object>() {
-            public Object answer(InvocationOnMock invocation) {
-                return "custom_default";
-            }
-        });
-
-        SampleClass mock = mockUtil.createMock(SampleClass.class, settings);
-
-        assertEquals("custom_default", mock.getValue());
-    }
-
-    public static class SampleClass {
-        private String value;
-
-        public String getValue() {
-            return value;
-        }
-
-        public void setValue(String value) {
-            this.value = value;
-        }
     }
 }
