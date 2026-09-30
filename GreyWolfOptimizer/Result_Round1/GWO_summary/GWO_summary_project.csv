@@ -1,0 +1,5 @@
+﻿Project,Bugs,Avg_Time_s,Avg_Generation,Avg_Tests,Avg_Line_Coverage,Avg_Branch_Coverage,Avg_Exception_Coverage,Avg_Mutation_Coverage,Avg_Output_Coverage,Avg_Method_Coverage,Avg_CBranch_Coverage,Avg_Overall_Coverage
+Cli,39,966.0,,,90.61,84.74,99.87,47.29,63.89,99.45,83.16,
+Lang,8,,,,,,,,,,,
+Math,106,2159.0,,,86.4,84.21,99.83,46.39,61.94,92.28,80.78,
+Time,13,,,,,,,,,,,
