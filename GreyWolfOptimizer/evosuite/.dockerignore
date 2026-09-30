@@ -1,7 +1,0 @@
-# The following files and directories will be ignored
-# when copying the project to the container
-
-.git
-.github
-*.md
-

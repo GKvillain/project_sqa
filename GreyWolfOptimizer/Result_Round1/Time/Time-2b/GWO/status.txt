@@ -1,3 +1,0 @@
-FAILED_NO_TESTS
-EXIT_CODE=0
-TARGET_CLASS=org.joda.time.field.UnsupportedDurationField
