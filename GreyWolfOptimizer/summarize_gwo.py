@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
+from pathlib import Path
 import csv
 import re
-from pathlib import Path
-from statistics import mean
+import statistics
+
 
 # ============================================================
 # CONFIG
@@ -12,26 +13,40 @@ from statistics import mean
 RESULT_ROOT = Path(__file__).resolve().parent / "Result_Round1"
 OUTPUT_DIR = RESULT_ROOT / "GWO_summary"
 
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+PROJECT_NAMES = {
+    "Chart",
+    "Cli",
+    "Closure",
+    "Codec",
+    "Collections",
+    "Compress",
+    "Csv",
+    "Gson",
+    "JacksonCore",
+    "JacksonDatabind",
+    "JacksonXml",
+    "Jsoup",
+    "JxPath",
+    "Lang",
+    "Math",
+    "Mockito",
+    "Time",
+}
 
 
 # ============================================================
-# HELPERS
+# UTILITY
 # ============================================================
 
 def to_float(value):
     if value is None:
         return None
 
-    value = str(value).strip()
-    if not value:
-        return None
-
-    value = value.replace("%", "").replace(",", "")
-
     try:
+        value = str(value).strip()
+        value = value.replace("%", "")
         return float(value)
-    except ValueError:
+    except (ValueError, TypeError):
         return None
 
 
@@ -39,389 +54,493 @@ def to_int(value):
     if value is None:
         return None
 
-    value = str(value).strip().replace(",", "")
-
     try:
-        return int(float(value))
-    except ValueError:
+        return int(float(str(value).strip()))
+    except (ValueError, TypeError):
         return None
 
 
 def avg(values):
-    values = [v for v in values if v is not None]
+    values = [
+        float(v)
+        for v in values
+        if v is not None
+    ]
 
     if not values:
         return None
 
-    return sum(values) / len(values)
+    return statistics.mean(values)
 
 
-def fmt(value, digits=2):
+def fmt(value, digits=4):
     if value is None:
         return ""
 
-    return round(value, digits)
+    if isinstance(value, float):
+        return f"{value:.{digits}f}"
+
+    return str(value)
 
 
-def find_value(text, patterns, cast=to_float):
+def find_value(text, patterns, converter=None):
     """
-    ค้นค่าจากหลายรูปแบบของ log
+    Try several regex patterns and return the first match.
     """
 
     for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+        match = re.search(
+            pattern,
+            text,
+            re.IGNORECASE | re.MULTILINE
+        )
 
         if match:
-            try:
-                return cast(match.group(1))
-            except Exception:
-                pass
+            value = match.group(1).strip()
+
+            if converter:
+                return converter(value)
+
+            return value
 
     return None
 
 
 # ============================================================
-# PARSE TERMINAL LOG
+# PROJECT / BUG DETECTION
+# ============================================================
+
+def detect_project_bug(log_path):
+    """
+    Detect project and bug number from the path.
+
+    Example paths supported:
+
+        Chart/Chart-1b/...
+        Chart/Chart-1f/...
+        Cli/Cli-10b/...
+        JacksonCore/JacksonCore-5b/...
+        Math/Math-12b/...
+    """
+
+    parts = log_path.parts
+
+    project = ""
+
+    # --------------------------------------------------------
+    # Find project name
+    # --------------------------------------------------------
+
+    for part in parts:
+        if part in PROJECT_NAMES:
+            project = part
+            break
+
+    # --------------------------------------------------------
+    # Find bug
+    # --------------------------------------------------------
+
+    bug = ""
+
+    if project:
+        bug_pattern = re.compile(
+            rf"^{re.escape(project)}-(\d+)(?:b|f)$",
+            re.IGNORECASE
+        )
+
+        for part in parts:
+            match = bug_pattern.match(part)
+
+            if match:
+                bug_number = match.group(1)
+                bug = f"{bug_number}b"
+                break
+
+    # --------------------------------------------------------
+    # Fallback:
+    # Search anywhere in the path
+    # --------------------------------------------------------
+
+    if not bug:
+        for part in parts:
+            match = re.search(
+                r"-(\d+)(?:b|f)$",
+                part,
+                re.IGNORECASE
+            )
+
+            if match:
+                bug = f"{match.group(1)}b"
+                break
+
+    return project, bug
+
+
+# ============================================================
+# PARSE TERMINAL.LOG
 # ============================================================
 
 def parse_terminal_log(log_path):
 
-    text = log_path.read_text(
-        encoding="utf-8",
-        errors="ignore"
-    )
+    try:
+        text = log_path.read_text(
+            encoding="utf-8",
+            errors="ignore"
+        )
+    except Exception as e:
+        print(f"[WARN] อ่านไม่ได้: {log_path}")
+        print(f"       {e}")
+        return None
+
+    project, bug = detect_project_bug(log_path)
 
     # --------------------------------------------------------
     # Basic information
     # --------------------------------------------------------
 
-    project = ""
-    bug = ""
-    algorithm = "GWO"
+    algorithm = find_value(
+        text,
+        [
+            r"Algorithm\s*[:=]\s*(.+)",
+            r"algorithm\s*[:=]\s*(.+)",
+        ]
+    )
 
-    # ตัวอย่าง path:
-    # Result_Round1/Chart/Chart-10b/GWO/terminal.log
+    if not algorithm:
+        algorithm = "GWO"
 
-    parts = log_path.parts
+    seed = find_value(
+        text,
+        [
+            r"Seed\s*[:=]\s*(\d+)",
+            r"seed\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
 
-    try:
-        gwo_index = parts.index("GWO")
+    population = find_value(
+        text,
+        [
+            r"Population\s*[:=]\s*(\d+)",
+            r"population\s*[:=]\s*(\d+)",
+            r"pop(?:ulation)?\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
 
-        bug_dir = parts[gwo_index - 1]
-        project = parts[gwo_index - 2]
+    iterations = find_value(
+        text,
+        [
+            r"GWO[_ ]?Iterations?\s*[:=]\s*(\d+)",
+            r"Iterations?\s*[:=]\s*(\d+)",
+            r"iterations?\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
 
-        bug_match = re.search(
-            rf"{re.escape(project)}-(\d+)b",
-            bug_dir,
-            re.IGNORECASE
-        )
-
-        if bug_match:
-            bug = f"{bug_match.group(1)}b"
-
-    except Exception:
-        pass
+    gwo_a = find_value(
+        text,
+        [
+            r"GWO[_ ]?a\s*[:=]\s*([0-9.eE+-]+)",
+            r"\ba\s*[:=]\s*([0-9.eE+-]+)",
+        ],
+        to_float
+    )
 
     # --------------------------------------------------------
-    # Search values
+    # Time / generation / tests
     # --------------------------------------------------------
 
-    result = {
+    time_s = find_value(
+        text,
+        [
+            r"Time\s*[:=]\s*([0-9.]+)\s*s",
+            r"Time[_ ]?s\s*[:=]\s*([0-9.]+)",
+            r"Elapsed\s*[:=]\s*([0-9.]+)\s*s",
+            r"Elapsed[_ ]?time\s*[:=]\s*([0-9.]+)",
+            r"Runtime\s*[:=]\s*([0-9.]+)\s*s",
+        ],
+        to_float
+    )
+
+    generation = find_value(
+        text,
+        [
+            r"Generation\s*[:=]\s*(\d+)",
+            r"Generations?\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
+
+    tests = find_value(
+        text,
+        [
+            r"Tests?\s*[:=]\s*(\d+)",
+            r"Test\s*Cases?\s*[:=]\s*(\d+)",
+            r"TestSuite\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
+
+    statements = find_value(
+        text,
+        [
+            r"Statements?\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
+
+    fitness = find_value(
+        text,
+        [
+            r"Fitness\s*[:=]\s*([0-9.eE+-]+)",
+        ],
+        to_float
+    )
+
+    # --------------------------------------------------------
+    # Coverage
+    # --------------------------------------------------------
+
+    line_coverage = find_value(
+        text,
+        [
+            r"Line[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+        ],
+        to_float
+    )
+
+    branch_coverage = find_value(
+        text,
+        [
+            r"Branch[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+        ],
+        to_float
+    )
+
+    exception_coverage = find_value(
+        text,
+        [
+            r"Exception[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+        ],
+        to_float
+    )
+
+    mutation_coverage = find_value(
+        text,
+        [
+            r"Mutation[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+        ],
+        to_float
+    )
+
+    output_coverage = find_value(
+        text,
+        [
+            r"Output[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+        ],
+        to_float
+    )
+
+    method_coverage = find_value(
+        text,
+        [
+            r"Method[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+        ],
+        to_float
+    )
+
+    cbranch_coverage = find_value(
+        text,
+        [
+            r"CBranch[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+            r"Condition[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+        ],
+        to_float
+    )
+
+    overall_coverage = find_value(
+        text,
+        [
+            r"Overall[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+            r"Total[_ ]?Coverage\s*[:=]\s*([0-9.]+)%?",
+        ],
+        to_float
+    )
+
+    # --------------------------------------------------------
+    # Goals
+    # --------------------------------------------------------
+
+    line_goals = find_value(
+        text,
+        [
+            r"Line[_ ]?Goals\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
+
+    line_covered_goals = find_value(
+        text,
+        [
+            r"Line[_ ]?Covered[_ ]?Goals\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
+
+    branch_goals = find_value(
+        text,
+        [
+            r"Branch[_ ]?Goals\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
+
+    branch_covered_goals = find_value(
+        text,
+        [
+            r"Branch[_ ]?Covered[_ ]?Goals\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
+
+    mutation_goals = find_value(
+        text,
+        [
+            r"Mutation[_ ]?Goals\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
+
+    mutation_covered_goals = find_value(
+        text,
+        [
+            r"Mutation[_ ]?Covered[_ ]?Goals\s*[:=]\s*(\d+)",
+        ],
+        to_int
+    )
+
+    # --------------------------------------------------------
+    # Status
+    # --------------------------------------------------------
+
+    compile_ok = ""
+
+    if re.search(
+        r"compile.*(?:success|ok|passed|successful)",
+        text,
+        re.IGNORECASE
+    ):
+        compile_ok = "YES"
+    elif re.search(
+        r"compile.*(?:fail|error)",
+        text,
+        re.IGNORECASE
+    ):
+        compile_ok = "NO"
+
+    generation_ok = ""
+
+    if re.search(
+        r"(?:generation|generate).*(?:success|ok|passed|successful)",
+        text,
+        re.IGNORECASE
+    ):
+        generation_ok = "YES"
+    elif re.search(
+        r"(?:generation|generate).*(?:fail|error)",
+        text,
+        re.IGNORECASE
+    ):
+        generation_ok = "NO"
+
+    # --------------------------------------------------------
+    # Return
+    # --------------------------------------------------------
+
+    return {
         "Project": project,
         "Bug": bug,
         "Algorithm": algorithm,
-        "Log_File": str(log_path),
+        "Seed": seed,
+        "Population": population,
+        "GWO_Iterations": iterations,
+        "GWO_a": gwo_a,
 
-        # GWO
-        "Seed": find_value(
-            text,
-            [
-                r"seed\s*[:=]\s*(\d+)",
-                r"random\s+seed\s*[:=]\s*(\d+)"
-            ],
-            to_int
-        ),
+        "Time_s": time_s,
+        "Generation": generation,
+        "Tests": tests,
+        "Statements": statements,
+        "Fitness": fitness,
 
-        "Population": find_value(
-            text,
-            [
-                r"population\s*[:=]\s*(\d+)",
-                r"population\s+size\s*[:=]\s*(\d+)"
-            ],
-            to_int
-        ),
+        "Line_Coverage": line_coverage,
+        "Branch_Coverage": branch_coverage,
+        "Exception_Coverage": exception_coverage,
+        "Mutation_Coverage": mutation_coverage,
+        "Output_Coverage": output_coverage,
+        "Method_Coverage": method_coverage,
+        "CBranch_Coverage": cbranch_coverage,
+        "Overall_Coverage": overall_coverage,
 
-        "GWO_Iterations": find_value(
-            text,
-            [
-                r"iterations?\s*[:=]\s*(\d+)",
-                r"gwo\s+iterations?\s*[:=]\s*(\d+)"
-            ],
-            to_int
-        ),
+        "Line_Goals": line_goals,
+        "Line_Covered_Goals": line_covered_goals,
+        "Branch_Goals": branch_goals,
+        "Branch_Covered_Goals": branch_covered_goals,
+        "Mutation_Goals": mutation_goals,
+        "Mutation_Covered_Goals": mutation_covered_goals,
 
-        "GWO_a": find_value(
-            text,
-            [
-                r"\ba\s*[:=]\s*([0-9.]+)"
-            ],
-            to_float
-        ),
+        "Compile_OK": compile_ok,
+        "Generation_OK": generation_ok,
 
-        # ----------------------------------------------------
-        # Time
-        # ----------------------------------------------------
-
-        "Time_s": find_value(
-            text,
-            [
-                r"(?:time|elapsed\s*time|duration)\s*[:=]\s*([0-9.]+)\s*(?:s|sec|seconds)?",
-                r"([0-9.]+)\s*seconds"
-            ],
-            to_float
-        ),
-
-        # ----------------------------------------------------
-        # Generation
-        # ----------------------------------------------------
-
-        "Generation": find_value(
-            text,
-            [
-                r"generation\s*[:=]\s*(\d+)",
-                r"generations?\s*[:=]\s*(\d+)"
-            ],
-            to_int
-        ),
-
-        # ----------------------------------------------------
-        # Tests
-        # ----------------------------------------------------
-
-        "Tests": find_value(
-            text,
-            [
-                r"(?:tests?|test\s+cases?)\s*[:=]\s*(\d+)",
-                r"test\s+suite\s+size\s*[:=]\s*(\d+)"
-            ],
-            to_int
-        ),
-
-        # ----------------------------------------------------
-        # Statements
-        # ----------------------------------------------------
-
-        "Statements": find_value(
-            text,
-            [
-                r"statements?\s*[:=]\s*(\d+)"
-            ],
-            to_int
-        ),
-
-        # ----------------------------------------------------
-        # Fitness
-        # ----------------------------------------------------
-
-        "Fitness": find_value(
-            text,
-            [
-                r"fitness\s*[:=]\s*([0-9.]+)"
-            ],
-            to_float
-        ),
-
-        # ----------------------------------------------------
-        # Coverage
-        # ----------------------------------------------------
-
-        "Line_Coverage": find_value(
-            text,
-            [
-                r"line\s+coverage\s*[:=]\s*([0-9.]+)%?",
-                r"line\s*[:=]\s*([0-9.]+)%"
-            ]
-        ),
-
-        "Branch_Coverage": find_value(
-            text,
-            [
-                r"branch\s+coverage\s*[:=]\s*([0-9.]+)%?",
-                r"branch\s*[:=]\s*([0-9.]+)%"
-            ]
-        ),
-
-        "Exception_Coverage": find_value(
-            text,
-            [
-                r"exception\s+coverage\s*[:=]\s*([0-9.]+)%?",
-                r"exception\s*[:=]\s*([0-9.]+)%"
-            ]
-        ),
-
-        "Mutation_Coverage": find_value(
-            text,
-            [
-                r"mutation\s+(?:score|coverage)\s*[:=]\s*([0-9.]+)%?",
-                r"mutation\s*[:=]\s*([0-9.]+)%"
-            ]
-        ),
-
-        "Output_Coverage": find_value(
-            text,
-            [
-                r"output\s+coverage\s*[:=]\s*([0-9.]+)%?",
-                r"output\s*[:=]\s*([0-9.]+)%"
-            ]
-        ),
-
-        "Method_Coverage": find_value(
-            text,
-            [
-                r"method\s+coverage\s*[:=]\s*([0-9.]+)%?",
-                r"method\s*[:=]\s*([0-9.]+)%"
-            ]
-        ),
-
-        "CBranch_Coverage": find_value(
-            text,
-            [
-                r"cbranch\s+coverage\s*[:=]\s*([0-9.]+)%?",
-                r"cbranch\s*[:=]\s*([0-9.]+)%"
-            ]
-        ),
-
-        "Overall_Coverage": find_value(
-            text,
-            [
-                r"overall\s+coverage\s*[:=]\s*([0-9.]+)%?",
-                r"overall\s*[:=]\s*([0-9.]+)%"
-            ]
-        ),
-
-        # ----------------------------------------------------
-        # Goals
-        # ----------------------------------------------------
-
-        "Line_Goals": find_value(
-            text,
-            [
-                r"(\d+)\s+line\s+goals"
-            ],
-            to_int
-        ),
-
-        "Line_Covered_Goals": find_value(
-            text,
-            [
-                r"line\s+goals.*?(\d+)\s+(?:covered|cover)"
-            ],
-            to_int
-        ),
-
-        "Branch_Goals": find_value(
-            text,
-            [
-                r"(\d+)\s+branch\s+goals"
-            ],
-            to_int
-        ),
-
-        "Branch_Covered_Goals": find_value(
-            text,
-            [
-                r"branch\s+goals.*?(\d+)\s+(?:covered|cover)"
-            ],
-            to_int
-        ),
-
-        "Mutation_Goals": find_value(
-            text,
-            [
-                r"(\d+)\s+(?:weak-)?mutation\s+goals"
-            ],
-            to_int
-        ),
-
-        "Mutation_Covered_Goals": find_value(
-            text,
-            [
-                r"(?:mutation\s+goals).*?(\d+)\s+(?:covered|cover)"
-            ],
-            to_int
-        ),
-
-        # ----------------------------------------------------
-        # Status
-        # ----------------------------------------------------
-
-        "Compile_OK": (
-            "true"
-            if re.search(
-                r"(compile|compilation).*(success|successful|ok|passed)",
-                text,
-                re.IGNORECASE
-            )
-            else ""
-        ),
-
-        "Generation_OK": (
-            "true"
-            if re.search(
-                r"(generation|generated).*(success|successful|ok|completed)",
-                text,
-                re.IGNORECASE
-            )
-            else ""
-        ),
+        "Log_File": str(log_path.relative_to(RESULT_ROOT)),
     }
-
-    return result
 
 
 # ============================================================
-# FIND ALL LOGS
+# COLLECT ALL LOGS
 # ============================================================
 
 def collect_results():
 
-    results = []
-
-    if not RESULT_ROOT.exists():
-        print(f"[ERROR] ไม่พบโฟลเดอร์:")
-        print(f"        {RESULT_ROOT}")
-        return results
-
     logs = list(
-        RESULT_ROOT.glob("**/GWO/terminal.log")
+        RESULT_ROOT.glob("**/terminal.log")
     )
 
-    print(f"[INFO] พบ terminal.log จำนวน {len(logs)} ไฟล์")
+    # Do not parse generated summary files
+    logs = [
+        log for log in logs
+        if "GWO_summary" not in log.parts
+    ]
 
-    for log in sorted(logs):
+    print(f"พบ terminal.log ทั้งหมด: {len(logs)}")
 
-        print(f"[READ] {log}")
+    rows = []
 
-        try:
-            data = parse_terminal_log(log)
-            results.append(data)
+    for index, log_path in enumerate(
+        sorted(logs),
+        start=1
+    ):
 
-        except Exception as e:
-            print(f"[ERROR] {log}")
-            print(f"        {e}")
+        row = parse_terminal_log(log_path)
 
-    return results
+        if row:
+            rows.append(row)
+
+        if index % 100 == 0:
+            print(
+                f"  parsed {index}/{len(logs)}"
+            )
+
+    return rows
 
 
 # ============================================================
-# WRITE CSV
+# CSV WRITER
 # ============================================================
 
-def write_csv(filename, rows, columns):
+def write_csv(path, rows, fieldnames):
 
-    output = OUTPUT_DIR / filename
-
-    with output.open(
+    with path.open(
         "w",
         newline="",
         encoding="utf-8-sig"
@@ -429,227 +548,164 @@ def write_csv(filename, rows, columns):
 
         writer = csv.DictWriter(
             f,
-            fieldnames=columns,
-            extrasaction="ignore"
+            fieldnames=fieldnames
         )
 
         writer.writeheader()
 
         for row in rows:
-            writer.writerow(row)
-
-    print(f"[WRITE] {output}")
+            writer.writerow({
+                field: row.get(field, "")
+                for field in fieldnames
+            })
 
 
 # ============================================================
-# RAW CSV
+# RAW
 # ============================================================
 
-def make_raw(results):
+RAW_FIELDS = [
+    "Project",
+    "Bug",
+    "Algorithm",
+    "Seed",
+    "Population",
+    "GWO_Iterations",
+    "GWO_a",
 
-    columns = [
-        "Project",
-        "Bug",
-        "Algorithm",
-        "Log_File",
+    "Time_s",
+    "Generation",
+    "Tests",
+    "Statements",
+    "Fitness",
 
-        "Seed",
-        "Population",
-        "GWO_Iterations",
-        "GWO_a",
+    "Line_Coverage",
+    "Branch_Coverage",
+    "Exception_Coverage",
+    "Mutation_Coverage",
+    "Output_Coverage",
+    "Method_Coverage",
+    "CBranch_Coverage",
+    "Overall_Coverage",
 
-        "Time_s",
-        "Generation",
-        "Tests",
-        "Statements",
-        "Fitness",
+    "Line_Goals",
+    "Line_Covered_Goals",
+    "Branch_Goals",
+    "Branch_Covered_Goals",
+    "Mutation_Goals",
+    "Mutation_Covered_Goals",
 
-        "Line_Coverage",
-        "Branch_Coverage",
-        "Exception_Coverage",
-        "Mutation_Coverage",
-        "Output_Coverage",
-        "Method_Coverage",
-        "CBranch_Coverage",
-        "Overall_Coverage",
+    "Compile_OK",
+    "Generation_OK",
 
-        "Line_Goals",
-        "Line_Covered_Goals",
-        "Branch_Goals",
-        "Branch_Covered_Goals",
-        "Mutation_Goals",
-        "Mutation_Covered_Goals",
+    "Log_File",
+]
 
-        "Compile_OK",
-        "Generation_OK"
-    ]
+
+def make_raw(rows):
+
+    output = OUTPUT_DIR / "GWO_raw.csv"
 
     write_csv(
-        "GWO_raw.csv",
-        results,
-        columns
+        output,
+        rows,
+        RAW_FIELDS
     )
+
+    return output
 
 
 # ============================================================
 # BUG SUMMARY
 # ============================================================
 
-def make_bug_summary(results):
+def make_bug_summary(rows):
 
-    columns = [
+    groups = {}
+
+    for row in rows:
+
+        key = (
+            row["Project"],
+            row["Bug"]
+        )
+
+        groups.setdefault(
+            key,
+            []
+        ).append(row)
+
+    output_rows = []
+
+    for (project, bug), group in sorted(groups.items()):
+
+        output_rows.append({
+            "Project": project,
+            "Bug": bug,
+            "Runs": len(group),
+
+            "Avg_Time_s": avg(
+                [r["Time_s"] for r in group]
+            ),
+
+            "Avg_Tests": avg(
+                [r["Tests"] for r in group]
+            ),
+
+            "Avg_Statements": avg(
+                [r["Statements"] for r in group]
+            ),
+
+            "Avg_Fitness": avg(
+                [r["Fitness"] for r in group]
+            ),
+
+            "Avg_Line_Coverage": avg(
+                [r["Line_Coverage"] for r in group]
+            ),
+
+            "Avg_Branch_Coverage": avg(
+                [r["Branch_Coverage"] for r in group]
+            ),
+
+            "Avg_Exception_Coverage": avg(
+                [r["Exception_Coverage"] for r in group]
+            ),
+
+            "Avg_Mutation_Coverage": avg(
+                [r["Mutation_Coverage"] for r in group]
+            ),
+
+            "Avg_Output_Coverage": avg(
+                [r["Output_Coverage"] for r in group]
+            ),
+
+            "Avg_Method_Coverage": avg(
+                [r["Method_Coverage"] for r in group]
+            ),
+
+            "Avg_CBranch_Coverage": avg(
+                [r["CBranch_Coverage"] for r in group]
+            ),
+
+            "Avg_Overall_Coverage": avg(
+                [r["Overall_Coverage"] for r in group]
+            ),
+
+            "Avg_Generation": avg(
+                [r["Generation"] for r in group]
+            ),
+        })
+
+    fields = [
         "Project",
         "Bug",
-
-        "Time_s",
-        "Generation",
-        "Tests",
-
-        "Line_Coverage",
-        "Branch_Coverage",
-        "Exception_Coverage",
-        "Mutation_Coverage",
-        "Output_Coverage",
-        "Method_Coverage",
-        "CBranch_Coverage",
-        "Overall_Coverage",
-
-        "Line_Goals",
-        "Line_Covered_Goals",
-        "Branch_Goals",
-        "Branch_Covered_Goals",
-        "Mutation_Goals",
-        "Mutation_Covered_Goals"
-    ]
-
-    rows = []
-
-    for r in results:
-
-        row = {
-            "Project": r["Project"],
-            "Bug": r["Bug"],
-
-            "Time_s": r["Time_s"],
-            "Generation": r["Generation"],
-            "Tests": r["Tests"],
-
-            "Line_Coverage": r["Line_Coverage"],
-            "Branch_Coverage": r["Branch_Coverage"],
-            "Exception_Coverage": r["Exception_Coverage"],
-            "Mutation_Coverage": r["Mutation_Coverage"],
-            "Output_Coverage": r["Output_Coverage"],
-            "Method_Coverage": r["Method_Coverage"],
-            "CBranch_Coverage": r["CBranch_Coverage"],
-            "Overall_Coverage": r["Overall_Coverage"],
-
-            "Line_Goals": r["Line_Goals"],
-            "Line_Covered_Goals": r["Line_Covered_Goals"],
-
-            "Branch_Goals": r["Branch_Goals"],
-            "Branch_Covered_Goals": r["Branch_Covered_Goals"],
-
-            "Mutation_Goals": r["Mutation_Goals"],
-            "Mutation_Covered_Goals": r["Mutation_Covered_Goals"],
-        }
-
-        rows.append(row)
-
-    rows.sort(
-        key=lambda x: (
-            x["Project"],
-            x["Bug"]
-        )
-    )
-
-    write_csv(
-        "GWO_summary_bug.csv",
-        rows,
-        columns
-    )
-
-    return rows
-
-
-# ============================================================
-# PROJECT SUMMARY
-# ============================================================
-
-def make_project_summary(results):
-
-    projects = {}
-
-    for r in results:
-
-        project = r["Project"]
-
-        if project not in projects:
-            projects[project] = []
-
-        projects[project].append(r)
-
-    rows = []
-
-    for project, items in sorted(projects.items()):
-
-        row = {
-            "Project": project,
-            "Bugs": len(items),
-
-            "Avg_Time_s": fmt(
-                avg([x["Time_s"] for x in items])
-            ),
-
-            "Avg_Generation": fmt(
-                avg([x["Generation"] for x in items])
-            ),
-
-            "Avg_Tests": fmt(
-                avg([x["Tests"] for x in items])
-            ),
-
-            "Avg_Line_Coverage": fmt(
-                avg([x["Line_Coverage"] for x in items])
-            ),
-
-            "Avg_Branch_Coverage": fmt(
-                avg([x["Branch_Coverage"] for x in items])
-            ),
-
-            "Avg_Exception_Coverage": fmt(
-                avg([x["Exception_Coverage"] for x in items])
-            ),
-
-            "Avg_Mutation_Coverage": fmt(
-                avg([x["Mutation_Coverage"] for x in items])
-            ),
-
-            "Avg_Output_Coverage": fmt(
-                avg([x["Output_Coverage"] for x in items])
-            ),
-
-            "Avg_Method_Coverage": fmt(
-                avg([x["Method_Coverage"] for x in items])
-            ),
-
-            "Avg_CBranch_Coverage": fmt(
-                avg([x["CBranch_Coverage"] for x in items])
-            ),
-
-            "Avg_Overall_Coverage": fmt(
-                avg([x["Overall_Coverage"] for x in items])
-            ),
-        }
-
-        rows.append(row)
-
-    columns = [
-        "Project",
-        "Bugs",
+        "Runs",
 
         "Avg_Time_s",
-        "Avg_Generation",
         "Avg_Tests",
+        "Avg_Statements",
+        "Avg_Fitness",
 
         "Avg_Line_Coverage",
         "Avg_Branch_Coverage",
@@ -658,89 +714,231 @@ def make_project_summary(results):
         "Avg_Output_Coverage",
         "Avg_Method_Coverage",
         "Avg_CBranch_Coverage",
-        "Avg_Overall_Coverage"
+        "Avg_Overall_Coverage",
+
+        "Avg_Generation",
     ]
 
+    output = OUTPUT_DIR / "GWO_summary_bug.csv"
+
     write_csv(
-        "GWO_summary_project.csv",
-        rows,
-        columns
+        output,
+        output_rows,
+        fields
     )
 
-    return rows
+    return output
+
+
+# ============================================================
+# PROJECT SUMMARY
+# ============================================================
+
+def make_project_summary(rows):
+
+    groups = {}
+
+    for row in rows:
+
+        project = row["Project"]
+
+        if not project:
+            continue
+
+        groups.setdefault(
+            project,
+            []
+        ).append(row)
+
+    output_rows = []
+
+    for project, group in sorted(groups.items()):
+
+        bugs = sorted({
+            r["Bug"]
+            for r in group
+            if r["Bug"]
+        })
+
+        output_rows.append({
+            "Project": project,
+            "Bugs": len(bugs),
+            "Runs": len(group),
+
+            "Avg_Time_s": avg(
+                [r["Time_s"] for r in group]
+            ),
+
+            "Avg_Tests": avg(
+                [r["Tests"] for r in group]
+            ),
+
+            "Avg_Statements": avg(
+                [r["Statements"] for r in group]
+            ),
+
+            "Avg_Fitness": avg(
+                [r["Fitness"] for r in group]
+            ),
+
+            "Avg_Line_Coverage": avg(
+                [r["Line_Coverage"] for r in group]
+            ),
+
+            "Avg_Branch_Coverage": avg(
+                [r["Branch_Coverage"] for r in group]
+            ),
+
+            "Avg_Exception_Coverage": avg(
+                [r["Exception_Coverage"] for r in group]
+            ),
+
+            "Avg_Mutation_Coverage": avg(
+                [r["Mutation_Coverage"] for r in group]
+            ),
+
+            "Avg_Overall_Coverage": avg(
+                [r["Overall_Coverage"] for r in group]
+            ),
+
+            "Avg_Generation": avg(
+                [r["Generation"] for r in group]
+            ),
+        })
+
+    fields = [
+        "Project",
+        "Bugs",
+        "Runs",
+
+        "Avg_Time_s",
+        "Avg_Tests",
+        "Avg_Statements",
+        "Avg_Fitness",
+
+        "Avg_Line_Coverage",
+        "Avg_Branch_Coverage",
+        "Avg_Exception_Coverage",
+        "Avg_Mutation_Coverage",
+        "Avg_Overall_Coverage",
+
+        "Avg_Generation",
+    ]
+
+    output = OUTPUT_DIR / "GWO_summary_project.csv"
+
+    write_csv(
+        output,
+        output_rows,
+        fields
+    )
+
+    return output
 
 
 # ============================================================
 # ALGORITHM SUMMARY
 # ============================================================
 
-def make_algorithm_summary(results):
+def make_algorithm_summary(rows):
 
-    algorithms = {}
+    groups = {}
 
-    for r in results:
+    for row in rows:
 
-        algorithm = r["Algorithm"]
+        algorithm = row["Algorithm"]
 
-        if algorithm not in algorithms:
-            algorithms[algorithm] = []
+        groups.setdefault(
+            algorithm,
+            []
+        ).append(row)
 
-        algorithms[algorithm].append(r)
+    output_rows = []
 
-    rows = []
+    for algorithm, group in sorted(groups.items()):
 
-    for algorithm, items in sorted(algorithms.items()):
+        projects = sorted({
+            r["Project"]
+            for r in group
+            if r["Project"]
+        })
 
-        rows.append({
+        bugs = sorted({
+            f'{r["Project"]}-{r["Bug"]}'
+            for r in group
+            if r["Project"] and r["Bug"]
+        })
+
+        output_rows.append({
             "Algorithm": algorithm,
-            "Bugs": len(items),
+            "Projects": len(projects),
+            "Bugs": len(bugs),
+            "Runs": len(group),
 
-            "Avg_Time_s": fmt(
-                avg([x["Time_s"] for x in items])
+            "Avg_Time_s": avg(
+                [r["Time_s"] for r in group]
             ),
 
-            "Avg_Generation": fmt(
-                avg([x["Generation"] for x in items])
+            "Avg_Tests": avg(
+                [r["Tests"] for r in group]
             ),
 
-            "Avg_Tests": fmt(
-                avg([x["Tests"] for x in items])
+            "Avg_Statements": avg(
+                [r["Statements"] for r in group]
             ),
 
-            "Avg_Line_Coverage": fmt(
-                avg([x["Line_Coverage"] for x in items])
+            "Avg_Fitness": avg(
+                [r["Fitness"] for r in group]
             ),
 
-            "Avg_Branch_Coverage": fmt(
-                avg([x["Branch_Coverage"] for x in items])
+            "Avg_Line_Coverage": avg(
+                [r["Line_Coverage"] for r in group]
             ),
 
-            "Avg_Mutation_Coverage": fmt(
-                avg([x["Mutation_Coverage"] for x in items])
+            "Avg_Branch_Coverage": avg(
+                [r["Branch_Coverage"] for r in group]
             ),
 
-            "Avg_Overall_Coverage": fmt(
-                avg([x["Overall_Coverage"] for x in items])
+            "Avg_Exception_Coverage": avg(
+                [r["Exception_Coverage"] for r in group]
+            ),
+
+            "Avg_Mutation_Coverage": avg(
+                [r["Mutation_Coverage"] for r in group]
+            ),
+
+            "Avg_Overall_Coverage": avg(
+                [r["Overall_Coverage"] for r in group]
             ),
         })
 
-    columns = [
+    fields = [
         "Algorithm",
+        "Projects",
         "Bugs",
+        "Runs",
+
         "Avg_Time_s",
-        "Avg_Generation",
         "Avg_Tests",
+        "Avg_Statements",
+        "Avg_Fitness",
+
         "Avg_Line_Coverage",
         "Avg_Branch_Coverage",
+        "Avg_Exception_Coverage",
         "Avg_Mutation_Coverage",
-        "Avg_Overall_Coverage"
+        "Avg_Overall_Coverage",
     ]
 
+    output = OUTPUT_DIR / "GWO_summary_algorithm.csv"
+
     write_csv(
-        "GWO_summary_algorithm.csv",
-        rows,
-        columns
+        output,
+        output_rows,
+        fields
     )
+
+    return output
 
 
 # ============================================================
@@ -753,44 +951,76 @@ def main():
     print("GWO RESULT SUMMARY")
     print("=" * 70)
 
-    print(f"[INFO] Result root : {RESULT_ROOT}")
-    print(f"[INFO] Output dir  : {OUTPUT_DIR}")
+    print(f"RESULT_ROOT : {RESULT_ROOT}")
+    print(f"OUTPUT_DIR  : {OUTPUT_DIR}")
     print()
 
-    results = collect_results()
-
-    if not results:
-        print()
-        print("[ERROR] ไม่พบข้อมูล GWO")
+    if not RESULT_ROOT.exists():
+        print("[ERROR] ไม่พบ Result_Round1")
         return
 
-    print()
-    print(f"[INFO] Parsed results: {len(results)}")
-    print()
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
-    # 1. Raw
-    make_raw(results)
-
-    # 2. Per Bug
-    make_bug_summary(results)
-
-    # 3. Per Project
-    make_project_summary(results)
-
-    # 4. Algorithm
-    make_algorithm_summary(results)
+    rows = collect_results()
 
     print()
+    print(f"อ่านผลสำเร็จ: {len(rows)} logs")
+    print()
+
+    if not rows:
+        print("[ERROR] ไม่พบข้อมูล")
+        return
+
+    # --------------------------------------------------------
+    # Show project count
+    # --------------------------------------------------------
+
+    project_counts = {}
+
+    for row in rows:
+
+        project = row["Project"]
+
+        if project:
+            project_counts[project] = (
+                project_counts.get(project, 0) + 1
+            )
+
+    print("จำนวน log แยกตาม Project")
+    print("-" * 40)
+
+    for project in sorted(project_counts):
+        print(
+            f"{project:<20} "
+            f"{project_counts[project]}"
+        )
+
+    print()
+
+    # --------------------------------------------------------
+    # Create CSVs
+    # --------------------------------------------------------
+
+    raw_file = make_raw(rows)
+    bug_file = make_bug_summary(rows)
+    project_file = make_project_summary(rows)
+    algorithm_file = make_algorithm_summary(rows)
+
     print("=" * 70)
     print("DONE")
     print("=" * 70)
 
-    print()
     print("สร้างไฟล์:")
-    print(f"  {OUTPUT_DIR}/GWO_raw.csv")
-    print(f"  {OUTPUT_DIR}/GWO_summary_bug.csv")
-    print(f"  {OUTPUT_DIR}/GWO_summary_project.csv")
-    print(f"  {OUTPUT_DIR}/GWO_summary_algorithm.csv")
+
+    print(f"  {raw_file}")
+    print(f"  {bug_file}")
+    print(f"  {project_file}")
+    print(f"  {algorithm_file}")
+
+    print("=" * 70)
 
 
 if __name__ == "__main__":
