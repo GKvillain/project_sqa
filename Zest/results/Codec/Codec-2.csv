@@ -1,3 +1,0 @@
-project,bug_id,method,run,line_coverage,branch_coverage,fault_detected,time_sec,test_cases,test_length,mutation_score,statements
-Codec,2,Zest,1,79.44,78.38,no,120,127,127,66.63,96906
-Codec,2,Zest,2,79.44,78.38,no,120,129,129,68.70,104780

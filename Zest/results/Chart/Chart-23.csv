@@ -1,3 +1,0 @@
-project,bug_id,method,run,line_coverage,branch_coverage,fault_detected,time_sec,test_cases,test_length,mutation_score,statements
-Chart,23,Zest,1,25.64,14.29,yes,120,32,32,80.80,25786
-Chart,23,Zest,2,25.64,14.29,yes,120,42,42,80.80,112598

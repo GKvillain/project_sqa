@@ -1,3 +1,0 @@
-project,bug_id,method,run,line_coverage,branch_coverage,fault_detected,time_sec,test_cases,test_length,mutation_score,statements
-Lang,51,Zest,1,8.14,5.66,no,120,14,56,92.23,195466
-Lang,51,Zest,2,12.79,12.74,no,120,17,68,73.32,241516
