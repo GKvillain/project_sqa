@@ -1,0 +1,3 @@
+project,bug_id,method,run,line_coverage,branch_coverage,fault_detected,time_sec,test_cases,test_length,mutation_score,statements
+Chart,7,Zest,1,35.22,16.67,no,120,39,39,56.03,183407
+Chart,7,Zest,2,34.59,16.67,no,120,40,40,56.68,129132
