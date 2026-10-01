@@ -1,0 +1,18 @@
+﻿Project,Expected,Recorded,Missing,Compile Pass,Compile Fail,Partial,Class Rows,No CSV
+Chart,26,20,6,15,5,0,23,No
+Cli,39,7,32,3,4,0,7,No
+Closure,174,165,9,31,129,5,212,No
+Codec,18,18,0,16,2,0,24,No
+Collections,28,28,0,23,5,0,28,No
+Compress,47,46,1,33,12,1,55,No
+Csv,16,16,0,12,4,0,17,No
+Gson,18,18,0,8,9,1,21,No
+JacksonCore,26,25,1,10,14,1,34,No
+JacksonDatabind,110,48,62,16,27,5,64,No
+JacksonXml,6,6,0,3,3,0,6,No
+Jsoup,93,90,3,56,26,8,117,No
+JxPath,22,22,0,12,9,1,34,No
+Lang,61,60,1,51,9,0,60,No
+Math,106,93,13,75,16,2,106,No
+Mockito,38,38,0,15,21,2,46,No
+Time,26,25,1,13,9,3,30,No
