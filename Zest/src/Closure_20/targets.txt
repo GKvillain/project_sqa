@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|tryFoldSimpleFunctionCall|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|addParameterAfter|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|areMatchingExits|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|areSafeFlagsToFold|java.lang.String|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|areValidRegexpFlags|java.lang.String|static
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|consumesDanglingElse|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|containsUnicodeEscape|java.lang.String|static
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|getBlockExpression|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|getBlockReturnExpression|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|getBlockVar|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|getExceptionHandler|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isExceptionPossible|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isFoldableExpressBlock|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isHigherPrecedence|com.google.javascript.rhino.Node,int|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isLowerPrecedence|com.google.javascript.rhino.Node,int|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isLowerPrecedenceInExpression|com.google.javascript.rhino.Node,int|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|tryFoldSimpleFunctionCall|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:boolean

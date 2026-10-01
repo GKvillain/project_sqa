@@ -1,0 +1,17 @@
+M|org.jsoup.nodes.Attribute|getValue||new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|clone||new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|createFromEncoded|java.lang.String,java.lang.String|static
+M|org.jsoup.nodes.Attribute|equals|java.lang.Object|new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|getKey||new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|hashCode||new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|html|java.lang.String,java.lang.String,java.lang.Appendable,org.jsoup.nodes.Document$OutputSettings|static
+M|org.jsoup.nodes.Attribute|html|java.lang.Appendable,org.jsoup.nodes.Document$OutputSettings|new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|html||new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|isBooleanAttribute||new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|isBooleanAttribute|java.lang.String|static
+M|org.jsoup.nodes.Attribute|isDataAttribute||new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|isDataAttribute|java.lang.String|static
+M|org.jsoup.nodes.Attribute|setKey|java.lang.String|new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|setValue|java.lang.String|new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|shouldCollapseAttribute|org.jsoup.nodes.Document$OutputSettings|new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String
+M|org.jsoup.nodes.Attribute|getValue||new:org.jsoup.nodes.Attribute:java.lang.String,java.lang.String

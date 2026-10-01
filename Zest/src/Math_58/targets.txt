@@ -1,0 +1,5 @@
+M|org.apache.commons.math.optimization.fitting.GaussianFitter|fit||new:org.apache.commons.math.optimization.fitting.GaussianFitter:org.apache.commons.math.optimization.DifferentiableMultivariateVectorialOptimizer
+M|org.apache.commons.math.optimization.fitting.GaussianFitter|fit|[D|new:org.apache.commons.math.optimization.fitting.GaussianFitter:org.apache.commons.math.optimization.DifferentiableMultivariateVectorialOptimizer
+C|org.apache.commons.math.optimization.fitting.GaussianFitter|<init>|org.apache.commons.math.optimization.DifferentiableMultivariateVectorialOptimizer
+M|org.apache.commons.math.optimization.fitting.GaussianFitter|fit||new:org.apache.commons.math.optimization.fitting.GaussianFitter:org.apache.commons.math.optimization.DifferentiableMultivariateVectorialOptimizer
+M|org.apache.commons.math.optimization.fitting.GaussianFitter|fit|[D|new:org.apache.commons.math.optimization.fitting.GaussianFitter:org.apache.commons.math.optimization.DifferentiableMultivariateVectorialOptimizer

@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.Compiler|initOptions|com.google.javascript.jscomp.CompilerOptions|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|acceptConstKeyword||new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|acceptEcmaScript5||new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|addChangeHandler|com.google.javascript.jscomp.CodeChangeHandler|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|addIncrementalSourceAst|com.google.javascript.jscomp.JsAst|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|addToDebugLog|java.lang.String|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|areNodesEqualForInlining|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|buildKnownSymbolTable||new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|check||new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|checkFirstModule|java.util.List|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|compile||new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|compile|com.google.javascript.jscomp.JSSourceFile,[Lcom.google.javascript.jscomp.JSModule;,com.google.javascript.jscomp.CompilerOptions|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|compile|com.google.javascript.jscomp.JSSourceFile,com.google.javascript.jscomp.JSSourceFile,com.google.javascript.jscomp.CompilerOptions|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|compile|com.google.javascript.jscomp.JSSourceFile,[Lcom.google.javascript.jscomp.JSSourceFile;,com.google.javascript.jscomp.CompilerOptions|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|compile|[Lcom.google.javascript.jscomp.JSSourceFile;,[Lcom.google.javascript.jscomp.JSModule;,com.google.javascript.jscomp.CompilerOptions|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|compile|[Lcom.google.javascript.jscomp.JSSourceFile;,[Lcom.google.javascript.jscomp.JSSourceFile;,com.google.javascript.jscomp.CompilerOptions|new:com.google.javascript.jscomp.Compiler:
+M|com.google.javascript.jscomp.Compiler|initOptions|com.google.javascript.jscomp.CompilerOptions|new:com.google.javascript.jscomp.Compiler:

@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|reparseCentralDirectoryData|boolean,boolean,boolean,boolean|new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|addSizes|[B|new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|getCentralDirectoryData||new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|getCentralDirectoryLength||new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|getCompressedSize||new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|getDiskStartNumber||new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|getHeaderId||new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|getLocalFileDataData||new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|getLocalFileDataLength||new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|getRelativeHeaderOffset||new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|getSize||new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|parseFromCentralDirectoryData|[B,int,int|new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|parseFromLocalFileData|[B,int,int|new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|setCompressedSize|org.apache.commons.compress.archivers.zip.ZipEightByteInteger|new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|setDiskStartNumber|org.apache.commons.compress.archivers.zip.ZipLong|new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|setRelativeHeaderOffset|org.apache.commons.compress.archivers.zip.ZipEightByteInteger|new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:
+M|org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField|reparseCentralDirectoryData|boolean,boolean,boolean,boolean|new:org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField:

@@ -1,0 +1,4 @@
+M|org.jsoup.helper.W3CDom|asString|org.w3c.dom.Document|new:org.jsoup.helper.W3CDom:
+M|org.jsoup.helper.W3CDom|convert|org.jsoup.nodes.Document,org.w3c.dom.Document|new:org.jsoup.helper.W3CDom:
+M|org.jsoup.helper.W3CDom|fromJsoup|org.jsoup.nodes.Document|new:org.jsoup.helper.W3CDom:
+C|org.jsoup.helper.W3CDom|<init>|

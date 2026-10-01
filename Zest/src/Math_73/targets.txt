@@ -1,0 +1,12 @@
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double,double,double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|double,double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:
+C|org.apache.commons.math.analysis.solvers.BrentSolver|<init>|org.apache.commons.math.analysis.UnivariateRealFunction
+C|org.apache.commons.math.analysis.solvers.BrentSolver|<init>|
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double,double,double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|double,double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:
+M|org.apache.commons.math.analysis.solvers.BrentSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double|new:org.apache.commons.math.analysis.solvers.BrentSolver:

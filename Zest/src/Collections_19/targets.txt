@@ -1,0 +1,17 @@
+M|org.apache.commons.collections.list.SetUniqueList|set|int,java.lang.Object|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|add|java.lang.Object|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|add|int,java.lang.Object|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|addAll|int,java.util.Collection|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|addAll|java.util.Collection|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|asSet||new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|clear||new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|contains|java.lang.Object|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|containsAll|java.util.Collection|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|createSetBasedOnList|java.util.Set,java.util.List|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|iterator||new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|listIterator||new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|listIterator|int|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|remove|java.lang.Object|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|remove|int|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|removeAll|java.util.Collection|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set
+M|org.apache.commons.collections.list.SetUniqueList|set|int,java.lang.Object|new:org.apache.commons.collections.list.SetUniqueList:java.util.List,java.util.Set

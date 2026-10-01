@@ -1,0 +1,4 @@
+M|com.google.javascript.rhino.TokenStream|isJSIdentifier|java.lang.String|static
+M|com.google.javascript.rhino.TokenStream|isKeyword|java.lang.String|static
+C|com.google.javascript.rhino.TokenStream|<init>|
+M|com.google.javascript.rhino.TokenStream|isJSIdentifier|java.lang.String|static

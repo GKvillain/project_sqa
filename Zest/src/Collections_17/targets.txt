@@ -1,0 +1,9 @@
+M|org.apache.commons.collections.functors.EqualPredicate|evaluate|java.lang.Object|new:org.apache.commons.collections.functors.EqualPredicate:java.lang.Object
+C|org.apache.commons.collections.functors.EqualPredicate|<init>|java.lang.Object
+C|org.apache.commons.collections.functors.EqualPredicate|<init>|java.lang.Object,org.apache.commons.collections.functors.Equator
+M|org.apache.commons.collections.functors.EqualPredicate|equalPredicate|java.lang.Object|static
+M|org.apache.commons.collections.functors.EqualPredicate|equalPredicate|java.lang.Object,org.apache.commons.collections.functors.Equator|static
+M|org.apache.commons.collections.functors.EqualPredicate|getValue||new:org.apache.commons.collections.functors.EqualPredicate:java.lang.Object
+M|org.apache.commons.collections.functors.EqualPredicate|evaluate|java.lang.Object|new:org.apache.commons.collections.functors.EqualPredicate:java.lang.Object
+C|org.apache.commons.collections.functors.EqualPredicate|<init>|java.lang.Object
+C|org.apache.commons.collections.functors.EqualPredicate|<init>|java.lang.Object,org.apache.commons.collections.functors.Equator

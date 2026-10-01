@@ -1,0 +1,15 @@
+M|org.mockito.internal.invocation.InvocationMatcher|hasSameMethod|org.mockito.internal.invocation.Invocation|new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|captureArgumentsFrom|org.mockito.internal.invocation.Invocation|new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|createFrom|java.util.List|static
+M|org.mockito.internal.invocation.InvocationMatcher|getInvocation||new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|getLocation||new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|getMatchers||new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|getMethod||new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|hasSimilarMethod|org.mockito.internal.invocation.Invocation|new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|matches|org.mockito.internal.invocation.Invocation|new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|safelyArgumentsMatch|[Ljava.lang.Object;|new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|toString||new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|toString|org.mockito.internal.reporting.PrintSettings|new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation
+C|org.mockito.internal.invocation.InvocationMatcher|<init>|org.mockito.internal.invocation.Invocation,java.util.List
+C|org.mockito.internal.invocation.InvocationMatcher|<init>|org.mockito.internal.invocation.Invocation
+M|org.mockito.internal.invocation.InvocationMatcher|hasSameMethod|org.mockito.internal.invocation.Invocation|new:org.mockito.internal.invocation.InvocationMatcher:org.mockito.internal.invocation.Invocation

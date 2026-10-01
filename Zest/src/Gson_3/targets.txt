@@ -1,0 +1,7 @@
+M|com.google.gson.internal.ConstructorConstructor|newDefaultImplementationConstructor|java.lang.reflect.Type,java.lang.Class|new:com.google.gson.internal.ConstructorConstructor:java.util.Map
+M|com.google.gson.internal.ConstructorConstructor|get|com.google.gson.reflect.TypeToken|new:com.google.gson.internal.ConstructorConstructor:java.util.Map
+M|com.google.gson.internal.ConstructorConstructor|newDefaultConstructor|java.lang.Class|new:com.google.gson.internal.ConstructorConstructor:java.util.Map
+M|com.google.gson.internal.ConstructorConstructor|newUnsafeAllocator|java.lang.reflect.Type,java.lang.Class|new:com.google.gson.internal.ConstructorConstructor:java.util.Map
+M|com.google.gson.internal.ConstructorConstructor|toString||new:com.google.gson.internal.ConstructorConstructor:java.util.Map
+C|com.google.gson.internal.ConstructorConstructor|<init>|java.util.Map
+M|com.google.gson.internal.ConstructorConstructor|newDefaultImplementationConstructor|java.lang.reflect.Type,java.lang.Class|new:com.google.gson.internal.ConstructorConstructor:java.util.Map

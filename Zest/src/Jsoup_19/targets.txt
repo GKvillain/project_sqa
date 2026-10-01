@@ -1,0 +1,16 @@
+M|org.jsoup.safety.Whitelist|testValidProtocol|org.jsoup.nodes.Element,org.jsoup.nodes.Attribute,java.util.Set|new:org.jsoup.safety.Whitelist:
+M|org.jsoup.safety.Whitelist|addAttributes|java.lang.String,[Ljava.lang.String;|new:org.jsoup.safety.Whitelist:
+M|org.jsoup.safety.Whitelist|addEnforcedAttribute|java.lang.String,java.lang.String,java.lang.String|new:org.jsoup.safety.Whitelist:
+M|org.jsoup.safety.Whitelist|addProtocols|java.lang.String,java.lang.String,[Ljava.lang.String;|new:org.jsoup.safety.Whitelist:
+M|org.jsoup.safety.Whitelist|addTags|[Ljava.lang.String;|new:org.jsoup.safety.Whitelist:
+M|org.jsoup.safety.Whitelist|basic||static
+M|org.jsoup.safety.Whitelist|basicWithImages||static
+M|org.jsoup.safety.Whitelist|getEnforcedAttributes|java.lang.String|new:org.jsoup.safety.Whitelist:
+M|org.jsoup.safety.Whitelist|isSafeAttribute|java.lang.String,org.jsoup.nodes.Element,org.jsoup.nodes.Attribute|new:org.jsoup.safety.Whitelist:
+M|org.jsoup.safety.Whitelist|isSafeTag|java.lang.String|new:org.jsoup.safety.Whitelist:
+M|org.jsoup.safety.Whitelist|none||static
+M|org.jsoup.safety.Whitelist|preserveRelativeLinks|boolean|new:org.jsoup.safety.Whitelist:
+M|org.jsoup.safety.Whitelist|relaxed||static
+M|org.jsoup.safety.Whitelist|simpleText||static
+C|org.jsoup.safety.Whitelist|<init>|
+M|org.jsoup.safety.Whitelist|testValidProtocol|org.jsoup.nodes.Element,org.jsoup.nodes.Attribute,java.util.Set|new:org.jsoup.safety.Whitelist:

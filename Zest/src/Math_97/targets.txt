@@ -1,0 +1,7 @@
+M|org.apache.commons.math.analysis.BrentSolver|solve|double,double,double,double,double,double|new:org.apache.commons.math.analysis.BrentSolver:org.apache.commons.math.analysis.UnivariateRealFunction
+M|org.apache.commons.math.analysis.BrentSolver|solve|double,double|new:org.apache.commons.math.analysis.BrentSolver:org.apache.commons.math.analysis.UnivariateRealFunction
+M|org.apache.commons.math.analysis.BrentSolver|solve|double,double,double|new:org.apache.commons.math.analysis.BrentSolver:org.apache.commons.math.analysis.UnivariateRealFunction
+C|org.apache.commons.math.analysis.BrentSolver|<init>|org.apache.commons.math.analysis.UnivariateRealFunction
+M|org.apache.commons.math.analysis.BrentSolver|solve|double,double,double,double,double,double|new:org.apache.commons.math.analysis.BrentSolver:org.apache.commons.math.analysis.UnivariateRealFunction
+M|org.apache.commons.math.analysis.BrentSolver|solve|double,double|new:org.apache.commons.math.analysis.BrentSolver:org.apache.commons.math.analysis.UnivariateRealFunction
+M|org.apache.commons.math.analysis.BrentSolver|solve|double,double,double|new:org.apache.commons.math.analysis.BrentSolver:org.apache.commons.math.analysis.UnivariateRealFunction

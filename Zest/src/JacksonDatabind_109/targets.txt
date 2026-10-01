@@ -1,0 +1,11 @@
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializer|bigDecimalAsStringSerializer||static
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializer|createContextual|com.fasterxml.jackson.databind.SerializerProvider,com.fasterxml.jackson.databind.BeanProperty|new:com.fasterxml.jackson.databind.ser.std.NumberSerializer:java.lang.Class
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializer|serialize|java.lang.Number,com.fasterxml.jackson.core.JsonGenerator,com.fasterxml.jackson.databind.SerializerProvider|new:com.fasterxml.jackson.databind.ser.std.NumberSerializer:java.lang.Class
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializer|acceptJsonFormatVisitor|com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitorWrapper,com.fasterxml.jackson.databind.JavaType|new:com.fasterxml.jackson.databind.ser.std.NumberSerializer:java.lang.Class
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializer|getSchema|com.fasterxml.jackson.databind.SerializerProvider,java.lang.reflect.Type|new:com.fasterxml.jackson.databind.ser.std.NumberSerializer:java.lang.Class
+C|com.fasterxml.jackson.databind.ser.std.NumberSerializer|<init>|java.lang.Class
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializers|addAll|java.util.Map|static
+C|com.fasterxml.jackson.databind.ser.std.NumberSerializers|<init>|
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializer|bigDecimalAsStringSerializer||static
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializer|createContextual|com.fasterxml.jackson.databind.SerializerProvider,com.fasterxml.jackson.databind.BeanProperty|new:com.fasterxml.jackson.databind.ser.std.NumberSerializer:java.lang.Class
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializer|serialize|java.lang.Number,com.fasterxml.jackson.core.JsonGenerator,com.fasterxml.jackson.databind.SerializerProvider|new:com.fasterxml.jackson.databind.ser.std.NumberSerializer:java.lang.Class

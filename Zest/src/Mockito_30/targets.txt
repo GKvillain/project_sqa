@@ -1,0 +1,17 @@
+M|org.mockito.exceptions.Reporter|smartNullPointerException|java.lang.Object,org.mockito.internal.debugging.Location|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|argumentsAreDifferent|java.lang.String,java.lang.String,org.mockito.internal.debugging.Location|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|cannotCallRealMethodOnInterface||new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|cannotInitializeForInjectMocksAnnotation|java.lang.String,java.lang.Exception|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|cannotInitializeForSpyAnnotation|java.lang.String,java.lang.Exception|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|cannotMockFinalClass|java.lang.Class|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|cannotStubVoidMethodWithAReturnValue|java.lang.String|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|cannotStubWithNullThrowable||new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|cannotVerifyToString||new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|checkedExceptionInvalid|java.lang.Throwable|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|createTooLittleInvocationsMessage|org.mockito.exceptions.Discrepancy,org.mockito.exceptions.PrintableInvocation,org.mockito.internal.debugging.Location|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|createTooManyInvocationsMessage|int,int,org.mockito.exceptions.PrintableInvocation,org.mockito.internal.debugging.Location|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|createWantedButNotInvokedMessage|org.mockito.exceptions.PrintableInvocation|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|extraInterfacesAcceptsOnlyInterfaces|java.lang.Class|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|extraInterfacesCannotContainMockedType|java.lang.Class|new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|extraInterfacesDoesNotAcceptNullParameters||new:org.mockito.exceptions.Reporter:
+M|org.mockito.exceptions.Reporter|smartNullPointerException|java.lang.Object,org.mockito.internal.debugging.Location|new:org.mockito.exceptions.Reporter:

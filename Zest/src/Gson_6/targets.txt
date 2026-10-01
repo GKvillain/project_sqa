@@ -1,0 +1,4 @@
+M|com.google.gson.internal.bind.JsonAdapterAnnotationTypeAdapterFactory|getTypeAdapter|com.google.gson.internal.ConstructorConstructor,com.google.gson.Gson,com.google.gson.reflect.TypeToken,com.google.gson.annotations.JsonAdapter|static
+M|com.google.gson.internal.bind.JsonAdapterAnnotationTypeAdapterFactory|create|com.google.gson.Gson,com.google.gson.reflect.TypeToken|new:com.google.gson.internal.bind.JsonAdapterAnnotationTypeAdapterFactory:com.google.gson.internal.ConstructorConstructor
+C|com.google.gson.internal.bind.JsonAdapterAnnotationTypeAdapterFactory|<init>|com.google.gson.internal.ConstructorConstructor
+M|com.google.gson.internal.bind.JsonAdapterAnnotationTypeAdapterFactory|getTypeAdapter|com.google.gson.internal.ConstructorConstructor,com.google.gson.Gson,com.google.gson.reflect.TypeToken,com.google.gson.annotations.JsonAdapter|static

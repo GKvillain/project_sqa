@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.CodeConsumer|addNumber|double|new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|add|java.lang.String|new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|addIdentifier|java.lang.String|new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|addOp|java.lang.String,boolean|new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|append|java.lang.String|new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|appendBlockEnd||new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|appendBlockStart||new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|appendOp|java.lang.String,boolean|new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|beginBlock||new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|beginCaseBody||new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|breakAfterBlockFor|com.google.javascript.rhino.Node,boolean|new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|continueProcessing||new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|endBlock||new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|endBlock|boolean|new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|endCaseBody||new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|endFile||new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel
+M|com.google.javascript.jscomp.CodeConsumer|addNumber|double|new:com.google.javascript.jscomp.CodePrinter$CompactCodePrinter:boolean,boolean,int,boolean,com.google.javascript.jscomp.SourceMap$DetailLevel

@@ -1,0 +1,5 @@
+M|org.mockito.internal.configuration.SpyAnnotationEngine|process|java.lang.Class,java.lang.Object|new:org.mockito.internal.configuration.SpyAnnotationEngine:
+M|org.mockito.internal.configuration.SpyAnnotationEngine|assertNoAnnotations|java.lang.Class,java.lang.reflect.Field,[Ljava.lang.Class;|new:org.mockito.internal.configuration.SpyAnnotationEngine:
+M|org.mockito.internal.configuration.SpyAnnotationEngine|createMockFor|java.lang.annotation.Annotation,java.lang.reflect.Field|new:org.mockito.internal.configuration.SpyAnnotationEngine:
+C|org.mockito.internal.configuration.SpyAnnotationEngine|<init>|
+M|org.mockito.internal.configuration.SpyAnnotationEngine|process|java.lang.Class,java.lang.Object|new:org.mockito.internal.configuration.SpyAnnotationEngine:

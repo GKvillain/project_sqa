@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|getNextTarEntry||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|applyPaxHeadersToCurrentEntry|java.util.Map|new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|available||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|canReadEntryData|org.apache.commons.compress.archivers.ArchiveEntry|new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|close||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|getCurrentEntry||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|getNextEntry||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|getRecord||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|getRecordSize||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|isAtEOF||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|matches|[B,int|static
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|parsePaxHeaders|java.io.Reader|new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|paxHeaders||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|read|[B,int,int|new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|readGNUSparse||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|reset||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveInputStream|getNextTarEntry||new:org.apache.commons.compress.archivers.tar.TarArchiveInputStream:java.io.InputStream

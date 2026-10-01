@@ -1,0 +1,17 @@
+M|org.apache.commons.lang.time.DateUtils|modify|java.util.Calendar,int,boolean|static
+M|org.apache.commons.lang.time.DateUtils|add|java.util.Date,int,int|static
+M|org.apache.commons.lang.time.DateUtils|addDays|java.util.Date,int|static
+M|org.apache.commons.lang.time.DateUtils|addHours|java.util.Date,int|static
+M|org.apache.commons.lang.time.DateUtils|addMilliseconds|java.util.Date,int|static
+M|org.apache.commons.lang.time.DateUtils|addMinutes|java.util.Date,int|static
+M|org.apache.commons.lang.time.DateUtils|addMonths|java.util.Date,int|static
+M|org.apache.commons.lang.time.DateUtils|addSeconds|java.util.Date,int|static
+M|org.apache.commons.lang.time.DateUtils|addWeeks|java.util.Date,int|static
+M|org.apache.commons.lang.time.DateUtils|addYears|java.util.Date,int|static
+M|org.apache.commons.lang.time.DateUtils|isSameDay|java.util.Calendar,java.util.Calendar|static
+M|org.apache.commons.lang.time.DateUtils|isSameDay|java.util.Date,java.util.Date|static
+M|org.apache.commons.lang.time.DateUtils|isSameInstant|java.util.Calendar,java.util.Calendar|static
+M|org.apache.commons.lang.time.DateUtils|isSameInstant|java.util.Date,java.util.Date|static
+M|org.apache.commons.lang.time.DateUtils|isSameLocalTime|java.util.Calendar,java.util.Calendar|static
+M|org.apache.commons.lang.time.DateUtils|iterator|java.lang.Object,int|static
+M|org.apache.commons.lang.time.DateUtils|modify|java.util.Calendar,int,boolean|static

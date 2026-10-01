@@ -1,0 +1,17 @@
+M|com.fasterxml.jackson.databind.type.TypeFactory|_mapType|java.lang.Class|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_arrayListSuperInterfaceChain|com.fasterxml.jackson.databind.type.HierarchicType|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_collectionType|java.lang.Class|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_constructType|java.lang.reflect.Type,com.fasterxml.jackson.databind.type.TypeBindings|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_doFindSuperInterfaceChain|com.fasterxml.jackson.databind.type.HierarchicType,java.lang.Class|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_findSuperClassChain|java.lang.reflect.Type,java.lang.Class|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_findSuperInterfaceChain|java.lang.reflect.Type,java.lang.Class|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_findSuperTypeChain|java.lang.Class,java.lang.Class|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_fromArrayType|java.lang.reflect.GenericArrayType,com.fasterxml.jackson.databind.type.TypeBindings|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_fromClass|java.lang.Class,com.fasterxml.jackson.databind.type.TypeBindings|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_fromParamType|java.lang.reflect.ParameterizedType,com.fasterxml.jackson.databind.type.TypeBindings|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_fromParameterizedClass|java.lang.Class,java.util.List|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_fromVariable|java.lang.reflect.TypeVariable,com.fasterxml.jackson.databind.type.TypeBindings|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_fromWildcard|java.lang.reflect.WildcardType,com.fasterxml.jackson.databind.type.TypeBindings|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_hashMapSuperInterfaceChain|com.fasterxml.jackson.databind.type.HierarchicType|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_resolveVariableViaSubTypes|com.fasterxml.jackson.databind.type.HierarchicType,java.lang.String,com.fasterxml.jackson.databind.type.TypeBindings|new:com.fasterxml.jackson.databind.type.TypeFactory:
+M|com.fasterxml.jackson.databind.type.TypeFactory|_mapType|java.lang.Class|new:com.fasterxml.jackson.databind.type.TypeFactory:

@@ -1,0 +1,11 @@
+M|com.google.gson.DefaultDateTypeAdapter|read|com.google.gson.stream.JsonReader|new:com.google.gson.DefaultDateTypeAdapter:java.lang.Class
+M|com.google.gson.DefaultDateTypeAdapter|deserializeToDate|java.lang.String|new:com.google.gson.DefaultDateTypeAdapter:java.lang.Class
+M|com.google.gson.DefaultDateTypeAdapter|toString||new:com.google.gson.DefaultDateTypeAdapter:java.lang.Class
+M|com.google.gson.DefaultDateTypeAdapter|write|com.google.gson.stream.JsonWriter,java.util.Date|new:com.google.gson.DefaultDateTypeAdapter:java.lang.Class
+C|com.google.gson.DefaultDateTypeAdapter|<init>|java.lang.Class,java.text.DateFormat,java.text.DateFormat
+C|com.google.gson.DefaultDateTypeAdapter|<init>|java.lang.Class,int,int
+C|com.google.gson.DefaultDateTypeAdapter|<init>|int,int
+C|com.google.gson.DefaultDateTypeAdapter|<init>|java.lang.Class
+C|com.google.gson.DefaultDateTypeAdapter|<init>|java.lang.Class,java.lang.String
+C|com.google.gson.DefaultDateTypeAdapter|<init>|java.lang.Class,int
+M|com.google.gson.DefaultDateTypeAdapter|read|com.google.gson.stream.JsonReader|new:com.google.gson.DefaultDateTypeAdapter:java.lang.Class

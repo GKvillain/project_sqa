@@ -1,0 +1,17 @@
+M|com.fasterxml.jackson.databind.node.POJONode|serialize|com.fasterxml.jackson.core.JsonGenerator,com.fasterxml.jackson.databind.SerializerProvider|new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|_pojoEquals|com.fasterxml.jackson.databind.node.POJONode|new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|asBoolean|boolean|new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|asDouble|double|new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|asInt|int|new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|asLong|long|new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|asText||new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|asText|java.lang.String|new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|asToken||new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|binaryValue||new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|equals|java.lang.Object|new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|getNodeType||new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|getPojo||new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|hashCode||new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|toString||new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object
+C|com.fasterxml.jackson.databind.node.POJONode|<init>|java.lang.Object
+M|com.fasterxml.jackson.databind.node.POJONode|serialize|com.fasterxml.jackson.core.JsonGenerator,com.fasterxml.jackson.databind.SerializerProvider|new:com.fasterxml.jackson.databind.node.POJONode:java.lang.Object

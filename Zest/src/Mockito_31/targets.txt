@@ -1,0 +1,2 @@
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsSmartNulls|answer|org.mockito.invocation.InvocationOnMock|new:org.mockito.internal.stubbing.defaultanswers.ReturnsSmartNulls:
+C|org.mockito.internal.stubbing.defaultanswers.ReturnsSmartNulls|<init>|

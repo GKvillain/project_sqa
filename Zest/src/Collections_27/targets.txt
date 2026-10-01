@@ -1,0 +1,17 @@
+M|org.apache.commons.collections4.map.MultiValueMap|readObject|java.io.ObjectInputStream|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|clear||new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|containsValue|java.lang.Object|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|containsValue|java.lang.Object,java.lang.Object|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|createCollection|int|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|entrySet||new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|getCollection|java.lang.Object|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|iterator||new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|iterator|java.lang.Object|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|multiValueMap|java.util.Map|static
+M|org.apache.commons.collections4.map.MultiValueMap|multiValueMap|java.util.Map,java.lang.Class|static
+M|org.apache.commons.collections4.map.MultiValueMap|multiValueMap|java.util.Map,org.apache.commons.collections4.Factory|static
+M|org.apache.commons.collections4.map.MultiValueMap|put|java.lang.Object,java.lang.Object|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|putAll|java.lang.Object,java.util.Collection|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|putAll|java.util.Map|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|removeMapping|java.lang.Object,java.lang.Object|new:org.apache.commons.collections4.map.MultiValueMap:
+M|org.apache.commons.collections4.map.MultiValueMap|readObject|java.io.ObjectInputStream|new:org.apache.commons.collections4.map.MultiValueMap:

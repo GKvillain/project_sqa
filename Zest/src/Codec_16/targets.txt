@@ -1,0 +1,11 @@
+M|org.apache.commons.codec.binary.Base32|decode|[B,int,int,org.apache.commons.codec.binary.BaseNCodec$Context|new:org.apache.commons.codec.binary.Base32:
+M|org.apache.commons.codec.binary.Base32|encode|[B,int,int,org.apache.commons.codec.binary.BaseNCodec$Context|new:org.apache.commons.codec.binary.Base32:
+M|org.apache.commons.codec.binary.Base32|isInAlphabet|byte|new:org.apache.commons.codec.binary.Base32:
+C|org.apache.commons.codec.binary.Base32|<init>|int
+C|org.apache.commons.codec.binary.Base32|<init>|int,[B
+C|org.apache.commons.codec.binary.Base32|<init>|int,[B,boolean
+C|org.apache.commons.codec.binary.Base32|<init>|int,[B,boolean,byte
+C|org.apache.commons.codec.binary.Base32|<init>|
+C|org.apache.commons.codec.binary.Base32|<init>|byte
+C|org.apache.commons.codec.binary.Base32|<init>|boolean
+C|org.apache.commons.codec.binary.Base32|<init>|boolean,byte

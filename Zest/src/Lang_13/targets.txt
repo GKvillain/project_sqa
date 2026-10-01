@@ -1,0 +1,6 @@
+M|org.apache.commons.lang3.SerializationUtils|clone|java.io.Serializable|static
+M|org.apache.commons.lang3.SerializationUtils|deserialize|[B|static
+M|org.apache.commons.lang3.SerializationUtils|deserialize|java.io.InputStream|static
+M|org.apache.commons.lang3.SerializationUtils|serialize|java.io.Serializable|static
+M|org.apache.commons.lang3.SerializationUtils|serialize|java.io.Serializable,java.io.OutputStream|static
+C|org.apache.commons.lang3.SerializationUtils|<init>|

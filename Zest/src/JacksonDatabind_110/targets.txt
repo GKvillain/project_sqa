@@ -1,0 +1,4 @@
+M|com.fasterxml.jackson.databind.deser.impl.JavaUtilCollectionsDeserializers|findForCollection|com.fasterxml.jackson.databind.DeserializationContext,com.fasterxml.jackson.databind.JavaType|static
+M|com.fasterxml.jackson.databind.deser.impl.JavaUtilCollectionsDeserializers|converter|int,com.fasterxml.jackson.databind.JavaType,java.lang.Class|static
+M|com.fasterxml.jackson.databind.deser.impl.JavaUtilCollectionsDeserializers|findForMap|com.fasterxml.jackson.databind.DeserializationContext,com.fasterxml.jackson.databind.JavaType|static
+M|com.fasterxml.jackson.databind.deser.impl.JavaUtilCollectionsDeserializers|findForCollection|com.fasterxml.jackson.databind.DeserializationContext,com.fasterxml.jackson.databind.JavaType|static

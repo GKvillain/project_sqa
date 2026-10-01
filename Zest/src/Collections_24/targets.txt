@@ -1,0 +1,15 @@
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|unmodifiableBoundedCollection|java.util.Collection|static
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|unmodifiableBoundedCollection|org.apache.commons.collections4.BoundedCollection|static
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|add|java.lang.Object|new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|addAll|java.util.Collection|new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|clear||new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|decorated||new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|isFull||new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|iterator||new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|maxSize||new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|remove|java.lang.Object|new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|removeAll|java.util.Collection|new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|retainAll|java.util.Collection|new:org.apache.commons.collections4.collection.UnmodifiableBoundedCollection:org.apache.commons.collections4.BoundedCollection
+C|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|<init>|org.apache.commons.collections4.BoundedCollection
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|unmodifiableBoundedCollection|java.util.Collection|static
+M|org.apache.commons.collections4.collection.UnmodifiableBoundedCollection|unmodifiableBoundedCollection|org.apache.commons.collections4.BoundedCollection|static

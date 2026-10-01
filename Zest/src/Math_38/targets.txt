@@ -1,0 +1,15 @@
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|prelim|[D,[D|new:org.apache.commons.math.optimization.direct.BOBYQAOptimizer:int
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|altmov|int,double|new:org.apache.commons.math.optimization.direct.BOBYQAOptimizer:int
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|bobyqa|[D,[D|new:org.apache.commons.math.optimization.direct.BOBYQAOptimizer:int
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|bobyqb|[D,[D|new:org.apache.commons.math.optimization.direct.BOBYQAOptimizer:int
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|caller|int|static
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|doOptimize||new:org.apache.commons.math.optimization.direct.BOBYQAOptimizer:int
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|fillNewArray|int,double|static
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|printMethod||static
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|printState|int|static
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|setup|[D,[D|new:org.apache.commons.math.optimization.direct.BOBYQAOptimizer:int
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|trsbox|double,org.apache.commons.math.linear.ArrayRealVector,org.apache.commons.math.linear.ArrayRealVector,org.apache.commons.math.linear.ArrayRealVector,org.apache.commons.math.linear.ArrayRealVector,org.apache.commons.math.linear.ArrayRealVector|new:org.apache.commons.math.optimization.direct.BOBYQAOptimizer:int
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|update|double,double,int|new:org.apache.commons.math.optimization.direct.BOBYQAOptimizer:int
+C|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|<init>|int
+C|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|<init>|int,double,double
+M|org.apache.commons.math.optimization.direct.BOBYQAOptimizer|prelim|[D,[D|new:org.apache.commons.math.optimization.direct.BOBYQAOptimizer:int

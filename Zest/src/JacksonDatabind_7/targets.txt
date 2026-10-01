@@ -1,0 +1,17 @@
+M|com.fasterxml.jackson.databind.util.TokenBuffer|deserialize|com.fasterxml.jackson.core.JsonParser,com.fasterxml.jackson.databind.DeserializationContext|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|_append|com.fasterxml.jackson.core.JsonToken|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|_append|com.fasterxml.jackson.core.JsonToken,java.lang.Object|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|_appendNativeIds|java.lang.StringBuilder|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|_appendRaw|int,java.lang.Object|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|_checkNativeIds|com.fasterxml.jackson.core.JsonParser|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|_reportUnsupportedOperation||new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|append|com.fasterxml.jackson.databind.util.TokenBuffer|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|asParser||new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|asParser|com.fasterxml.jackson.core.JsonParser|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|asParser|com.fasterxml.jackson.core.ObjectCodec|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|canWriteBinaryNatively||new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|canWriteObjectId||new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|canWriteTypeId||new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|close||new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|copyCurrentEvent|com.fasterxml.jackson.core.JsonParser|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec
+M|com.fasterxml.jackson.databind.util.TokenBuffer|deserialize|com.fasterxml.jackson.core.JsonParser,com.fasterxml.jackson.databind.DeserializationContext|new:com.fasterxml.jackson.databind.util.TokenBuffer:com.fasterxml.jackson.core.ObjectCodec

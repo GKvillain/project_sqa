@@ -1,0 +1,6 @@
+M|org.apache.commons.math.special.Gamma|logGamma|double|static
+M|org.apache.commons.math.special.Gamma|regularizedGammaP|double,double|static
+M|org.apache.commons.math.special.Gamma|regularizedGammaP|double,double,double,int|static
+M|org.apache.commons.math.special.Gamma|regularizedGammaQ|double,double|static
+M|org.apache.commons.math.special.Gamma|regularizedGammaQ|double,double,double,int|static
+C|org.apache.commons.math.special.Gamma|<init>|

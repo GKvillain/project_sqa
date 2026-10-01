@@ -1,0 +1,16 @@
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|closeArchiveEntry||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|finish||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|putArchiveEntry|org.apache.commons.compress.archivers.ArchiveEntry|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|close||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|createArchiveEntry|java.io.File,java.lang.String|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|flush||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|getRecordSize||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|setLongFileMode|int|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|write|[B,int,int|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|writeEOFRecord||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+C|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|<init>|java.io.OutputStream
+C|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|<init>|java.io.OutputStream,int,int
+C|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|<init>|java.io.OutputStream,int
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|closeArchiveEntry||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|finish||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|putArchiveEntry|org.apache.commons.compress.archivers.ArchiveEntry|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream

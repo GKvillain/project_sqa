@@ -1,0 +1,7 @@
+M|org.apache.commons.cli2.builder.PatternBuilder|create||new:org.apache.commons.cli2.builder.PatternBuilder:
+M|org.apache.commons.cli2.builder.PatternBuilder|createOption|char,boolean,char|new:org.apache.commons.cli2.builder.PatternBuilder:
+M|org.apache.commons.cli2.builder.PatternBuilder|reset||new:org.apache.commons.cli2.builder.PatternBuilder:
+M|org.apache.commons.cli2.builder.PatternBuilder|validator|char|static
+M|org.apache.commons.cli2.builder.PatternBuilder|withPattern|java.lang.String|new:org.apache.commons.cli2.builder.PatternBuilder:
+C|org.apache.commons.cli2.builder.PatternBuilder|<init>|
+C|org.apache.commons.cli2.builder.PatternBuilder|<init>|org.apache.commons.cli2.builder.GroupBuilder,org.apache.commons.cli2.builder.DefaultOptionBuilder,org.apache.commons.cli2.builder.ArgumentBuilder

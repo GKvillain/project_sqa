@@ -1,0 +1,17 @@
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|unmodifiableTrie|org.apache.commons.collections4.Trie|static
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|clear||new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|comparator||new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|containsKey|java.lang.Object|new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|containsValue|java.lang.Object|new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|entrySet||new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|equals|java.lang.Object|new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|firstKey||new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|get|java.lang.Object|new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|hashCode||new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|headMap|java.lang.Object|new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|isEmpty||new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|keySet||new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|lastKey||new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|mapIterator||new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|nextKey|java.lang.Object|new:org.apache.commons.collections4.trie.UnmodifiableTrie:org.apache.commons.collections4.Trie
+M|org.apache.commons.collections4.trie.UnmodifiableTrie|unmodifiableTrie|org.apache.commons.collections4.Trie|static

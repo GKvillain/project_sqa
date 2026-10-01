@@ -1,0 +1,17 @@
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getNumericalMean||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|calculateNumericalVariance||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|cumulativeProbability|int|new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getDomain|int,int,int|new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getLowerDomain|int,int,int|new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getNumberOfSuccesses||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getNumericalVariance||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getPopulationSize||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getSampleSize||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getSupportLowerBound||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getSupportUpperBound||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getUpperDomain|int,int|new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|innerCumulativeProbability|int,int,int|new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|isSupportConnected||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|probability|int|new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|upperCumulativeProbability|int|new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int
+M|org.apache.commons.math3.distribution.HypergeometricDistribution|getNumericalMean||new:org.apache.commons.math3.distribution.HypergeometricDistribution:int,int,int

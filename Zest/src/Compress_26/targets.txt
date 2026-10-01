@@ -1,0 +1,9 @@
+M|org.apache.commons.compress.utils.IOUtils|skip|java.io.InputStream,long|static
+M|org.apache.commons.compress.utils.IOUtils|closeQuietly|java.io.Closeable|static
+M|org.apache.commons.compress.utils.IOUtils|copy|java.io.InputStream,java.io.OutputStream|static
+M|org.apache.commons.compress.utils.IOUtils|copy|java.io.InputStream,java.io.OutputStream,int|static
+M|org.apache.commons.compress.utils.IOUtils|readFully|java.io.InputStream,[B|static
+M|org.apache.commons.compress.utils.IOUtils|readFully|java.io.InputStream,[B,int,int|static
+M|org.apache.commons.compress.utils.IOUtils|toByteArray|java.io.InputStream|static
+C|org.apache.commons.compress.utils.IOUtils|<init>|
+M|org.apache.commons.compress.utils.IOUtils|skip|java.io.InputStream,long|static

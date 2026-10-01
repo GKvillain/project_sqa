@@ -1,0 +1,9 @@
+M|com.fasterxml.jackson.core.util.JsonParserSequence|nextToken||new:com.fasterxml.jackson.core.util.JsonParserSequence:[Lcom.fasterxml.jackson.core.JsonParser;
+C|com.fasterxml.jackson.core.util.JsonParserSequence|<init>|[Lcom.fasterxml.jackson.core.JsonParser;
+M|com.fasterxml.jackson.core.util.JsonParserSequence|addFlattenedActiveParsers|java.util.List|new:com.fasterxml.jackson.core.util.JsonParserSequence:[Lcom.fasterxml.jackson.core.JsonParser;
+M|com.fasterxml.jackson.core.util.JsonParserSequence|close||new:com.fasterxml.jackson.core.util.JsonParserSequence:[Lcom.fasterxml.jackson.core.JsonParser;
+M|com.fasterxml.jackson.core.util.JsonParserSequence|containedParsersCount||new:com.fasterxml.jackson.core.util.JsonParserSequence:[Lcom.fasterxml.jackson.core.JsonParser;
+M|com.fasterxml.jackson.core.util.JsonParserSequence|createFlattened|com.fasterxml.jackson.core.JsonParser,com.fasterxml.jackson.core.JsonParser|static
+M|com.fasterxml.jackson.core.util.JsonParserSequence|switchToNext||new:com.fasterxml.jackson.core.util.JsonParserSequence:[Lcom.fasterxml.jackson.core.JsonParser;
+M|com.fasterxml.jackson.core.util.JsonParserSequence|nextToken||new:com.fasterxml.jackson.core.util.JsonParserSequence:[Lcom.fasterxml.jackson.core.JsonParser;
+C|com.fasterxml.jackson.core.util.JsonParserSequence|<init>|[Lcom.fasterxml.jackson.core.JsonParser;

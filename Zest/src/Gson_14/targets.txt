@@ -1,0 +1,16 @@
+M|com.google.gson.internal.$Gson$Types|arrayOf|java.lang.reflect.Type|static
+M|com.google.gson.internal.$Gson$Types|canonicalize|java.lang.reflect.Type|static
+M|com.google.gson.internal.$Gson$Types|checkNotPrimitive|java.lang.reflect.Type|static
+M|com.google.gson.internal.$Gson$Types|declaringClassOf|java.lang.reflect.TypeVariable|static
+M|com.google.gson.internal.$Gson$Types|equal|java.lang.Object,java.lang.Object|static
+M|com.google.gson.internal.$Gson$Types|equals|java.lang.reflect.Type,java.lang.reflect.Type|static
+M|com.google.gson.internal.$Gson$Types|getArrayComponentType|java.lang.reflect.Type|static
+M|com.google.gson.internal.$Gson$Types|getCollectionElementType|java.lang.reflect.Type,java.lang.Class|static
+M|com.google.gson.internal.$Gson$Types|getGenericSupertype|java.lang.reflect.Type,java.lang.Class,java.lang.Class|static
+M|com.google.gson.internal.$Gson$Types|getMapKeyAndValueTypes|java.lang.reflect.Type,java.lang.Class|static
+M|com.google.gson.internal.$Gson$Types|getRawType|java.lang.reflect.Type|static
+M|com.google.gson.internal.$Gson$Types|getSupertype|java.lang.reflect.Type,java.lang.Class,java.lang.Class|static
+M|com.google.gson.internal.$Gson$Types|hashCodeOrZero|java.lang.Object|static
+M|com.google.gson.internal.$Gson$Types|indexOf|[Ljava.lang.Object;,java.lang.Object|static
+M|com.google.gson.internal.$Gson$Types|newParameterizedTypeWithOwner|java.lang.reflect.Type,java.lang.reflect.Type,[Ljava.lang.reflect.Type;|static
+M|com.google.gson.internal.$Gson$Types|resolve|java.lang.reflect.Type,java.lang.Class,java.lang.reflect.Type|static

@@ -1,0 +1,7 @@
+C|org.apache.commons.math3.genetics.ElitisticListPopulation|<init>|java.util.List,int,double
+C|org.apache.commons.math3.genetics.ElitisticListPopulation|<init>|int,double
+M|org.apache.commons.math3.genetics.ElitisticListPopulation|getElitismRate||new:org.apache.commons.math3.genetics.ElitisticListPopulation:int,double
+M|org.apache.commons.math3.genetics.ElitisticListPopulation|nextGeneration||new:org.apache.commons.math3.genetics.ElitisticListPopulation:int,double
+M|org.apache.commons.math3.genetics.ElitisticListPopulation|setElitismRate|double|new:org.apache.commons.math3.genetics.ElitisticListPopulation:int,double
+C|org.apache.commons.math3.genetics.ElitisticListPopulation|<init>|java.util.List,int,double
+C|org.apache.commons.math3.genetics.ElitisticListPopulation|<init>|int,double

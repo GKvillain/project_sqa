@@ -1,0 +1,11 @@
+M|org.apache.commons.cli.PosixParser|burstToken|java.lang.String,boolean|new:org.apache.commons.cli.PosixParser:
+M|org.apache.commons.cli.PosixParser|flatten|org.apache.commons.cli.Options,[Ljava.lang.String;,boolean|new:org.apache.commons.cli.PosixParser:
+M|org.apache.commons.cli.PosixParser|processNonOptionToken|java.lang.String,boolean|new:org.apache.commons.cli.PosixParser:
+M|org.apache.commons.cli.PosixParser|processOptionToken|java.lang.String,boolean|new:org.apache.commons.cli.PosixParser:
+M|org.apache.commons.cli.PosixParser|gobble|java.util.Iterator|new:org.apache.commons.cli.PosixParser:
+M|org.apache.commons.cli.PosixParser|init||new:org.apache.commons.cli.PosixParser:
+C|org.apache.commons.cli.PosixParser|<init>|
+M|org.apache.commons.cli.PosixParser|burstToken|java.lang.String,boolean|new:org.apache.commons.cli.PosixParser:
+M|org.apache.commons.cli.PosixParser|flatten|org.apache.commons.cli.Options,[Ljava.lang.String;,boolean|new:org.apache.commons.cli.PosixParser:
+M|org.apache.commons.cli.PosixParser|processNonOptionToken|java.lang.String,boolean|new:org.apache.commons.cli.PosixParser:
+M|org.apache.commons.cli.PosixParser|processOptionToken|java.lang.String,boolean|new:org.apache.commons.cli.PosixParser:

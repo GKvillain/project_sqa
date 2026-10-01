@@ -1,0 +1,9 @@
+C|org.jfree.chart.plot.ValueMarker|<init>|double,java.awt.Paint,java.awt.Stroke,java.awt.Paint,java.awt.Stroke,float
+C|org.jfree.chart.plot.ValueMarker|<init>|double,java.awt.Paint,java.awt.Stroke
+C|org.jfree.chart.plot.ValueMarker|<init>|double
+M|org.jfree.chart.plot.ValueMarker|equals|java.lang.Object|new:org.jfree.chart.plot.ValueMarker:double
+M|org.jfree.chart.plot.ValueMarker|getValue||new:org.jfree.chart.plot.ValueMarker:double
+M|org.jfree.chart.plot.ValueMarker|setValue|double|new:org.jfree.chart.plot.ValueMarker:double
+C|org.jfree.chart.plot.ValueMarker|<init>|double,java.awt.Paint,java.awt.Stroke,java.awt.Paint,java.awt.Stroke,float
+C|org.jfree.chart.plot.ValueMarker|<init>|double,java.awt.Paint,java.awt.Stroke
+C|org.jfree.chart.plot.ValueMarker|<init>|double

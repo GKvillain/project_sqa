@@ -1,0 +1,17 @@
+M|com.google.gson.stream.JsonReader|peekNumber||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|beginArray||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|beginObject||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|checkLenient||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|close||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|consumeNonExecutePrefix||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|doPeek||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|endArray||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|endObject||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|fillBuffer|int|new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|getPath||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|hasNext||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|isLenient||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|isLiteral|char|new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|locationString||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|nextBoolean||new:com.google.gson.stream.JsonReader:java.io.Reader
+M|com.google.gson.stream.JsonReader|peekNumber||new:com.google.gson.stream.JsonReader:java.io.Reader

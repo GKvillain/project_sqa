@@ -1,0 +1,17 @@
+M|com.google.javascript.rhino.jstype.UnionType|meet|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|canAssignTo|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|canBeCalled||new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|contains|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|equals|java.lang.Object|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|findPropertyType|java.lang.String|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|forgiveUnknownNames||new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|getAlternates||new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|getLeastSupertype|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|getPossibleToBooleanOutcomes||new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|getRestrictedTypeGivenToBooleanOutcome|boolean|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|getRestrictedUnion|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|getTypesUnderEquality|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|getTypesUnderInequality|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|getTypesUnderShallowInequality|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|hashCode||new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set
+M|com.google.javascript.rhino.jstype.UnionType|meet|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.UnionType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Set

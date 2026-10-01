@@ -1,0 +1,6 @@
+M|org.apache.commons.compress.archivers.ArchiveStreamFactory|createArchiveInputStream|java.io.InputStream|new:org.apache.commons.compress.archivers.ArchiveStreamFactory:
+M|org.apache.commons.compress.archivers.ArchiveStreamFactory|createArchiveInputStream|java.lang.String,java.io.InputStream|new:org.apache.commons.compress.archivers.ArchiveStreamFactory:
+M|org.apache.commons.compress.archivers.ArchiveStreamFactory|createArchiveOutputStream|java.lang.String,java.io.OutputStream|new:org.apache.commons.compress.archivers.ArchiveStreamFactory:
+C|org.apache.commons.compress.archivers.ArchiveStreamFactory|<init>|
+M|org.apache.commons.compress.archivers.ArchiveStreamFactory|createArchiveInputStream|java.io.InputStream|new:org.apache.commons.compress.archivers.ArchiveStreamFactory:
+M|org.apache.commons.compress.archivers.ArchiveStreamFactory|createArchiveInputStream|java.lang.String,java.io.InputStream|new:org.apache.commons.compress.archivers.ArchiveStreamFactory:

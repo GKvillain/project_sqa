@@ -1,0 +1,16 @@
+M|com.fasterxml.jackson.databind.ObjectMapper|_checkInvalidCopy|java.lang.Class|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_configAndWriteCloseable|com.fasterxml.jackson.core.JsonGenerator,java.lang.Object,com.fasterxml.jackson.databind.SerializationConfig|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_configAndWriteValue|com.fasterxml.jackson.core.JsonGenerator,java.lang.Object|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_configAndWriteValue|com.fasterxml.jackson.core.JsonGenerator,java.lang.Object,java.lang.Class|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_convert|java.lang.Object,com.fasterxml.jackson.databind.JavaType|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_defaultPrettyPrinter||new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_findRootDeserializer|com.fasterxml.jackson.databind.DeserializationContext,com.fasterxml.jackson.databind.JavaType|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_initForReading|com.fasterxml.jackson.core.JsonParser|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_readMapAndClose|com.fasterxml.jackson.core.JsonParser,com.fasterxml.jackson.databind.JavaType|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_readValue|com.fasterxml.jackson.databind.DeserializationConfig,com.fasterxml.jackson.core.JsonParser,com.fasterxml.jackson.databind.JavaType|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_serializerProvider|com.fasterxml.jackson.databind.SerializationConfig|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_unwrapAndDeserialize|com.fasterxml.jackson.core.JsonParser,com.fasterxml.jackson.databind.DeserializationContext,com.fasterxml.jackson.databind.DeserializationConfig,com.fasterxml.jackson.databind.JavaType,com.fasterxml.jackson.databind.JsonDeserializer|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_verifySchemaType|com.fasterxml.jackson.core.FormatSchema|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|_writeCloseableValue|com.fasterxml.jackson.core.JsonGenerator,java.lang.Object,com.fasterxml.jackson.databind.SerializationConfig|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|acceptJsonFormatVisitor|com.fasterxml.jackson.databind.JavaType,com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitorWrapper|new:com.fasterxml.jackson.databind.ObjectMapper:
+M|com.fasterxml.jackson.databind.ObjectMapper|acceptJsonFormatVisitor|java.lang.Class,com.fasterxml.jackson.databind.jsonFormatVisitors.JsonFormatVisitorWrapper|new:com.fasterxml.jackson.databind.ObjectMapper:

@@ -1,0 +1,4 @@
+M|org.apache.commons.cli.Util|stripLeadingAndTrailingQuotes|java.lang.String|static
+M|org.apache.commons.cli.Util|stripLeadingHyphens|java.lang.String|static
+C|org.apache.commons.cli.Util|<init>|
+M|org.apache.commons.cli.Util|stripLeadingAndTrailingQuotes|java.lang.String|static

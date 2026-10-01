@@ -1,0 +1,12 @@
+M|org.apache.commons.math.ode.events.EventState|evaluateStep|org.apache.commons.math.ode.sampling.StepInterpolator|new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|getConvergence||new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|getEventHandler||new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|getEventTime||new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|getMaxCheckInterval||new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|getMaxIterationCount||new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|reinitializeBegin|double,[D|new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|reset|double,[D|new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|stepAccepted|double,[D|new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|stop||new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int
+C|org.apache.commons.math.ode.events.EventState|<init>|org.apache.commons.math.ode.events.EventHandler,double,double,int
+M|org.apache.commons.math.ode.events.EventState|evaluateStep|org.apache.commons.math.ode.sampling.StepInterpolator|new:org.apache.commons.math.ode.events.EventState:org.apache.commons.math.ode.events.EventHandler,double,double,int

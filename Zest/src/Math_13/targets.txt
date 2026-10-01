@@ -1,0 +1,17 @@
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|squareRoot|org.apache.commons.math3.linear.RealMatrix|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|computeCost|[D|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|computeCovariances|[D,double|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|computeResiduals|[D|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|computeSigma|[D,double|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|computeWeightedJacobian|[D|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|getChiSquare||new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|getCovariances||new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|getCovariances|double|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|getJacobianEvaluations||new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|getRMS||new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|getWeightSquareRoot||new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|guessParametersErrors||new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|optimize|int,org.apache.commons.math3.analysis.DifferentiableMultivariateVectorFunction,[D,[D,[D|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|optimize|int,org.apache.commons.math3.analysis.differentiation.MultivariateDifferentiableVectorFunction,[D,[D,[D|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|optimizeInternal|int,org.apache.commons.math3.analysis.differentiation.MultivariateDifferentiableVectorFunction,[Lorg.apache.commons.math3.optimization.OptimizationData;|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:
+M|org.apache.commons.math3.optimization.general.AbstractLeastSquaresOptimizer|squareRoot|org.apache.commons.math3.linear.RealMatrix|new:org.apache.commons.math3.optimization.general.GaussNewtonOptimizer:

@@ -1,0 +1,4 @@
+M|com.fasterxml.jackson.databind.jsontype.impl.SubTypeValidator|validateSubType|com.fasterxml.jackson.databind.DeserializationContext,com.fasterxml.jackson.databind.JavaType|new:com.fasterxml.jackson.databind.jsontype.impl.SubTypeValidator:
+M|com.fasterxml.jackson.databind.jsontype.impl.SubTypeValidator|instance||static
+C|com.fasterxml.jackson.databind.jsontype.impl.SubTypeValidator|<init>|
+M|com.fasterxml.jackson.databind.jsontype.impl.SubTypeValidator|validateSubType|com.fasterxml.jackson.databind.DeserializationContext,com.fasterxml.jackson.databind.JavaType|new:com.fasterxml.jackson.databind.jsontype.impl.SubTypeValidator:

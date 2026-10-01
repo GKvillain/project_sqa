@@ -1,0 +1,5 @@
+M|com.google.gson.internal.UnsafeAllocator|assertInstantiable|java.lang.Class|static
+M|com.google.gson.internal.UnsafeAllocator|create||static
+M|com.google.gson.internal.UnsafeAllocator|newInstance|java.lang.Class|fac:com.google.gson.internal.UnsafeAllocator:create:
+M|com.google.gson.internal.UnsafeAllocator|assertInstantiable|java.lang.Class|static
+M|com.google.gson.internal.UnsafeAllocator|create||static

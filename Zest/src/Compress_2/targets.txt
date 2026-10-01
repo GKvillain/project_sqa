@@ -1,0 +1,13 @@
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|close||new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|getNextArEntry||new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|read||new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|read|[B|new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|read|[B,int,int|new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|getNextEntry||new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|matches|[B,int|static
+C|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|<init>|java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|close||new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|getNextArEntry||new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|read||new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|read|[B|new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.ar.ArArchiveInputStream|read|[B,int,int|new:org.apache.commons.compress.archivers.ar.ArArchiveInputStream:java.io.InputStream

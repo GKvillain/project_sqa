@@ -1,0 +1,17 @@
+M|org.apache.commons.lang3.time.DateUtils|isSameLocalTime|java.util.Calendar,java.util.Calendar|static
+M|org.apache.commons.lang3.time.DateUtils|add|java.util.Date,int,int|static
+M|org.apache.commons.lang3.time.DateUtils|addDays|java.util.Date,int|static
+M|org.apache.commons.lang3.time.DateUtils|addHours|java.util.Date,int|static
+M|org.apache.commons.lang3.time.DateUtils|addMilliseconds|java.util.Date,int|static
+M|org.apache.commons.lang3.time.DateUtils|addMinutes|java.util.Date,int|static
+M|org.apache.commons.lang3.time.DateUtils|addMonths|java.util.Date,int|static
+M|org.apache.commons.lang3.time.DateUtils|addSeconds|java.util.Date,int|static
+M|org.apache.commons.lang3.time.DateUtils|addWeeks|java.util.Date,int|static
+M|org.apache.commons.lang3.time.DateUtils|addYears|java.util.Date,int|static
+M|org.apache.commons.lang3.time.DateUtils|ceiling|java.util.Calendar,int|static
+M|org.apache.commons.lang3.time.DateUtils|ceiling|java.lang.Object,int|static
+M|org.apache.commons.lang3.time.DateUtils|ceiling|java.util.Date,int|static
+M|org.apache.commons.lang3.time.DateUtils|getFragment|java.util.Calendar,int,int|static
+M|org.apache.commons.lang3.time.DateUtils|getFragment|java.util.Date,int,int|static
+M|org.apache.commons.lang3.time.DateUtils|getFragmentInDays|java.util.Calendar,int|static
+M|org.apache.commons.lang3.time.DateUtils|isSameLocalTime|java.util.Calendar,java.util.Calendar|static

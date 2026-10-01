@@ -1,0 +1,5 @@
+M|org.mockito.internal.configuration.DefaultInjectionEngine|injectMockCandidate|java.lang.Class,java.util.Set,java.lang.Object|new:org.mockito.internal.configuration.DefaultInjectionEngine:
+M|org.mockito.internal.configuration.DefaultInjectionEngine|injectMocksOnFields|java.util.Set,java.util.Set,java.lang.Object|new:org.mockito.internal.configuration.DefaultInjectionEngine:
+M|org.mockito.internal.configuration.DefaultInjectionEngine|orderedInstanceFieldsFrom|java.lang.Class|new:org.mockito.internal.configuration.DefaultInjectionEngine:
+C|org.mockito.internal.configuration.DefaultInjectionEngine|<init>|
+M|org.mockito.internal.configuration.DefaultInjectionEngine|injectMockCandidate|java.lang.Class,java.util.Set,java.lang.Object|new:org.mockito.internal.configuration.DefaultInjectionEngine:

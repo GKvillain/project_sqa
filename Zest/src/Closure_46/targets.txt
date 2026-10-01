@@ -1,0 +1,10 @@
+M|com.google.javascript.rhino.jstype.RecordType|getGreatestSubtypeHelper|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.RecordType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Map
+M|com.google.javascript.rhino.jstype.RecordType|defineProperty|java.lang.String,com.google.javascript.rhino.jstype.JSType,boolean,com.google.javascript.rhino.Node|new:com.google.javascript.rhino.jstype.RecordType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Map
+M|com.google.javascript.rhino.jstype.RecordType|getImplicitPrototype||new:com.google.javascript.rhino.jstype.RecordType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Map
+M|com.google.javascript.rhino.jstype.RecordType|isEquivalentTo|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.RecordType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Map
+M|com.google.javascript.rhino.jstype.RecordType|isSubtype|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.RecordType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Map
+M|com.google.javascript.rhino.jstype.RecordType|isSubtype|com.google.javascript.rhino.jstype.ObjectType,com.google.javascript.rhino.jstype.RecordType|static
+M|com.google.javascript.rhino.jstype.RecordType|resolveInternal|com.google.javascript.rhino.ErrorReporter,com.google.javascript.rhino.jstype.StaticScope|new:com.google.javascript.rhino.jstype.RecordType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Map
+M|com.google.javascript.rhino.jstype.RecordType|toMaybeRecordType||new:com.google.javascript.rhino.jstype.RecordType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Map
+C|com.google.javascript.rhino.jstype.RecordType|<init>|com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Map
+M|com.google.javascript.rhino.jstype.RecordType|getGreatestSubtypeHelper|com.google.javascript.rhino.jstype.JSType|new:com.google.javascript.rhino.jstype.RecordType:com.google.javascript.rhino.jstype.JSTypeRegistry,java.util.Map

@@ -1,0 +1,5 @@
+M|org.apache.commons.math.optimization.direct.MultiDirectional|iterateSimplex|java.util.Comparator|new:org.apache.commons.math.optimization.direct.MultiDirectional:
+M|org.apache.commons.math.optimization.direct.MultiDirectional|evaluateNewSimplex|[Lorg.apache.commons.math.optimization.RealPointValuePair;,double,java.util.Comparator|new:org.apache.commons.math.optimization.direct.MultiDirectional:
+C|org.apache.commons.math.optimization.direct.MultiDirectional|<init>|
+C|org.apache.commons.math.optimization.direct.MultiDirectional|<init>|double,double
+M|org.apache.commons.math.optimization.direct.MultiDirectional|iterateSimplex|java.util.Comparator|new:org.apache.commons.math.optimization.direct.MultiDirectional:

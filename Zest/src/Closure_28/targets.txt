@@ -1,0 +1,3 @@
+M|com.google.javascript.jscomp.InlineCostEstimator|getCost|com.google.javascript.rhino.Node|static
+M|com.google.javascript.jscomp.InlineCostEstimator|getCost|com.google.javascript.rhino.Node,int|static
+C|com.google.javascript.jscomp.InlineCostEstimator|<init>|

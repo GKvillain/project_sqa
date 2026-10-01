@@ -1,0 +1,6 @@
+M|org.jsoup.nodes.DocumentType|outerHtmlHead|java.lang.StringBuilder,int,org.jsoup.nodes.Document$OutputSettings|new:org.jsoup.nodes.DocumentType:java.lang.String,java.lang.String,java.lang.String,java.lang.String
+C|org.jsoup.nodes.DocumentType|<init>|java.lang.String,java.lang.String,java.lang.String,java.lang.String
+M|org.jsoup.nodes.DocumentType|nodeName||new:org.jsoup.nodes.DocumentType:java.lang.String,java.lang.String,java.lang.String,java.lang.String
+M|org.jsoup.nodes.DocumentType|outerHtmlTail|java.lang.StringBuilder,int,org.jsoup.nodes.Document$OutputSettings|new:org.jsoup.nodes.DocumentType:java.lang.String,java.lang.String,java.lang.String,java.lang.String
+M|org.jsoup.nodes.DocumentType|outerHtmlHead|java.lang.StringBuilder,int,org.jsoup.nodes.Document$OutputSettings|new:org.jsoup.nodes.DocumentType:java.lang.String,java.lang.String,java.lang.String,java.lang.String
+C|org.jsoup.nodes.DocumentType|<init>|java.lang.String,java.lang.String,java.lang.String,java.lang.String

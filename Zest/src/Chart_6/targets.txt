@@ -1,0 +1,9 @@
+M|org.jfree.chart.util.ShapeList|equals|java.lang.Object|new:org.jfree.chart.util.ShapeList:
+M|org.jfree.chart.util.ShapeList|clone||new:org.jfree.chart.util.ShapeList:
+M|org.jfree.chart.util.ShapeList|getShape|int|new:org.jfree.chart.util.ShapeList:
+M|org.jfree.chart.util.ShapeList|hashCode||new:org.jfree.chart.util.ShapeList:
+M|org.jfree.chart.util.ShapeList|readObject|java.io.ObjectInputStream|new:org.jfree.chart.util.ShapeList:
+M|org.jfree.chart.util.ShapeList|setShape|int,java.awt.Shape|new:org.jfree.chart.util.ShapeList:
+M|org.jfree.chart.util.ShapeList|writeObject|java.io.ObjectOutputStream|new:org.jfree.chart.util.ShapeList:
+C|org.jfree.chart.util.ShapeList|<init>|
+M|org.jfree.chart.util.ShapeList|equals|java.lang.Object|new:org.jfree.chart.util.ShapeList:

@@ -1,0 +1,14 @@
+M|org.apache.commons.lang.time.DurationFormatUtils|format|[Lorg.apache.commons.lang.time.DurationFormatUtils$Token;,int,int,int,int,int,int,int,boolean|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatPeriod|long,long,java.lang.String|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatPeriod|long,long,java.lang.String,boolean,java.util.TimeZone|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatDuration|long,java.lang.String|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatDuration|long,java.lang.String,boolean|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatDurationHMS|long|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatDurationISO|long|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatDurationWords|long,boolean,boolean|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatPeriodISO|long,long|static
+M|org.apache.commons.lang.time.DurationFormatUtils|lexx|java.lang.String|static
+C|org.apache.commons.lang.time.DurationFormatUtils|<init>|
+M|org.apache.commons.lang.time.DurationFormatUtils|format|[Lorg.apache.commons.lang.time.DurationFormatUtils$Token;,int,int,int,int,int,int,int,boolean|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatPeriod|long,long,java.lang.String|static
+M|org.apache.commons.lang.time.DurationFormatUtils|formatPeriod|long,long,java.lang.String,boolean,java.util.TimeZone|static

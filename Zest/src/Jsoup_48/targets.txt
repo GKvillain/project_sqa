@@ -1,0 +1,16 @@
+M|org.jsoup.helper.HttpConnection|connect|java.lang.String|static
+M|org.jsoup.helper.HttpConnection|connect|java.net.URL|static
+M|org.jsoup.helper.HttpConnection|cookie|java.lang.String,java.lang.String|new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|cookies|java.util.Map|new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|data|java.lang.String,java.lang.String|new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|data|java.lang.String,java.lang.String,java.io.InputStream|new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|data|[Ljava.lang.String;|new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|data|java.util.Collection|new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|data|java.util.Map|new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|encodeMimeName|java.lang.String|static
+M|org.jsoup.helper.HttpConnection|encodeUrl|java.lang.String|static
+M|org.jsoup.helper.HttpConnection|execute||new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|followRedirects|boolean|new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|get||new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|header|java.lang.String,java.lang.String|new:org.jsoup.helper.HttpConnection:
+M|org.jsoup.helper.HttpConnection|ignoreContentType|boolean|new:org.jsoup.helper.HttpConnection:

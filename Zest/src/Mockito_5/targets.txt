@@ -1,0 +1,10 @@
+M|org.mockito.internal.verification.VerificationOverTimeImpl|verify|org.mockito.internal.verification.api.VerificationData|new:org.mockito.internal.verification.VerificationOverTimeImpl:long,long,org.mockito.verification.VerificationMode,boolean
+M|org.mockito.internal.verification.VerificationOverTimeImpl|canRecoverFromFailure|org.mockito.verification.VerificationMode|new:org.mockito.internal.verification.VerificationOverTimeImpl:long,long,org.mockito.verification.VerificationMode,boolean
+M|org.mockito.internal.verification.VerificationOverTimeImpl|getDelegate||new:org.mockito.internal.verification.VerificationOverTimeImpl:long,long,org.mockito.verification.VerificationMode,boolean
+M|org.mockito.internal.verification.VerificationOverTimeImpl|getDuration||new:org.mockito.internal.verification.VerificationOverTimeImpl:long,long,org.mockito.verification.VerificationMode,boolean
+M|org.mockito.internal.verification.VerificationOverTimeImpl|getPollingPeriod||new:org.mockito.internal.verification.VerificationOverTimeImpl:long,long,org.mockito.verification.VerificationMode,boolean
+M|org.mockito.internal.verification.VerificationOverTimeImpl|handleVerifyException|java.lang.AssertionError|new:org.mockito.internal.verification.VerificationOverTimeImpl:long,long,org.mockito.verification.VerificationMode,boolean
+M|org.mockito.internal.verification.VerificationOverTimeImpl|sleep|long|new:org.mockito.internal.verification.VerificationOverTimeImpl:long,long,org.mockito.verification.VerificationMode,boolean
+C|org.mockito.internal.verification.VerificationOverTimeImpl|<init>|long,long,org.mockito.verification.VerificationMode,boolean
+C|org.mockito.internal.verification.VerificationOverTimeImpl|<init>|long,long,org.mockito.verification.VerificationMode,boolean,org.mockito.internal.util.Timer
+M|org.mockito.internal.verification.VerificationOverTimeImpl|verify|org.mockito.internal.verification.api.VerificationData|new:org.mockito.internal.verification.VerificationOverTimeImpl:long,long,org.mockito.verification.VerificationMode,boolean

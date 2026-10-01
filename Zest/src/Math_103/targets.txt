@@ -1,0 +1,12 @@
+M|org.apache.commons.math.distribution.NormalDistributionImpl|cumulativeProbability|double|new:org.apache.commons.math.distribution.NormalDistributionImpl:
+M|org.apache.commons.math.distribution.NormalDistributionImpl|getDomainLowerBound|double|new:org.apache.commons.math.distribution.NormalDistributionImpl:
+M|org.apache.commons.math.distribution.NormalDistributionImpl|getDomainUpperBound|double|new:org.apache.commons.math.distribution.NormalDistributionImpl:
+M|org.apache.commons.math.distribution.NormalDistributionImpl|getInitialDomain|double|new:org.apache.commons.math.distribution.NormalDistributionImpl:
+M|org.apache.commons.math.distribution.NormalDistributionImpl|getMean||new:org.apache.commons.math.distribution.NormalDistributionImpl:
+M|org.apache.commons.math.distribution.NormalDistributionImpl|getStandardDeviation||new:org.apache.commons.math.distribution.NormalDistributionImpl:
+M|org.apache.commons.math.distribution.NormalDistributionImpl|inverseCumulativeProbability|double|new:org.apache.commons.math.distribution.NormalDistributionImpl:
+M|org.apache.commons.math.distribution.NormalDistributionImpl|setMean|double|new:org.apache.commons.math.distribution.NormalDistributionImpl:
+M|org.apache.commons.math.distribution.NormalDistributionImpl|setStandardDeviation|double|new:org.apache.commons.math.distribution.NormalDistributionImpl:
+C|org.apache.commons.math.distribution.NormalDistributionImpl|<init>|double,double
+C|org.apache.commons.math.distribution.NormalDistributionImpl|<init>|
+M|org.apache.commons.math.distribution.NormalDistributionImpl|cumulativeProbability|double|new:org.apache.commons.math.distribution.NormalDistributionImpl:

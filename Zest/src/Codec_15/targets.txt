@@ -1,0 +1,13 @@
+M|org.apache.commons.codec.language.Soundex|getMappingCode|java.lang.String,int|new:org.apache.commons.codec.language.Soundex:
+M|org.apache.commons.codec.language.Soundex|difference|java.lang.String,java.lang.String|new:org.apache.commons.codec.language.Soundex:
+M|org.apache.commons.codec.language.Soundex|encode|java.lang.Object|new:org.apache.commons.codec.language.Soundex:
+M|org.apache.commons.codec.language.Soundex|encode|java.lang.String|new:org.apache.commons.codec.language.Soundex:
+M|org.apache.commons.codec.language.Soundex|getMaxLength||new:org.apache.commons.codec.language.Soundex:
+M|org.apache.commons.codec.language.Soundex|getSoundexMapping||new:org.apache.commons.codec.language.Soundex:
+M|org.apache.commons.codec.language.Soundex|map|char|new:org.apache.commons.codec.language.Soundex:
+M|org.apache.commons.codec.language.Soundex|setMaxLength|int|new:org.apache.commons.codec.language.Soundex:
+M|org.apache.commons.codec.language.Soundex|soundex|java.lang.String|new:org.apache.commons.codec.language.Soundex:
+C|org.apache.commons.codec.language.Soundex|<init>|java.lang.String
+C|org.apache.commons.codec.language.Soundex|<init>|[C
+C|org.apache.commons.codec.language.Soundex|<init>|
+M|org.apache.commons.codec.language.Soundex|getMappingCode|java.lang.String,int|new:org.apache.commons.codec.language.Soundex:

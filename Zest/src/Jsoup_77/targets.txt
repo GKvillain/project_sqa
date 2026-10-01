@@ -1,0 +1,14 @@
+M|org.jsoup.parser.XmlTreeBuilder|popStackToClose|org.jsoup.parser.Token$EndTag|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|defaultSettings||new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|initialiseParse|java.io.Reader,java.lang.String,org.jsoup.parser.ParseErrorList,org.jsoup.parser.ParseSettings|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|insert|org.jsoup.parser.Token$StartTag|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|insert|org.jsoup.parser.Token$Character|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|insert|org.jsoup.parser.Token$Comment|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|insert|org.jsoup.parser.Token$Doctype|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|insertNode|org.jsoup.nodes.Node|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|parse|java.io.Reader,java.lang.String|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|parse|java.lang.String,java.lang.String|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|parseFragment|java.lang.String,java.lang.String,org.jsoup.parser.ParseErrorList,org.jsoup.parser.ParseSettings|new:org.jsoup.parser.XmlTreeBuilder:
+M|org.jsoup.parser.XmlTreeBuilder|process|org.jsoup.parser.Token|new:org.jsoup.parser.XmlTreeBuilder:
+C|org.jsoup.parser.XmlTreeBuilder|<init>|
+M|org.jsoup.parser.XmlTreeBuilder|popStackToClose|org.jsoup.parser.Token$EndTag|new:org.jsoup.parser.XmlTreeBuilder:

@@ -1,0 +1,12 @@
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|integrate|org.apache.commons.math.ode.FirstOrderDifferentialEquations,double,[D,double,[D|new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.RungeKuttaIntegrator|integrate|org.apache.commons.math.ode.FirstOrderDifferentialEquations,double,[D,double,[D|new:org.apache.commons.math.ode.nonstiff.ClassicalRungeKuttaIntegrator:double
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|estimateError|[[D,[D,[D,double|new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|getMaxGrowth||new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|getMinReduction||new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|getOrder||new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|getSafety||new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|setMaxGrowth|double|new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|setMinReduction|double|new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|setSafety|double|new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.EmbeddedRungeKuttaIntegrator|integrate|org.apache.commons.math.ode.FirstOrderDifferentialEquations,double,[D,double,[D|new:org.apache.commons.math.ode.nonstiff.DormandPrince54Integrator:double,double,double,double
+M|org.apache.commons.math.ode.nonstiff.RungeKuttaIntegrator|integrate|org.apache.commons.math.ode.FirstOrderDifferentialEquations,double,[D,double,[D|new:org.apache.commons.math.ode.nonstiff.ClassicalRungeKuttaIntegrator:double

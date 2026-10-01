@@ -1,0 +1,5 @@
+M|org.mockito.internal.matchers.Same|describeTo|org.hamcrest.Description|new:org.mockito.internal.matchers.Same:java.lang.Object
+M|org.mockito.internal.matchers.Same|appendQuoting|org.hamcrest.Description|new:org.mockito.internal.matchers.Same:java.lang.Object
+M|org.mockito.internal.matchers.Same|matches|java.lang.Object|new:org.mockito.internal.matchers.Same:java.lang.Object
+C|org.mockito.internal.matchers.Same|<init>|java.lang.Object
+M|org.mockito.internal.matchers.Same|describeTo|org.hamcrest.Description|new:org.mockito.internal.matchers.Same:java.lang.Object

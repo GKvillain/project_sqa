@@ -1,0 +1,8 @@
+M|org.apache.commons.jxpath.ri.compiler.Expression|iterate|org.apache.commons.jxpath.ri.EvalContext|new:org.apache.commons.jxpath.ri.compiler.Constant:java.lang.Number
+M|org.apache.commons.jxpath.ri.compiler.Expression|iteratePointers|org.apache.commons.jxpath.ri.EvalContext|new:org.apache.commons.jxpath.ri.compiler.Constant:java.lang.Number
+M|org.apache.commons.jxpath.ri.compiler.Expression|compute|org.apache.commons.jxpath.ri.EvalContext|new:org.apache.commons.jxpath.ri.compiler.Constant:java.lang.Number
+M|org.apache.commons.jxpath.ri.compiler.Expression|computeContextDependent||new:org.apache.commons.jxpath.ri.compiler.Constant:java.lang.Number
+M|org.apache.commons.jxpath.ri.compiler.Expression|computeValue|org.apache.commons.jxpath.ri.EvalContext|new:org.apache.commons.jxpath.ri.compiler.Constant:java.lang.Number
+M|org.apache.commons.jxpath.ri.compiler.Expression|isContextDependent||new:org.apache.commons.jxpath.ri.compiler.Constant:java.lang.Number
+M|org.apache.commons.jxpath.ri.compiler.Expression|iterate|org.apache.commons.jxpath.ri.EvalContext|new:org.apache.commons.jxpath.ri.compiler.Constant:java.lang.Number
+M|org.apache.commons.jxpath.ri.compiler.Expression|iteratePointers|org.apache.commons.jxpath.ri.EvalContext|new:org.apache.commons.jxpath.ri.compiler.Constant:java.lang.Number

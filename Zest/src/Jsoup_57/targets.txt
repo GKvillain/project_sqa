@@ -1,0 +1,17 @@
+M|org.jsoup.nodes.Attributes|removeIgnoreCase|java.lang.String|new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|addAll|org.jsoup.nodes.Attributes|new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|asList||new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|clone||new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|dataKey|java.lang.String|static
+M|org.jsoup.nodes.Attributes|dataset||new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|equals|java.lang.Object|new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|get|java.lang.String|new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|getIgnoreCase|java.lang.String|new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|hasKey|java.lang.String|new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|hasKeyIgnoreCase|java.lang.String|new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|hashCode||new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|html||new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|html|java.lang.Appendable,org.jsoup.nodes.Document$OutputSettings|new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|iterator||new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|put|java.lang.String,boolean|new:org.jsoup.nodes.Attributes:
+M|org.jsoup.nodes.Attributes|removeIgnoreCase|java.lang.String|new:org.jsoup.nodes.Attributes:

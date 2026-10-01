@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|writePaxHeaders|java.lang.String,java.util.Map|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|addPaxHeaderForBigNumber|java.util.Map,java.lang.String,long,long|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|addPaxHeadersForBigNumbers|java.util.Map,org.apache.commons.compress.archivers.tar.TarArchiveEntry|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|close||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|closeArchiveEntry||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|createArchiveEntry|java.io.File,java.lang.String|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|failForBigNumber|java.lang.String,long,long|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|failForBigNumbers|org.apache.commons.compress.archivers.tar.TarArchiveEntry|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|finish||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|flush||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|getBytesWritten||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|getCount||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|getRecordSize||new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|putArchiveEntry|org.apache.commons.compress.archivers.ArchiveEntry|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|setAddPaxHeadersForNonAsciiNames|boolean|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|setBigNumberMode|int|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.tar.TarArchiveOutputStream|writePaxHeaders|java.lang.String,java.util.Map|new:org.apache.commons.compress.archivers.tar.TarArchiveOutputStream:java.io.OutputStream

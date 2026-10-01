@@ -1,0 +1,11 @@
+M|org.apache.commons.math.distribution.FDistributionImpl|getInitialDomain|double|new:org.apache.commons.math.distribution.FDistributionImpl:double,double
+M|org.apache.commons.math.distribution.FDistributionImpl|cumulativeProbability|double|new:org.apache.commons.math.distribution.FDistributionImpl:double,double
+M|org.apache.commons.math.distribution.FDistributionImpl|getDenominatorDegreesOfFreedom||new:org.apache.commons.math.distribution.FDistributionImpl:double,double
+M|org.apache.commons.math.distribution.FDistributionImpl|getDomainLowerBound|double|new:org.apache.commons.math.distribution.FDistributionImpl:double,double
+M|org.apache.commons.math.distribution.FDistributionImpl|getDomainUpperBound|double|new:org.apache.commons.math.distribution.FDistributionImpl:double,double
+M|org.apache.commons.math.distribution.FDistributionImpl|getNumeratorDegreesOfFreedom||new:org.apache.commons.math.distribution.FDistributionImpl:double,double
+M|org.apache.commons.math.distribution.FDistributionImpl|inverseCumulativeProbability|double|new:org.apache.commons.math.distribution.FDistributionImpl:double,double
+M|org.apache.commons.math.distribution.FDistributionImpl|setDenominatorDegreesOfFreedom|double|new:org.apache.commons.math.distribution.FDistributionImpl:double,double
+M|org.apache.commons.math.distribution.FDistributionImpl|setNumeratorDegreesOfFreedom|double|new:org.apache.commons.math.distribution.FDistributionImpl:double,double
+C|org.apache.commons.math.distribution.FDistributionImpl|<init>|double,double
+M|org.apache.commons.math.distribution.FDistributionImpl|getInitialDomain|double|new:org.apache.commons.math.distribution.FDistributionImpl:double,double

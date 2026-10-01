@@ -1,0 +1,5 @@
+M|org.apache.commons.math3.optimization.univariate.BrentOptimizer|doOptimize||new:org.apache.commons.math3.optimization.univariate.BrentOptimizer:double,double
+M|org.apache.commons.math3.optimization.univariate.BrentOptimizer|best|org.apache.commons.math3.optimization.univariate.UnivariatePointValuePair,org.apache.commons.math3.optimization.univariate.UnivariatePointValuePair,boolean|new:org.apache.commons.math3.optimization.univariate.BrentOptimizer:double,double
+C|org.apache.commons.math3.optimization.univariate.BrentOptimizer|<init>|double,double,org.apache.commons.math3.optimization.ConvergenceChecker
+C|org.apache.commons.math3.optimization.univariate.BrentOptimizer|<init>|double,double
+M|org.apache.commons.math3.optimization.univariate.BrentOptimizer|doOptimize||new:org.apache.commons.math3.optimization.univariate.BrentOptimizer:double,double

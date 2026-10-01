@@ -1,0 +1,2 @@
+M|com.fasterxml.jackson.databind.ser.std.NumberSerializers|addAll|java.util.Map|static
+C|com.fasterxml.jackson.databind.ser.std.NumberSerializers|<init>|

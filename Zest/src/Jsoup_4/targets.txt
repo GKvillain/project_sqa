@@ -1,0 +1,5 @@
+M|org.jsoup.nodes.Entities|unescape|java.lang.String|static
+M|org.jsoup.nodes.Entities|escape|java.lang.String,java.nio.charset.CharsetEncoder,org.jsoup.nodes.Entities$EscapeMode|static
+M|org.jsoup.nodes.Entities|escape|java.lang.String,org.jsoup.nodes.Document$OutputSettings|static
+C|org.jsoup.nodes.Entities|<init>|
+M|org.jsoup.nodes.Entities|unescape|java.lang.String|static

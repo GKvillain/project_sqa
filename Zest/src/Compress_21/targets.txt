@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|writeBits|java.io.DataOutput,java.util.BitSet,int|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|close||new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|closeArchiveEntry||new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|createArchiveEntry|java.io.File,java.lang.String|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|finish||new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|getCurrentOutputStream||new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|putArchiveEntry|org.apache.commons.compress.archivers.ArchiveEntry|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|setContentCompression|org.apache.commons.compress.archivers.sevenz.SevenZMethod|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|setupFileOutputStream||new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|write|[B|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|write|[B,int,int|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|write|int|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|writeFileATimes|java.io.DataOutput|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|writeFileAntiItems|java.io.DataOutput|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|writeFileCTimes|java.io.DataOutput|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|writeFileEmptyFiles|java.io.DataOutput|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZOutputFile|writeBits|java.io.DataOutput,java.util.BitSet,int|new:org.apache.commons.compress.archivers.sevenz.SevenZOutputFile:java.io.File

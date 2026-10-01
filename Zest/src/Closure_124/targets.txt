@@ -1,0 +1,8 @@
+M|com.google.javascript.jscomp.ExploitAssigns|isSafeReplacement|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ExploitAssigns:
+M|com.google.javascript.jscomp.ExploitAssigns|collapseAssign|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ExploitAssigns:
+M|com.google.javascript.jscomp.ExploitAssigns|collapseAssignEqualTo|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ExploitAssigns:
+M|com.google.javascript.jscomp.ExploitAssigns|isCollapsibleValue|com.google.javascript.rhino.Node,boolean|static
+M|com.google.javascript.jscomp.ExploitAssigns|isNameAssignedTo|java.lang.String,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ExploitAssigns:
+M|com.google.javascript.jscomp.ExploitAssigns|optimizeSubtree|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ExploitAssigns:
+C|com.google.javascript.jscomp.ExploitAssigns|<init>|
+M|com.google.javascript.jscomp.ExploitAssigns|isSafeReplacement|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ExploitAssigns:

@@ -1,0 +1,8 @@
+M|org.apache.commons.lang3.text.translate.CharSequenceTranslator|translate|java.lang.CharSequence,int,java.io.Writer|fld:org.apache.commons.lang3.StringEscapeUtils:ESCAPE_CSV
+M|org.apache.commons.lang3.text.translate.CharSequenceTranslator|translate|java.lang.CharSequence|fld:org.apache.commons.lang3.StringEscapeUtils:ESCAPE_CSV
+M|org.apache.commons.lang3.text.translate.CharSequenceTranslator|translate|java.lang.CharSequence,java.io.Writer|fld:org.apache.commons.lang3.StringEscapeUtils:ESCAPE_CSV
+M|org.apache.commons.lang3.text.translate.CharSequenceTranslator|hex|int|static
+M|org.apache.commons.lang3.text.translate.CharSequenceTranslator|with|[Lorg.apache.commons.lang3.text.translate.CharSequenceTranslator;|fld:org.apache.commons.lang3.StringEscapeUtils:ESCAPE_CSV
+M|org.apache.commons.lang3.text.translate.CharSequenceTranslator|translate|java.lang.CharSequence,int,java.io.Writer|fld:org.apache.commons.lang3.StringEscapeUtils:ESCAPE_CSV
+M|org.apache.commons.lang3.text.translate.CharSequenceTranslator|translate|java.lang.CharSequence|fld:org.apache.commons.lang3.StringEscapeUtils:ESCAPE_CSV
+M|org.apache.commons.lang3.text.translate.CharSequenceTranslator|translate|java.lang.CharSequence,java.io.Writer|fld:org.apache.commons.lang3.StringEscapeUtils:ESCAPE_CSV

@@ -1,0 +1,8 @@
+M|org.apache.commons.codec.binary.BaseNCodecInputStream|available||new:org.apache.commons.codec.binary.BaseNCodecInputStream:java.io.InputStream,org.apache.commons.codec.binary.BaseNCodec,boolean
+M|org.apache.commons.codec.binary.BaseNCodecInputStream|skip|long|new:org.apache.commons.codec.binary.BaseNCodecInputStream:java.io.InputStream,org.apache.commons.codec.binary.BaseNCodec,boolean
+M|org.apache.commons.codec.binary.BaseNCodecInputStream|markSupported||new:org.apache.commons.codec.binary.BaseNCodecInputStream:java.io.InputStream,org.apache.commons.codec.binary.BaseNCodec,boolean
+M|org.apache.commons.codec.binary.BaseNCodecInputStream|read||new:org.apache.commons.codec.binary.BaseNCodecInputStream:java.io.InputStream,org.apache.commons.codec.binary.BaseNCodec,boolean
+M|org.apache.commons.codec.binary.BaseNCodecInputStream|read|[B,int,int|new:org.apache.commons.codec.binary.BaseNCodecInputStream:java.io.InputStream,org.apache.commons.codec.binary.BaseNCodec,boolean
+C|org.apache.commons.codec.binary.BaseNCodecInputStream|<init>|java.io.InputStream,org.apache.commons.codec.binary.BaseNCodec,boolean
+M|org.apache.commons.codec.binary.BaseNCodecInputStream|available||new:org.apache.commons.codec.binary.BaseNCodecInputStream:java.io.InputStream,org.apache.commons.codec.binary.BaseNCodec,boolean
+M|org.apache.commons.codec.binary.BaseNCodecInputStream|skip|long|new:org.apache.commons.codec.binary.BaseNCodecInputStream:java.io.InputStream,org.apache.commons.codec.binary.BaseNCodec,boolean

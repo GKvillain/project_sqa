@@ -1,0 +1,17 @@
+M|org.apache.commons.csv.CSVRecord|putIn|java.util.Map|new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|get|int|new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|get|java.lang.Enum|new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|get|java.lang.String|new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|getComment||new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|getRecordNumber||new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|isConsistent||new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|isMapped|java.lang.String|new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|isSet|java.lang.String|new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|iterator||new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|size||new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|toList||new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|toMap||new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|toString||new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|values||new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long
+C|org.apache.commons.csv.CSVRecord|<init>|[Ljava.lang.String;,java.util.Map,java.lang.String,long
+M|org.apache.commons.csv.CSVRecord|putIn|java.util.Map|new:org.apache.commons.csv.CSVRecord:[Ljava.lang.String;,java.util.Map,java.lang.String,long

@@ -1,0 +1,14 @@
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|readObject|java.io.ObjectInputStream|new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|writeObject|java.io.ObjectOutputStream|new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|add|java.lang.Object|new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|decrement|int|new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|get||new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|increment|int|new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|isEmpty||new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|iterator||new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|remove||new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|size||new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+C|org.apache.commons.collections.buffer.UnboundedFifoBuffer|<init>|
+C|org.apache.commons.collections.buffer.UnboundedFifoBuffer|<init>|int
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|readObject|java.io.ObjectInputStream|new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:
+M|org.apache.commons.collections.buffer.UnboundedFifoBuffer|writeObject|java.io.ObjectOutputStream|new:org.apache.commons.collections.buffer.UnboundedFifoBuffer:

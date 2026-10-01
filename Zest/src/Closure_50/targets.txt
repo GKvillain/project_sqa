@@ -1,0 +1,16 @@
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldArrayJoin|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|normalizeNumericString|java.lang.String|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|optimizeSubtree|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldKnownMethods|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldKnownNumericMethods|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldKnownStringMethods|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldParseNumber|com.google.javascript.rhino.Node,java.lang.String,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldStringCharAt|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldStringCharCodeAt|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldStringIndexOf|com.google.javascript.rhino.Node,java.lang.String,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldStringSubstr|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldStringSubstring|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldStringToLowerCase|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldStringToUpperCase|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:
+C|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|<init>|
+M|com.google.javascript.jscomp.PeepholeReplaceKnownMethods|tryFoldArrayJoin|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeReplaceKnownMethods:

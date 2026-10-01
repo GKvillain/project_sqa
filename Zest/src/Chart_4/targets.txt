@@ -1,0 +1,17 @@
+M|org.jfree.chart.plot.XYPlot|getDataRange|org.jfree.chart.axis.ValueAxis|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addAnnotation|org.jfree.chart.annotations.XYAnnotation|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addAnnotation|org.jfree.chart.annotations.XYAnnotation,boolean|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addDomainMarker|int,org.jfree.chart.plot.Marker,org.jfree.chart.util.Layer|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addDomainMarker|int,org.jfree.chart.plot.Marker,org.jfree.chart.util.Layer,boolean|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addDomainMarker|org.jfree.chart.plot.Marker|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addDomainMarker|org.jfree.chart.plot.Marker,org.jfree.chart.util.Layer|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addRangeMarker|int,org.jfree.chart.plot.Marker,org.jfree.chart.util.Layer|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addRangeMarker|int,org.jfree.chart.plot.Marker,org.jfree.chart.util.Layer,boolean|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addRangeMarker|org.jfree.chart.plot.Marker|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|addRangeMarker|org.jfree.chart.plot.Marker,org.jfree.chart.util.Layer|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|calculateAxisSpace|java.awt.Graphics2D,java.awt.geom.Rectangle2D|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|calculateDomainAxisSpace|java.awt.Graphics2D,java.awt.geom.Rectangle2D,org.jfree.chart.axis.AxisSpace|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|calculateRangeAxisSpace|java.awt.Graphics2D,java.awt.geom.Rectangle2D,org.jfree.chart.axis.AxisSpace|new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|canSelectByPoint||new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|canSelectByRegion||new:org.jfree.chart.plot.XYPlot:
+M|org.jfree.chart.plot.XYPlot|getDataRange|org.jfree.chart.axis.ValueAxis|new:org.jfree.chart.plot.XYPlot:

@@ -1,0 +1,6 @@
+M|com.google.gson.internal.bind.TypeAdapters|newFactory|com.google.gson.reflect.TypeToken,com.google.gson.TypeAdapter|static
+M|com.google.gson.internal.bind.TypeAdapters|newFactory|java.lang.Class,com.google.gson.TypeAdapter|static
+M|com.google.gson.internal.bind.TypeAdapters|newFactory|java.lang.Class,java.lang.Class,com.google.gson.TypeAdapter|static
+M|com.google.gson.internal.bind.TypeAdapters|newFactoryForMultipleTypes|java.lang.Class,java.lang.Class,com.google.gson.TypeAdapter|static
+M|com.google.gson.internal.bind.TypeAdapters|newTypeHierarchyFactory|java.lang.Class,com.google.gson.TypeAdapter|static
+C|com.google.gson.internal.bind.TypeAdapters|<init>|

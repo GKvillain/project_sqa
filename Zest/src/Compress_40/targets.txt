@@ -1,0 +1,5 @@
+M|org.apache.commons.compress.utils.BitInputStream|readBits|int|new:org.apache.commons.compress.utils.BitInputStream:java.io.InputStream,java.nio.ByteOrder
+M|org.apache.commons.compress.utils.BitInputStream|clearBitCache||new:org.apache.commons.compress.utils.BitInputStream:java.io.InputStream,java.nio.ByteOrder
+M|org.apache.commons.compress.utils.BitInputStream|close||new:org.apache.commons.compress.utils.BitInputStream:java.io.InputStream,java.nio.ByteOrder
+C|org.apache.commons.compress.utils.BitInputStream|<init>|java.io.InputStream,java.nio.ByteOrder
+M|org.apache.commons.compress.utils.BitInputStream|readBits|int|new:org.apache.commons.compress.utils.BitInputStream:java.io.InputStream,java.nio.ByteOrder

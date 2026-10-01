@@ -1,0 +1,13 @@
+M|org.apache.commons.cli.Parser|checkRequiredOptions||new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|flatten|org.apache.commons.cli.Options,[Ljava.lang.String;,boolean|new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|getOptions||new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|getRequiredOptions||new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|parse|org.apache.commons.cli.Options,[Ljava.lang.String;|new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|parse|org.apache.commons.cli.Options,[Ljava.lang.String;,boolean|new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|parse|org.apache.commons.cli.Options,[Ljava.lang.String;,java.util.Properties|new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|parse|org.apache.commons.cli.Options,[Ljava.lang.String;,java.util.Properties,boolean|new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|processArgs|org.apache.commons.cli.Option,java.util.ListIterator|new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|processOption|java.lang.String,java.util.ListIterator|new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|processProperties|java.util.Properties|new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|setOptions|org.apache.commons.cli.Options|new:org.apache.commons.cli.BasicParser:
+M|org.apache.commons.cli.Parser|checkRequiredOptions||new:org.apache.commons.cli.BasicParser:

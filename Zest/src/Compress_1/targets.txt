@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|close||new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|closeArchiveEntry||new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|ensureOpen||new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|finish||new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|pad|long,int|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|putArchiveEntry|org.apache.commons.compress.archivers.ArchiveEntry|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|putNextEntry|org.apache.commons.compress.archivers.cpio.CpioArchiveEntry|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|setFormat|short|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|write|[B,int,int|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|write|int|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|writeAsciiLong|long,int,int|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|writeBinaryLong|long,int,boolean|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|writeCString|java.lang.String|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|writeHeader|org.apache.commons.compress.archivers.cpio.CpioArchiveEntry|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|writeNewEntry|org.apache.commons.compress.archivers.cpio.CpioArchiveEntry|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|writeOldAsciiEntry|org.apache.commons.compress.archivers.cpio.CpioArchiveEntry|new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream
+M|org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream|close||new:org.apache.commons.compress.archivers.cpio.CpioArchiveOutputStream:java.io.OutputStream

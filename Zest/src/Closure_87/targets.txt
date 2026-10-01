@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isFoldableExpressBlock|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|areSafeFlagsToFold|java.lang.String|static
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|areValidRegexpFlags|java.lang.String|static
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|consumesDanglingElse|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|containsUnicodeEscape|java.lang.String|static
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|getBlockExpression|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|getBlockReturnExpression|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|getBlockVar|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isLowerPrecedenceInExpression|com.google.javascript.rhino.Node,int|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isPropertyAssignmentInExpression|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isReturnExpressBlock|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isSafeToFoldArrayConstructor|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isVarBlock|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|makeForwardSlashBracketSafe|com.google.javascript.rhino.Node|static
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|maybeReplaceChildWithNumber|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,int|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|optimizeSubtree|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:
+M|com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax|isFoldableExpressBlock|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeSubstituteAlternateSyntax:

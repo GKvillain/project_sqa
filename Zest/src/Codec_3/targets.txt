@@ -1,0 +1,17 @@
+M|org.apache.commons.codec.language.DoubleMetaphone|handleG|java.lang.String,org.apache.commons.codec.language.DoubleMetaphone$DoubleMetaphoneResult,int,boolean|new:org.apache.commons.codec.language.DoubleMetaphone:
+M|org.apache.commons.codec.language.DoubleMetaphone|charAt|java.lang.String,int|new:org.apache.commons.codec.language.DoubleMetaphone:
+M|org.apache.commons.codec.language.DoubleMetaphone|cleanInput|java.lang.String|new:org.apache.commons.codec.language.DoubleMetaphone:
+M|org.apache.commons.codec.language.DoubleMetaphone|conditionC0|java.lang.String,int|new:org.apache.commons.codec.language.DoubleMetaphone:
+M|org.apache.commons.codec.language.DoubleMetaphone|conditionCH0|java.lang.String,int|new:org.apache.commons.codec.language.DoubleMetaphone:
+M|org.apache.commons.codec.language.DoubleMetaphone|conditionCH1|java.lang.String,int|new:org.apache.commons.codec.language.DoubleMetaphone:
+M|org.apache.commons.codec.language.DoubleMetaphone|conditionL0|java.lang.String,int|new:org.apache.commons.codec.language.DoubleMetaphone:
+M|org.apache.commons.codec.language.DoubleMetaphone|conditionM0|java.lang.String,int|new:org.apache.commons.codec.language.DoubleMetaphone:
+M|org.apache.commons.codec.language.DoubleMetaphone|contains|java.lang.String,int,int,java.lang.String|static
+M|org.apache.commons.codec.language.DoubleMetaphone|contains|java.lang.String,int,int,java.lang.String,java.lang.String|static
+M|org.apache.commons.codec.language.DoubleMetaphone|contains|java.lang.String,int,int,java.lang.String,java.lang.String,java.lang.String|static
+M|org.apache.commons.codec.language.DoubleMetaphone|contains|java.lang.String,int,int,java.lang.String,java.lang.String,java.lang.String,java.lang.String|static
+M|org.apache.commons.codec.language.DoubleMetaphone|contains|java.lang.String,int,int,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String|static
+M|org.apache.commons.codec.language.DoubleMetaphone|contains|java.lang.String,int,int,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String|static
+M|org.apache.commons.codec.language.DoubleMetaphone|contains|java.lang.String,int,int,[Ljava.lang.String;|static
+M|org.apache.commons.codec.language.DoubleMetaphone|doubleMetaphone|java.lang.String|new:org.apache.commons.codec.language.DoubleMetaphone:
+M|org.apache.commons.codec.language.DoubleMetaphone|handleG|java.lang.String,org.apache.commons.codec.language.DoubleMetaphone$DoubleMetaphoneResult,int,boolean|new:org.apache.commons.codec.language.DoubleMetaphone:

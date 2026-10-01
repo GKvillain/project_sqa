@@ -1,0 +1,16 @@
+M|com.google.javascript.jscomp.NameAnalyzer|appendListItem|java.lang.StringBuilder,java.lang.String|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|calculateReferences||new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|collapseReplacements|java.util.List|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|countOf|com.google.javascript.jscomp.NameAnalyzer$TriState,com.google.javascript.jscomp.NameAnalyzer$TriState|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|createName|java.lang.String|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|createNameInformation|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|createNameInformation|java.lang.String,com.google.javascript.jscomp.Scope,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|getDependencyScope|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|getEnclosingFunctionDependencyScope|com.google.javascript.jscomp.NodeTraversal|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|getHtmlReport||new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|getName|java.lang.String,boolean|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|getRhsSubexpressions|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|getSideEffectNodes|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|isExternallyReferenceable|com.google.javascript.jscomp.Scope,java.lang.String|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|nameAnchor|java.lang.String|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.NameAnalyzer|nameLink|java.lang.String|new:com.google.javascript.jscomp.NameAnalyzer:com.google.javascript.jscomp.AbstractCompiler,boolean

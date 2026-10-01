@@ -1,0 +1,12 @@
+M|org.mockito.internal.creation.DelegatingMethod|equals|java.lang.Object|new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|hashCode||new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|getExceptionTypes||new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|getJavaMethod||new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|getName||new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|getParameterTypes||new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|getReturnType||new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|isAbstract||new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|isVarArgs||new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+C|org.mockito.internal.creation.DelegatingMethod|<init>|java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|equals|java.lang.Object|new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method
+M|org.mockito.internal.creation.DelegatingMethod|hashCode||new:org.mockito.internal.creation.DelegatingMethod:java.lang.reflect.Method

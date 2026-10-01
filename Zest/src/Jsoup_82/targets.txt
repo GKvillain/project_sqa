@@ -1,0 +1,13 @@
+M|org.jsoup.helper.DataUtil|parseInputStream|java.io.InputStream,java.lang.String,java.lang.String,org.jsoup.parser.Parser|static
+M|org.jsoup.helper.DataUtil|crossStreams|java.io.InputStream,java.io.OutputStream|static
+M|org.jsoup.helper.DataUtil|detectCharsetFromBom|java.nio.ByteBuffer|static
+M|org.jsoup.helper.DataUtil|emptyByteBuffer||static
+M|org.jsoup.helper.DataUtil|getCharsetFromContentType|java.lang.String|static
+M|org.jsoup.helper.DataUtil|load|java.io.File,java.lang.String,java.lang.String|static
+M|org.jsoup.helper.DataUtil|load|java.io.InputStream,java.lang.String,java.lang.String|static
+M|org.jsoup.helper.DataUtil|load|java.io.InputStream,java.lang.String,java.lang.String,org.jsoup.parser.Parser|static
+M|org.jsoup.helper.DataUtil|mimeBoundary||static
+M|org.jsoup.helper.DataUtil|readToByteBuffer|java.io.InputStream,int|static
+M|org.jsoup.helper.DataUtil|validateCharset|java.lang.String|static
+C|org.jsoup.helper.DataUtil|<init>|
+M|org.jsoup.helper.DataUtil|parseInputStream|java.io.InputStream,java.lang.String,java.lang.String,org.jsoup.parser.Parser|static

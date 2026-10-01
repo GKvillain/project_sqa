@@ -1,0 +1,17 @@
+M|org.apache.commons.cli.OptionBuilder|reset||static
+M|org.apache.commons.cli.Option|acceptsArg||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|add|java.lang.String|new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|addValue|java.lang.String|new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|addValueForProcessing|java.lang.String|new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|clearValues||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|clone||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|equals|java.lang.Object|new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|getArgName||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|getArgs||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|getDescription||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|getId||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|getKey||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|getLongOpt||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|getOpt||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.Option|getType||new:org.apache.commons.cli.Option:java.lang.String,java.lang.String
+M|org.apache.commons.cli.OptionBuilder|reset||static

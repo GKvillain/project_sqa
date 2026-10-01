@@ -1,0 +1,10 @@
+M|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|createMock|org.mockito.mock.MockCreationSettings,org.mockito.invocation.MockHandler|new:org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker:
+M|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|asInternalMockHandler|org.mockito.invocation.MockHandler|static
+M|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|describeClass|java.lang.Class|static
+M|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|describeClass|java.lang.Object|static
+M|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|ensureMockIsAssignableToMockedType|org.mockito.mock.MockCreationSettings,java.lang.Object|new:org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker:
+M|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|getHandler|java.lang.Object|new:org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker:
+M|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|initializeClassInstantiator||static
+M|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|resetMock|java.lang.Object,org.mockito.invocation.MockHandler,org.mockito.mock.MockCreationSettings|new:org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker:
+C|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|<init>|
+M|org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker|createMock|org.mockito.mock.MockCreationSettings,org.mockito.invocation.MockHandler|new:org.mockito.internal.creation.bytebuddy.ByteBuddyMockMaker:

@@ -1,0 +1,11 @@
+M|org.jfree.chart.block.BorderArrangement|arrangeFF|org.jfree.chart.block.BlockContainer,java.awt.Graphics2D,org.jfree.chart.block.RectangleConstraint|new:org.jfree.chart.block.BorderArrangement:
+M|org.jfree.chart.block.BorderArrangement|add|org.jfree.chart.block.Block,java.lang.Object|new:org.jfree.chart.block.BorderArrangement:
+M|org.jfree.chart.block.BorderArrangement|arrange|org.jfree.chart.block.BlockContainer,java.awt.Graphics2D,org.jfree.chart.block.RectangleConstraint|new:org.jfree.chart.block.BorderArrangement:
+M|org.jfree.chart.block.BorderArrangement|arrangeFN|org.jfree.chart.block.BlockContainer,java.awt.Graphics2D,double|new:org.jfree.chart.block.BorderArrangement:
+M|org.jfree.chart.block.BorderArrangement|arrangeFR|org.jfree.chart.block.BlockContainer,java.awt.Graphics2D,org.jfree.chart.block.RectangleConstraint|new:org.jfree.chart.block.BorderArrangement:
+M|org.jfree.chart.block.BorderArrangement|arrangeNN|org.jfree.chart.block.BlockContainer,java.awt.Graphics2D|new:org.jfree.chart.block.BorderArrangement:
+M|org.jfree.chart.block.BorderArrangement|arrangeRR|org.jfree.chart.block.BlockContainer,org.jfree.data.Range,org.jfree.data.Range,java.awt.Graphics2D|new:org.jfree.chart.block.BorderArrangement:
+M|org.jfree.chart.block.BorderArrangement|clear||new:org.jfree.chart.block.BorderArrangement:
+M|org.jfree.chart.block.BorderArrangement|equals|java.lang.Object|new:org.jfree.chart.block.BorderArrangement:
+C|org.jfree.chart.block.BorderArrangement|<init>|
+M|org.jfree.chart.block.BorderArrangement|arrangeFF|org.jfree.chart.block.BlockContainer,java.awt.Graphics2D,org.jfree.chart.block.RectangleConstraint|new:org.jfree.chart.block.BorderArrangement:

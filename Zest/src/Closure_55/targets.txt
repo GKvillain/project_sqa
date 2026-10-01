@@ -1,0 +1,5 @@
+M|com.google.javascript.jscomp.FunctionRewriter|isReduceableFunctionExpression|com.google.javascript.rhino.Node|static
+M|com.google.javascript.jscomp.FunctionRewriter|parseHelperCode|com.google.javascript.jscomp.FunctionRewriter$Reducer|new:com.google.javascript.jscomp.FunctionRewriter:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FunctionRewriter|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FunctionRewriter:com.google.javascript.jscomp.AbstractCompiler
+C|com.google.javascript.jscomp.FunctionRewriter|<init>|com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FunctionRewriter|isReduceableFunctionExpression|com.google.javascript.rhino.Node|static

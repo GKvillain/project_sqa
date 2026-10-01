@@ -1,0 +1,7 @@
+C|org.apache.commons.compress.utils.ChecksumCalculatingInputStream|<init>|java.util.zip.Checksum,java.io.InputStream
+M|org.apache.commons.compress.utils.ChecksumCalculatingInputStream|getValue||new:org.apache.commons.compress.utils.ChecksumCalculatingInputStream:java.util.zip.Checksum,java.io.InputStream
+M|org.apache.commons.compress.utils.ChecksumCalculatingInputStream|read||new:org.apache.commons.compress.utils.ChecksumCalculatingInputStream:java.util.zip.Checksum,java.io.InputStream
+M|org.apache.commons.compress.utils.ChecksumCalculatingInputStream|read|[B|new:org.apache.commons.compress.utils.ChecksumCalculatingInputStream:java.util.zip.Checksum,java.io.InputStream
+M|org.apache.commons.compress.utils.ChecksumCalculatingInputStream|read|[B,int,int|new:org.apache.commons.compress.utils.ChecksumCalculatingInputStream:java.util.zip.Checksum,java.io.InputStream
+M|org.apache.commons.compress.utils.ChecksumCalculatingInputStream|skip|long|new:org.apache.commons.compress.utils.ChecksumCalculatingInputStream:java.util.zip.Checksum,java.io.InputStream
+C|org.apache.commons.compress.utils.ChecksumCalculatingInputStream|<init>|java.util.zip.Checksum,java.io.InputStream

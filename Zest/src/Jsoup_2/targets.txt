@@ -1,0 +1,17 @@
+M|org.jsoup.parser.Parser|parseStartTag||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|addChildToParent|org.jsoup.nodes.Element,boolean|new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|last||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|parse||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|parse|java.lang.String,java.lang.String|static
+M|org.jsoup.parser.Parser|parseAttribute||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|parseBodyFragment|java.lang.String,java.lang.String|static
+M|org.jsoup.parser.Parser|parseCdata||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|parseComment||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|parseEndTag||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|parseTextNode||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|parseXmlDecl||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|popStackToClose|org.jsoup.parser.Tag|new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|popStackToSuitableContainer|org.jsoup.parser.Tag|new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|stackHasValidParent|org.jsoup.parser.Tag|new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean
+C|org.jsoup.parser.Parser|<init>|java.lang.String,java.lang.String,boolean
+M|org.jsoup.parser.Parser|parseStartTag||new:org.jsoup.parser.Parser:java.lang.String,java.lang.String,boolean

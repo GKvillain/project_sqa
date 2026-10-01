@@ -1,0 +1,17 @@
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_verifySharing||new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_appendLongName|[I,int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_calcOffset|int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_calcTertiaryShift|int|static
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_findOffsetForAdd|int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_findSecondary|int,int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_findSecondary|int,int,int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_findSecondary|int,int,int,int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_findSecondary|int,int,[I,int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_reportTooManyCollisions||new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_spilloverStart||new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_verifyLongName|[I,int,int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_verifyLongName2|[I,int,int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_verifyNeedForRehash||new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|addName|java.lang.String,int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|addName|java.lang.String,int,int|new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean
+M|com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer|_verifySharing||new:com.fasterxml.jackson.core.sym.ByteQuadsCanonicalizer:int,boolean,int,boolean

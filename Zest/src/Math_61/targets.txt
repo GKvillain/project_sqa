@@ -1,0 +1,15 @@
+C|org.apache.commons.math.distribution.PoissonDistributionImpl|<init>|double,int
+C|org.apache.commons.math.distribution.PoissonDistributionImpl|<init>|double,double
+C|org.apache.commons.math.distribution.PoissonDistributionImpl|<init>|double,double,int
+C|org.apache.commons.math.distribution.PoissonDistributionImpl|<init>|double
+M|org.apache.commons.math.distribution.PoissonDistributionImpl|cumulativeProbability|int|new:org.apache.commons.math.distribution.PoissonDistributionImpl:double
+M|org.apache.commons.math.distribution.PoissonDistributionImpl|getDomainLowerBound|double|new:org.apache.commons.math.distribution.PoissonDistributionImpl:double
+M|org.apache.commons.math.distribution.PoissonDistributionImpl|getDomainUpperBound|double|new:org.apache.commons.math.distribution.PoissonDistributionImpl:double
+M|org.apache.commons.math.distribution.PoissonDistributionImpl|getMean||new:org.apache.commons.math.distribution.PoissonDistributionImpl:double
+M|org.apache.commons.math.distribution.PoissonDistributionImpl|normalApproximateProbability|int|new:org.apache.commons.math.distribution.PoissonDistributionImpl:double
+M|org.apache.commons.math.distribution.PoissonDistributionImpl|probability|int|new:org.apache.commons.math.distribution.PoissonDistributionImpl:double
+M|org.apache.commons.math.distribution.PoissonDistributionImpl|sample||new:org.apache.commons.math.distribution.PoissonDistributionImpl:double
+C|org.apache.commons.math.distribution.PoissonDistributionImpl|<init>|double,int
+C|org.apache.commons.math.distribution.PoissonDistributionImpl|<init>|double,double
+C|org.apache.commons.math.distribution.PoissonDistributionImpl|<init>|double,double,int
+C|org.apache.commons.math.distribution.PoissonDistributionImpl|<init>|double

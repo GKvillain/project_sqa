@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.ClosureCodingConvention|extractClassNameIfGoog|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,java.lang.String|static
+M|com.google.javascript.jscomp.ClosureCodingConvention|applySingletonGetter|com.google.javascript.rhino.jstype.FunctionType,com.google.javascript.rhino.jstype.FunctionType,com.google.javascript.rhino.jstype.ObjectType|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|applySubclassRelationship|com.google.javascript.rhino.jstype.FunctionType,com.google.javascript.rhino.jstype.FunctionType,com.google.javascript.jscomp.CodingConvention$SubclassType|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|describeFunctionBind|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|endsWithPrototype|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|extractClassNameIfProvide|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|extractClassNameIfRequire|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|getAbstractMethodName||new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|getAssertionFunctions||new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|getClassesDefinedByCall|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|getExportPropertyFunction||new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|getExportSymbolFunction||new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|getGlobalObject||new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|getObjectLiteralCast|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|getSingletonGetterClassName|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|identifyTypeDeclarationCall|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ClosureCodingConvention:
+M|com.google.javascript.jscomp.ClosureCodingConvention|extractClassNameIfGoog|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,java.lang.String|static

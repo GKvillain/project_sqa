@@ -1,0 +1,13 @@
+M|com.google.javascript.jscomp.CommandLineRunner|createOptions||new:com.google.javascript.jscomp.CommandLineRunner:[Ljava.lang.String;
+M|com.google.javascript.jscomp.CommandLineRunner|createCompiler||new:com.google.javascript.jscomp.CommandLineRunner:[Ljava.lang.String;
+M|com.google.javascript.jscomp.CommandLineRunner|createExterns||new:com.google.javascript.jscomp.CommandLineRunner:[Ljava.lang.String;
+M|com.google.javascript.jscomp.CommandLineRunner|getDefaultExterns||static
+M|com.google.javascript.jscomp.CommandLineRunner|initConfigFromFlags|[Ljava.lang.String;,java.io.PrintStream|new:com.google.javascript.jscomp.CommandLineRunner:[Ljava.lang.String;
+M|com.google.javascript.jscomp.CommandLineRunner|main|[Ljava.lang.String;|static
+M|com.google.javascript.jscomp.CommandLineRunner|processArgs|[Ljava.lang.String;|new:com.google.javascript.jscomp.CommandLineRunner:[Ljava.lang.String;
+M|com.google.javascript.jscomp.CommandLineRunner|processFlagFile|java.io.PrintStream|new:com.google.javascript.jscomp.CommandLineRunner:[Ljava.lang.String;
+M|com.google.javascript.jscomp.CommandLineRunner|shouldRunCompiler||new:com.google.javascript.jscomp.CommandLineRunner:[Ljava.lang.String;
+M|com.google.javascript.jscomp.CommandLineRunner|tokenizeKeepingQuotedStrings|java.util.List|new:com.google.javascript.jscomp.CommandLineRunner:[Ljava.lang.String;
+C|com.google.javascript.jscomp.CommandLineRunner|<init>|[Ljava.lang.String;
+C|com.google.javascript.jscomp.CommandLineRunner|<init>|[Ljava.lang.String;,java.io.PrintStream,java.io.PrintStream
+M|com.google.javascript.jscomp.CommandLineRunner|createOptions||new:com.google.javascript.jscomp.CommandLineRunner:[Ljava.lang.String;

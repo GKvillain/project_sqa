@@ -1,0 +1,5 @@
+M|org.apache.commons.math.analysis.solvers.BaseSecantSolver|doSolve||new:org.apache.commons.math.analysis.solvers.IllinoisSolver:
+M|org.apache.commons.math.analysis.solvers.BaseSecantSolver|solve|int,org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double|new:org.apache.commons.math.analysis.solvers.IllinoisSolver:
+M|org.apache.commons.math.analysis.solvers.BaseSecantSolver|solve|int,org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double,org.apache.commons.math.analysis.solvers.AllowedSolution|new:org.apache.commons.math.analysis.solvers.IllinoisSolver:
+M|org.apache.commons.math.analysis.solvers.BaseSecantSolver|solve|int,org.apache.commons.math.analysis.UnivariateRealFunction,double,double,org.apache.commons.math.analysis.solvers.AllowedSolution|new:org.apache.commons.math.analysis.solvers.IllinoisSolver:
+M|org.apache.commons.math.analysis.solvers.BaseSecantSolver|doSolve||new:org.apache.commons.math.analysis.solvers.IllinoisSolver:

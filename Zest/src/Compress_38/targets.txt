@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|isDirectory||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|equals|java.lang.Object|new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|equals|org.apache.commons.compress.archivers.tar.TarArchiveEntry|new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|evaluateType|[B|new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|fillGNUSparse0xData|java.util.Map|new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|fillGNUSparse1xData|java.util.Map|new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|fillStarSparseData|java.util.Map|new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|getDevMajor||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|getDevMinor||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|getDirectoryEntries||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|getFile||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|getGroupId||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|getGroupName||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|getLastModifiedDate||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|getLinkName||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|getLongGroupId||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:
+M|org.apache.commons.compress.archivers.tar.TarArchiveEntry|isDirectory||new:org.apache.commons.compress.archivers.tar.TarArchiveEntry:

@@ -1,0 +1,17 @@
+M|org.apache.commons.codec.binary.StringUtils|equals|java.lang.CharSequence,java.lang.CharSequence|static
+M|org.apache.commons.codec.binary.StringUtils|getByteBuffer|java.lang.String,java.nio.charset.Charset|static
+M|org.apache.commons.codec.binary.StringUtils|getByteBufferUtf8|java.lang.String|static
+M|org.apache.commons.codec.binary.StringUtils|getBytes|java.lang.String,java.nio.charset.Charset|static
+M|org.apache.commons.codec.binary.StringUtils|getBytesIso8859_1|java.lang.String|static
+M|org.apache.commons.codec.binary.StringUtils|getBytesUnchecked|java.lang.String,java.lang.String|static
+M|org.apache.commons.codec.binary.StringUtils|getBytesUsAscii|java.lang.String|static
+M|org.apache.commons.codec.binary.StringUtils|getBytesUtf16|java.lang.String|static
+M|org.apache.commons.codec.binary.StringUtils|getBytesUtf16Be|java.lang.String|static
+M|org.apache.commons.codec.binary.StringUtils|getBytesUtf16Le|java.lang.String|static
+M|org.apache.commons.codec.binary.StringUtils|getBytesUtf8|java.lang.String|static
+M|org.apache.commons.codec.binary.StringUtils|newIllegalStateException|java.lang.String,java.io.UnsupportedEncodingException|static
+M|org.apache.commons.codec.binary.StringUtils|newString|[B,java.nio.charset.Charset|static
+M|org.apache.commons.codec.binary.StringUtils|newString|[B,java.lang.String|static
+M|org.apache.commons.codec.binary.StringUtils|newStringIso8859_1|[B|static
+M|org.apache.commons.codec.binary.StringUtils|newStringUsAscii|[B|static
+M|org.apache.commons.codec.binary.StringUtils|equals|java.lang.CharSequence,java.lang.CharSequence|static

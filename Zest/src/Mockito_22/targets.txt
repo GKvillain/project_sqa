@@ -1,0 +1,7 @@
+M|org.mockito.internal.matchers.Equality|areEqual|java.lang.Object,java.lang.Object|static
+M|org.mockito.internal.matchers.Equality|areArrayElementsEqual|java.lang.Object,java.lang.Object|static
+M|org.mockito.internal.matchers.Equality|areArrayLengthsEqual|java.lang.Object,java.lang.Object|static
+M|org.mockito.internal.matchers.Equality|areArraysEqual|java.lang.Object,java.lang.Object|static
+M|org.mockito.internal.matchers.Equality|isArray|java.lang.Object|static
+C|org.mockito.internal.matchers.Equality|<init>|
+M|org.mockito.internal.matchers.Equality|areEqual|java.lang.Object,java.lang.Object|static

@@ -1,0 +1,17 @@
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|clear||new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|addEntry|org.apache.commons.collections4.trie.AbstractPatriciaTrie$TrieEntry,int|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|ceilingEntry|java.lang.Object|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|comparator||new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|containsKey|java.lang.Object|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|decrementSize||new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|entrySet||new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|firstEntry||new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|firstKey||new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|floorEntry|java.lang.Object|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|followLeft|org.apache.commons.collections4.trie.AbstractPatriciaTrie$TrieEntry|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|followRight|org.apache.commons.collections4.trie.AbstractPatriciaTrie$TrieEntry|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|get|java.lang.Object|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|getEntry|java.lang.Object|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|getNearestEntryForKey|java.lang.Object,int|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|getPrefixMapByBits|java.lang.Object,int,int|new:org.apache.commons.collections4.trie.PatriciaTrie:
+M|org.apache.commons.collections4.trie.AbstractPatriciaTrie|clear||new:org.apache.commons.collections4.trie.PatriciaTrie:

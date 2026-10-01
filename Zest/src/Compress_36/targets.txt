@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|getCurrentStream||new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|buildDecoderStack|org.apache.commons.compress.archivers.sevenz.Folder,long,int,org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry|new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|buildDecodingStream||new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|calculateStreamMap|org.apache.commons.compress.archivers.sevenz.Archive|new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|close||new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|getEntries||new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|getNextEntry||new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|matches|[B,int|static
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|read||new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|read|[B|new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|read|[B,int,int|new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|readAllOrBits|java.io.DataInput,int|new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|readArchiveProperties|java.io.DataInput|new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|readBits|java.io.DataInput,int|new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|readEncodedHeader|java.io.DataInputStream,org.apache.commons.compress.archivers.sevenz.Archive,[B|new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|readFilesInfo|java.io.DataInput,org.apache.commons.compress.archivers.sevenz.Archive|new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File
+M|org.apache.commons.compress.archivers.sevenz.SevenZFile|getCurrentStream||new:org.apache.commons.compress.archivers.sevenz.SevenZFile:java.io.File

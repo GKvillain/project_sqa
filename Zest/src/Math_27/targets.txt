@@ -1,0 +1,17 @@
+M|org.apache.commons.math3.fraction.Fraction|percentageValue||new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|abs||new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|add|int|new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|add|org.apache.commons.math3.fraction.Fraction|new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|addSub|org.apache.commons.math3.fraction.Fraction,boolean|new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|compareTo|org.apache.commons.math3.fraction.Fraction|new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|divide|int|new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|divide|org.apache.commons.math3.fraction.Fraction|new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|doubleValue||new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|equals|java.lang.Object|new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|floatValue||new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|getDenominator||new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|getField||new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|getNumerator||new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|getReducedFraction|int,int|static
+M|org.apache.commons.math3.fraction.Fraction|hashCode||new:org.apache.commons.math3.fraction.Fraction:double
+M|org.apache.commons.math3.fraction.Fraction|percentageValue||new:org.apache.commons.math3.fraction.Fraction:double

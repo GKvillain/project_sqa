@@ -1,0 +1,16 @@
+M|org.apache.commons.collections.list.TreeList|remove|int|new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|add|int,java.lang.Object|new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|checkInterval|int,int,int|new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|clear||new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|contains|java.lang.Object|new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|get|int|new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|indexOf|java.lang.Object|new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|iterator||new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|listIterator||new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|listIterator|int|new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|set|int,java.lang.Object|new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|size||new:org.apache.commons.collections.list.TreeList:
+M|org.apache.commons.collections.list.TreeList|toArray||new:org.apache.commons.collections.list.TreeList:
+C|org.apache.commons.collections.list.TreeList|<init>|
+C|org.apache.commons.collections.list.TreeList|<init>|java.util.Collection
+M|org.apache.commons.collections.list.TreeList|remove|int|new:org.apache.commons.collections.list.TreeList:

@@ -1,0 +1,17 @@
+M|com.fasterxml.jackson.databind.type.SimpleType|_narrow|java.lang.Class|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|_buildSuperClass|java.lang.Class,com.fasterxml.jackson.databind.type.TypeBindings|static
+M|com.fasterxml.jackson.databind.type.SimpleType|buildCanonicalName||new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|construct|java.lang.Class|static
+M|com.fasterxml.jackson.databind.type.SimpleType|constructUnsafe|java.lang.Class|static
+M|com.fasterxml.jackson.databind.type.SimpleType|equals|java.lang.Object|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|getErasedSignature|java.lang.StringBuilder|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|getGenericSignature|java.lang.StringBuilder|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|isContainerType||new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|refine|java.lang.Class,com.fasterxml.jackson.databind.type.TypeBindings,com.fasterxml.jackson.databind.JavaType,[Lcom.fasterxml.jackson.databind.JavaType;|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|toString||new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|withContentType|com.fasterxml.jackson.databind.JavaType|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|withContentTypeHandler|java.lang.Object|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|withContentValueHandler|java.lang.Object|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|withStaticTyping||new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|withTypeHandler|java.lang.Object|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase
+M|com.fasterxml.jackson.databind.type.SimpleType|_narrow|java.lang.Class|new:com.fasterxml.jackson.databind.type.SimpleType:com.fasterxml.jackson.databind.type.TypeBase

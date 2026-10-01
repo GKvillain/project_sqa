@@ -1,0 +1,5 @@
+M|org.mockito.internal.verification.argumentmatching.ArgumentMatchingTool|toStringEquals|org.hamcrest.Matcher,java.lang.Object|new:org.mockito.internal.verification.argumentmatching.ArgumentMatchingTool:
+M|org.mockito.internal.verification.argumentmatching.ArgumentMatchingTool|getSuspiciouslyNotMatchingArgsIndexes|java.util.List,[Ljava.lang.Object;|new:org.mockito.internal.verification.argumentmatching.ArgumentMatchingTool:
+M|org.mockito.internal.verification.argumentmatching.ArgumentMatchingTool|safelyMatches|org.hamcrest.Matcher,java.lang.Object|new:org.mockito.internal.verification.argumentmatching.ArgumentMatchingTool:
+C|org.mockito.internal.verification.argumentmatching.ArgumentMatchingTool|<init>|
+M|org.mockito.internal.verification.argumentmatching.ArgumentMatchingTool|toStringEquals|org.hamcrest.Matcher,java.lang.Object|new:org.mockito.internal.verification.argumentmatching.ArgumentMatchingTool:

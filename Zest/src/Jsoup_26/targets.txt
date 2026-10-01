@@ -1,0 +1,6 @@
+M|org.jsoup.safety.Cleaner|clean|org.jsoup.nodes.Document|new:org.jsoup.safety.Cleaner:org.jsoup.safety.Whitelist
+M|org.jsoup.safety.Cleaner|copySafeNodes|org.jsoup.nodes.Element,org.jsoup.nodes.Element|new:org.jsoup.safety.Cleaner:org.jsoup.safety.Whitelist
+M|org.jsoup.safety.Cleaner|createSafeElement|org.jsoup.nodes.Element|new:org.jsoup.safety.Cleaner:org.jsoup.safety.Whitelist
+M|org.jsoup.safety.Cleaner|isValid|org.jsoup.nodes.Document|new:org.jsoup.safety.Cleaner:org.jsoup.safety.Whitelist
+C|org.jsoup.safety.Cleaner|<init>|org.jsoup.safety.Whitelist
+M|org.jsoup.safety.Cleaner|clean|org.jsoup.nodes.Document|new:org.jsoup.safety.Cleaner:org.jsoup.safety.Whitelist

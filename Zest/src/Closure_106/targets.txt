@@ -1,0 +1,17 @@
+M|com.google.javascript.rhino.JSDocInfoBuilder|recordBlockDescription|java.lang.String|new:com.google.javascript.rhino.JSDocInfoBuilder:boolean
+M|com.google.javascript.jscomp.GlobalNamespace|getNameForest||new:com.google.javascript.jscomp.GlobalNamespace:com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node
+M|com.google.javascript.jscomp.GlobalNamespace|getNameIndex||new:com.google.javascript.jscomp.GlobalNamespace:com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node
+M|com.google.javascript.jscomp.GlobalNamespace|getTopVarName|java.lang.String|new:com.google.javascript.jscomp.GlobalNamespace:com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node
+M|com.google.javascript.jscomp.GlobalNamespace|isGlobalNameReference|java.lang.String,com.google.javascript.jscomp.Scope|new:com.google.javascript.jscomp.GlobalNamespace:com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node
+M|com.google.javascript.jscomp.GlobalNamespace|isGlobalScope|com.google.javascript.jscomp.Scope|new:com.google.javascript.jscomp.GlobalNamespace:com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node
+M|com.google.javascript.jscomp.GlobalNamespace|isGlobalVarReference|java.lang.String,com.google.javascript.jscomp.Scope|new:com.google.javascript.jscomp.GlobalNamespace:com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node
+M|com.google.javascript.jscomp.GlobalNamespace|process||new:com.google.javascript.jscomp.GlobalNamespace:com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node
+M|com.google.javascript.jscomp.GlobalNamespace|scanNewNodes|com.google.javascript.jscomp.Scope,java.util.Set|new:com.google.javascript.jscomp.GlobalNamespace:com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node
+C|com.google.javascript.jscomp.GlobalNamespace|<init>|com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node
+C|com.google.javascript.jscomp.GlobalNamespace|<init>|com.google.javascript.jscomp.AbstractCompiler,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node
+M|com.google.javascript.rhino.JSDocInfoBuilder|addAuthor|java.lang.String|new:com.google.javascript.rhino.JSDocInfoBuilder:boolean
+M|com.google.javascript.rhino.JSDocInfoBuilder|addReference|java.lang.String|new:com.google.javascript.rhino.JSDocInfoBuilder:boolean
+M|com.google.javascript.rhino.JSDocInfoBuilder|build|java.lang.String|new:com.google.javascript.rhino.JSDocInfoBuilder:boolean
+M|com.google.javascript.rhino.JSDocInfoBuilder|hasAnySingletonTypeTags||new:com.google.javascript.rhino.JSDocInfoBuilder:boolean
+M|com.google.javascript.rhino.JSDocInfoBuilder|hasAnyTypeRelatedTags||new:com.google.javascript.rhino.JSDocInfoBuilder:boolean
+M|com.google.javascript.rhino.JSDocInfoBuilder|recordBlockDescription|java.lang.String|new:com.google.javascript.rhino.JSDocInfoBuilder:boolean

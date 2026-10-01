@@ -1,0 +1,13 @@
+M|org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator|getAttribute|org.w3c.dom.Element,org.apache.commons.jxpath.ri.QName|new:org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator:org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+C|org.apache.commons.jxpath.ri.model.jdom.JDOMAttributeIterator|<init>|org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+M|org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator|equalStrings|java.lang.String,java.lang.String|static
+M|org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator|getNodePointer||new:org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator:org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+M|org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator|getPosition||new:org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator:org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+M|org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator|setPosition|int|new:org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator:org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+M|org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator|testAttr|org.w3c.dom.Attr,org.apache.commons.jxpath.ri.QName|new:org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator:org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+C|org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator|<init>|org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+M|org.apache.commons.jxpath.ri.model.jdom.JDOMAttributeIterator|getNodePointer||new:org.apache.commons.jxpath.ri.model.jdom.JDOMAttributeIterator:org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+M|org.apache.commons.jxpath.ri.model.jdom.JDOMAttributeIterator|getPosition||new:org.apache.commons.jxpath.ri.model.jdom.JDOMAttributeIterator:org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+M|org.apache.commons.jxpath.ri.model.jdom.JDOMAttributeIterator|setPosition|int|new:org.apache.commons.jxpath.ri.model.jdom.JDOMAttributeIterator:org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+M|org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator|getAttribute|org.w3c.dom.Element,org.apache.commons.jxpath.ri.QName|new:org.apache.commons.jxpath.ri.model.dom.DOMAttributeIterator:org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName
+C|org.apache.commons.jxpath.ri.model.jdom.JDOMAttributeIterator|<init>|org.apache.commons.jxpath.ri.model.NodePointer,org.apache.commons.jxpath.ri.QName

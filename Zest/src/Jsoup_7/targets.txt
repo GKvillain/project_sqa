@@ -1,0 +1,17 @@
+M|org.jsoup.nodes.Document|normalise||new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|normaliseStructure|java.lang.String,org.jsoup.nodes.Element|new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|body||new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|createElement|java.lang.String|new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|createShell|java.lang.String|static
+M|org.jsoup.nodes.Document|findFirstElementByTagName|java.lang.String,org.jsoup.nodes.Node|new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|head||new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|nodeName||new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|normaliseTextNodes|org.jsoup.nodes.Element|new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|outerHtml||new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|outputSettings||new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|text|java.lang.String|new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|title||new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|title|java.lang.String|new:org.jsoup.nodes.Document:java.lang.String
+C|org.jsoup.nodes.Document|<init>|java.lang.String
+M|org.jsoup.nodes.Document|normalise||new:org.jsoup.nodes.Document:java.lang.String
+M|org.jsoup.nodes.Document|normaliseStructure|java.lang.String,org.jsoup.nodes.Element|new:org.jsoup.nodes.Document:java.lang.String

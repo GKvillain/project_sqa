@@ -1,0 +1,3 @@
+M|org.mockito.internal.util.reflection.GenericMaster|getGenericType|java.lang.reflect.Field|new:org.mockito.internal.util.reflection.GenericMaster:
+C|org.mockito.internal.util.reflection.GenericMaster|<init>|
+M|org.mockito.internal.util.reflection.GenericMaster|getGenericType|java.lang.reflect.Field|new:org.mockito.internal.util.reflection.GenericMaster:

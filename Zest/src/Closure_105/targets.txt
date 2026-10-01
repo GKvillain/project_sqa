@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.FoldConstants|tryFoldStringJoin|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|areSafeFlagsToFold|java.lang.String|static
+M|com.google.javascript.jscomp.FoldConstants|areValidRegexpFlags|java.lang.String|static
+M|com.google.javascript.jscomp.FoldConstants|consumesDanglingElse|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|containsUnicodeEscape|java.lang.String|static
+M|com.google.javascript.jscomp.FoldConstants|error|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.jscomp.DiagnosticType,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|getBlockExpression|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|getBlockReturnExpression|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|getBlockVar|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|hasBreakOrContinue|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|isExpressBlock|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|isLowerPrecedenceInExpression|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.rhino.Node,int|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|isPropertyAssignmentInExpression|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|isReturnExpressBlock|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|isVarBlock|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FoldConstants|makeForwardSlashBracketSafe|com.google.javascript.rhino.Node|static
+M|com.google.javascript.jscomp.FoldConstants|tryFoldStringJoin|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FoldConstants:com.google.javascript.jscomp.AbstractCompiler

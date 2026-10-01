@@ -1,0 +1,17 @@
+M|org.apache.commons.math.linear.ArrayRealVector|getLInfNorm||new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|add|org.apache.commons.math.linear.ArrayRealVector|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|add|[D|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|add|org.apache.commons.math.linear.RealVector|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|append|org.apache.commons.math.linear.ArrayRealVector|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|append|double|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|append|[D|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|append|org.apache.commons.math.linear.RealVector|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|checkVectorDimensions|int|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|checkVectorDimensions|org.apache.commons.math.linear.RealVector|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|copy||new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|dotProduct|[D|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|dotProduct|org.apache.commons.math.linear.ArrayRealVector|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|dotProduct|org.apache.commons.math.linear.RealVector|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|ebeDivide|org.apache.commons.math.linear.ArrayRealVector|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|ebeDivide|[D|new:org.apache.commons.math.linear.ArrayRealVector:
+M|org.apache.commons.math.linear.ArrayRealVector|getLInfNorm||new:org.apache.commons.math.linear.ArrayRealVector:

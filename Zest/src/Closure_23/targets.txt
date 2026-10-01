@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldArrayAccess|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|areStringsEqual|java.lang.String,java.lang.String|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|compareAsNumbers|int,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|compareToNull|com.google.javascript.rhino.Node,int|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|compareToUndefined|com.google.javascript.rhino.Node,int|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|getNormalizedNodeType|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|inForcedStringContext|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|isAssignmentTarget|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|isEqualityOp|int|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|optimizeSubtree|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|performArithmeticOp|int,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryConvertOperandsToNumber|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryConvertToNumber|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldAdd|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldAddConstantString|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldAndOr|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldArrayAccess|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:boolean

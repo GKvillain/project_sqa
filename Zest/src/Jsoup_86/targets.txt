@@ -1,0 +1,10 @@
+M|org.jsoup.nodes.Comment|asXmlDeclaration||new:org.jsoup.nodes.Comment:java.lang.String
+M|org.jsoup.nodes.Comment|getData||new:org.jsoup.nodes.Comment:java.lang.String
+M|org.jsoup.nodes.Comment|isXmlDeclaration||new:org.jsoup.nodes.Comment:java.lang.String
+M|org.jsoup.nodes.Comment|nodeName||new:org.jsoup.nodes.Comment:java.lang.String
+M|org.jsoup.nodes.Comment|outerHtmlHead|java.lang.Appendable,int,org.jsoup.nodes.Document$OutputSettings|new:org.jsoup.nodes.Comment:java.lang.String
+M|org.jsoup.nodes.Comment|outerHtmlTail|java.lang.Appendable,int,org.jsoup.nodes.Document$OutputSettings|new:org.jsoup.nodes.Comment:java.lang.String
+M|org.jsoup.nodes.Comment|toString||new:org.jsoup.nodes.Comment:java.lang.String
+C|org.jsoup.nodes.Comment|<init>|java.lang.String
+C|org.jsoup.nodes.Comment|<init>|java.lang.String,java.lang.String
+M|org.jsoup.nodes.Comment|asXmlDeclaration||new:org.jsoup.nodes.Comment:java.lang.String

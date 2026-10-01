@@ -1,0 +1,14 @@
+M|org.apache.commons.math.estimation.AbstractEstimator|getCovariances|org.apache.commons.math.estimation.EstimationProblem|new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|guessParametersErrors|org.apache.commons.math.estimation.EstimationProblem|new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|estimate|org.apache.commons.math.estimation.EstimationProblem|new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|getChiSquare|org.apache.commons.math.estimation.EstimationProblem|new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|getCostEvaluations||new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|getJacobianEvaluations||new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|getRMS|org.apache.commons.math.estimation.EstimationProblem|new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|incrementJacobianEvaluationsCounter||new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|initializeEstimate|org.apache.commons.math.estimation.EstimationProblem|new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|setMaxCostEval|int|new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|updateJacobian||new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|updateResidualsAndCost||new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|getCovariances|org.apache.commons.math.estimation.EstimationProblem|new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double
+M|org.apache.commons.math.estimation.AbstractEstimator|guessParametersErrors|org.apache.commons.math.estimation.EstimationProblem|new:org.apache.commons.math.estimation.GaussNewtonEstimator:int,double,double

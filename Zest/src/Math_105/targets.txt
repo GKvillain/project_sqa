@@ -1,0 +1,17 @@
+M|org.apache.commons.math.stat.regression.SimpleRegression|getSumSquaredErrors||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|addData|double,double|new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|addData|[[D|new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|clear||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getIntercept|double|new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getIntercept||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getInterceptStdErr||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getMeanSquareError||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getN||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getR||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getRSquare||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getRegressionSumSquares|double|new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getRegressionSumSquares||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getSignificance||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getSlope||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getSlopeConfidenceInterval||new:org.apache.commons.math.stat.regression.SimpleRegression:
+M|org.apache.commons.math.stat.regression.SimpleRegression|getSumSquaredErrors||new:org.apache.commons.math.stat.regression.SimpleRegression:

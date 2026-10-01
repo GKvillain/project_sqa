@@ -1,0 +1,17 @@
+M|org.apache.commons.math.geometry.Vector3D|crossProduct|org.apache.commons.math.geometry.Vector3D,org.apache.commons.math.geometry.Vector3D|static
+M|org.apache.commons.math.geometry.Vector3D|add|double,org.apache.commons.math.geometry.Vector3D|new:org.apache.commons.math.geometry.Vector3D:double,org.apache.commons.math.geometry.Vector3D
+M|org.apache.commons.math.geometry.Vector3D|add|org.apache.commons.math.geometry.Vector3D|new:org.apache.commons.math.geometry.Vector3D:double,org.apache.commons.math.geometry.Vector3D
+M|org.apache.commons.math.geometry.Vector3D|angle|org.apache.commons.math.geometry.Vector3D,org.apache.commons.math.geometry.Vector3D|static
+M|org.apache.commons.math.geometry.Vector3D|distance|org.apache.commons.math.geometry.Vector3D,org.apache.commons.math.geometry.Vector3D|static
+M|org.apache.commons.math.geometry.Vector3D|distance1|org.apache.commons.math.geometry.Vector3D,org.apache.commons.math.geometry.Vector3D|static
+M|org.apache.commons.math.geometry.Vector3D|distanceInf|org.apache.commons.math.geometry.Vector3D,org.apache.commons.math.geometry.Vector3D|static
+M|org.apache.commons.math.geometry.Vector3D|distanceSq|org.apache.commons.math.geometry.Vector3D,org.apache.commons.math.geometry.Vector3D|static
+M|org.apache.commons.math.geometry.Vector3D|dotProduct|org.apache.commons.math.geometry.Vector3D,org.apache.commons.math.geometry.Vector3D|static
+M|org.apache.commons.math.geometry.Vector3D|equals|java.lang.Object|new:org.apache.commons.math.geometry.Vector3D:double,org.apache.commons.math.geometry.Vector3D
+M|org.apache.commons.math.geometry.Vector3D|getAlpha||new:org.apache.commons.math.geometry.Vector3D:double,org.apache.commons.math.geometry.Vector3D
+M|org.apache.commons.math.geometry.Vector3D|getDelta||new:org.apache.commons.math.geometry.Vector3D:double,org.apache.commons.math.geometry.Vector3D
+M|org.apache.commons.math.geometry.Vector3D|getNorm||new:org.apache.commons.math.geometry.Vector3D:double,org.apache.commons.math.geometry.Vector3D
+M|org.apache.commons.math.geometry.Vector3D|getNorm1||new:org.apache.commons.math.geometry.Vector3D:double,org.apache.commons.math.geometry.Vector3D
+M|org.apache.commons.math.geometry.Vector3D|getNormInf||new:org.apache.commons.math.geometry.Vector3D:double,org.apache.commons.math.geometry.Vector3D
+M|org.apache.commons.math.geometry.Vector3D|getNormSq||new:org.apache.commons.math.geometry.Vector3D:double,org.apache.commons.math.geometry.Vector3D
+M|org.apache.commons.math.geometry.Vector3D|crossProduct|org.apache.commons.math.geometry.Vector3D,org.apache.commons.math.geometry.Vector3D|static

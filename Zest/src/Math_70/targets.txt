@@ -1,0 +1,10 @@
+M|org.apache.commons.math.analysis.solvers.BisectionSolver|solve|double,double|new:org.apache.commons.math.analysis.solvers.BisectionSolver:
+M|org.apache.commons.math.analysis.solvers.BisectionSolver|solve|double,double,double|new:org.apache.commons.math.analysis.solvers.BisectionSolver:
+M|org.apache.commons.math.analysis.solvers.BisectionSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double|new:org.apache.commons.math.analysis.solvers.BisectionSolver:
+M|org.apache.commons.math.analysis.solvers.BisectionSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double|new:org.apache.commons.math.analysis.solvers.BisectionSolver:
+C|org.apache.commons.math.analysis.solvers.BisectionSolver|<init>|org.apache.commons.math.analysis.UnivariateRealFunction
+C|org.apache.commons.math.analysis.solvers.BisectionSolver|<init>|
+M|org.apache.commons.math.analysis.solvers.BisectionSolver|solve|double,double|new:org.apache.commons.math.analysis.solvers.BisectionSolver:
+M|org.apache.commons.math.analysis.solvers.BisectionSolver|solve|double,double,double|new:org.apache.commons.math.analysis.solvers.BisectionSolver:
+M|org.apache.commons.math.analysis.solvers.BisectionSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double|new:org.apache.commons.math.analysis.solvers.BisectionSolver:
+M|org.apache.commons.math.analysis.solvers.BisectionSolver|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double|new:org.apache.commons.math.analysis.solvers.BisectionSolver:

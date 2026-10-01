@@ -1,0 +1,9 @@
+M|com.google.gson.TypeInfoFactory|extractTypeForHierarchy|java.lang.reflect.Type,java.lang.reflect.TypeVariable|static
+M|com.google.gson.TypeInfoFactory|getActualType|java.lang.reflect.Type,java.lang.reflect.Type,java.lang.Class|static
+M|com.google.gson.TypeInfoFactory|extractRealTypes|[Ljava.lang.reflect.Type;,java.lang.reflect.Type,java.lang.Class|static
+M|com.google.gson.TypeInfoFactory|getIndex|[Ljava.lang.reflect.TypeVariable;,java.lang.reflect.TypeVariable|static
+M|com.google.gson.TypeInfoFactory|getTypeInfoForArray|java.lang.reflect.Type|static
+M|com.google.gson.TypeInfoFactory|getTypeInfoForField|java.lang.reflect.Field,java.lang.reflect.Type|static
+C|com.google.gson.TypeInfoFactory|<init>|
+M|com.google.gson.TypeInfoFactory|extractTypeForHierarchy|java.lang.reflect.Type,java.lang.reflect.TypeVariable|static
+M|com.google.gson.TypeInfoFactory|getActualType|java.lang.reflect.Type,java.lang.reflect.Type,java.lang.Class|static

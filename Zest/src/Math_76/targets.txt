@@ -1,0 +1,15 @@
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getU||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getV||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getConditionNumber||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getCovariance|double|new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getNorm||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getRank||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getS||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getSingularValues||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getSolver||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getUT||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getVT||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+C|org.apache.commons.math.linear.SingularValueDecompositionImpl|<init>|org.apache.commons.math.linear.RealMatrix
+C|org.apache.commons.math.linear.SingularValueDecompositionImpl|<init>|org.apache.commons.math.linear.RealMatrix,int
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getU||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix
+M|org.apache.commons.math.linear.SingularValueDecompositionImpl|getV||new:org.apache.commons.math.linear.SingularValueDecompositionImpl:org.apache.commons.math.linear.RealMatrix

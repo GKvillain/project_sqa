@@ -1,0 +1,8 @@
+M|org.jfree.chart.renderer.GrayPaintScale|getPaint|double|new:org.jfree.chart.renderer.GrayPaintScale:
+M|org.jfree.chart.renderer.GrayPaintScale|clone||new:org.jfree.chart.renderer.GrayPaintScale:
+M|org.jfree.chart.renderer.GrayPaintScale|equals|java.lang.Object|new:org.jfree.chart.renderer.GrayPaintScale:
+M|org.jfree.chart.renderer.GrayPaintScale|getLowerBound||new:org.jfree.chart.renderer.GrayPaintScale:
+M|org.jfree.chart.renderer.GrayPaintScale|getUpperBound||new:org.jfree.chart.renderer.GrayPaintScale:
+C|org.jfree.chart.renderer.GrayPaintScale|<init>|
+C|org.jfree.chart.renderer.GrayPaintScale|<init>|double,double
+M|org.jfree.chart.renderer.GrayPaintScale|getPaint|double|new:org.jfree.chart.renderer.GrayPaintScale:

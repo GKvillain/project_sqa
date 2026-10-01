@@ -1,0 +1,16 @@
+M|org.apache.commons.collections.map.Flat3Map|clear||new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|clone||new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|containsKey|java.lang.Object|new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|containsValue|java.lang.Object|new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|convertToMap||new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|createDelegateMap||new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|entrySet||new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|equals|java.lang.Object|new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|get|java.lang.Object|new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|hashCode||new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|isEmpty||new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|keySet||new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|mapIterator||new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|put|java.lang.Object,java.lang.Object|new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|putAll|java.util.Map|new:org.apache.commons.collections.map.Flat3Map:
+M|org.apache.commons.collections.map.Flat3Map|readObject|java.io.ObjectInputStream|new:org.apache.commons.collections.map.Flat3Map:

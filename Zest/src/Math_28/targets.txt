@@ -1,0 +1,8 @@
+M|org.apache.commons.math3.optimization.linear.SimplexSolver|getPivotRow|org.apache.commons.math3.optimization.linear.SimplexTableau,int|new:org.apache.commons.math3.optimization.linear.SimplexSolver:
+M|org.apache.commons.math3.optimization.linear.SimplexSolver|doIteration|org.apache.commons.math3.optimization.linear.SimplexTableau|new:org.apache.commons.math3.optimization.linear.SimplexSolver:
+M|org.apache.commons.math3.optimization.linear.SimplexSolver|doOptimize||new:org.apache.commons.math3.optimization.linear.SimplexSolver:
+M|org.apache.commons.math3.optimization.linear.SimplexSolver|getPivotColumn|org.apache.commons.math3.optimization.linear.SimplexTableau|new:org.apache.commons.math3.optimization.linear.SimplexSolver:
+M|org.apache.commons.math3.optimization.linear.SimplexSolver|solvePhase1|org.apache.commons.math3.optimization.linear.SimplexTableau|new:org.apache.commons.math3.optimization.linear.SimplexSolver:
+C|org.apache.commons.math3.optimization.linear.SimplexSolver|<init>|
+C|org.apache.commons.math3.optimization.linear.SimplexSolver|<init>|double,int
+M|org.apache.commons.math3.optimization.linear.SimplexSolver|getPivotRow|org.apache.commons.math3.optimization.linear.SimplexTableau,int|new:org.apache.commons.math3.optimization.linear.SimplexSolver:

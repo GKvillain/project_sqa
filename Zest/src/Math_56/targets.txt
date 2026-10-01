@@ -1,0 +1,9 @@
+M|org.apache.commons.math.util.MultidimensionalCounter|getCounts|int|new:org.apache.commons.math.util.MultidimensionalCounter:[I
+M|org.apache.commons.math.util.MultidimensionalCounter|getCount|[I|new:org.apache.commons.math.util.MultidimensionalCounter:[I
+M|org.apache.commons.math.util.MultidimensionalCounter|getDimension||new:org.apache.commons.math.util.MultidimensionalCounter:[I
+M|org.apache.commons.math.util.MultidimensionalCounter|getSize||new:org.apache.commons.math.util.MultidimensionalCounter:[I
+M|org.apache.commons.math.util.MultidimensionalCounter|getSizes||new:org.apache.commons.math.util.MultidimensionalCounter:[I
+M|org.apache.commons.math.util.MultidimensionalCounter|iterator||new:org.apache.commons.math.util.MultidimensionalCounter:[I
+M|org.apache.commons.math.util.MultidimensionalCounter|toString||new:org.apache.commons.math.util.MultidimensionalCounter:[I
+C|org.apache.commons.math.util.MultidimensionalCounter|<init>|[I
+M|org.apache.commons.math.util.MultidimensionalCounter|getCounts|int|new:org.apache.commons.math.util.MultidimensionalCounter:[I

@@ -1,0 +1,17 @@
+M|org.apache.commons.math.fraction.Fraction|compareTo|org.apache.commons.math.fraction.Fraction|new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|abs||new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|add|org.apache.commons.math.fraction.Fraction|new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|addSub|org.apache.commons.math.fraction.Fraction,boolean|new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|divide|org.apache.commons.math.fraction.Fraction|new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|doubleValue||new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|equals|java.lang.Object|new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|floatValue||new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|getDenominator||new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|getNumerator||new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|getReducedFraction|int,int|static
+M|org.apache.commons.math.fraction.Fraction|hashCode||new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|intValue||new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|longValue||new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|multiply|org.apache.commons.math.fraction.Fraction|new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|negate||new:org.apache.commons.math.fraction.Fraction:double
+M|org.apache.commons.math.fraction.Fraction|compareTo|org.apache.commons.math.fraction.Fraction|new:org.apache.commons.math.fraction.Fraction:double

@@ -1,0 +1,17 @@
+M|org.jsoup.parser.TokenQueue|chompBalanced|char,char|new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|addFirst|java.lang.Character|new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|addFirst|java.lang.String|new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|advance||new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|chompTo|java.lang.String|new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|chompToIgnoreCase|java.lang.String|new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consume||new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consume|java.lang.String|new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consumeAttributeKey||new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consumeCssIdentifier||new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consumeElementSelector||new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consumeTagName||new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consumeTo|java.lang.String|new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consumeToAny|[Ljava.lang.String;|new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consumeToIgnoreCase|java.lang.String|new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|consumeWhitespace||new:org.jsoup.parser.TokenQueue:java.lang.String
+M|org.jsoup.parser.TokenQueue|chompBalanced|char,char|new:org.jsoup.parser.TokenQueue:java.lang.String

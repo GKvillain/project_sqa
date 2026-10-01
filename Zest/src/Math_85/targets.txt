@@ -1,0 +1,9 @@
+M|org.apache.commons.math.analysis.solvers.UnivariateRealSolverUtils|bracket|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double|static
+M|org.apache.commons.math.analysis.solvers.UnivariateRealSolverUtils|bracket|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double,int|static
+M|org.apache.commons.math.analysis.solvers.UnivariateRealSolverUtils|midpoint|double,double|static
+M|org.apache.commons.math.analysis.solvers.UnivariateRealSolverUtils|setup|org.apache.commons.math.analysis.UnivariateRealFunction|static
+M|org.apache.commons.math.analysis.solvers.UnivariateRealSolverUtils|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double|static
+M|org.apache.commons.math.analysis.solvers.UnivariateRealSolverUtils|solve|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double|static
+C|org.apache.commons.math.analysis.solvers.UnivariateRealSolverUtils|<init>|
+M|org.apache.commons.math.analysis.solvers.UnivariateRealSolverUtils|bracket|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double|static
+M|org.apache.commons.math.analysis.solvers.UnivariateRealSolverUtils|bracket|org.apache.commons.math.analysis.UnivariateRealFunction,double,double,double,int|static

@@ -1,0 +1,5 @@
+M|org.mockito.internal.util.Primitives|isPrimitiveWrapper|java.lang.Class|static
+M|org.mockito.internal.util.Primitives|primitiveTypeOf|java.lang.Class|static
+M|org.mockito.internal.util.Primitives|primitiveValueOrNullFor|java.lang.Class|static
+M|org.mockito.internal.util.Primitives|primitiveWrapperOf|java.lang.Class|static
+C|org.mockito.internal.util.Primitives|<init>|

@@ -1,0 +1,8 @@
+M|org.apache.commons.math.fraction.ProperFractionFormat|parse|java.lang.String,java.text.ParsePosition|new:org.apache.commons.math.fraction.ProperFractionFormat:
+M|org.apache.commons.math.fraction.ProperFractionFormat|format|org.apache.commons.math.fraction.Fraction,java.lang.StringBuffer,java.text.FieldPosition|new:org.apache.commons.math.fraction.ProperFractionFormat:
+M|org.apache.commons.math.fraction.ProperFractionFormat|getWholeFormat||new:org.apache.commons.math.fraction.ProperFractionFormat:
+M|org.apache.commons.math.fraction.ProperFractionFormat|setWholeFormat|java.text.NumberFormat|new:org.apache.commons.math.fraction.ProperFractionFormat:
+C|org.apache.commons.math.fraction.ProperFractionFormat|<init>|java.text.NumberFormat,java.text.NumberFormat,java.text.NumberFormat
+C|org.apache.commons.math.fraction.ProperFractionFormat|<init>|java.text.NumberFormat
+C|org.apache.commons.math.fraction.ProperFractionFormat|<init>|
+M|org.apache.commons.math.fraction.ProperFractionFormat|parse|java.lang.String,java.text.ParsePosition|new:org.apache.commons.math.fraction.ProperFractionFormat:

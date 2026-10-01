@@ -1,0 +1,14 @@
+M|org.jsoup.parser.Token|asCharacter||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|asComment||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|asDoctype||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|asEndTag||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|asStartTag||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|isCharacter||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|isComment||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|isDoctype||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|isEOF||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|isEndTag||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|isStartTag||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|reset||new:org.jsoup.parser.Token$Character:
+M|org.jsoup.parser.Token|reset|java.lang.StringBuilder|static
+M|org.jsoup.parser.Token|tokenType||new:org.jsoup.parser.Token$Character:

@@ -1,0 +1,15 @@
+M|org.apache.commons.collections.keyvalue.MultiKey|readResolve||new:org.apache.commons.collections.keyvalue.MultiKey:[Ljava.lang.Object;
+M|org.apache.commons.collections.keyvalue.MultiKey|calculateHashCode|[Ljava.lang.Object;|new:org.apache.commons.collections.keyvalue.MultiKey:[Ljava.lang.Object;
+M|org.apache.commons.collections.keyvalue.MultiKey|equals|java.lang.Object|new:org.apache.commons.collections.keyvalue.MultiKey:[Ljava.lang.Object;
+M|org.apache.commons.collections.keyvalue.MultiKey|getKey|int|new:org.apache.commons.collections.keyvalue.MultiKey:[Ljava.lang.Object;
+M|org.apache.commons.collections.keyvalue.MultiKey|getKeys||new:org.apache.commons.collections.keyvalue.MultiKey:[Ljava.lang.Object;
+M|org.apache.commons.collections.keyvalue.MultiKey|hashCode||new:org.apache.commons.collections.keyvalue.MultiKey:[Ljava.lang.Object;
+M|org.apache.commons.collections.keyvalue.MultiKey|size||new:org.apache.commons.collections.keyvalue.MultiKey:[Ljava.lang.Object;
+M|org.apache.commons.collections.keyvalue.MultiKey|toString||new:org.apache.commons.collections.keyvalue.MultiKey:[Ljava.lang.Object;
+C|org.apache.commons.collections.keyvalue.MultiKey|<init>|[Ljava.lang.Object;,boolean
+C|org.apache.commons.collections.keyvalue.MultiKey|<init>|[Ljava.lang.Object;
+C|org.apache.commons.collections.keyvalue.MultiKey|<init>|java.lang.Object,java.lang.Object
+C|org.apache.commons.collections.keyvalue.MultiKey|<init>|java.lang.Object,java.lang.Object,java.lang.Object
+C|org.apache.commons.collections.keyvalue.MultiKey|<init>|java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object
+C|org.apache.commons.collections.keyvalue.MultiKey|<init>|java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object
+M|org.apache.commons.collections.keyvalue.MultiKey|readResolve||new:org.apache.commons.collections.keyvalue.MultiKey:[Ljava.lang.Object;

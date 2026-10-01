@@ -1,0 +1,11 @@
+M|com.fasterxml.jackson.databind.introspect.AnnotationMap|_add|java.lang.annotation.Annotation|new:com.fasterxml.jackson.databind.introspect.AnnotationMap:
+M|com.fasterxml.jackson.databind.introspect.AnnotationMap|add|java.lang.annotation.Annotation|new:com.fasterxml.jackson.databind.introspect.AnnotationMap:
+M|com.fasterxml.jackson.databind.introspect.AnnotationMap|addIfNotPresent|java.lang.annotation.Annotation|new:com.fasterxml.jackson.databind.introspect.AnnotationMap:
+M|com.fasterxml.jackson.databind.introspect.AnnotationMap|annotations||new:com.fasterxml.jackson.databind.introspect.AnnotationMap:
+M|com.fasterxml.jackson.databind.introspect.AnnotationMap|get|java.lang.Class|new:com.fasterxml.jackson.databind.introspect.AnnotationMap:
+M|com.fasterxml.jackson.databind.introspect.AnnotationMap|merge|com.fasterxml.jackson.databind.introspect.AnnotationMap,com.fasterxml.jackson.databind.introspect.AnnotationMap|static
+M|com.fasterxml.jackson.databind.introspect.AnnotationMap|size||new:com.fasterxml.jackson.databind.introspect.AnnotationMap:
+M|com.fasterxml.jackson.databind.introspect.AnnotationMap|toString||new:com.fasterxml.jackson.databind.introspect.AnnotationMap:
+C|com.fasterxml.jackson.databind.introspect.AnnotationMap|<init>|
+C|com.fasterxml.jackson.databind.introspect.AnnotationMap|<init>|java.util.HashMap
+M|com.fasterxml.jackson.databind.introspect.AnnotationMap|_add|java.lang.annotation.Annotation|new:com.fasterxml.jackson.databind.introspect.AnnotationMap:

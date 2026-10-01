@@ -1,0 +1,17 @@
+M|com.fasterxml.jackson.core.JsonPointer|_parseIndex|java.lang.String|static
+M|com.fasterxml.jackson.core.JsonPointer|_appendEscape|java.lang.StringBuilder,char|static
+M|com.fasterxml.jackson.core.JsonPointer|_parseQuotedTail|java.lang.String,int|static
+M|com.fasterxml.jackson.core.JsonPointer|_parseTail|java.lang.String|static
+M|com.fasterxml.jackson.core.JsonPointer|compile|java.lang.String|static
+M|com.fasterxml.jackson.core.JsonPointer|equals|java.lang.Object|new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|getMatchingIndex||new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|getMatchingProperty||new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|hashCode||new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|matchElement|int|new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|matchProperty|java.lang.String|new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|matches||new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|mayMatchElement||new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|mayMatchProperty||new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|tail||new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|toString||new:com.fasterxml.jackson.core.JsonPointer:
+M|com.fasterxml.jackson.core.JsonPointer|_parseIndex|java.lang.String|static

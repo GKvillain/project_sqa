@@ -1,0 +1,8 @@
+######  Start fixing tests  /home/pilaiphon/defects4j/framework/bin/../util/fix_test_suite.pl: 2026-09-27 12:57:15  ######
+- Found 1 test archive(s)
+ - Removing 1 broken test method(s): Lang-55f-zest.12002.tar.bz2
+org.apache.commons.lang.time.StopWatch_Zest_Test::test32
+Number of uncompilable test classes: 0
+Number of uncompilable tests: 0
+Number of failing tests: 1 (see /home/pilaiphon/suites/Lang/zest/55/t12002/fix_test_suite.run.log file for more information)
+######  End fixing tests  /home/pilaiphon/defects4j/framework/bin/../util/fix_test_suite.pl: 2026-09-27 12:57:54  ######

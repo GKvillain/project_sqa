@@ -1,0 +1,9 @@
+M|org.mockito.internal.creation.instance.ConstructorInstantiator|newInstance|java.lang.Class|new:org.mockito.internal.creation.instance.ConstructorInstantiator:java.lang.Object
+M|org.mockito.internal.creation.instance.ConstructorInstantiator|paramsMatch|[Ljava.lang.Class;,[Ljava.lang.Object;|static
+M|org.mockito.internal.creation.instance.ConstructorInstantiator|withParams|java.lang.Class,[Ljava.lang.Object;|static
+M|org.mockito.internal.creation.instance.ConstructorInstantiator|noArgConstructor|java.lang.Class|static
+M|org.mockito.internal.creation.instance.ConstructorInstantiator|paramsException|java.lang.Class,java.lang.Exception|static
+C|org.mockito.internal.creation.instance.ConstructorInstantiator|<init>|java.lang.Object
+M|org.mockito.internal.creation.instance.ConstructorInstantiator|newInstance|java.lang.Class|new:org.mockito.internal.creation.instance.ConstructorInstantiator:java.lang.Object
+M|org.mockito.internal.creation.instance.ConstructorInstantiator|paramsMatch|[Ljava.lang.Class;,[Ljava.lang.Object;|static
+M|org.mockito.internal.creation.instance.ConstructorInstantiator|withParams|java.lang.Class,[Ljava.lang.Object;|static

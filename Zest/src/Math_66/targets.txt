@@ -1,0 +1,6 @@
+M|org.apache.commons.math.optimization.univariate.BrentOptimizer|doOptimize||new:org.apache.commons.math.optimization.univariate.BrentOptimizer:
+M|org.apache.commons.math.optimization.univariate.BrentOptimizer|localMin|boolean,double,double,double,double,double|new:org.apache.commons.math.optimization.univariate.BrentOptimizer:
+C|org.apache.commons.math.optimization.univariate.BrentOptimizer|<init>|
+M|org.apache.commons.math.optimization.univariate.BrentOptimizer|doOptimize||new:org.apache.commons.math.optimization.univariate.BrentOptimizer:
+M|org.apache.commons.math.optimization.univariate.BrentOptimizer|localMin|boolean,double,double,double,double,double|new:org.apache.commons.math.optimization.univariate.BrentOptimizer:
+C|org.apache.commons.math.optimization.univariate.BrentOptimizer|<init>|

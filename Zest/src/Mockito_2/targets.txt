@@ -1,0 +1,6 @@
+M|org.mockito.internal.util.Timer|validateInput|long|new:org.mockito.internal.util.Timer:long
+C|org.mockito.internal.util.Timer|<init>|long
+M|org.mockito.internal.util.Timer|isCounting||new:org.mockito.internal.util.Timer:long
+M|org.mockito.internal.util.Timer|start||new:org.mockito.internal.util.Timer:long
+M|org.mockito.internal.util.Timer|validateInput|long|new:org.mockito.internal.util.Timer:long
+C|org.mockito.internal.util.Timer|<init>|long

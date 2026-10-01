@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.SourceFile|getLine|int|new:com.google.javascript.jscomp.SourceFile:java.lang.String
+M|com.google.javascript.jscomp.SourceFile|clearCachedSource||new:com.google.javascript.jscomp.SourceFile:java.lang.String
+M|com.google.javascript.jscomp.SourceFile|findLineOffsets||new:com.google.javascript.jscomp.SourceFile:java.lang.String
+M|com.google.javascript.jscomp.SourceFile|fromCode|java.lang.String,java.lang.String|static
+M|com.google.javascript.jscomp.SourceFile|fromCode|java.lang.String,java.lang.String,java.lang.String|static
+M|com.google.javascript.jscomp.SourceFile|fromFile|java.io.File|static
+M|com.google.javascript.jscomp.SourceFile|fromFile|java.io.File,java.nio.charset.Charset|static
+M|com.google.javascript.jscomp.SourceFile|fromFile|java.lang.String|static
+M|com.google.javascript.jscomp.SourceFile|fromFile|java.lang.String,java.nio.charset.Charset|static
+M|com.google.javascript.jscomp.SourceFile|fromGenerator|java.lang.String,com.google.javascript.jscomp.SourceFile$Generator|static
+M|com.google.javascript.jscomp.SourceFile|fromInputStream|java.lang.String,java.io.InputStream|static
+M|com.google.javascript.jscomp.SourceFile|fromInputStream|java.lang.String,java.lang.String,java.io.InputStream|static
+M|com.google.javascript.jscomp.SourceFile|fromReader|java.lang.String,java.io.Reader|static
+M|com.google.javascript.jscomp.SourceFile|getCode||new:com.google.javascript.jscomp.SourceFile:java.lang.String
+M|com.google.javascript.jscomp.SourceFile|getCodeNoCache||new:com.google.javascript.jscomp.SourceFile:java.lang.String
+M|com.google.javascript.jscomp.SourceFile|getCodeReader||new:com.google.javascript.jscomp.SourceFile:java.lang.String
+M|com.google.javascript.jscomp.SourceFile|getLine|int|new:com.google.javascript.jscomp.SourceFile:java.lang.String

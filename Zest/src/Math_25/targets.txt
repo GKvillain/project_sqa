@@ -1,0 +1,3 @@
+M|org.apache.commons.math3.optimization.fitting.HarmonicFitter|fit||new:org.apache.commons.math3.optimization.fitting.HarmonicFitter:org.apache.commons.math3.optimization.DifferentiableMultivariateVectorOptimizer
+M|org.apache.commons.math3.optimization.fitting.HarmonicFitter|fit|[D|new:org.apache.commons.math3.optimization.fitting.HarmonicFitter:org.apache.commons.math3.optimization.DifferentiableMultivariateVectorOptimizer
+C|org.apache.commons.math3.optimization.fitting.HarmonicFitter|<init>|org.apache.commons.math3.optimization.DifferentiableMultivariateVectorOptimizer

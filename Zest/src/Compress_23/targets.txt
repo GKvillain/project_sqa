@@ -1,0 +1,3 @@
+M|org.apache.commons.compress.archivers.sevenz.Coders|addDecoder|java.io.InputStream,org.apache.commons.compress.archivers.sevenz.Coder,[B|static
+M|org.apache.commons.compress.archivers.sevenz.Coders|addEncoder|java.io.OutputStream,org.apache.commons.compress.archivers.sevenz.SevenZMethod,[B|static
+C|org.apache.commons.compress.archivers.sevenz.Coders|<init>|

@@ -1,0 +1,14 @@
+M|org.apache.commons.csv.Lexer|readEscape||new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|getLineNumber||new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|isCommentStart|int|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|isDelimiter|int|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|isEndOfFile|int|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|isEscape|int|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|isQuoteChar|int|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|isStartOfLine|int|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|isWhitespace|int|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|mapNullToDisabled|java.lang.Character|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|nextToken|org.apache.commons.csv.Token|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|readEndOfLine|int|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|trimTrailingSpaces|java.lang.StringBuilder|new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader
+M|org.apache.commons.csv.Lexer|readEscape||new:org.apache.commons.csv.CSVLexer:org.apache.commons.csv.CSVFormat,org.apache.commons.csv.ExtendedBufferedReader

@@ -1,0 +1,17 @@
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|addValue|double|new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|checkEmpty||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|clear||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|copy||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|copy|org.apache.commons.math.stat.descriptive.SummaryStatistics,org.apache.commons.math.stat.descriptive.SummaryStatistics|static
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|equals|java.lang.Object|new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getGeoMeanImpl||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getGeometricMean||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getMax||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getMaxImpl||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getMean||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getMeanImpl||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getMin||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getMinImpl||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getN||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|getPopulationVariance||new:org.apache.commons.math.stat.descriptive.SummaryStatistics:
+M|org.apache.commons.math.stat.descriptive.SummaryStatistics|addValue|double|new:org.apache.commons.math.stat.descriptive.SummaryStatistics:

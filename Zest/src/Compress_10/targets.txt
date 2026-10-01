@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.zip.ZipFile|resolveLocalFileHeaderData|java.util.Map|new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|canReadEntryData|org.apache.commons.compress.archivers.zip.ZipArchiveEntry|new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|close||new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|closeQuietly|org.apache.commons.compress.archivers.zip.ZipFile|static
+M|org.apache.commons.compress.archivers.zip.ZipFile|finalize||new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|getEncoding||new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|getEntries||new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|getEntriesInPhysicalOrder||new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|getEntry|java.lang.String|new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|getInputStream|org.apache.commons.compress.archivers.zip.ZipArchiveEntry|new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|populateFromCentralDirectory||new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|positionAtCentralDirectory||new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|positionAtCentralDirectory32||new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|positionAtCentralDirectory64||new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|readCentralDirectoryEntry|java.util.Map|new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|setSizesAndOffsetFromZip64Extra|org.apache.commons.compress.archivers.zip.ZipArchiveEntry,org.apache.commons.compress.archivers.zip.ZipFile$OffsetEntry,int|new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File
+M|org.apache.commons.compress.archivers.zip.ZipFile|resolveLocalFileHeaderData|java.util.Map|new:org.apache.commons.compress.archivers.zip.ZipFile:java.io.File

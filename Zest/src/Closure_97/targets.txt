@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldShift|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|optimizeSubtree|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldAdd|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldAddConstant|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldAndOr|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldArithmetic|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldAssign|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldBinaryOperator|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldBitAndOr|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldComparison|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldGetElem|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldGetProp|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldInstanceof|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldKnownMethods|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldLeftChildAdd|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldStringIndexOf|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:
+M|com.google.javascript.jscomp.PeepholeFoldConstants|tryFoldShift|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PeepholeFoldConstants:

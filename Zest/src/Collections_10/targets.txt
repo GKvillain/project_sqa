@@ -1,0 +1,16 @@
+M|org.apache.commons.collections.map.MultiValueMap|clear||new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|containsValue|java.lang.Object|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|containsValue|java.lang.Object,java.lang.Object|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|createCollection|int|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|decorate|java.util.Map|static
+M|org.apache.commons.collections.map.MultiValueMap|decorate|java.util.Map,java.lang.Class|static
+M|org.apache.commons.collections.map.MultiValueMap|decorate|java.util.Map,org.apache.commons.collections.Factory|static
+M|org.apache.commons.collections.map.MultiValueMap|getCollection|java.lang.Object|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|iterator|java.lang.Object|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|put|java.lang.Object,java.lang.Object|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|putAll|java.lang.Object,java.util.Collection|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|putAll|java.util.Map|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|readObject|java.io.ObjectInputStream|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|removeMapping|java.lang.Object,java.lang.Object|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|size|java.lang.Object|new:org.apache.commons.collections.map.MultiValueMap:
+M|org.apache.commons.collections.map.MultiValueMap|totalSize||new:org.apache.commons.collections.map.MultiValueMap:

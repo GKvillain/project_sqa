@@ -1,0 +1,17 @@
+M|org.apache.commons.collections.ExtendedProperties|combine|org.apache.commons.collections.ExtendedProperties|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|addProperty|java.lang.String,java.lang.Object|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|addPropertyDirect|java.lang.String,java.lang.Object|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|addPropertyInternal|java.lang.String,java.lang.Object|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|clearProperty|java.lang.String|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|convertProperties|java.util.Properties|static
+M|org.apache.commons.collections.ExtendedProperties|countPreceding|java.lang.String,int,char|static
+M|org.apache.commons.collections.ExtendedProperties|display||new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|endsWithSlash|java.lang.String|static
+M|org.apache.commons.collections.ExtendedProperties|escape|java.lang.String|static
+M|org.apache.commons.collections.ExtendedProperties|getBoolean|java.lang.String|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|getBoolean|java.lang.String,boolean|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|getBoolean|java.lang.String,java.lang.Boolean|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|getByte|java.lang.String|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|getByte|java.lang.String,byte|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|getByte|java.lang.String,java.lang.Byte|new:org.apache.commons.collections.ExtendedProperties:
+M|org.apache.commons.collections.ExtendedProperties|combine|org.apache.commons.collections.ExtendedProperties|new:org.apache.commons.collections.ExtendedProperties:

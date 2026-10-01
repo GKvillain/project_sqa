@@ -1,0 +1,4 @@
+M|org.apache.commons.jxpath.ri.axes.UnionContext|setPosition|int|new:org.apache.commons.jxpath.ri.axes.UnionContext:org.apache.commons.jxpath.ri.EvalContext,[Lorg.apache.commons.jxpath.ri.EvalContext;
+M|org.apache.commons.jxpath.ri.axes.UnionContext|getDocumentOrder||new:org.apache.commons.jxpath.ri.axes.UnionContext:org.apache.commons.jxpath.ri.EvalContext,[Lorg.apache.commons.jxpath.ri.EvalContext;
+C|org.apache.commons.jxpath.ri.axes.UnionContext|<init>|org.apache.commons.jxpath.ri.EvalContext,[Lorg.apache.commons.jxpath.ri.EvalContext;
+M|org.apache.commons.jxpath.ri.axes.UnionContext|setPosition|int|new:org.apache.commons.jxpath.ri.axes.UnionContext:org.apache.commons.jxpath.ri.EvalContext,[Lorg.apache.commons.jxpath.ri.EvalContext;

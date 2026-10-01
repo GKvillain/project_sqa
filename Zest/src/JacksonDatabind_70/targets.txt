@@ -1,0 +1,17 @@
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|remove|com.fasterxml.jackson.databind.deser.SettableBeanProperty|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|_find2|java.lang.String,int,java.lang.Object|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|_findFromOrdered|com.fasterxml.jackson.databind.deser.SettableBeanProperty|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|_findIndexInHash|java.lang.String|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|_hashCode|java.lang.String|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|_rename|com.fasterxml.jackson.databind.deser.SettableBeanProperty,com.fasterxml.jackson.databind.util.NameTransformer|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|assignIndexes||new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|construct|java.util.Collection,boolean|static
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|find|int|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|find|java.lang.String|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|findDeserializeAndSet|com.fasterxml.jackson.core.JsonParser,com.fasterxml.jackson.databind.DeserializationContext,java.lang.Object,java.lang.String|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|findSize|int|static
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|getPropertiesInInsertionOrder||new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|getPropertyName|com.fasterxml.jackson.databind.deser.SettableBeanProperty|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|init|java.util.Collection|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|iterator||new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection
+M|com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap|remove|com.fasterxml.jackson.databind.deser.SettableBeanProperty|new:com.fasterxml.jackson.databind.deser.impl.BeanPropertyMap:boolean,java.util.Collection

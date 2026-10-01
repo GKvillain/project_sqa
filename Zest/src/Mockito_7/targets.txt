@@ -1,0 +1,13 @@
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|actualTypeArguments||fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|boundsOf|java.lang.reflect.TypeVariable|fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|boundsOf|java.lang.reflect.WildcardType|fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|extraInterfaces||fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|getActualTypeArgumentFor|java.lang.reflect.TypeVariable|fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|hasRawExtraInterfaces||fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|inferFrom|java.lang.reflect.Type|static
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|rawExtraInterfaces||fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|rawType||fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|registerTypeParametersOn|[Ljava.lang.reflect.TypeVariable;|fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|registerTypeVariableIfNotPresent|java.lang.reflect.TypeVariable|fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|registerTypeVariablesOn|java.lang.reflect.Type|fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type
+M|org.mockito.internal.util.reflection.GenericMetadataSupport|resolveGenericReturnType|java.lang.reflect.Method|fac:org.mockito.internal.util.reflection.GenericMetadataSupport:inferFrom:java.lang.reflect.Type

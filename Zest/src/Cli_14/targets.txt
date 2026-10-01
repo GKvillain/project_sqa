@@ -1,0 +1,17 @@
+M|org.apache.commons.cli2.option.GroupImpl|validate|org.apache.commons.cli2.WriteableCommandLine|new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|appendUsage|java.lang.StringBuffer,java.util.Set,java.util.Comparator|new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|appendUsage|java.lang.StringBuffer,java.util.Set,java.util.Comparator,java.lang.String|new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|canProcess|org.apache.commons.cli2.WriteableCommandLine,java.lang.String|new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|defaults|org.apache.commons.cli2.WriteableCommandLine|new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|findOption|java.lang.String|new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|getAnonymous||new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|getDescription||new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|getMaximum||new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|getMinimum||new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|getOptions||new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|getPreferredName||new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|getPrefixes||new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|getTriggers||new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|helpLines|int,java.util.Set,java.util.Comparator|new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|isRequired||new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int
+M|org.apache.commons.cli2.option.GroupImpl|validate|org.apache.commons.cli2.WriteableCommandLine|new:org.apache.commons.cli2.option.GroupImpl:java.util.List,java.lang.String,java.lang.String,int,int

@@ -1,0 +1,6 @@
+M|org.apache.commons.jxpath.ri.axes.AttributeContext|nextNode||new:org.apache.commons.jxpath.ri.axes.AttributeContext:org.apache.commons.jxpath.ri.EvalContext,org.apache.commons.jxpath.ri.compiler.NodeTest
+M|org.apache.commons.jxpath.ri.axes.AttributeContext|getCurrentNodePointer||new:org.apache.commons.jxpath.ri.axes.AttributeContext:org.apache.commons.jxpath.ri.EvalContext,org.apache.commons.jxpath.ri.compiler.NodeTest
+M|org.apache.commons.jxpath.ri.axes.AttributeContext|reset||new:org.apache.commons.jxpath.ri.axes.AttributeContext:org.apache.commons.jxpath.ri.EvalContext,org.apache.commons.jxpath.ri.compiler.NodeTest
+M|org.apache.commons.jxpath.ri.axes.AttributeContext|setPosition|int|new:org.apache.commons.jxpath.ri.axes.AttributeContext:org.apache.commons.jxpath.ri.EvalContext,org.apache.commons.jxpath.ri.compiler.NodeTest
+C|org.apache.commons.jxpath.ri.axes.AttributeContext|<init>|org.apache.commons.jxpath.ri.EvalContext,org.apache.commons.jxpath.ri.compiler.NodeTest
+M|org.apache.commons.jxpath.ri.axes.AttributeContext|nextNode||new:org.apache.commons.jxpath.ri.axes.AttributeContext:org.apache.commons.jxpath.ri.EvalContext,org.apache.commons.jxpath.ri.compiler.NodeTest

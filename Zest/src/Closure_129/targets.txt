@@ -1,0 +1,6 @@
+M|com.google.javascript.jscomp.PrepareAst|normalizeBlocks|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PrepareAst:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.PrepareAst|normalizeNodeTypes|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PrepareAst:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.PrepareAst|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.PrepareAst:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.PrepareAst|reportChange||new:com.google.javascript.jscomp.PrepareAst:com.google.javascript.jscomp.AbstractCompiler
+C|com.google.javascript.jscomp.PrepareAst|<init>|com.google.javascript.jscomp.AbstractCompiler
+C|com.google.javascript.jscomp.PrepareAst|<init>|com.google.javascript.jscomp.AbstractCompiler,boolean

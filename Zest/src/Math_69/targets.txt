@@ -1,0 +1,14 @@
+M|org.apache.commons.math.stat.correlation.PearsonsCorrelation|getCorrelationPValues||new:org.apache.commons.math.stat.correlation.PearsonsCorrelation:
+M|org.apache.commons.math.stat.correlation.PearsonsCorrelation|checkSufficientData|org.apache.commons.math.linear.RealMatrix|new:org.apache.commons.math.stat.correlation.PearsonsCorrelation:
+M|org.apache.commons.math.stat.correlation.PearsonsCorrelation|computeCorrelationMatrix|[[D|new:org.apache.commons.math.stat.correlation.PearsonsCorrelation:
+M|org.apache.commons.math.stat.correlation.PearsonsCorrelation|computeCorrelationMatrix|org.apache.commons.math.linear.RealMatrix|new:org.apache.commons.math.stat.correlation.PearsonsCorrelation:
+M|org.apache.commons.math.stat.correlation.PearsonsCorrelation|correlation|[D,[D|new:org.apache.commons.math.stat.correlation.PearsonsCorrelation:
+M|org.apache.commons.math.stat.correlation.PearsonsCorrelation|covarianceToCorrelation|org.apache.commons.math.linear.RealMatrix|new:org.apache.commons.math.stat.correlation.PearsonsCorrelation:
+M|org.apache.commons.math.stat.correlation.PearsonsCorrelation|getCorrelationMatrix||new:org.apache.commons.math.stat.correlation.PearsonsCorrelation:
+M|org.apache.commons.math.stat.correlation.PearsonsCorrelation|getCorrelationStandardErrors||new:org.apache.commons.math.stat.correlation.PearsonsCorrelation:
+C|org.apache.commons.math.stat.correlation.PearsonsCorrelation|<init>|org.apache.commons.math.linear.RealMatrix,int
+C|org.apache.commons.math.stat.correlation.PearsonsCorrelation|<init>|org.apache.commons.math.stat.correlation.Covariance
+C|org.apache.commons.math.stat.correlation.PearsonsCorrelation|<init>|org.apache.commons.math.linear.RealMatrix
+C|org.apache.commons.math.stat.correlation.PearsonsCorrelation|<init>|[[D
+C|org.apache.commons.math.stat.correlation.PearsonsCorrelation|<init>|
+M|org.apache.commons.math.stat.correlation.PearsonsCorrelation|getCorrelationPValues||new:org.apache.commons.math.stat.correlation.PearsonsCorrelation:

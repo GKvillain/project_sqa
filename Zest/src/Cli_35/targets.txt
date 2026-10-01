@@ -1,0 +1,17 @@
+M|org.apache.commons.cli.Options|getMatchingOptions|java.lang.String|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|addOption|java.lang.String,boolean,java.lang.String|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|addOption|java.lang.String,java.lang.String|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|addOption|java.lang.String,java.lang.String,boolean,java.lang.String|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|addOption|org.apache.commons.cli.Option|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|addOptionGroup|org.apache.commons.cli.OptionGroup|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|getOption|java.lang.String|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|getOptionGroup|org.apache.commons.cli.Option|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|getOptionGroups||new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|getOptions||new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|getRequiredOptions||new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|hasLongOption|java.lang.String|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|hasOption|java.lang.String|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|hasShortOption|java.lang.String|new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|helpOptions||new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|toString||new:org.apache.commons.cli.Options:
+M|org.apache.commons.cli.Options|getMatchingOptions|java.lang.String|new:org.apache.commons.cli.Options:

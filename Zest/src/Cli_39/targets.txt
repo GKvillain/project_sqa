@@ -1,0 +1,14 @@
+M|org.apache.commons.cli.TypeHandler|createValue|java.lang.String,java.lang.Class|static
+M|org.apache.commons.cli.TypeHandler|createValue|java.lang.String,java.lang.Object|static
+M|org.apache.commons.cli.TypeHandler|openFile|java.lang.String|static
+M|org.apache.commons.cli.TypeHandler|createClass|java.lang.String|static
+M|org.apache.commons.cli.TypeHandler|createDate|java.lang.String|static
+M|org.apache.commons.cli.TypeHandler|createFile|java.lang.String|static
+M|org.apache.commons.cli.TypeHandler|createFiles|java.lang.String|static
+M|org.apache.commons.cli.TypeHandler|createNumber|java.lang.String|static
+M|org.apache.commons.cli.TypeHandler|createObject|java.lang.String|static
+M|org.apache.commons.cli.TypeHandler|createURL|java.lang.String|static
+C|org.apache.commons.cli.TypeHandler|<init>|
+M|org.apache.commons.cli.TypeHandler|createValue|java.lang.String,java.lang.Class|static
+M|org.apache.commons.cli.TypeHandler|createValue|java.lang.String,java.lang.Object|static
+M|org.apache.commons.cli.TypeHandler|openFile|java.lang.String|static

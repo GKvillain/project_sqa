@@ -1,0 +1,8 @@
+M|org.mockito.internal.stubbing.answers.AnswersValidator|validate|org.mockito.stubbing.Answer,org.mockito.internal.invocation.Invocation|new:org.mockito.internal.stubbing.answers.AnswersValidator:
+M|org.mockito.internal.stubbing.answers.AnswersValidator|validateMockingConcreteClass|org.mockito.internal.stubbing.answers.CallsRealMethods,org.mockito.internal.invocation.Invocation|new:org.mockito.internal.stubbing.answers.AnswersValidator:
+M|org.mockito.internal.stubbing.answers.AnswersValidator|validateDoNothing|org.mockito.internal.stubbing.answers.DoesNothing,org.mockito.internal.invocation.Invocation|new:org.mockito.internal.stubbing.answers.AnswersValidator:
+M|org.mockito.internal.stubbing.answers.AnswersValidator|validateException|org.mockito.internal.stubbing.answers.ThrowsException,org.mockito.internal.invocation.Invocation|new:org.mockito.internal.stubbing.answers.AnswersValidator:
+M|org.mockito.internal.stubbing.answers.AnswersValidator|validateReturnValue|org.mockito.internal.stubbing.answers.Returns,org.mockito.internal.invocation.Invocation|new:org.mockito.internal.stubbing.answers.AnswersValidator:
+C|org.mockito.internal.stubbing.answers.AnswersValidator|<init>|
+M|org.mockito.internal.stubbing.answers.AnswersValidator|validate|org.mockito.stubbing.Answer,org.mockito.internal.invocation.Invocation|new:org.mockito.internal.stubbing.answers.AnswersValidator:
+M|org.mockito.internal.stubbing.answers.AnswersValidator|validateMockingConcreteClass|org.mockito.internal.stubbing.answers.CallsRealMethods,org.mockito.internal.invocation.Invocation|new:org.mockito.internal.stubbing.answers.AnswersValidator:

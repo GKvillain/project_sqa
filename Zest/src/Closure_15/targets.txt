@@ -1,0 +1,7 @@
+M|com.google.javascript.jscomp.FlowSensitiveInlineVariables|checkLeftOf|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.common.base.Predicate|static
+M|com.google.javascript.jscomp.FlowSensitiveInlineVariables|checkRightOf|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.common.base.Predicate|static
+M|com.google.javascript.jscomp.FlowSensitiveInlineVariables|enterScope|com.google.javascript.jscomp.NodeTraversal|new:com.google.javascript.jscomp.FlowSensitiveInlineVariables:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FlowSensitiveInlineVariables|exitScope|com.google.javascript.jscomp.NodeTraversal|new:com.google.javascript.jscomp.FlowSensitiveInlineVariables:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FlowSensitiveInlineVariables|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FlowSensitiveInlineVariables:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.FlowSensitiveInlineVariables|visit|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FlowSensitiveInlineVariables:com.google.javascript.jscomp.AbstractCompiler
+C|com.google.javascript.jscomp.FlowSensitiveInlineVariables|<init>|com.google.javascript.jscomp.AbstractCompiler

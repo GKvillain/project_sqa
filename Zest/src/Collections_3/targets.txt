@@ -1,0 +1,17 @@
+M|org.apache.commons.collections.CollectionUtils|removeAll|java.util.Collection,java.util.Collection|static
+M|org.apache.commons.collections.CollectionUtils|addAll|java.util.Collection,[Ljava.lang.Object;|static
+M|org.apache.commons.collections.CollectionUtils|addAll|java.util.Collection,java.util.Enumeration|static
+M|org.apache.commons.collections.CollectionUtils|addAll|java.util.Collection,java.util.Iterator|static
+M|org.apache.commons.collections.CollectionUtils|addIgnoreNull|java.util.Collection,java.lang.Object|static
+M|org.apache.commons.collections.CollectionUtils|cardinality|java.lang.Object,java.util.Collection|static
+M|org.apache.commons.collections.CollectionUtils|collect|java.util.Collection,org.apache.commons.collections.Transformer|static
+M|org.apache.commons.collections.CollectionUtils|collect|java.util.Collection,org.apache.commons.collections.Transformer,java.util.Collection|static
+M|org.apache.commons.collections.CollectionUtils|collect|java.util.Iterator,org.apache.commons.collections.Transformer|static
+M|org.apache.commons.collections.CollectionUtils|collect|java.util.Iterator,org.apache.commons.collections.Transformer,java.util.Collection|static
+M|org.apache.commons.collections.CollectionUtils|containsAny|java.util.Collection,java.util.Collection|static
+M|org.apache.commons.collections.CollectionUtils|countMatches|java.util.Collection,org.apache.commons.collections.Predicate|static
+M|org.apache.commons.collections.CollectionUtils|disjunction|java.util.Collection,java.util.Collection|static
+M|org.apache.commons.collections.CollectionUtils|exists|java.util.Collection,org.apache.commons.collections.Predicate|static
+M|org.apache.commons.collections.CollectionUtils|filter|java.util.Collection,org.apache.commons.collections.Predicate|static
+M|org.apache.commons.collections.CollectionUtils|find|java.util.Collection,org.apache.commons.collections.Predicate|static
+M|org.apache.commons.collections.CollectionUtils|removeAll|java.util.Collection,java.util.Collection|static

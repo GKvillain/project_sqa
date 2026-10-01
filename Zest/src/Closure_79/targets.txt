@@ -1,0 +1,15 @@
+M|com.google.javascript.jscomp.Normalize|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.Normalize:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.VarCheck|createSynthesizedExternVar|java.lang.String|new:com.google.javascript.jscomp.VarCheck:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.Normalize|parseAndNormalizeSyntheticCode|com.google.javascript.jscomp.AbstractCompiler,java.lang.String,java.lang.String|static
+M|com.google.javascript.jscomp.Normalize|parseAndNormalizeTestCode|com.google.javascript.jscomp.AbstractCompiler,java.lang.String,java.lang.String|static
+M|com.google.javascript.jscomp.Normalize|removeDuplicateDeclarations|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.Normalize:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.Normalize|reportCodeChange|java.lang.String|new:com.google.javascript.jscomp.Normalize:com.google.javascript.jscomp.AbstractCompiler,boolean
+C|com.google.javascript.jscomp.Normalize|<init>|com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.VarCheck|getSynthesizedExternsInput||new:com.google.javascript.jscomp.VarCheck:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.VarCheck|getSynthesizedExternsRoot||new:com.google.javascript.jscomp.VarCheck:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.VarCheck|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.VarCheck:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.VarCheck|visit|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.VarCheck:com.google.javascript.jscomp.AbstractCompiler
+C|com.google.javascript.jscomp.VarCheck|<init>|com.google.javascript.jscomp.AbstractCompiler
+C|com.google.javascript.jscomp.VarCheck|<init>|com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.Normalize|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.Normalize:com.google.javascript.jscomp.AbstractCompiler,boolean
+M|com.google.javascript.jscomp.VarCheck|createSynthesizedExternVar|java.lang.String|new:com.google.javascript.jscomp.VarCheck:com.google.javascript.jscomp.AbstractCompiler

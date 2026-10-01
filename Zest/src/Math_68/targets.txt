@@ -1,0 +1,12 @@
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|doOptimize||new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+C|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|<init>|
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|determineLMDirection|[D,[D,[D,[D|new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|determineLMParameter|[D,double,[D,[D,[D,[D|new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|qTy|[D|new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|qrDecomposition||new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|setCostRelativeTolerance|double|new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|setInitialStepBoundFactor|double|new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|setOrthoTolerance|double|new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|setParRelativeTolerance|double|new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+M|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|doOptimize||new:org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer:
+C|org.apache.commons.math.optimization.general.LevenbergMarquardtOptimizer|<init>|

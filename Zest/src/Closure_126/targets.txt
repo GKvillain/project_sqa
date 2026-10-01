@@ -1,0 +1,8 @@
+M|com.google.javascript.jscomp.MinimizeExitPoints|tryMinimizeExits|com.google.javascript.rhino.Node,int,java.lang.String|new:com.google.javascript.jscomp.MinimizeExitPoints:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.MinimizeExitPoints|matchingExitNode|com.google.javascript.rhino.Node,int,java.lang.String|static
+M|com.google.javascript.jscomp.MinimizeExitPoints|moveAllFollowing|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|static
+M|com.google.javascript.jscomp.MinimizeExitPoints|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.MinimizeExitPoints:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.MinimizeExitPoints|tryMinimizeIfBlockExits|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,int,java.lang.String|new:com.google.javascript.jscomp.MinimizeExitPoints:com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.MinimizeExitPoints|visit|com.google.javascript.jscomp.NodeTraversal,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.MinimizeExitPoints:com.google.javascript.jscomp.AbstractCompiler
+C|com.google.javascript.jscomp.MinimizeExitPoints|<init>|com.google.javascript.jscomp.AbstractCompiler
+M|com.google.javascript.jscomp.MinimizeExitPoints|tryMinimizeExits|com.google.javascript.rhino.Node,int,java.lang.String|new:com.google.javascript.jscomp.MinimizeExitPoints:com.google.javascript.jscomp.AbstractCompiler

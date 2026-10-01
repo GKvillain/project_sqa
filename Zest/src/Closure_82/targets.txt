@@ -1,0 +1,17 @@
+M|com.google.javascript.rhino.jstype.JSType|isEmptyType||fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|autoboxesTo||fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|canAssignTo|com.google.javascript.rhino.jstype.JSType|fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|canBeCalled||fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|canTestForEqualityWith|com.google.javascript.rhino.jstype.JSType|fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|canTestForShallowEqualityWith|com.google.javascript.rhino.jstype.JSType|fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|clearResolved||fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|dereference||fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|differsFrom|com.google.javascript.rhino.jstype.JSType|fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|equals|java.lang.Object|fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|filterNoResolvedType|com.google.javascript.rhino.jstype.JSType|static
+M|com.google.javascript.rhino.jstype.JSType|findPropertyType|java.lang.String|fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|forceResolve|com.google.javascript.rhino.ErrorReporter,com.google.javascript.rhino.jstype.StaticScope|fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|forgiveUnknownNames||fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|getDisplayName||fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|getGreatestSubtype|com.google.javascript.rhino.jstype.JSType|fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType
+M|com.google.javascript.rhino.jstype.JSType|isEmptyType||fac:com.google.javascript.rhino.jstype.JSType:filterNoResolvedType:com.google.javascript.rhino.jstype.JSType

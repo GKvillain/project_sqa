@@ -1,0 +1,6 @@
+M|org.apache.commons.codec.language.Caverphone|caverphone|java.lang.String|new:org.apache.commons.codec.language.Caverphone:
+M|org.apache.commons.codec.language.Caverphone|encode|java.lang.Object|new:org.apache.commons.codec.language.Caverphone:
+M|org.apache.commons.codec.language.Caverphone|encode|java.lang.String|new:org.apache.commons.codec.language.Caverphone:
+M|org.apache.commons.codec.language.Caverphone|isCaverphoneEqual|java.lang.String,java.lang.String|new:org.apache.commons.codec.language.Caverphone:
+C|org.apache.commons.codec.language.Caverphone|<init>|
+M|org.apache.commons.codec.language.Caverphone|caverphone|java.lang.String|new:org.apache.commons.codec.language.Caverphone:

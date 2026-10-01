@@ -1,0 +1,15 @@
+M|org.apache.commons.compress.utils.ArchiveUtils|sanitize|java.lang.String|static
+M|org.apache.commons.compress.utils.ArchiveUtils|isArrayZero|[B,int|static
+M|org.apache.commons.compress.utils.ArchiveUtils|isEqual|[B,[B|static
+M|org.apache.commons.compress.utils.ArchiveUtils|isEqual|[B,[B,boolean|static
+M|org.apache.commons.compress.utils.ArchiveUtils|isEqual|[B,int,int,[B,int,int|static
+M|org.apache.commons.compress.utils.ArchiveUtils|isEqual|[B,int,int,[B,int,int,boolean|static
+M|org.apache.commons.compress.utils.ArchiveUtils|isEqualWithNull|[B,int,int,[B,int,int|static
+M|org.apache.commons.compress.utils.ArchiveUtils|matchAsciiBuffer|java.lang.String,[B|static
+M|org.apache.commons.compress.utils.ArchiveUtils|matchAsciiBuffer|java.lang.String,[B,int,int|static
+M|org.apache.commons.compress.utils.ArchiveUtils|toAsciiBytes|java.lang.String|static
+M|org.apache.commons.compress.utils.ArchiveUtils|toAsciiString|[B|static
+M|org.apache.commons.compress.utils.ArchiveUtils|toAsciiString|[B,int,int|static
+M|org.apache.commons.compress.utils.ArchiveUtils|toString|org.apache.commons.compress.archivers.ArchiveEntry|static
+C|org.apache.commons.compress.utils.ArchiveUtils|<init>|
+M|org.apache.commons.compress.utils.ArchiveUtils|sanitize|java.lang.String|static

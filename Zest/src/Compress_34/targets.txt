@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|getCentralDirectoryLength||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|clone||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|equals|java.lang.Object|new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|getCentralDirectoryData||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|getGID||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|getHeaderId||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|getLocalFileDataData||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|getLocalFileDataLength||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|getUID||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|hashCode||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|parseFromCentralDirectoryData|[B,int,int|new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|parseFromLocalFileData|[B,int,int|new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|reset||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|setGID|long|new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|setUID|long|new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|toString||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:
+M|org.apache.commons.compress.archivers.zip.X7875_NewUnix|getCentralDirectoryLength||new:org.apache.commons.compress.archivers.zip.X7875_NewUnix:

@@ -1,0 +1,7 @@
+M|org.jsoup.nodes.FormElement|formData||new:org.jsoup.nodes.FormElement:org.jsoup.parser.Tag,java.lang.String,org.jsoup.nodes.Attributes
+M|org.jsoup.nodes.FormElement|addElement|org.jsoup.nodes.Element|new:org.jsoup.nodes.FormElement:org.jsoup.parser.Tag,java.lang.String,org.jsoup.nodes.Attributes
+M|org.jsoup.nodes.FormElement|elements||new:org.jsoup.nodes.FormElement:org.jsoup.parser.Tag,java.lang.String,org.jsoup.nodes.Attributes
+M|org.jsoup.nodes.FormElement|removeChild|org.jsoup.nodes.Node|new:org.jsoup.nodes.FormElement:org.jsoup.parser.Tag,java.lang.String,org.jsoup.nodes.Attributes
+M|org.jsoup.nodes.FormElement|submit||new:org.jsoup.nodes.FormElement:org.jsoup.parser.Tag,java.lang.String,org.jsoup.nodes.Attributes
+C|org.jsoup.nodes.FormElement|<init>|org.jsoup.parser.Tag,java.lang.String,org.jsoup.nodes.Attributes
+M|org.jsoup.nodes.FormElement|formData||new:org.jsoup.nodes.FormElement:org.jsoup.parser.Tag,java.lang.String,org.jsoup.nodes.Attributes

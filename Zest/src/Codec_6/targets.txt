@@ -1,0 +1,8 @@
+M|org.apache.commons.codec.binary.Base64InputStream|read||new:org.apache.commons.codec.binary.Base64InputStream:java.io.InputStream
+M|org.apache.commons.codec.binary.Base64InputStream|read|[B,int,int|new:org.apache.commons.codec.binary.Base64InputStream:java.io.InputStream
+M|org.apache.commons.codec.binary.Base64InputStream|markSupported||new:org.apache.commons.codec.binary.Base64InputStream:java.io.InputStream
+C|org.apache.commons.codec.binary.Base64InputStream|<init>|java.io.InputStream,boolean,int,[B
+C|org.apache.commons.codec.binary.Base64InputStream|<init>|java.io.InputStream,boolean
+C|org.apache.commons.codec.binary.Base64InputStream|<init>|java.io.InputStream
+M|org.apache.commons.codec.binary.Base64InputStream|read||new:org.apache.commons.codec.binary.Base64InputStream:java.io.InputStream
+M|org.apache.commons.codec.binary.Base64InputStream|read|[B,int,int|new:org.apache.commons.codec.binary.Base64InputStream:java.io.InputStream

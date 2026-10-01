@@ -1,0 +1,8 @@
+M|org.apache.commons.math3.stat.inference.MannWhitneyUTest|calculateAsymptoticPValue|double,int,int|new:org.apache.commons.math3.stat.inference.MannWhitneyUTest:
+M|org.apache.commons.math3.stat.inference.MannWhitneyUTest|concatenateSamples|[D,[D|new:org.apache.commons.math3.stat.inference.MannWhitneyUTest:
+M|org.apache.commons.math3.stat.inference.MannWhitneyUTest|ensureDataConformance|[D,[D|new:org.apache.commons.math3.stat.inference.MannWhitneyUTest:
+M|org.apache.commons.math3.stat.inference.MannWhitneyUTest|mannWhitneyU|[D,[D|new:org.apache.commons.math3.stat.inference.MannWhitneyUTest:
+M|org.apache.commons.math3.stat.inference.MannWhitneyUTest|mannWhitneyUTest|[D,[D|new:org.apache.commons.math3.stat.inference.MannWhitneyUTest:
+C|org.apache.commons.math3.stat.inference.MannWhitneyUTest|<init>|
+C|org.apache.commons.math3.stat.inference.MannWhitneyUTest|<init>|org.apache.commons.math3.stat.ranking.NaNStrategy,org.apache.commons.math3.stat.ranking.TiesStrategy
+M|org.apache.commons.math3.stat.inference.MannWhitneyUTest|calculateAsymptoticPValue|double,int,int|new:org.apache.commons.math3.stat.inference.MannWhitneyUTest:

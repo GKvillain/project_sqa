@@ -1,0 +1,17 @@
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|getNextZipEntry||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|bufferContainsSignature|java.io.ByteArrayOutputStream,int,int,int|new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|cacheBytesRead|java.io.ByteArrayOutputStream,int,int,int|new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|canReadEntryData|org.apache.commons.compress.archivers.ArchiveEntry|new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|checksig|[B,[B|static
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|close||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|closeEntry||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|currentEntryHasOutstandingBytes||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|drainCurrentEntryData||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|fill||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|findEocdRecord||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|getBytesInflated||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|getNextEntry||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|isFirstByteOfEocdSig|int|new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|matches|[B,int|static
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|processZip64Extra|org.apache.commons.compress.archivers.zip.ZipLong,org.apache.commons.compress.archivers.zip.ZipLong|new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|getNextZipEntry||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream

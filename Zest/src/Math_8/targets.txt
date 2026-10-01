@@ -1,0 +1,9 @@
+M|org.apache.commons.math3.distribution.DiscreteDistribution|sample||new:org.apache.commons.math3.distribution.DiscreteDistribution:java.util.List
+M|org.apache.commons.math3.distribution.DiscreteDistribution|sample|int|new:org.apache.commons.math3.distribution.DiscreteDistribution:java.util.List
+M|org.apache.commons.math3.distribution.DiscreteDistribution|getSamples||new:org.apache.commons.math3.distribution.DiscreteDistribution:java.util.List
+M|org.apache.commons.math3.distribution.DiscreteDistribution|probability|java.lang.Object|new:org.apache.commons.math3.distribution.DiscreteDistribution:java.util.List
+M|org.apache.commons.math3.distribution.DiscreteDistribution|reseedRandomGenerator|long|new:org.apache.commons.math3.distribution.DiscreteDistribution:java.util.List
+C|org.apache.commons.math3.distribution.DiscreteDistribution|<init>|java.util.List
+C|org.apache.commons.math3.distribution.DiscreteDistribution|<init>|org.apache.commons.math3.random.RandomGenerator,java.util.List
+M|org.apache.commons.math3.distribution.DiscreteDistribution|sample||new:org.apache.commons.math3.distribution.DiscreteDistribution:java.util.List
+M|org.apache.commons.math3.distribution.DiscreteDistribution|sample|int|new:org.apache.commons.math3.distribution.DiscreteDistribution:java.util.List

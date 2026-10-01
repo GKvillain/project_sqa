@@ -1,0 +1,10 @@
+M|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|computeGeometricalProperties||new:org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet:
+M|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|boxBoundary|double,double,double,double|static
+M|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|buildNew|org.apache.commons.math3.geometry.partitioning.BSPTree|new:org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet:
+M|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|followLoop|org.apache.commons.math3.geometry.partitioning.utilities.AVLTree$Node,org.apache.commons.math3.geometry.partitioning.utilities.AVLTree|new:org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet:
+M|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|getVertices||new:org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet:
+C|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|<init>|double,double,double,double
+C|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|<init>|java.util.Collection
+C|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|<init>|org.apache.commons.math3.geometry.partitioning.BSPTree
+C|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|<init>|
+M|org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet|computeGeometricalProperties||new:org.apache.commons.math3.geometry.euclidean.twod.PolygonsSet:

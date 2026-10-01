@@ -1,0 +1,16 @@
+M|com.fasterxml.jackson.databind.node.ObjectNode|_at|com.fasterxml.jackson.core.JsonPointer|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|_childrenEqual|com.fasterxml.jackson.databind.node.ObjectNode|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|_put|java.lang.String,com.fasterxml.jackson.databind.JsonNode|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|asToken||new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|deepCopy||new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|elements||new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|equals|java.lang.Object|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|fieldNames||new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|fields||new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|findParent|java.lang.String|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|findParents|java.lang.String,java.util.List|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|findValue|java.lang.String|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|findValues|java.lang.String,java.util.List|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|findValuesAsText|java.lang.String,java.util.List|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|get|int|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory
+M|com.fasterxml.jackson.databind.node.ObjectNode|get|java.lang.String|new:com.fasterxml.jackson.databind.node.ObjectNode:com.fasterxml.jackson.databind.node.JsonNodeFactory

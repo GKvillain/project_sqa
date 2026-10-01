@@ -1,0 +1,15 @@
+M|org.apache.commons.csv.CSVParser|getHeaderMap||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|addRecordValue||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|close||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|getCurrentLineNumber||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|getRecordNumber||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|getRecords||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|initializeHeader||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|isClosed||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|iterator||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|nextRecord||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|parse|java.io.File,org.apache.commons.csv.CSVFormat|static
+M|org.apache.commons.csv.CSVParser|parse|java.lang.String,org.apache.commons.csv.CSVFormat|static
+M|org.apache.commons.csv.CSVParser|parse|java.net.URL,java.nio.charset.Charset,org.apache.commons.csv.CSVFormat|static
+C|org.apache.commons.csv.CSVParser|<init>|java.io.Reader,org.apache.commons.csv.CSVFormat
+M|org.apache.commons.csv.CSVParser|getHeaderMap||new:org.apache.commons.csv.CSVParser:java.io.Reader,org.apache.commons.csv.CSVFormat

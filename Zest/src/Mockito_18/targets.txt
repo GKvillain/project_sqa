@@ -1,0 +1,4 @@
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsEmptyValues|returnValueFor|java.lang.Class|new:org.mockito.internal.stubbing.defaultanswers.ReturnsEmptyValues:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsEmptyValues|answer|org.mockito.invocation.InvocationOnMock|new:org.mockito.internal.stubbing.defaultanswers.ReturnsEmptyValues:
+C|org.mockito.internal.stubbing.defaultanswers.ReturnsEmptyValues|<init>|
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsEmptyValues|returnValueFor|java.lang.Class|new:org.mockito.internal.stubbing.defaultanswers.ReturnsEmptyValues:

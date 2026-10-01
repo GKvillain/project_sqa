@@ -1,0 +1,2 @@
+M|com.google.javascript.jscomp.InlineObjectLiterals|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.InlineObjectLiterals:com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier
+C|com.google.javascript.jscomp.InlineObjectLiterals|<init>|com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier

@@ -1,0 +1,13 @@
+M|org.apache.commons.math3.random.BitsStreamGenerator|clear||new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|next|int|new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|nextBoolean||new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|nextBytes|[B|new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|nextDouble||new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|nextFloat||new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|nextGaussian||new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|nextInt||new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|nextInt|int|new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|nextLong||new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|setSeed|int|new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|setSeed|[I|new:org.apache.commons.math3.random.ISAACRandom:
+M|org.apache.commons.math3.random.BitsStreamGenerator|setSeed|long|new:org.apache.commons.math3.random.ISAACRandom:

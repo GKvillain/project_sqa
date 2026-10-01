@@ -1,0 +1,10 @@
+M|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|doSolve||new:org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver:
+M|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|getMaximalOrder||new:org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver:
+M|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|guessX|double,[D,[D,int,int|new:org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver:
+M|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|solve|int,org.apache.commons.math.analysis.UnivariateFunction,double,double,double,org.apache.commons.math.analysis.solvers.AllowedSolution|new:org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver:
+M|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|solve|int,org.apache.commons.math.analysis.UnivariateFunction,double,double,org.apache.commons.math.analysis.solvers.AllowedSolution|new:org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver:
+C|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|<init>|double,double,double,int
+C|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|<init>|double,double,int
+C|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|<init>|double,int
+C|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|<init>|
+M|org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver|doSolve||new:org.apache.commons.math.analysis.solvers.BracketingNthOrderBrentSolver:

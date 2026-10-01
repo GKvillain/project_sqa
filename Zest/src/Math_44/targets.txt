@@ -1,0 +1,17 @@
+M|org.apache.commons.math.ode.AbstractIntegrator|acceptStep|org.apache.commons.math.ode.sampling.AbstractStepInterpolator,[D,[D,double|new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|addEventHandler|org.apache.commons.math.ode.events.EventHandler,double,double,int|new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|addEventHandler|org.apache.commons.math.ode.events.EventHandler,double,double,int,org.apache.commons.math.analysis.solvers.UnivariateRealSolver|new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|addStepHandler|org.apache.commons.math.ode.sampling.StepHandler|new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|clearEventHandlers||new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|clearStepHandlers||new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|computeDerivatives|double,[D,[D|new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|getCurrentSignedStepsize||new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|getCurrentStepStart||new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|getEvaluations||new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|getEventHandlers||new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|getMaxEvaluations||new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|getName||new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|getStepHandlers||new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|integrate|org.apache.commons.math.ode.ExpandableStatefulODE,double|new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|integrate|org.apache.commons.math.ode.FirstOrderDifferentialEquations,double,[D,double,[D|new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double
+M|org.apache.commons.math.ode.AbstractIntegrator|acceptStep|org.apache.commons.math.ode.sampling.AbstractStepInterpolator,[D,[D,double|new:org.apache.commons.math.ode.nonstiff.AdamsBashforthIntegrator:int,double,double,double,double

@@ -1,0 +1,4 @@
+M|org.apache.commons.lang3.text.translate.LookupTranslator|translate|java.lang.CharSequence,int,java.io.Writer|new:org.apache.commons.lang3.text.translate.LookupTranslator:[[Ljava.lang.CharSequence;
+C|org.apache.commons.lang3.text.translate.LookupTranslator|<init>|[[Ljava.lang.CharSequence;
+M|org.apache.commons.lang3.text.translate.LookupTranslator|translate|java.lang.CharSequence,int,java.io.Writer|new:org.apache.commons.lang3.text.translate.LookupTranslator:[[Ljava.lang.CharSequence;
+C|org.apache.commons.lang3.text.translate.LookupTranslator|<init>|[[Ljava.lang.CharSequence;

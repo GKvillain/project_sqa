@@ -1,0 +1,17 @@
+M|org.jsoup.parser.CharacterReader|matchesLetter||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|advance||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|cacheString|int,int|new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consume||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeAsString||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeData||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeDigitSequence||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeHexSequence||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeLetterSequence||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeLetterThenDigitSequence||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeTagName||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeTo|char|new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeTo|java.lang.String|new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeToAny|[C|new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeToAnySorted|[C|new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|consumeToEnd||new:org.jsoup.parser.CharacterReader:java.lang.String
+M|org.jsoup.parser.CharacterReader|matchesLetter||new:org.jsoup.parser.CharacterReader:java.lang.String

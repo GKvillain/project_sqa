@@ -1,0 +1,15 @@
+M|org.jsoup.nodes.LeafNode|ensureChildNodes||new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|absUrl|java.lang.String|new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|attr|java.lang.String|new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|attr|java.lang.String,java.lang.String|new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|attributes||new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|baseUri||new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|childNodeSize||new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|coreValue||new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|coreValue|java.lang.String|new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|doSetBaseUri|java.lang.String|new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|ensureAttributes||new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|hasAttr|java.lang.String|new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|hasAttributes||new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|removeAttr|java.lang.String|new:org.jsoup.nodes.CDataNode:java.lang.String
+M|org.jsoup.nodes.LeafNode|ensureChildNodes||new:org.jsoup.nodes.CDataNode:java.lang.String

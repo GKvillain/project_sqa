@@ -1,0 +1,8 @@
+M|com.google.javascript.jscomp.ProcessCommonJSModules|getModule||new:com.google.javascript.jscomp.ProcessCommonJSModules:com.google.javascript.jscomp.AbstractCompiler,java.lang.String
+M|com.google.javascript.jscomp.ProcessCommonJSModules|guessCJSModuleName|java.lang.String|new:com.google.javascript.jscomp.ProcessCommonJSModules:com.google.javascript.jscomp.AbstractCompiler,java.lang.String
+M|com.google.javascript.jscomp.ProcessCommonJSModules|normalizeSourceName|java.lang.String|new:com.google.javascript.jscomp.ProcessCommonJSModules:com.google.javascript.jscomp.AbstractCompiler,java.lang.String
+M|com.google.javascript.jscomp.ProcessCommonJSModules|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.ProcessCommonJSModules:com.google.javascript.jscomp.AbstractCompiler,java.lang.String
+M|com.google.javascript.jscomp.ProcessCommonJSModules|toModuleName|java.lang.String|static
+M|com.google.javascript.jscomp.ProcessCommonJSModules|toModuleName|java.lang.String,java.lang.String|static
+C|com.google.javascript.jscomp.ProcessCommonJSModules|<init>|com.google.javascript.jscomp.AbstractCompiler,java.lang.String
+C|com.google.javascript.jscomp.ProcessCommonJSModules|<init>|com.google.javascript.jscomp.AbstractCompiler,java.lang.String,boolean

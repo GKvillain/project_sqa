@@ -1,0 +1,13 @@
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|read|[B,int,int|new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|checksig|[B,[B|static
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|close||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|closeEntry||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|fill||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|getNextEntry||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|getNextZipEntry||new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|matches|[B,int|static
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|readFully|[B|new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|skip|long|new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream
+C|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|<init>|java.io.InputStream
+C|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|<init>|java.io.InputStream,java.lang.String,boolean
+M|org.apache.commons.compress.archivers.zip.ZipArchiveInputStream|read|[B,int,int|new:org.apache.commons.compress.archivers.zip.ZipArchiveInputStream:java.io.InputStream

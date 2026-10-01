@@ -1,0 +1,17 @@
+M|org.jfree.chart.axis.Axis|drawLabel|java.lang.String,java.awt.Graphics2D,java.awt.geom.Rectangle2D,java.awt.geom.Rectangle2D,org.jfree.chart.util.RectangleEdge,org.jfree.chart.axis.AxisState,org.jfree.chart.plot.PlotRenderingInfo|new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|addChangeListener|org.jfree.chart.event.AxisChangeListener|new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|clone||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|configure||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|draw|java.awt.Graphics2D,double,java.awt.geom.Rectangle2D,java.awt.geom.Rectangle2D,org.jfree.chart.util.RectangleEdge,org.jfree.chart.plot.PlotRenderingInfo|new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|drawAxisLine|java.awt.Graphics2D,double,java.awt.geom.Rectangle2D,org.jfree.chart.util.RectangleEdge|new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|equals|java.lang.Object|new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|getAxisLinePaint||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|getAxisLineStroke||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|getFixedDimension||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|getLabel||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|getLabelAngle||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|getLabelEnclosure|java.awt.Graphics2D,org.jfree.chart.util.RectangleEdge|new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|getLabelFont||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|getLabelInsets||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|getLabelPaint||new:org.jfree.chart.axis.CategoryAxis:
+M|org.jfree.chart.axis.Axis|drawLabel|java.lang.String,java.awt.Graphics2D,java.awt.geom.Rectangle2D,java.awt.geom.Rectangle2D,org.jfree.chart.util.RectangleEdge,org.jfree.chart.axis.AxisState,org.jfree.chart.plot.PlotRenderingInfo|new:org.jfree.chart.axis.CategoryAxis:

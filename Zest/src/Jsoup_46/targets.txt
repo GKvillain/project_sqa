@@ -1,0 +1,13 @@
+M|org.jsoup.nodes.Entities|escape|java.lang.String,org.jsoup.nodes.Document$OutputSettings|static
+M|org.jsoup.nodes.Entities|escape|java.lang.StringBuilder,java.lang.String,org.jsoup.nodes.Document$OutputSettings,boolean,boolean,boolean|static
+M|org.jsoup.nodes.Entities|canEncode|org.jsoup.nodes.Entities$CoreCharset,char,java.nio.charset.CharsetEncoder|static
+M|org.jsoup.nodes.Entities|getCharacterByName|java.lang.String|static
+M|org.jsoup.nodes.Entities|isBaseNamedEntity|java.lang.String|static
+M|org.jsoup.nodes.Entities|isNamedEntity|java.lang.String|static
+M|org.jsoup.nodes.Entities|loadEntities|java.lang.String|static
+M|org.jsoup.nodes.Entities|toCharacterKey|java.util.Map|static
+M|org.jsoup.nodes.Entities|unescape|java.lang.String|static
+M|org.jsoup.nodes.Entities|unescape|java.lang.String,boolean|static
+C|org.jsoup.nodes.Entities|<init>|
+M|org.jsoup.nodes.Entities|escape|java.lang.String,org.jsoup.nodes.Document$OutputSettings|static
+M|org.jsoup.nodes.Entities|escape|java.lang.StringBuilder,java.lang.String,org.jsoup.nodes.Document$OutputSettings,boolean,boolean,boolean|static

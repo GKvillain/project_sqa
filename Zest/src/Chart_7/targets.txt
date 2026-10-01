@@ -1,0 +1,17 @@
+M|org.jfree.data.time.TimePeriodValues|updateBounds|org.jfree.data.time.TimePeriod,int|new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|add|org.jfree.data.time.TimePeriod,double|new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|add|org.jfree.data.time.TimePeriod,java.lang.Number|new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|add|org.jfree.data.time.TimePeriodValue|new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|clone||new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|createCopy|int,int|new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|delete|int,int|new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|equals|java.lang.Object|new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|getDataItem|int|new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|getDomainDescription||new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|getItemCount||new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|getMaxEndIndex||new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|getMaxMiddleIndex||new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|getMaxStartIndex||new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|getMinEndIndex||new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|getMinMiddleIndex||new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable
+M|org.jfree.data.time.TimePeriodValues|updateBounds|org.jfree.data.time.TimePeriod,int|new:org.jfree.data.time.TimePeriodValues:java.lang.Comparable

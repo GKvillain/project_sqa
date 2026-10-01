@@ -1,0 +1,9 @@
+M|org.apache.commons.collections.map.CaseInsensitiveMap|convertKey|java.lang.Object|new:org.apache.commons.collections.map.CaseInsensitiveMap:
+M|org.apache.commons.collections.map.CaseInsensitiveMap|clone||new:org.apache.commons.collections.map.CaseInsensitiveMap:
+M|org.apache.commons.collections.map.CaseInsensitiveMap|readObject|java.io.ObjectInputStream|new:org.apache.commons.collections.map.CaseInsensitiveMap:
+M|org.apache.commons.collections.map.CaseInsensitiveMap|writeObject|java.io.ObjectOutputStream|new:org.apache.commons.collections.map.CaseInsensitiveMap:
+C|org.apache.commons.collections.map.CaseInsensitiveMap|<init>|java.util.Map
+C|org.apache.commons.collections.map.CaseInsensitiveMap|<init>|int,float
+C|org.apache.commons.collections.map.CaseInsensitiveMap|<init>|int
+C|org.apache.commons.collections.map.CaseInsensitiveMap|<init>|
+M|org.apache.commons.collections.map.CaseInsensitiveMap|convertKey|java.lang.Object|new:org.apache.commons.collections.map.CaseInsensitiveMap:

@@ -1,0 +1,14 @@
+M|org.apache.commons.lang.Entities|escape|java.lang.String|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|escape|java.io.Writer,java.lang.String|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|addEntities|[[Ljava.lang.String;|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|addEntity|java.lang.String,int|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|createStringWriter|java.lang.String|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|doUnescape|java.io.Writer,java.lang.String,int|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|entityName|int|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|entityValue|java.lang.String|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|fillWithHtml40Entities|org.apache.commons.lang.Entities|static
+M|org.apache.commons.lang.Entities|unescape|java.lang.String|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|unescape|java.io.Writer,java.lang.String|new:org.apache.commons.lang.Entities:
+C|org.apache.commons.lang.Entities|<init>|
+M|org.apache.commons.lang.Entities|escape|java.lang.String|new:org.apache.commons.lang.Entities:
+M|org.apache.commons.lang.Entities|escape|java.io.Writer,java.lang.String|new:org.apache.commons.lang.Entities:

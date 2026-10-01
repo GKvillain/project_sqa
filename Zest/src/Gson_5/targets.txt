@@ -1,0 +1,10 @@
+M|com.google.gson.internal.bind.util.ISO8601Utils|parse|java.lang.String,java.text.ParsePosition|static
+M|com.google.gson.internal.bind.util.ISO8601Utils|checkOffset|java.lang.String,int,char|static
+M|com.google.gson.internal.bind.util.ISO8601Utils|format|java.util.Date|static
+M|com.google.gson.internal.bind.util.ISO8601Utils|format|java.util.Date,boolean|static
+M|com.google.gson.internal.bind.util.ISO8601Utils|format|java.util.Date,boolean,java.util.TimeZone|static
+M|com.google.gson.internal.bind.util.ISO8601Utils|indexOfNonDigit|java.lang.String,int|static
+M|com.google.gson.internal.bind.util.ISO8601Utils|padInt|java.lang.StringBuilder,int,int|static
+M|com.google.gson.internal.bind.util.ISO8601Utils|parseInt|java.lang.String,int,int|static
+C|com.google.gson.internal.bind.util.ISO8601Utils|<init>|
+M|com.google.gson.internal.bind.util.ISO8601Utils|parse|java.lang.String,java.text.ParsePosition|static

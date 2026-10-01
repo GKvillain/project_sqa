@@ -1,0 +1,17 @@
+M|org.apache.commons.math3.complex.Complex|reciprocal||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|abs||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|acos||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|add|double|new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|add|org.apache.commons.math3.complex.Complex|new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|asin||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|atan||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|conjugate||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|cos||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|cosh||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|createComplex|double,double|new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|divide|double|new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|divide|org.apache.commons.math3.complex.Complex|new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|equals|java.lang.Object|new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|exp||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|getArgument||new:org.apache.commons.math3.complex.Complex:double
+M|org.apache.commons.math3.complex.Complex|reciprocal||new:org.apache.commons.math3.complex.Complex:double

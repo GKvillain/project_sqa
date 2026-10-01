@@ -1,0 +1,9 @@
+M|org.jsoup.parser.TokeniserState|read|org.jsoup.parser.Tokeniser,org.jsoup.parser.CharacterReader|fac:org.jsoup.parser.TokeniserState:valueOf:java.lang.String
+M|org.jsoup.parser.TokeniserState|handleDataDoubleEscapeTag|org.jsoup.parser.Tokeniser,org.jsoup.parser.CharacterReader,org.jsoup.parser.TokeniserState,org.jsoup.parser.TokeniserState|static
+M|org.jsoup.parser.TokeniserState|handleDataEndTag|org.jsoup.parser.Tokeniser,org.jsoup.parser.CharacterReader,org.jsoup.parser.TokeniserState|static
+M|org.jsoup.parser.TokeniserState|readCharRef|org.jsoup.parser.Tokeniser,org.jsoup.parser.TokeniserState|static
+M|org.jsoup.parser.TokeniserState|readData|org.jsoup.parser.Tokeniser,org.jsoup.parser.CharacterReader,org.jsoup.parser.TokeniserState,org.jsoup.parser.TokeniserState|static
+M|org.jsoup.parser.TokeniserState|readEndTag|org.jsoup.parser.Tokeniser,org.jsoup.parser.CharacterReader,org.jsoup.parser.TokeniserState,org.jsoup.parser.TokeniserState|static
+M|org.jsoup.parser.TokeniserState|valueOf|java.lang.String|static
+M|org.jsoup.parser.TokeniserState|values||static
+M|org.jsoup.parser.TokeniserState|read|org.jsoup.parser.Tokeniser,org.jsoup.parser.CharacterReader|fac:org.jsoup.parser.TokeniserState:valueOf:java.lang.String

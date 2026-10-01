@@ -1,0 +1,15 @@
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|deepStub|org.mockito.invocation.InvocationOnMock,org.mockito.internal.util.reflection.GenericMetadataSupport|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|newDeepStubMock|org.mockito.internal.util.reflection.GenericMetadataSupport,java.lang.Object|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|propagateSerializationSettings|org.mockito.MockSettings,org.mockito.mock.MockCreationSettings|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|withSettingsUsing|org.mockito.internal.util.reflection.GenericMetadataSupport,org.mockito.mock.MockCreationSettings|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|actualParameterizedType|java.lang.Object|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|answer|org.mockito.invocation.InvocationOnMock|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|delegate||static
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|mockitoCore||static
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|recordDeepStubAnswer|java.lang.Object,org.mockito.internal.stubbing.InvocationContainerImpl|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|returnsDeepStubsAnswerUsing|org.mockito.internal.util.reflection.GenericMetadataSupport|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+C|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|<init>|
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|deepStub|org.mockito.invocation.InvocationOnMock,org.mockito.internal.util.reflection.GenericMetadataSupport|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|newDeepStubMock|org.mockito.internal.util.reflection.GenericMetadataSupport,java.lang.Object|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|propagateSerializationSettings|org.mockito.MockSettings,org.mockito.mock.MockCreationSettings|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:
+M|org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs|withSettingsUsing|org.mockito.internal.util.reflection.GenericMetadataSupport,org.mockito.mock.MockCreationSettings|new:org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs:

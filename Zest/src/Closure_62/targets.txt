@@ -1,0 +1,8 @@
+M|com.google.javascript.jscomp.LightweightMessageFormatter|format|com.google.javascript.jscomp.JSError,boolean|new:com.google.javascript.jscomp.LightweightMessageFormatter:
+M|com.google.javascript.jscomp.LightweightMessageFormatter|formatError|com.google.javascript.jscomp.JSError|new:com.google.javascript.jscomp.LightweightMessageFormatter:
+M|com.google.javascript.jscomp.LightweightMessageFormatter|formatWarning|com.google.javascript.jscomp.JSError|new:com.google.javascript.jscomp.LightweightMessageFormatter:
+M|com.google.javascript.jscomp.LightweightMessageFormatter|withoutSource||static
+C|com.google.javascript.jscomp.LightweightMessageFormatter|<init>|com.google.javascript.jscomp.SourceExcerptProvider,com.google.javascript.jscomp.SourceExcerptProvider$SourceExcerpt
+C|com.google.javascript.jscomp.LightweightMessageFormatter|<init>|com.google.javascript.jscomp.SourceExcerptProvider
+C|com.google.javascript.jscomp.LightweightMessageFormatter|<init>|
+M|com.google.javascript.jscomp.LightweightMessageFormatter|format|com.google.javascript.jscomp.JSError,boolean|new:com.google.javascript.jscomp.LightweightMessageFormatter:

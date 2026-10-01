@@ -1,0 +1,17 @@
+M|com.google.javascript.jscomp.FunctionToBlockMutator|makeLocalNamesUnique|com.google.javascript.rhino.Node,boolean|new:com.google.javascript.jscomp.FunctionToBlockMutator:com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier
+M|com.google.javascript.jscomp.FunctionToBlockMutator|addDummyAssignment|com.google.javascript.rhino.Node,java.lang.String|static
+M|com.google.javascript.jscomp.FunctionToBlockMutator|aliasAndInlineArguments|com.google.javascript.rhino.Node,java.util.LinkedHashMap,java.util.Set|new:com.google.javascript.jscomp.FunctionToBlockMutator:com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier
+M|com.google.javascript.jscomp.FunctionToBlockMutator|convertLastReturnToStatement|com.google.javascript.rhino.Node,java.lang.String|static
+M|com.google.javascript.jscomp.FunctionToBlockMutator|createAssignStatementNode|java.lang.String,com.google.javascript.rhino.Node|static
+M|com.google.javascript.jscomp.FunctionToBlockMutator|fixUnitializedVarDeclarations|com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.FunctionToBlockMutator:com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier
+M|com.google.javascript.jscomp.FunctionToBlockMutator|getLabelNameForFunction|java.lang.String|new:com.google.javascript.jscomp.FunctionToBlockMutator:com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier
+M|com.google.javascript.jscomp.FunctionToBlockMutator|getReplacementReturnStatement|com.google.javascript.rhino.Node,java.lang.String|static
+M|com.google.javascript.jscomp.FunctionToBlockMutator|hasReturnAtExit|com.google.javascript.rhino.Node|static
+M|com.google.javascript.jscomp.FunctionToBlockMutator|mutate|java.lang.String,com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,java.lang.String,boolean,boolean|new:com.google.javascript.jscomp.FunctionToBlockMutator:com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier
+M|com.google.javascript.jscomp.FunctionToBlockMutator|replaceReturnWithBreak|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node,java.lang.String,java.lang.String|static
+M|com.google.javascript.jscomp.FunctionToBlockMutator|replaceReturns|com.google.javascript.rhino.Node,java.lang.String,java.lang.String,boolean|static
+C|com.google.javascript.jscomp.FunctionToBlockMutator|<init>|com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier
+M|com.google.javascript.jscomp.RenameLabels|process|com.google.javascript.rhino.Node,com.google.javascript.rhino.Node|new:com.google.javascript.jscomp.RenameLabels:com.google.javascript.jscomp.AbstractCompiler
+C|com.google.javascript.jscomp.RenameLabels|<init>|com.google.javascript.jscomp.AbstractCompiler
+C|com.google.javascript.jscomp.RenameLabels|<init>|com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier,boolean
+M|com.google.javascript.jscomp.FunctionToBlockMutator|makeLocalNamesUnique|com.google.javascript.rhino.Node,boolean|new:com.google.javascript.jscomp.FunctionToBlockMutator:com.google.javascript.jscomp.AbstractCompiler,com.google.common.base.Supplier

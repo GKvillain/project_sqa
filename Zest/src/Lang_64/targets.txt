@@ -1,0 +1,1 @@
+M|org.apache.commons.lang.enums.ValuedEnum|getEnum|java.lang.Class,int|static

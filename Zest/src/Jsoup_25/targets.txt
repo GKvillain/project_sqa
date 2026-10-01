@@ -1,0 +1,16 @@
+M|org.jsoup.parser.Tag|canContainBlock||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|equals|java.lang.Object|new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|formatAsBlock||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|getName||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|hashCode||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|isBlock||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|isData||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|isEmpty||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|isInline||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|isKnownTag||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|isKnownTag|java.lang.String|static
+M|org.jsoup.parser.Tag|isSelfClosing||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|preserveWhitespace||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|register|org.jsoup.parser.Tag|static
+M|org.jsoup.parser.Tag|setSelfClosing||new:org.jsoup.parser.Tag:java.lang.String
+M|org.jsoup.parser.Tag|toString||new:org.jsoup.parser.Tag:java.lang.String
