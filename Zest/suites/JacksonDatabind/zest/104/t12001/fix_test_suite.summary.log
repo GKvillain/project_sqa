@@ -1,0 +1,23 @@
+######  Start fixing tests  /home/user/defects4j/framework/bin/../util/fix_test_suite.pl: 2026-09-30 00:25:29  ######
+- Found 1 test archive(s)
+ - Removing 16 broken test method(s): JacksonDatabind-104f-zest.12001.tar.bz2
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test100
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test101
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test105
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test108
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test110
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test114
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test115
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test116
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test117
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test125
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test17
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test24
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test32
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test58
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test71
+com.fasterxml.jackson.databind.util.StdDateFormat_Zest_Test::test3
+Number of uncompilable test classes: 0
+Number of uncompilable tests: 0
+Number of failing tests: 16 (see /home/user/suites/JacksonDatabind/zest/104/t12001/fix_test_suite.run.log file for more information)
+######  End fixing tests  /home/user/defects4j/framework/bin/../util/fix_test_suite.pl: 2026-09-30 00:26:04  ######

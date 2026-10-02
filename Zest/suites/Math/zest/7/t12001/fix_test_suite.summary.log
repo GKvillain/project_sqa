@@ -1,0 +1,16 @@
+######  Start fixing tests  /home/user/defects4j/framework/bin/../util/fix_test_suite.pl: 2026-09-29 05:02:47  ######
+- Found 1 test archive(s)
+ - Removing 1 broken test method(s): Math-7f-zest.12001.tar.bz2
+org.apache.commons.math3.ode.AbstractIntegrator_Zest_Test::test11
+ - Removing 1 broken test method(s): Math-7f-zest.12001.tar.bz2
+org.apache.commons.math3.ode.AbstractIntegrator_Zest_Test::test0
+ - Removing 1 broken test method(s): Math-7f-zest.12001.tar.bz2
+org.apache.commons.math3.ode.AbstractIntegrator_Zest_Test::test6
+ - Removing 1 broken test method(s): Math-7f-zest.12001.tar.bz2
+org.apache.commons.math3.ode.AbstractIntegrator_Zest_Test::test7
+ - Removing 1 broken test method(s): Math-7f-zest.12001.tar.bz2
+org.apache.commons.math3.ode.AbstractIntegrator_Zest_Test::test9
+Number of uncompilable test classes: 0
+Number of uncompilable tests: 0
+Number of failing tests: 5 (see /home/user/suites/Math/zest/7/t12001/fix_test_suite.run.log file for more information)
+######  End fixing tests  /home/user/defects4j/framework/bin/../util/fix_test_suite.pl: 2026-09-29 05:04:52  ######
