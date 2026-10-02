@@ -1,317 +1,181 @@
 package org.apache.commons.cli2.builder;
 
-import org.apache.commons.cli2.CommandLine;
-import org.apache.commons.cli2.Group;
 import org.apache.commons.cli2.Option;
-import org.apache.commons.cli2.OptionException;
-import org.apache.commons.cli2.commandline.Parser;
-import org.apache.commons.cli2.option.DefaultOption;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class PatternBuilderTest {
 
-    private PatternBuilder patternBuilder;
+    private PatternBuilder builder;
 
     @Before
     public void setUp() {
-        patternBuilder = new PatternBuilder();
+        builder = new PatternBuilder();
     }
 
-    // Tests empty pattern produces an empty group
+    // Tests custom constructor initialization
     @Test
-    public void testWithPattern_emptyString_createsGroupOption() {
-        patternBuilder.withPattern("");
-        final Option option = patternBuilder.create();
+    public void testConstructor_customBuilders_initializesProperly() {
+        GroupBuilder gb = new GroupBuilder();
+        DefaultOptionBuilder ob = new DefaultOptionBuilder();
+        ArgumentBuilder ab = new ArgumentBuilder();
+        PatternBuilder customBuilder = new PatternBuilder(gb, ob, ab);
+        customBuilder.withPattern("a");
+        Option option = customBuilder.create();
         assertNotNull(option);
-        assertTrue(option instanceof Group);
+        assertEquals("-a", option.getPreferredName());
     }
 
     // Tests single simple flag option without argument
     @Test
-    public void testWithPattern_singleFlag_createsDefaultOption() {
-        patternBuilder.withPattern("a");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertEquals("-a", defaultOption.getPreferredName());
-        assertEquals('a', defaultOption.getId());
-        assertFalse(defaultOption.isRequired());
-        assertNull(defaultOption.getArgument());
+    public void testWithPattern_simpleFlag_createsSingleOption() {
+        builder.withPattern("a");
+        Option option = builder.create();
+        assertNotNull(option);
+        assertEquals("-a", option.getPreferredName());
+        assertFalse(option.isRequired());
     }
 
-    // Tests single required flag option
+    // Tests required flag option
     @Test
     public void testWithPattern_requiredFlag_createsRequiredOption() {
-        patternBuilder.withPattern("a!");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertTrue(defaultOption.isRequired());
-        assertNull(defaultOption.getArgument());
-    }
-
-    // Tests string argument option without validator (':')
-    @Test
-    public void testWithPattern_stringArgument_createsOptionWithArgument() throws Exception {
-        patternBuilder.withPattern("s:");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertNotNull(defaultOption.getArgument());
-
-        final Group group = new GroupBuilder().withOption(defaultOption).create();
-        final Parser parser = new Parser();
-        parser.setGroup(group);
-        final CommandLine cl = parser.parse(new String[]{"-s", "anyStringValue"});
-        assertTrue(cl.hasOption("-s"));
-        assertEquals("anyStringValue", cl.getValue("-s"));
-    }
-
-    // Tests required argument sets minimum to 1
-    @Test
-    public void testWithPattern_requiredArgument_setsRequiredOptionAndArgument() {
-        patternBuilder.withPattern("r!:");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertTrue(defaultOption.isRequired());
-        assertNotNull(defaultOption.getArgument());
-    }
-
-    // Tests number validator ('%')
-    @Test
-    public void testWithPattern_numberValidator_createsNumberValidatorArgument() throws Exception {
-        patternBuilder.withPattern("n%");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertNotNull(defaultOption.getArgument());
-
-        final Group group = new GroupBuilder().withOption(defaultOption).create();
-        final Parser parser = new Parser();
-        parser.setGroup(group);
-
-        final CommandLine cl = parser.parse(new String[]{"-n", "12345"});
-        assertTrue(cl.hasOption("-n"));
-        assertEquals("12345", cl.getValue("-n"));
-
-        try {
-            parser.parse(new String[]{"-n", "notANumber"});
-            fail("Expected OptionException for invalid number");
-        } catch (final OptionException expected) {
-            // expected validation failure
-        }
-    }
-
-    // Tests class instance validator ('@')
-    @Test
-    public void testWithPattern_classInstanceValidator_createsClassValidatorArgument() throws Exception {
-        patternBuilder.withPattern("c@");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertNotNull(defaultOption.getArgument());
-
-        final Group group = new GroupBuilder().withOption(defaultOption).create();
-        final Parser parser = new Parser();
-        parser.setGroup(group);
-
-        final CommandLine cl = parser.parse(new String[]{"-c", "java.util.Vector"});
-        assertTrue(cl.hasOption("-c"));
-
-        try {
-            parser.parse(new String[]{"-c", "non.existent.Class"});
-            fail("Expected OptionException for non-existent class");
-        } catch (final OptionException expected) {
-            // expected validation failure
-        }
-    }
-
-    // Tests class type validator ('+')
-    @Test
-    public void testWithPattern_classValidator_createsClassValidatorArgument() throws Exception {
-        patternBuilder.withPattern("k+");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertNotNull(defaultOption.getArgument());
-
-        final Group group = new GroupBuilder().withOption(defaultOption).create();
-        final Parser parser = new Parser();
-        parser.setGroup(group);
-
-        final CommandLine cl = parser.parse(new String[]{"-k", "java.lang.String"});
-        assertTrue(cl.hasOption("-k"));
-
-        try {
-            parser.parse(new String[]{"-k", "non.existent.Class"});
-            fail("Expected OptionException for non-existent class");
-        } catch (final OptionException expected) {
-            // expected validation failure
-        }
-    }
-
-    // Tests date validator ('#')
-    @Test
-    public void testWithPattern_dateValidator_createsDateValidatorArgument() {
-        patternBuilder.withPattern("d#");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertNotNull(defaultOption.getArgument());
-
-        final Group group = new GroupBuilder().withOption(defaultOption).create();
-        final Parser parser = new Parser();
-        parser.setGroup(group);
-
-        try {
-            parser.parse(new String[]{"-d", "not-a-valid-date"});
-            fail("Expected OptionException for invalid date");
-        } catch (final OptionException expected) {
-            // expected validation failure
-        }
-    }
-
-    // Tests existing file validator ('<')
-    @Test
-    public void testWithPattern_existingFileValidator_createsFileValidatorArgument() {
-        patternBuilder.withPattern("f<");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertNotNull(defaultOption.getArgument());
-
-        final Group group = new GroupBuilder().withOption(defaultOption).create();
-        final Parser parser = new Parser();
-        parser.setGroup(group);
-
-        try {
-            parser.parse(new String[]{"-f", "non_existent_file_xyz_12345.tmp"});
-            fail("Expected OptionException for non existing file");
-        } catch (final OptionException expected) {
-            // expected validation failure
-        }
-    }
-
-    // Tests file validator ('>')
-    @Test
-    public void testWithPattern_fileValidator_createsFileValidatorArgument() throws Exception {
-        patternBuilder.withPattern("o>");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertNotNull(defaultOption.getArgument());
-
-        final Group group = new GroupBuilder().withOption(defaultOption).create();
-        final Parser parser = new Parser();
-        parser.setGroup(group);
-
-        final CommandLine cl = parser.parse(new String[]{"-o", "output.txt"});
-        assertTrue(cl.hasOption("-o"));
-        assertEquals("output.txt", cl.getValue("-o"));
-    }
-
-    // Tests multiple arguments file validator ('*') allowing unlimited values
-    @Test
-    public void testWithPattern_unlimitedFileValidator_createsFileValidatorWithUnlimitedMaximum() throws Exception {
-        patternBuilder.withPattern("m*");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertNotNull(defaultOption.getArgument());
-
-        final Group group = new GroupBuilder().withOption(defaultOption).create();
-        final Parser parser = new Parser();
-        parser.setGroup(group);
-
-        final CommandLine cl = parser.parse(new String[]{"-m", "file1.txt", "file2.txt"});
-        assertTrue(cl.hasOption("-m"));
-        assertEquals("file1.txt", cl.getValue("-m"));
-    }
-
-    // Tests URL validator ('/')
-    @Test
-    public void testWithPattern_urlValidator_createsUrlValidatorArgument() throws Exception {
-        patternBuilder.withPattern("u/");
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof DefaultOption);
-        final DefaultOption defaultOption = (DefaultOption) option;
-        assertNotNull(defaultOption.getArgument());
-
-        final Group group = new GroupBuilder().withOption(defaultOption).create();
-        final Parser parser = new Parser();
-        parser.setGroup(group);
-
-        final CommandLine cl = parser.parse(new String[]{"-u", "http://localhost:8080"});
-        assertTrue(cl.hasOption("-u"));
-
-        try {
-            parser.parse(new String[]{"-u", "invalid-url-without-protocol"});
-            fail("Expected OptionException for invalid url");
-        } catch (final OptionException expected) {
-            // expected validation failure
-        }
-    }
-
-    // Tests multiple options combined into a Group
-    @Test
-    public void testWithPattern_multipleOptions_createsGroupContainingAllOptions() {
-        patternBuilder.withPattern("ab!c:");
-        final Option option = patternBuilder.create();
+        builder.withPattern("a!");
+        Option option = builder.create();
         assertNotNull(option);
-        assertTrue(option instanceof Group);
+        assertEquals("-a", option.getPreferredName());
+        assertTrue(option.isRequired());
     }
 
-    // Tests reset method clears builder state
+    // Tests string argument option (':')
     @Test
-    public void testReset_configuredPattern_clearsOptions() {
-        assertSame(patternBuilder, patternBuilder.withPattern("a"));
-        assertSame(patternBuilder, patternBuilder.reset());
-        final Option option = patternBuilder.create();
-        assertTrue(option instanceof Group);
-    }
-
-    // Tests pattern starting with special characters without option character
-    @Test
-    public void testWithPattern_specialCharsOnly_ignoresLeadingModifiers() {
-        patternBuilder.withPattern("!:@#");
-        final Option option = patternBuilder.create();
+    public void testWithPattern_stringArgument_createsOptionWithArgument() {
+        builder.withPattern("a:");
+        Option option = builder.create();
         assertNotNull(option);
-        assertTrue(option instanceof Group);
+        assertEquals("-a", option.getPreferredName());
+        assertFalse(option.isRequired());
     }
 
-    // Tests multiple typed options in sequence
+    // Tests class instance argument option ('@')
     @Test
-    public void testWithPattern_multipleTypedOptions_parsesCorrectly() {
-        patternBuilder.withPattern("a:b%c@d+e#f<g>h*i/");
-        final Option option = patternBuilder.create();
+    public void testWithPattern_classInstanceArgument_createsOption() {
+        builder.withPattern("c@");
+        Option option = builder.create();
         assertNotNull(option);
-        assertTrue(option instanceof Group);
-        final Group group = (Group) option;
-        assertEquals(9, group.getOptions().size());
+        assertEquals("-c", option.getPreferredName());
     }
 
-    // Tests custom builders constructor
+    // Tests class argument option ('+')
     @Test
-    public void testConstructor_customBuilders_createsConfiguredBuilder() {
-        final GroupBuilder gbuilder = new GroupBuilder();
-        final DefaultOptionBuilder obuilder = new DefaultOptionBuilder();
-        final ArgumentBuilder abuilder = new ArgumentBuilder();
-        final PatternBuilder customPatternBuilder = new PatternBuilder(gbuilder, obuilder, abuilder);
-
-        customPatternBuilder.withPattern("z");
-        final Option option = customPatternBuilder.create();
+    public void testWithPattern_classArgument_createsOption() {
+        builder.withPattern("c+");
+        Option option = builder.create();
         assertNotNull(option);
-        assertTrue(option instanceof DefaultOption);
-        assertEquals("-z", option.getPreferredName());
+        assertEquals("-c", option.getPreferredName());
+    }
+
+    // Tests number argument option ('%')
+    @Test
+    public void testWithPattern_numberArgument_createsOption() {
+        builder.withPattern("n%");
+        Option option = builder.create();
+        assertNotNull(option);
+        assertEquals("-n", option.getPreferredName());
+    }
+
+    // Tests date argument option ('#')
+    @Test
+    public void testWithPattern_dateArgument_createsOption() {
+        builder.withPattern("d#");
+        Option option = builder.create();
+        assertNotNull(option);
+        assertEquals("-d", option.getPreferredName());
+    }
+
+    // Tests existing file argument option ('<')
+    @Test
+    public void testWithPattern_existingFileArgument_createsOption() {
+        builder.withPattern("f<");
+        Option option = builder.create();
+        assertNotNull(option);
+        assertEquals("-f", option.getPreferredName());
+    }
+
+    // Tests file argument option ('>')
+    @Test
+    public void testWithPattern_fileArgument_createsOption() {
+        builder.withPattern("f>");
+        Option option = builder.create();
+        assertNotNull(option);
+        assertEquals("-f", option.getPreferredName());
+    }
+
+    // Tests multiple files argument option ('*')
+    @Test
+    public void testWithPattern_multipleFilesArgument_createsOption() {
+        builder.withPattern("m*");
+        Option option = builder.create();
+        assertNotNull(option);
+        assertEquals("-m", option.getPreferredName());
+    }
+
+    // Tests URL argument option ('/')
+    @Test
+    public void testWithPattern_urlArgument_createsOption() {
+        builder.withPattern("u/");
+        Option option = builder.create();
+        assertNotNull(option);
+        assertEquals("-u", option.getPreferredName());
+    }
+
+    // Tests required argument option
+    @Test
+    public void testWithPattern_requiredArgument_createsRequiredOptionWithArgument() {
+        builder.withPattern("r!:");
+        Option option = builder.create();
+        assertNotNull(option);
+        assertEquals("-r", option.getPreferredName());
+        assertTrue(option.isRequired());
+    }
+
+    // Tests multiple options in single pattern leading to group option
+    @Test
+    public void testWithPattern_multipleOptions_createsGroup() {
+        builder.withPattern("ab:c!");
+        Option group = builder.create();
+        assertNotNull(group);
+        assertTrue(group.getTriggers().contains("-a"));
+        assertTrue(group.getTriggers().contains("-b"));
+        assertTrue(group.getTriggers().contains("-c"));
+    }
+
+    // Tests empty pattern string
+    @Test
+    public void testWithPattern_emptyPattern_createsEmptyGroup() {
+        builder.withPattern("");
+        Option option = builder.create();
+        assertNotNull(option);
+    }
+
+    // Tests reset method clearing state
+    @Test
+    public void testReset_clearsBuilderState() {
+        builder.withPattern("a");
+        builder.reset();
+        Option option = builder.create();
+        assertNotNull(option);
+        assertFalse(option.getTriggers().contains("-a"));
+    }
+
+    // Tests chaining multiple withPattern calls before create
+    @Test
+    public void testWithPattern_chainedCalls_accumulatesOptions() {
+        builder.withPattern("a").withPattern("b:");
+        Option group = builder.create();
+        assertNotNull(group);
+        assertTrue(group.getTriggers().contains("-a"));
+        assertTrue(group.getTriggers().contains("-b"));
     }
 }

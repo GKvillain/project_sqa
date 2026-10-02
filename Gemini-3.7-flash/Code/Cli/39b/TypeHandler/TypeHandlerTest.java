@@ -2,7 +2,9 @@ package org.apache.commons.cli;
 
 import java.io.File;
 import java.net.URL;
+import java.util.ArrayList;
 import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -12,7 +14,7 @@ public class TypeHandlerTest
 {
     // Tests createValue with String type
     @Test
-    public void testCreateValue_stringType_returnsString() throws Exception
+    public void testCreateValue_stringValue_returnsString() throws Exception
     {
         Object result = TypeHandler.createValue("testString", PatternOptionBuilder.STRING_VALUE);
         assertEquals("testString", result);
@@ -20,31 +22,24 @@ public class TypeHandlerTest
 
     // Tests createValue with Object type
     @Test
-    public void testCreateValue_objectType_returnsObject() throws Exception
+    public void testCreateValue_objectValue_returnsInstance() throws Exception
     {
-        Object result = TypeHandler.createValue("java.lang.String", PatternOptionBuilder.OBJECT_VALUE);
+        Object result = TypeHandler.createValue("java.util.ArrayList", PatternOptionBuilder.OBJECT_VALUE);
         assertNotNull(result);
-        assertTrue(result instanceof String);
+        assertTrue(result instanceof ArrayList);
     }
 
     // Tests createValue with Number type
     @Test
-    public void testCreateValue_numberType_returnsNumber() throws Exception
+    public void testCreateValue_numberValue_returnsNumber() throws Exception
     {
         Object result = TypeHandler.createValue("123", PatternOptionBuilder.NUMBER_VALUE);
         assertEquals(Long.valueOf(123), result);
     }
 
-    // Tests createValue with Date type
-    @Test(expected = UnsupportedOperationException.class)
-    public void testCreateValue_dateType_throwsUnsupportedOperationException() throws Exception
-    {
-        TypeHandler.createValue("2023-01-01", PatternOptionBuilder.DATE_VALUE);
-    }
-
     // Tests createValue with Class type
     @Test
-    public void testCreateValue_classType_returnsClass() throws Exception
+    public void testCreateValue_classValue_returnsClass() throws Exception
     {
         Object result = TypeHandler.createValue("java.lang.String", PatternOptionBuilder.CLASS_VALUE);
         assertEquals(String.class, result);
@@ -52,7 +47,7 @@ public class TypeHandlerTest
 
     // Tests createValue with File type
     @Test
-    public void testCreateValue_fileType_returnsFile() throws Exception
+    public void testCreateValue_fileValue_returnsFile() throws Exception
     {
         Object result = TypeHandler.createValue("test.txt", PatternOptionBuilder.FILE_VALUE);
         assertEquals(new File("test.txt"), result);
@@ -60,102 +55,95 @@ public class TypeHandlerTest
 
     // Tests createValue with Existing File type
     @Test
-    public void testCreateValue_existingFileType_returnsFile() throws Exception
+    public void testCreateValue_existingFileValue_returnsFile() throws Exception
     {
         Object result = TypeHandler.createValue("test.txt", PatternOptionBuilder.EXISTING_FILE_VALUE);
         assertEquals(new File("test.txt"), result);
     }
 
-    // Tests createValue with Files type
-    @Test(expected = UnsupportedOperationException.class)
-    public void testCreateValue_filesType_throwsUnsupportedOperationException() throws Exception
-    {
-        TypeHandler.createValue("test.txt", PatternOptionBuilder.FILES_VALUE);
-    }
-
     // Tests createValue with URL type
     @Test
-    public void testCreateValue_urlType_returnsURL() throws Exception
+    public void testCreateValue_urlValue_returnsURL() throws Exception
     {
         Object result = TypeHandler.createValue("http://commons.apache.org", PatternOptionBuilder.URL_VALUE);
         assertEquals(new URL("http://commons.apache.org"), result);
     }
 
-    // Tests createValue with unhandled/unknown class type
+    // Tests createValue with unknown class type returning null
     @Test
     public void testCreateValue_unknownType_returnsNull() throws Exception
     {
-        Object result = TypeHandler.createValue("test", Integer.class);
+        Object result = TypeHandler.createValue("value", Void.class);
         assertNull(result);
     }
 
-    // Tests createValue with Object parameter overload
+    // Tests createValue delegating from Object parameter to Class parameter
     @Test
-    public void testCreateValue_objectParamOverload_returnsValue() throws Exception
+    public void testCreateValue_objectParam_delegatesToClassParam() throws Exception
     {
-        Object result = TypeHandler.createValue("test", (Object) PatternOptionBuilder.STRING_VALUE);
-        assertEquals("test", result);
+        Object result = TypeHandler.createValue("testString", (Object) PatternOptionBuilder.STRING_VALUE);
+        assertEquals("testString", result);
     }
 
-    // Tests createObject with valid class name having a default constructor
+    // Tests createObject with valid class name
     @Test
-    public void testCreateObject_validClass_instantiatesObject() throws Exception
+    public void testCreateObject_validClass_returnsInstance() throws Exception
     {
-        Object result = TypeHandler.createObject("java.lang.String");
+        Object result = TypeHandler.createObject("java.util.ArrayList");
         assertNotNull(result);
-        assertEquals("", result);
+        assertTrue(result instanceof ArrayList);
     }
 
-    // Tests createObject with non-existent class name
+    // Tests createObject with non-existent class throwing ParseException
     @Test(expected = ParseException.class)
-    public void testCreateObject_invalidClass_throwsParseException() throws Exception
+    public void testCreateObject_classNotFound_throwsParseException() throws Exception
     {
-        TypeHandler.createObject("non.existent.ClassName");
+        TypeHandler.createObject("non.existing.ClassName");
     }
 
-    // Tests createObject with class lacking accessible default constructor
+    // Tests createObject with class lacking empty constructor throwing ParseException
     @Test(expected = ParseException.class)
     public void testCreateObject_noDefaultConstructor_throwsParseException() throws Exception
     {
-        TypeHandler.createObject("java.lang.System");
+        TypeHandler.createObject("java.lang.Integer");
     }
 
     // Tests createNumber with integer string returning Long
     @Test
     public void testCreateNumber_integerString_returnsLong() throws Exception
     {
-        Number result = TypeHandler.createNumber("12345");
-        assertEquals(Long.valueOf(12345), result);
+        Number result = TypeHandler.createNumber("42");
+        assertEquals(Long.valueOf(42), result);
     }
 
     // Tests createNumber with decimal string returning Double
     @Test
     public void testCreateNumber_decimalString_returnsDouble() throws Exception
     {
-        Number result = TypeHandler.createNumber("123.45");
-        assertEquals(Double.valueOf(123.45), result);
+        Number result = TypeHandler.createNumber("42.5");
+        assertEquals(Double.valueOf(42.5), result);
     }
 
-    // Tests createNumber with invalid number string
+    // Tests createNumber with invalid string throwing ParseException
     @Test(expected = ParseException.class)
     public void testCreateNumber_invalidString_throwsParseException() throws Exception
     {
-        TypeHandler.createNumber("not-a-number");
+        TypeHandler.createNumber("invalidNumber");
     }
 
     // Tests createClass with valid class name
     @Test
-    public void testCreateClass_validClassName_returnsClass() throws Exception
+    public void testCreateClass_validClass_returnsClass() throws Exception
     {
         Class<?> result = TypeHandler.createClass("java.lang.String");
         assertEquals(String.class, result);
     }
 
-    // Tests createClass with invalid class name
+    // Tests createClass with non-existent class throwing ParseException
     @Test(expected = ParseException.class)
-    public void testCreateClass_invalidClassName_throwsParseException() throws Exception
+    public void testCreateClass_classNotFound_throwsParseException() throws Exception
     {
-        TypeHandler.createClass("invalid.class.Name");
+        TypeHandler.createClass("non.existing.ClassName");
     }
 
     // Tests createDate throwing UnsupportedOperationException
@@ -173,11 +161,11 @@ public class TypeHandlerTest
         assertEquals(new URL("http://commons.apache.org"), result);
     }
 
-    // Tests createURL with invalid URL string
+    // Tests createURL with malformed URL throwing ParseException
     @Test(expected = ParseException.class)
-    public void testCreateURL_invalidURL_throwsParseException() throws Exception
+    public void testCreateURL_malformedURL_throwsParseException() throws Exception
     {
-        TypeHandler.createURL("invalid://url test");
+        TypeHandler.createURL("malformed url");
     }
 
     // Tests createFile with string path

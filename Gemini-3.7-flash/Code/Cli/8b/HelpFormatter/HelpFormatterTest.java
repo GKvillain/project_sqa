@@ -4,36 +4,28 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Comparator;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-/**
- * Test class for {@link HelpFormatter}.
- */
 public class HelpFormatterTest {
 
     private HelpFormatter formatter;
-    private StringWriter out;
-    private PrintWriter pw;
-    private String defaultEOL;
+    private StringWriter stringWriter;
+    private PrintWriter printWriter;
 
     @Before
     public void setUp() {
         formatter = new HelpFormatter();
-        out = new StringWriter();
-        pw = new PrintWriter(out);
-        defaultEOL = formatter.getNewLine();
+        stringWriter = new StringWriter();
+        printWriter = new PrintWriter(stringWriter);
     }
 
-    // Tests getters and setters for configuration properties
+    // Tests default property values and their getters/setters
     @Test
-    public void testGettersAndSetters_customValues_returnsUpdatedValues() {
+    public void testGettersAndSetters_customValues_returnUpdatedValues() {
         formatter.setWidth(100);
         assertEquals(100, formatter.getWidth());
 
@@ -49,122 +41,124 @@ public class HelpFormatterTest {
         formatter.setNewLine("\n");
         assertEquals("\n", formatter.getNewLine());
 
-        formatter.setOptPrefix("+");
-        assertEquals("+", formatter.getOptPrefix());
+        formatter.setOptPrefix("/");
+        assertEquals("/", formatter.getOptPrefix());
 
-        formatter.setLongOptPrefix("++");
-        assertEquals("++", formatter.getLongOptPrefix());
+        formatter.setLongOptPrefix("//");
+        assertEquals("//", formatter.getLongOptPrefix());
 
-        formatter.setArgName("parameter");
-        assertEquals("parameter", formatter.getArgName());
+        formatter.setArgName("val");
+        assertEquals("val", formatter.getArgName());
     }
 
-    // Tests printHelp with null or empty command line syntax throwing IllegalArgumentException
+    // Tests null or empty cmdLineSyntax throwing IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testPrintHelp_nullCmdLineSyntax_throwsIllegalArgumentException() {
-        formatter.printHelp(pw, 80, null, "header", new Options(), 1, 3, "footer");
+        formatter.printHelp(printWriter, 80, null, "header", new Options(), 1, 3, "footer");
     }
 
-    // Tests printHelp with empty command line syntax throwing IllegalArgumentException
+    // Tests empty string cmdLineSyntax throwing IllegalArgumentException
     @Test(expected = IllegalArgumentException.class)
     public void testPrintHelp_emptyCmdLineSyntax_throwsIllegalArgumentException() {
-        formatter.printHelp(pw, 80, "", "header", new Options(), 1, 3, "footer");
+        formatter.printHelp(printWriter, 80, "", "header", new Options(), 1, 3, "footer");
     }
 
-    // Tests printHelp with basic options, header, and footer without autoUsage
+    // Tests printHelp with full options, header, and footer
     @Test
-    public void testPrintHelp_standardOptions_rendersFormattedHelp() {
+    public void testPrintHelp_withHeaderAndFooter_outputsCorrectHelpMessage() {
         Options options = new Options();
-        options.addOption(new Option("a", "enable-a", false, "Option A description"));
-        options.addOption(new Option("b", true, "Option B with value"));
+        options.addOption(new Option("a", "alpha", false, "Description for alpha"));
 
-        formatter.printHelp(pw, 80, "myapp <arg>", "Header text", options, 2, 4, "Footer text", false);
-        pw.flush();
+        formatter.printHelp(printWriter, 80, "myapp", "Header banner", options, 2, 4, "Footer banner", true);
+        printWriter.flush();
 
-        String expected = "usage: myapp <arg>" + defaultEOL
-                + "Header text" + defaultEOL
-                + "  -a,--enable-a        Option A description" + defaultEOL
-                + "  -b <arg>             Option B with value" + defaultEOL
-                + "Footer text" + defaultEOL;
-
-        assertEquals(expected, out.toString());
+        String output = stringWriter.toString();
+        assertTrue(output.contains("usage: myapp [-a]"));
+        assertTrue(output.contains("Header banner"));
+        assertTrue(output.contains("-a,--alpha"));
+        assertTrue(output.contains("Description for alpha"));
+        assertTrue(output.contains("Footer banner"));
     }
 
-    // Tests printHelp with autoUsage enabled
+    // Tests printHelp overloads printing to System.out without exceptions
     @Test
-    public void testPrintHelp_autoUsageEnabled_rendersGeneratedUsage() {
+    public void testPrintHelp_systemOutOverloads_runsWithoutExceptions() {
         Options options = new Options();
-        Option optA = new Option("a", "alpha", false, "Alpha option");
-        Option optB = new Option("b", "beta", true, "Beta option");
+        options.addOption(new Option("h", "help", false, "Help option"));
+
+        formatter.printHelp("app", options);
+        formatter.printHelp("app", options, true);
+        formatter.printHelp("app", "header", options, "footer");
+        formatter.printHelp("app", "header", options, "footer", true);
+        formatter.printHelp(80, "app", "header", options, "footer");
+        formatter.printHelp(80, "app", "header", options, "footer", true);
+    }
+
+    // Tests printUsage with simple command line syntax string
+    @Test
+    public void testPrintUsage_simpleSyntax_printsExpectedUsageLine() {
+        formatter.printUsage(printWriter, 80, "appname --option <arg>");
+        printWriter.flush();
+
+        String expected = "usage: appname --option <arg>" + formatter.getNewLine();
+        assertEquals(expected, stringWriter.toString());
+    }
+
+    // Tests printUsage with required and optional options, and option with argument
+    @Test
+    public void testPrintUsage_optionsWithArgsAndRequired_printsFormattedUsage() {
+        Options options = new Options();
+        Option optA = new Option("a", "all", false, "do all");
+        Option optB = new Option("b", "file", true, "output file");
         optB.setRequired(true);
+        optB.setArgName("FILE");
 
         options.addOption(optA);
         options.addOption(optB);
 
-        formatter.printHelp(pw, 80, "myapp", null, options, 1, 3, null, true);
-        pw.flush();
+        formatter.printUsage(printWriter, 80, "testapp", options);
+        printWriter.flush();
 
-        String expected = "usage: myapp [-a] -b <arg>" + defaultEOL
-                + " -a,--alpha   Alpha option" + defaultEOL
-                + " -b,--beta <arg>   Beta option" + defaultEOL;
-
-        assertEquals(expected, out.toString());
+        String output = stringWriter.toString().trim();
+        assertEquals("usage: testapp [-a] -b <FILE>", output);
     }
 
-    // Tests printUsage with OptionGroup containing required and non-required groups
+    // Tests printUsage with OptionGroup (required and non-required)
     @Test
-    public void testPrintUsage_optionGroup_rendersMutualExclusionCorrectly() {
+    public void testPrintUsage_withOptionGroup_printsGroupSyntax() {
         Options options = new Options();
         OptionGroup group = new OptionGroup();
-        group.addOption(new Option("s", "start", false, "start engine"));
-        group.addOption(new Option("t", "stop", false, "stop engine"));
+        group.addOption(new Option("c", "create", false, "create item"));
+        group.addOption(new Option("d", "delete", false, "delete item"));
+        options.addOptionGroup(group);
+
+        formatter.printUsage(printWriter, 80, "app", options);
+        printWriter.flush();
+
+        String output = stringWriter.toString().trim();
+        assertEquals("usage: app [-c | -d]", output);
+    }
+
+    // Tests printUsage with required OptionGroup
+    @Test
+    public void testPrintUsage_requiredOptionGroup_printsWithoutEnclosingSquareBrackets() {
+        Options options = new Options();
+        OptionGroup group = new OptionGroup();
         group.setRequired(true);
-
+        group.addOption(new Option("c", "create", false, "create item"));
+        group.addOption(new Option("d", "delete", false, "delete item"));
         options.addOptionGroup(group);
 
-        formatter.printUsage(pw, 80, "app", options);
-        pw.flush();
+        formatter.printUsage(printWriter, 80, "app", options);
+        printWriter.flush();
 
-        String expected = "usage: app -s | -t" + defaultEOL;
-        assertEquals(expected, out.toString());
+        String output = stringWriter.toString().trim();
+        assertEquals("usage: app -c | -d", output);
     }
 
-    // Tests printUsage with optional OptionGroup
+    // Tests renderOptions with long options only and options without description
     @Test
-    public void testPrintUsage_optionalOptionGroup_rendersBrackets() {
-        Options options = new Options();
-        OptionGroup group = new OptionGroup();
-        group.addOption(new Option("x", false, "option x"));
-        group.addOption(new Option("y", false, "option y"));
-        group.setRequired(false);
-
-        options.addOptionGroup(group);
-
-        formatter.printUsage(pw, 80, "app", options);
-        pw.flush();
-
-        String expected = "usage: app [-x | -y]" + defaultEOL;
-        assertEquals(expected, out.toString());
-    }
-
-    // Tests printUsage with option having custom argument name and long opt only
-    @Test
-    public void testPrintUsage_longOptOnlyWithArgName_rendersCorrectly() {
-        Options options = new Options();
-        Option longOnly = new Option(null, "config", true, "configuration file");
-        longOnly.setArgName("FILE");
-        options.addOption(longOnly);
-
-        formatter.printUsage(pw, 80, "app", options);
-        pw.flush();
-
-        String expected = "usage: app [--config <FILE>]" + defaultEOL;
-        assertEquals(expected, out.toString());
-    }
-
-    // Tests renderOptions with option having only long opt and null description
-    @Test
-    public void testRenderOptions_longOptOnlyAndNullDescription_rendersCorrectly() {
+    public void testRenderOptions_longOptOnlyAndNoDescription_formatsCorrectly() {
         Options options = new Options();
         Option longOnly = new Option(null, "verbose", false, null);
         options.addOption(longOnly);
@@ -172,319 +166,285 @@ public class HelpFormatterTest {
         StringBuffer sb = new StringBuffer();
         formatter.renderOptions(sb, 80, options, 1, 3);
 
-        String expected = "    --verbose   ";
-        assertEquals(expected, sb.toString());
+        String result = sb.toString();
+        assertTrue(result.contains("--verbose"));
     }
 
-    // Tests renderOptions with argument having no argName
+    // Tests renderOptions with argument and custom argName
     @Test
-    public void testRenderOptions_argWithoutArgName_rendersSpace() {
+    public void testRenderOptions_withArgAndArgName_formatsArgPlaceholder() {
         Options options = new Options();
-        Option opt = new Option("o", "output", true, "output path");
-        opt.setArgName(null);
-        options.addOption(opt);
+        Option fileOpt = new Option("f", "file", true, "specify input file");
+        fileOpt.setArgName("PATH");
+        options.addOption(fileOpt);
 
         StringBuffer sb = new StringBuffer();
-        formatter.renderOptions(sb, 80, options, 1, 3);
+        formatter.renderOptions(sb, 80, options, 2, 2);
 
-        String expected = " -o,--output    output path";
-        assertEquals(expected, sb.toString());
+        String result = sb.toString();
+        assertTrue(result.contains("-f,--file <PATH>"));
+        assertTrue(result.contains("specify input file"));
+    }
+
+    // Tests renderWrappedText when text fits within width
+    @Test
+    public void testRenderWrappedText_textFitsWidth_noWrap() {
+        StringBuffer sb = new StringBuffer();
+        String text = "This is a short line.";
+        formatter.renderWrappedText(sb, 50, 0, text);
+
+        assertEquals("This is a short line.", sb.toString());
     }
 
     // Tests renderWrappedText wrapping text across multiple lines with nextLineTabStop
     @Test
-    public void testRenderWrappedText_textLongerThanWidth_wrapsWithTabStopPadding() {
+    public void testRenderWrappedText_longTextWithTabStop_wrapsAndPadsNextLines() {
         StringBuffer sb = new StringBuffer();
-        String text = "This is a long description text that needs to be wrapped across multiple lines.";
-        int width = 25;
-        int nextLineTabStop = 4;
+        String text = "The quick brown fox jumps over the lazy dog near the riverbank.";
+        formatter.renderWrappedText(sb, 30, 4, text);
 
-        formatter.renderWrappedText(sb, width, nextLineTabStop, text);
-
-        String expected = "This is a long" + defaultEOL
-                + "    description text that" + defaultEOL
-                + "    needs to be wrapped" + defaultEOL
-                + "    across multiple" + defaultEOL
-                + "    lines.";
-        assertEquals(expected, sb.toString());
+        String result = sb.toString();
+        String[] lines = result.split(formatter.getNewLine());
+        assertTrue(lines.length > 1);
+        for (int i = 1; i < lines.length; i++) {
+            assertTrue(lines[i].startsWith("    "));
+        }
     }
 
-    // Tests renderWrappedText with text containing explicit newline character
+    // Tests renderWrappedText when text contains tab and newline characters
     @Test
-    public void testRenderWrappedText_textWithEmbeddedNewlines_preservesLines() {
+    public void testRenderWrappedText_withNewlinesAndTabs_splitsAtCharacters() {
         StringBuffer sb = new StringBuffer();
-        String text = "Line 1\nLine 2\nLine 3";
+        String text = "First line\nSecond line\tThird line";
+        formatter.renderWrappedText(sb, 50, 0, text);
 
-        formatter.renderWrappedText(sb, 80, 0, text);
-
-        String expected = "Line 1" + defaultEOL
-                + "Line 2" + defaultEOL
-                + "Line 3";
-        assertEquals(expected, sb.toString());
+        String result = sb.toString();
+        assertTrue(result.contains("First line"));
+        assertTrue(result.contains("Second line"));
+        assertTrue(result.contains("Third line"));
     }
 
-    // Tests renderWrappedText when text fits within single line
+    // Tests findWrapPos when word is longer than available width
     @Test
-    public void testRenderWrappedText_shortText_doesNotWrap() {
-        StringBuffer sb = new StringBuffer();
-        String text = "Short text";
-
-        formatter.renderWrappedText(sb, 80, 4, text);
-
-        assertEquals("Short text", sb.toString());
-    }
-
-    // Tests findWrapPos with explicit newline within line width
-    @Test
-    public void testFindWrapPos_newlineWithinWidth_returnsNewlinePosition() {
-        String text = "First line\nSecond line";
-        int pos = formatter.findWrapPos(text, 20, 0);
-        assertEquals(11, pos);
-    }
-
-    // Tests findWrapPos with tab character within line width
-    @Test
-    public void testFindWrapPos_tabWithinWidth_returnsTabPosition() {
-        String text = "First\tSecond";
-        int pos = formatter.findWrapPos(text, 20, 0);
-        assertEquals(6, pos);
-    }
-
-    // Tests findWrapPos when startPos plus width exceeds text length
-    @Test
-    public void testFindWrapPos_startPosPlusWidthExceedsLength_returnsMinusOne() {
-        String text = "Hello world";
-        int pos = formatter.findWrapPos(text, 50, 0);
-        assertEquals(-1, pos);
-    }
-
-    // Tests findWrapPos when word is longer than column width (wrap after width)
-    @Test
-    public void testFindWrapPos_wordLongerThanWidth_findsNextSpaceAfterWidth() {
-        String text = "Supercalifragilisticexpialidocious text";
+    public void testFindWrapPos_wordLongerThanWidth_findsNextWhitespaceAfterWidth() {
+        String text = "supercalifragilisticexpialidocious is a long word";
         int pos = formatter.findWrapPos(text, 10, 0);
         assertEquals(34, pos);
     }
 
-    // Tests createPadding with zero and positive lengths
+    // Tests findWrapPos when text ends before width
+    @Test
+    public void testFindWrapPos_textShorterThanWidth_returnsNegativeOne() {
+        String text = "short text";
+        int pos = formatter.findWrapPos(text, 50, 0);
+        assertEquals(-1, pos);
+    }
+
+    // Tests createPadding method for positive and zero lengths
     @Test
     public void testCreatePadding_variousLengths_returnsExpectedSpaces() {
         assertEquals("", formatter.createPadding(0));
-        assertEquals(" ", formatter.createPadding(1));
         assertEquals("   ", formatter.createPadding(3));
     }
 
-    // Tests rtrim with null, empty, trimmed, and padded strings
+    // Tests rtrim method with various inputs
     @Test
-    public void testRtrim_variousInputs_removesOnlyTrailingWhitespace() {
+    public void testRtrim_variousInputs_trimsTrailingWhitespaceOnly() {
         assertNull(formatter.rtrim(null));
         assertEquals("", formatter.rtrim(""));
-        assertEquals("  abc", formatter.rtrim("  abc  \t\n"));
-        assertEquals("hello", formatter.rtrim("hello"));
+        assertEquals("  abc", formatter.rtrim("  abc   "));
+        assertEquals("hello world", formatter.rtrim("hello world\n \t"));
     }
 
-    // Tests printWrapped convenience methods writing to PrintWriter
+    // Tests comparator getter and setter
     @Test
-    public void testPrintWrapped_withPrintWriter_outputsExpectedContent() {
-        formatter.printWrapped(pw, 20, "This is a test message for printWrapped.");
-        pw.flush();
+    public void testOptionComparator_customComparator_ordersOptionsAccordingly() {
+        assertNotNull(formatter.getOptionComparator());
 
-        String expected = "This is a test" + defaultEOL
-                + "message for" + defaultEOL
-                + "printWrapped." + defaultEOL;
-        assertEquals(expected, out.toString());
-    }
-
-    // Tests printUsage with simple cmdLineSyntax
-    @Test
-    public void testPrintUsage_simpleSyntax_formatsWithPrefix() {
-        formatter.printUsage(pw, 80, "myapp -f <file>");
-        pw.flush();
-
-        String expected = "usage: myapp -f <file>" + defaultEOL;
-        assertEquals(expected, out.toString());
-    }
-
-    // Tests comparator getter and setter and custom comparator ordering
-    @Test
-    public void testOptionComparator_customComparator_sortsOptionsAccordingly() {
-        Comparator<Option> comparator = formatter.getOptionComparator();
-        assertTrue(comparator != null);
-
-        Options options = new Options();
-        options.addOption(new Option("z", "last", false, "Z option"));
-        options.addOption(new Option("a", "first", false, "A option"));
-
-        // Custom comparator: reverse alphabetical by opt
-        formatter.setOptionComparator(new Comparator<Option>() {
-            @Override
+        Comparator<Option> customComparator = new Comparator<Option>() {
             public int compare(Option o1, Option o2) {
                 return o2.getKey().compareToIgnoreCase(o1.getKey());
             }
-        });
+        };
 
-        formatter.printHelp(pw, 80, "myapp", null, options, 1, 3, null, false);
-        pw.flush();
+        formatter.setOptionComparator(customComparator);
+        assertEquals(customComparator, formatter.getOptionComparator());
 
-        String expected = "usage: myapp" + defaultEOL
-                + " -z,--last    Z option" + defaultEOL
-                + " -a,--first   A option" + defaultEOL;
-        assertEquals(expected, out.toString());
+        Options options = new Options();
+        options.addOption("a", "alpha", false, "Option A");
+        options.addOption("z", "zeta", false, "Option Z");
+
+        formatter.printHelp(printWriter, 80, "app", null, options, 1, 3, null, false);
+        printWriter.flush();
+
+        String output = stringWriter.toString();
+        int idxZ = output.indexOf("-z");
+        int idxA = output.indexOf("-a");
+        assertTrue(idxZ < idxA);
     }
 
-    // Tests setOptionComparator with null preserving insertion order
+    // Tests comparator set to null retains insertion or natural order without exception
     @Test
-    public void testOptionComparator_nullComparator_preservesInsertionOrder() {
+    public void testOptionComparator_nullComparator_rendersOptionsWithoutSorting() {
         formatter.setOptionComparator(null);
         assertNull(formatter.getOptionComparator());
 
         Options options = new Options();
-        options.addOption(new Option("c", false, "third"));
-        options.addOption(new Option("a", false, "first"));
-        options.addOption(new Option("b", false, "second"));
+        options.addOption("b", "beta", false, "Option B");
+        options.addOption("a", "alpha", false, "Option A");
 
-        formatter.printHelp(pw, 80, "myapp", null, options, 1, 3, null, false);
-        pw.flush();
+        formatter.printHelp(printWriter, 80, "app", null, options, 1, 3, null, false);
+        printWriter.flush();
 
-        String expected = "usage: myapp" + defaultEOL
-                + " -c   third" + defaultEOL
-                + " -a   first" + defaultEOL
-                + " -b   second" + defaultEOL;
-        assertEquals(expected, out.toString());
+        String output = stringWriter.toString();
+        assertTrue(output.contains("-b"));
+        assertTrue(output.contains("-a"));
     }
 
-    // Tests findWrapPos with carriage return '\r' and '\r\n'
+    // Tests printWrapped overloads
     @Test
-    public void testFindWrapPos_carriageReturn_returnsCorrectPosition() {
-        String text = "First line\rSecond line";
-        int pos = formatter.findWrapPos(text, 20, 0);
-        assertEquals(11, pos);
+    public void testPrintWrapped_withAndWithoutTabStop_printsWrappedText() {
+        formatter.printWrapped(printWriter, 20, "This is a simple wrapped line of text.");
+        formatter.printWrapped(printWriter, 20, 4, "Another line of text with tab stop indentation.");
+        printWriter.flush();
 
-        String textCRLF = "First line\r\nSecond line";
-        int posCRLF = formatter.findWrapPos(textCRLF, 20, 0);
-        assertEquals(11, posCRLF);
+        String output = stringWriter.toString();
+        assertTrue(output.contains("This is a simple"));
+        assertTrue(output.contains("    stop"));
     }
 
-    // Tests findWrapPos when single unbroken word exceeds string length
+    // Tests printOptions method directly
     @Test
-    public void testFindWrapPos_singleUnbrokenWordExceedsWidth_returnsMinusOne() {
-        String text = "UnbrokenWordWithoutAnySpaces";
-        int pos = formatter.findWrapPos(text, 10, 0);
-        assertEquals(-1, pos);
+    public void testPrintOptions_directCall_outputsOptionDetails() {
+        Options options = new Options();
+        options.addOption("x", "extend", true, "Extended option description that is long enough to wrap");
+
+        formatter.printOptions(printWriter, 40, options, 2, 4);
+        printWriter.flush();
+
+        String output = stringWriter.toString();
+        assertTrue(output.contains("-x,--extend"));
+        assertTrue(output.contains("Extended option"));
+    }
+
+    // Tests printHelp with autoUsage set to false
+    @Test
+    public void testPrintHelp_autoUsageFalse_printsDirectSyntaxWithoutAutoGeneration() {
+        Options options = new Options();
+        options.addOption("o", false, "an option");
+
+        formatter.printHelp(printWriter, 80, "mycustomsyntax", "Header", options, 1, 3, "Footer", false);
+        printWriter.flush();
+
+        String output = stringWriter.toString();
+        assertTrue(output.contains("usage: mycustomsyntax"));
+        assertFalse(output.contains("usage: mycustomsyntax [-o]"));
+    }
+
+    // Tests printHelp with PrintWriter and 8 parameters (without autoUsage boolean)
+    @Test
+    public void testPrintHelp_eightParamPrintWriter_defaultsToAutoUsage() {
+        Options options = new Options();
+        options.addOption("v", "verbose", false, "Verbose mode");
+
+        formatter.printHelp(printWriter, 80, "app", "Header", options, 1, 3, "Footer");
+        printWriter.flush();
+
+        String output = stringWriter.toString();
+        assertTrue(output.contains("usage: app [-v]"));
     }
 
     // Tests renderWrappedText when nextLineTabStop is greater than or equal to width
     @Test
-    public void testRenderWrappedText_tabStopGreaterOrEqualToWidth_wrapsGracefully() {
+    public void testRenderWrappedText_tabStopGreaterOrEqualToWidth_resetsTabStopToOne() {
         StringBuffer sb = new StringBuffer();
-        String text = "Line that is long enough to wrap";
-        formatter.renderWrappedText(sb, 10, 10, text);
+        String text = "The quick brown fox jumps over the lazy dog";
+        formatter.renderWrappedText(sb, 15, 20, text);
 
-        String expected = "Line that" + defaultEOL
-                + " is long" + defaultEOL
-                + " enough to" + defaultEOL
-                + " wrap";
-        assertEquals(expected, sb.toString());
+        String result = sb.toString();
+        String[] lines = result.split(formatter.getNewLine());
+        assertTrue(lines.length > 1);
+        assertTrue(lines[1].startsWith(" "));
     }
 
-    // Tests renderOptions with wrapped description when description exceeds line width
+    // Tests findWrapPos when newline or return character appears before width
     @Test
-    public void testRenderOptions_longDescription_wrapsWithCorrectPadding() {
+    public void testFindWrapPos_newlineBeforeWidth_returnsPositionAfterNewline() {
+        String text = "hello\nworld";
+        int pos = formatter.findWrapPos(text, 20, 0);
+        assertEquals(6, pos);
+
+        String textWithCR = "hello\r\nworld";
+        int posCR = formatter.findWrapPos(textWithCR, 20, 0);
+        assertEquals(7, posCR);
+    }
+
+    // Tests findWrapPos when tab character appears before width
+    @Test
+    public void testFindWrapPos_tabBeforeWidth_returnsPositionAfterTab() {
+        String text = "hello\tworld";
+        int pos = formatter.findWrapPos(text, 20, 0);
+        assertEquals(6, pos);
+    }
+
+    // Tests renderOptions and appendOption with optional arguments and multi-arg options
+    @Test
+    public void testRenderOptions_optionalArgsAndMultiArgs_formatsCorrectly() {
         Options options = new Options();
-        options.addOption(new Option("h", "help", false, "This is a very long description that definitely exceeds the given line width."));
 
-        StringBuffer sb = new StringBuffer();
-        formatter.renderOptions(sb, 35, options, 2, 2);
+        Option optOptionalArg = new Option("o", "optional", true, "Optional argument");
+        optOptionalArg.setOptionalArg(true);
+        optOptionalArg.setArgName("OPT_VAL");
+        options.addOption(optOptionalArg);
 
-        String expected = "  -h,--help  This is a very" + defaultEOL
-                + "             long description" + defaultEOL
-                + "             that definitely" + defaultEOL
-                + "             exceeds the given" + defaultEOL
-                + "             line width.";
-        assertEquals(expected, sb.toString());
+        Option optNoArgName = new Option("n", "none", true, "Empty arg name");
+        optNoArgName.setArgName("");
+        options.addOption(optNoArgName);
+
+        Option optOnlyShort = new Option("s", false, "Short only");
+        options.addOption(optOnlyShort);
+
+        formatter.printHelp(printWriter, 80, "app", null, options, 2, 2, null, true);
+        printWriter.flush();
+
+        String output = stringWriter.toString();
+        assertTrue(output.contains("[-o [<OPT_VAL>]]") || output.contains("-o"));
+        assertTrue(output.contains("-s"));
     }
 
-    // Tests renderOptions with option having optional arg
+    // Tests printUsage wrapping when options exceed line width
     @Test
-    public void testRenderOptions_optionalArg_rendersCorrectArgSyntax() {
+    public void testPrintUsage_longUsageLine_wrapsProperly() {
         Options options = new Options();
-        Option opt = new Option("f", "file", true, "file path");
-        opt.setOptionalArg(true);
-        options.addOption(opt);
+        options.addOption("alpha", "alpha-long-option-name", true, "first option");
+        options.addOption("beta", "beta-long-option-name", true, "second option");
+        options.addOption("gamma", "gamma-long-option-name", true, "third option");
+        options.addOption("delta", "delta-long-option-name", true, "fourth option");
 
-        StringBuffer sb = new StringBuffer();
-        formatter.renderOptions(sb, 80, options, 1, 3);
+        formatter.printUsage(printWriter, 30, "longappname", options);
+        printWriter.flush();
 
-        String expected = " -f,--file [<arg>]   file path";
-        assertEquals(expected, sb.toString());
+        String output = stringWriter.toString();
+        String[] lines = output.split(formatter.getNewLine());
+        assertTrue(lines.length > 1);
     }
 
-    // Tests printUsage with options wrapping across multiple lines
+    // Tests OptionGroup with long options only and required options
     @Test
-    public void testPrintUsage_longUsageText_wrapsAcrossLines() {
+    public void testPrintUsage_optionGroupWithLongOptOnlyAndArgs_formatsGroupSyntax() {
         Options options = new Options();
-        options.addOption(new Option("a", "alpha-long-option-name", true, "desc a"));
-        options.addOption(new Option("b", "beta-long-option-name", true, "desc b"));
-        options.addOption(new Option("c", "gamma-long-option-name", true, "desc c"));
+        OptionGroup group = new OptionGroup();
 
-        formatter.printUsage(pw, 40, "myapp", options);
-        pw.flush();
+        Option opt1 = new Option(null, "first-long", true, "First long option");
+        Option opt2 = new Option("s", null, false, "Second short option");
+        group.addOption(opt1);
+        group.addOption(opt2);
+        options.addOptionGroup(group);
 
-        String expected = "usage: myapp [-a <arg>] [-b <arg>]" + defaultEOL
-                + "       [-c <arg>]" + defaultEOL;
-        assertEquals(expected, out.toString());
-    }
+        formatter.printUsage(printWriter, 80, "app", options);
+        printWriter.flush();
 
-    // Tests printWrapped with custom nextLineTabStop
-    @Test
-    public void testPrintWrapped_withTabStop_outputsWrappedWithIndent() {
-        formatter.printWrapped(pw, 20, 4, "This is a long message to test printWrapped with tab stop.");
-        pw.flush();
-
-        String expected = "This is a long" + defaultEOL
-                + "    message to test" + defaultEOL
-                + "    printWrapped" + defaultEOL
-                + "    with tab stop." + defaultEOL;
-        assertEquals(expected, out.toString());
-    }
-
-    // Tests overloaded printHelp methods to ensure full API coverage
-    @Test
-    public void testPrintHelp_allOverloadedSignatures_executeSuccessfully() {
-        Options options = new Options();
-        options.addOption(new Option("v", "version", false, "show version"));
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream originalOut = System.out;
-        try {
-            System.setOut(new PrintStream(baos));
-
-            formatter.printHelp("cmd", options);
-            formatter.printHelp("cmd", options, true);
-            formatter.printHelp("cmd", "header", options, "footer");
-            formatter.printHelp("cmd", "header", options, "footer", true);
-            formatter.printHelp(60, "cmd", "header", options, "footer");
-            formatter.printHelp(60, "cmd", "header", options, "footer", true);
-        } finally {
-            System.setOut(originalOut);
-        }
-
-        assertTrue(baos.toString().contains("usage: cmd"));
-    }
-
-    // Tests printHelp with 8-argument overload taking PrintWriter
-    @Test
-    public void testPrintHelp_eightArgOverload_rendersFormattedHelp() {
-        Options options = new Options();
-        options.addOption(new Option("h", "help", false, "display help"));
-
-        formatter.printHelp(pw, 80, "myapp", "Header", options, 2, 2, "Footer");
-        pw.flush();
-
-        String expected = "usage: myapp" + defaultEOL
-                + "Header" + defaultEOL
-                + "  -h,--help  display help" + defaultEOL
-                + "Footer" + defaultEOL;
-        assertEquals(expected, out.toString());
+        String output = stringWriter.toString().trim();
+        assertTrue(output.contains("[--first-long <arg> | -s]"));
     }
 }

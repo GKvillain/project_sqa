@@ -5,190 +5,201 @@ import static org.junit.Assert.*;
 
 public class OptionBuilderTest
 {
-    // Tests create with char opt and full properties set
+    // Tests creating an option with all builder properties configured using char opt
     @Test
-    public void testCreateChar_allPropertiesSet_createsConfiguredOption()
+    public void testCompleteOption_validProperties_createsConfiguredOption()
     {
-        Option option = OptionBuilder.withLongOpt("file")
-                                     .withDescription("target file")
-                                     .withArgName("filename")
-                                     .isRequired()
-                                     .hasArg()
-                                     .withType(String.class)
-                                     .withValueSeparator(':')
-                                     .create('f');
+        Option opt = OptionBuilder.withLongOpt("simple-option")
+                                  .withDescription("this is a simple option")
+                                  .hasArg()
+                                  .isRequired()
+                                  .hasArgs()
+                                  .hasOptionalArg()
+                                  .withType(Float.class)
+                                  .withValueSeparator(':')
+                                  .withArgName("argName")
+                                  .create('a');
 
-        assertEquals("f", option.getOpt());
-        assertEquals("file", option.getLongOpt());
-        assertEquals("target file", option.getDescription());
-        assertEquals("filename", option.getArgName());
-        assertTrue(option.isRequired());
-        assertEquals(1, option.getArgs());
-        assertEquals(String.class, option.getType());
-        assertEquals(':', option.getValueSeparator());
+        assertEquals("a", opt.getOpt());
+        assertEquals("simple-option", opt.getLongOpt());
+        assertEquals("this is a simple option", opt.getDescription());
+        assertTrue(opt.isRequired());
+        assertTrue(opt.hasOptionalArg());
+        assertEquals(1, opt.getArgs());
+        assertEquals(Float.class, opt.getType());
+        assertEquals(':', opt.getValueSeparator());
+        assertEquals("argName", opt.getArgName());
+    }
+
+    // Tests create without longopt throws exception and resets state
+    @Test(expected = IllegalArgumentException.class)
+    public void testCreate_noLongOpt_throwsIllegalArgumentException()
+    {
+        OptionBuilder.withDescription("description only").create();
+    }
+
+    // Tests create using longopt only without short opt
+    @Test
+    public void testCreate_withLongOpt_createsOption()
+    {
+        Option opt = OptionBuilder.withLongOpt("only-long").create();
+        assertNull(opt.getOpt());
+        assertEquals("only-long", opt.getLongOpt());
     }
 
     // Tests create with String opt
     @Test
-    public void testCreateString_validStringOpt_createsConfiguredOption()
+    public void testCreateString_validString_createsOption()
     {
-        Option option = OptionBuilder.withLongOpt("directory")
-                                     .withDescription("target directory")
-                                     .create("dir");
-
-        assertEquals("dir", option.getOpt());
-        assertEquals("directory", option.getLongOpt());
-        assertEquals("target directory", option.getDescription());
+        Option opt = OptionBuilder.withDescription("desc").create("optString");
+        assertEquals("optString", opt.getOpt());
+        assertEquals("desc", opt.getDescription());
     }
 
-    // Tests create without opt when longOpt is provided
+    // Tests hasArg with and without boolean argument
     @Test
-    public void testCreate_withLongOpt_createsOptionWithNullOpt()
+    public void testHasArg_booleanVariants_setsArgsCorrectly()
     {
-        Option option = OptionBuilder.withLongOpt("verbose")
-                                     .withDescription("verbose mode")
-                                     .create();
+        Option optTrue = OptionBuilder.hasArg(true).create('t');
+        assertEquals(1, optTrue.getArgs());
 
-        assertNull(option.getOpt());
-        assertEquals("verbose", option.getLongOpt());
-        assertEquals("verbose mode", option.getDescription());
+        Option optFalse = OptionBuilder.hasArg(false).create('f');
+        assertEquals(Option.UNINITIALIZED, optFalse.getArgs());
+
+        Option optDefault = OptionBuilder.hasArg().create('d');
+        assertEquals(1, optDefault.getArgs());
     }
 
-    // Tests create without longOpt throws IllegalArgumentException
-    @Test(expected = IllegalArgumentException.class)
-    public void testCreate_missingLongOpt_throwsIllegalArgumentException()
-    {
-        OptionBuilder.withDescription("no long opt").create();
-    }
-
-    // Tests hasArg with boolean parameter true
+    // Tests isRequired with and without boolean argument
     @Test
-    public void testHasArgBoolean_true_setsNumberOfArgsToOne()
+    public void testIsRequired_booleanVariants_setsRequiredCorrectly()
     {
-        Option option = OptionBuilder.hasArg(true).create('a');
+        Option optTrue = OptionBuilder.isRequired(true).create('t');
+        assertTrue(optTrue.isRequired());
 
-        assertEquals(1, option.getArgs());
-        assertTrue(option.hasArg());
+        Option optFalse = OptionBuilder.isRequired(false).create('f');
+        assertFalse(optFalse.isRequired());
+
+        Option optDefault = OptionBuilder.isRequired().create('d');
+        assertTrue(optDefault.isRequired());
     }
 
-    // Tests hasArg with boolean parameter false
+    // Tests withValueSeparator default '=' and custom char
     @Test
-    public void testHasArgBoolean_false_setsNumberOfArgsToUninitialized()
+    public void testWithValueSeparator_defaultAndCustomChar_setsSeparator()
     {
-        Option option = OptionBuilder.hasArg(false).create('a');
+        Option optDefault = OptionBuilder.withValueSeparator().create('d');
+        assertEquals('=', optDefault.getValueSeparator());
 
-        assertEquals(Option.UNINITIALIZED, option.getArgs());
-        assertFalse(option.hasArg());
+        Option optCustom = OptionBuilder.withValueSeparator(';').create('c');
+        assertEquals(';', optCustom.getValueSeparator());
     }
 
-    // Tests isRequired with boolean parameter true and false
+    // Tests hasArgs with unlimited values and with specific count
     @Test
-    public void testIsRequiredBoolean_trueAndFalse_setsRequiredCorrectly()
+    public void testHasArgs_unlimitedAndCount_setsArgsCorrectly()
     {
-        Option requiredOption = OptionBuilder.isRequired(true).create('r');
-        assertTrue(requiredOption.isRequired());
+        Option optUnlimited = OptionBuilder.hasArgs().create('u');
+        assertEquals(Option.UNLIMITED_VALUES, optUnlimited.getArgs());
 
-        Option optionalOption = OptionBuilder.isRequired(false).create('o');
-        assertFalse(optionalOption.isRequired());
+        Option optCount = OptionBuilder.hasArgs(5).create('c');
+        assertEquals(5, optCount.getArgs());
     }
 
-    // Tests hasArgs with unlimited arguments
+    // Tests hasOptionalArgs with unlimited and specific count
     @Test
-    public void testHasArgs_unlimited_setsUnlimitedValues()
+    public void testHasOptionalArgs_unlimitedAndCount_setsOptionalArgsCorrectly()
     {
-        Option option = OptionBuilder.hasArgs().create('m');
+        Option optUnlimited = OptionBuilder.hasOptionalArgs().create('u');
+        assertTrue(optUnlimited.hasOptionalArg());
+        assertEquals(Option.UNLIMITED_VALUES, optUnlimited.getArgs());
 
-        assertEquals(Option.UNLIMITED_VALUES, option.getArgs());
-        assertTrue(option.hasArgs());
+        Option optCount = OptionBuilder.hasOptionalArgs(3).create('c');
+        assertTrue(optCount.hasOptionalArg());
+        assertEquals(3, optCount.getArgs());
     }
 
-    // Tests hasArgs with specified number of arguments
+    // Tests withType method
     @Test
-    public void testHasArgsInt_specificCount_setsExactArgCount()
+    public void testWithType_customType_setsType()
     {
-        Option option = OptionBuilder.hasArgs(3).create('t');
-
-        assertEquals(3, option.getArgs());
-        assertTrue(option.hasArgs());
+        Option opt = OptionBuilder.withType(Integer.class).create('i');
+        assertEquals(Integer.class, opt.getType());
     }
 
-    // Tests hasOptionalArg setting single optional argument
+    // Tests withDescription method
     @Test
-    public void testHasOptionalArg_default_setsSingleOptionalArg()
+    public void testWithDescription_customDescription_setsDescription()
     {
-        Option option = OptionBuilder.hasOptionalArg().create('o');
-
-        assertEquals(1, option.getArgs());
-        assertTrue(option.hasOptionalArg());
+        Option opt = OptionBuilder.withDescription("my description").create('d');
+        assertEquals("my description", opt.getDescription());
     }
 
-    // Tests hasOptionalArgs setting unlimited optional arguments
+    // Tests withArgName method
     @Test
-    public void testHasOptionalArgs_unlimited_setsUnlimitedOptionalArgs()
+    public void testWithArgName_customArgName_setsArgName()
     {
-        Option option = OptionBuilder.hasOptionalArgs().create('o');
-
-        assertEquals(Option.UNLIMITED_VALUES, option.getArgs());
-        assertTrue(option.hasOptionalArg());
+        Option opt = OptionBuilder.withArgName("customName").create('a');
+        assertEquals("customName", opt.getArgName());
     }
 
-    // Tests hasOptionalArgs with specified argument count
+    // Tests state reset after option creation
     @Test
-    public void testHasOptionalArgsInt_specificCount_setsExactOptionalArgs()
-    {
-        Option option = OptionBuilder.hasOptionalArgs(2).create('o');
-
-        assertEquals(2, option.getArgs());
-        assertTrue(option.hasOptionalArg());
-    }
-
-    // Tests default withValueSeparator sets '='
-    @Test
-    public void testWithValueSeparator_default_setsEqualsSeparator()
-    {
-        Option option = OptionBuilder.withValueSeparator().create('D');
-
-        assertEquals('=', option.getValueSeparator());
-    }
-
-    // Tests state reset after create so subsequent options are clean
-    @Test
-    public void testReset_afterCreate_resetsBuilderState()
+    public void testReset_afterOptionCreation_defaultsRestored()
     {
         OptionBuilder.withLongOpt("first")
                      .withDescription("first desc")
                      .isRequired()
-                     .hasArgs(2)
+                     .hasArg()
+                     .withType(String.class)
                      .withValueSeparator('=')
+                     .withArgName("firstArg")
                      .create('f');
 
-        Option secondOption = OptionBuilder.create('s');
-
-        assertNull(secondOption.getLongOpt());
-        assertNull(secondOption.getDescription());
-        assertFalse(secondOption.isRequired());
-        assertEquals(Option.UNINITIALIZED, secondOption.getArgs());
-        assertEquals((char) 0, secondOption.getValueSeparator());
+        Option second = OptionBuilder.create('s');
+        assertNull(second.getLongOpt());
+        assertNull(second.getDescription());
+        assertFalse(second.isRequired());
+        assertEquals(Option.UNINITIALIZED, second.getArgs());
+        assertNull(second.getType());
+        assertEquals((char) 0, second.getValueSeparator());
+        assertEquals("arg", second.getArgName());
+        assertFalse(second.hasOptionalArg());
     }
 
-    // Tests state reset even when create throws exception
+    // Tests standalone hasOptionalArg method
     @Test
-    public void testReset_onException_resetsBuilderState()
+    public void testHasOptionalArg_standalone_setsOptionalArgAndSingleArg()
+    {
+        Option opt = OptionBuilder.hasOptionalArg().create('o');
+        assertTrue(opt.hasOptionalArg());
+        assertEquals(1, opt.getArgs());
+    }
+
+    // Tests withType accepting Object
+    @Test
+    public void testWithType_objectArgument_setsType()
+    {
+        Object typeObj = new Object();
+        Option opt = OptionBuilder.withType(typeObj).create('o');
+        assertEquals(typeObj, opt.getType());
+    }
+
+    // Tests state reset when create() fails due to missing longOpt
+    @Test
+    public void testReset_afterCreateException_defaultsRestored()
     {
         try
         {
-            OptionBuilder.withLongOpt("invalid")
-                         .withDescription("invalid option")
-                         .create("invalid opt with spaces");
-            fail("Expected IllegalArgumentException for invalid option name");
+            OptionBuilder.withDescription("desc to discard").create();
+            fail("Expected IllegalArgumentException");
         }
-        catch (IllegalArgumentException expected)
+        catch (IllegalArgumentException e)
         {
             // Expected exception
         }
 
-        Option nextOption = OptionBuilder.create('c');
-        assertNull(nextOption.getLongOpt());
-        assertNull(nextOption.getDescription());
+        Option nextOpt = OptionBuilder.create('n');
+        assertNull(nextOpt.getDescription());
     }
 }

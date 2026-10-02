@@ -22,220 +22,222 @@ public class OptionsTest
         options = new Options();
     }
 
-    // Tests adding simple short option with description
+    // Tests adding option with short name and description only
     @Test
-    public void testAddOption_shortOnlyWithDescription_optionAddedSuccessfully()
+    public void testAddOption_shortOptAndDescription_addsOptionSuccessfully()
     {
         options.addOption("a", "description a");
+
         assertTrue(options.hasOption("a"));
         assertTrue(options.hasShortOption("a"));
         assertFalse(options.hasLongOption("a"));
         assertEquals("description a", options.getOption("a").getDescription());
     }
 
-    // Tests adding short option with boolean hasArg flag
+    // Tests adding option with short name, hasArg flag, and description
     @Test
-    public void testAddOption_shortWithHasArg_optionHasArgConfigured()
+    public void testAddOption_shortOptWithArg_addsOptionWithArg()
     {
         options.addOption("b", true, "description b");
-        Option opt = options.getOption("b");
-        assertNotNull(opt);
-        assertTrue(opt.hasArg());
-        assertEquals("description b", opt.getDescription());
+
+        assertTrue(options.hasOption("b"));
+        assertTrue(options.getOption("b").hasArg());
     }
 
-    // Tests adding option with short and long name
+    // Tests adding option with both short and long names
     @Test
-    public void testAddOption_shortAndLongOpt_bothNamesAccessible()
+    public void testAddOption_shortAndLongOpt_addsOptionToBothMaps()
     {
-        options.addOption("c", "config", true, "description c");
+        options.addOption("c", "config", false, "description c");
+
         assertTrue(options.hasOption("c"));
         assertTrue(options.hasOption("config"));
-        assertTrue(options.hasOption("--config"));
-        assertTrue(options.hasOption("-c"));
         assertTrue(options.hasShortOption("c"));
         assertTrue(options.hasLongOption("config"));
+        assertFalse(options.hasLongOption("c"));
+        assertFalse(options.hasShortOption("config"));
         assertEquals(options.getOption("c"), options.getOption("config"));
     }
 
-    // Tests adding an option with only long name
+    // Tests adding an Option instance that is required
     @Test
-    public void testAddOption_longOptOnly_retrievableByLongName()
+    public void testAddOption_requiredOption_addsToRequiredOptionsList()
     {
-        Option longOnly = new Option(null, "verbose", false, "verbose mode");
-        options.addOption(longOnly);
-        assertTrue(options.hasOption("verbose"));
-        assertTrue(options.hasOption("--verbose"));
-        assertTrue(options.hasLongOption("verbose"));
-        assertFalse(options.hasShortOption("verbose"));
-        assertEquals(longOnly, options.getOption("verbose"));
-        assertEquals(longOnly, options.getOption("--verbose"));
-    }
+        Option opt = new Option("r", "req", false, "required option");
+        opt.setRequired(true);
+        options.addOption(opt);
 
-    // Tests getOption with non-existent option
-    @Test
-    public void testGetOption_nonExistent_returnsNull()
-    {
-        options.addOption("a", "opt a");
-        assertNull(options.getOption("nonexistent"));
-        assertNull(options.getOption("--unknown"));
-        assertFalse(options.hasOption("nonexistent"));
-        assertFalse(options.hasLongOption("nonexistent"));
-        assertFalse(options.hasShortOption("nonexistent"));
-    }
+        List<?> requiredOpts = options.getRequiredOptions();
+        assertEquals(1, requiredOpts.size());
+        assertTrue(requiredOpts.contains("r"));
 
-    // Tests adding required option and retrieving required options list
-    @Test
-    public void testGetRequiredOptions_withRequiredOption_returnsRequiredKeys()
-    {
-        Option reqOpt = new Option("r", "require", true, "required option");
-        reqOpt.setRequired(true);
-        options.addOption(reqOpt);
-
-        List required = options.getRequiredOptions();
-        assertEquals(1, required.size());
-        assertTrue(required.contains("r"));
-
-        // Add again to test duplicate handling branch
-        options.addOption(reqOpt);
+        // Re-adding the same required option should update without duplicate
+        options.addOption(opt);
         assertEquals(1, options.getRequiredOptions().size());
     }
 
-    // Tests addOptionGroup with required and non-required group
+    // Tests retrieving option with leading hyphens
     @Test
-    public void testAddOptionGroup_requiredAndNonRequiredGroup_correctlyAssociated()
+    public void testGetOption_withLeadingHyphens_returnsCorrectOption()
     {
-        OptionGroup group = new OptionGroup();
-        Option opt1 = new Option("f", "file", false, "file opt");
-        Option opt2 = new Option("d", "dir", false, "dir opt");
-        opt1.setRequired(true); // Should be reset to false inside addOptionGroup
-        group.addOption(opt1);
-        group.addOption(opt2);
-        group.setRequired(true);
+        options.addOption("d", "debug", false, "debug option");
 
-        options.addOptionGroup(group);
+        Option shortOpt = options.getOption("-d");
+        Option longOpt = options.getOption("--debug");
 
-        assertFalse(opt1.isRequired());
-        assertEquals(group, options.getOptionGroup(opt1));
-        assertEquals(group, options.getOptionGroup(opt2));
-        assertTrue(options.getRequiredOptions().contains(group));
-
-        Collection<OptionGroup> groups = options.getOptionGroups();
-        assertEquals(1, groups.size());
-        assertTrue(groups.contains(group));
+        assertNotNull(shortOpt);
+        assertNotNull(longOpt);
+        assertEquals(shortOpt, longOpt);
     }
 
-    // Tests getOptionGroup for option that has only long name
+    // Tests retrieving non-existent option returns null
     @Test
-    public void testGetOptionGroup_longOptOnlyInGroup_returnsOptionGroup()
+    public void testGetOption_nonExistentOption_returnsNull()
     {
-        OptionGroup group = new OptionGroup();
-        Option longOnly = new Option(null, "foo", false, "foo opt");
-        group.addOption(longOnly);
-        options.addOptionGroup(group);
-
-        assertEquals(group, options.getOptionGroup(longOnly));
-        assertTrue(options.hasOption("foo"));
-        assertTrue(options.hasLongOption("foo"));
+        assertNull(options.getOption("unknown"));
+        assertNull(options.getOption("--unknown"));
     }
 
-    // Tests getOptionGroup for option not in any group
+    // Tests matching options with exact match
     @Test
-    public void testGetOptionGroup_optionNotInGroup_returnsNull()
+    public void testGetMatchingOptions_exactMatch_returnsSingletonList()
     {
-        Option standalone = new Option("s", "standalone", false, "standalone");
-        options.addOption(standalone);
-        assertNull(options.getOptionGroup(standalone));
-    }
-
-    // Tests getMatchingOptions with exact match
-    @Test
-    public void testGetMatchingOptions_exactMatch_returnsSingleOption()
-    {
-        options.addOption("v", "version", false, "display version");
-        options.addOption(null, "verbose", false, "verbose output");
+        options.addOption("v", "version", false, "version");
+        options.addOption("ver", "verbose", false, "verbose");
 
         List<String> matches = options.getMatchingOptions("version");
         assertEquals(1, matches.size());
         assertEquals("version", matches.get(0));
-
-        List<String> strippedMatches = options.getMatchingOptions("--version");
-        assertEquals(1, strippedMatches.size());
-        assertEquals("version", strippedMatches.get(0));
     }
 
-    // Tests getMatchingOptions with partial prefix match
+    // Tests matching options with partial prefix match
     @Test
-    public void testGetMatchingOptions_partialMatch_returnsAllMatchingLongOpts()
+    public void testGetMatchingOptions_prefixMatch_returnsAllMatchingLongOptions()
     {
-        options.addOption("v", "version", false, "display version");
-        options.addOption(null, "verbose", false, "verbose output");
-        options.addOption("h", "help", false, "display help");
+        options.addOption(null, "foo", false, "foo opt");
+        options.addOption(null, "foobar", false, "foobar opt");
+        options.addOption(null, "bar", false, "bar opt");
 
-        List<String> matches = options.getMatchingOptions("ver");
+        List<String> matches = options.getMatchingOptions("--fo");
         assertEquals(2, matches.size());
-        assertTrue(matches.contains("version"));
-        assertTrue(matches.contains("verbose"));
+        assertTrue(matches.contains("foo"));
+        assertTrue(matches.contains("foobar"));
+        assertFalse(matches.contains("bar"));
     }
 
-    // Tests getMatchingOptions with no match
+    // Tests matching options when no option matches
     @Test
     public void testGetMatchingOptions_noMatch_returnsEmptyList()
     {
-        options.addOption("v", "version", false, "display version");
-        List<String> matches = options.getMatchingOptions("xyz");
+        options.addOption("f", "file", true, "file opt");
+
+        List<String> matches = options.getMatchingOptions("dir");
+        assertNotNull(matches);
         assertTrue(matches.isEmpty());
     }
 
-    // Tests getOptions and helpOptions
+    // Tests hasOption, hasLongOption, and hasShortOption methods with hyphens
     @Test
-    public void testGetOptions_returnsAllShortAndLongOnlyOptions()
+    public void testHasOption_withHyphenatedNames_returnsTrue()
     {
-        Option optA = new Option("a", "alpha", false, "option A");
-        Option optB = new Option("b", false, "option B");
-        Option optC = new Option(null, "charlie", false, "option C");
+        options.addOption("s", "silent", false, "silent mode");
 
-        options.addOption(optA);
-        options.addOption(optB);
-        options.addOption(optC);
-
-        Collection<Option> allOpts = options.getOptions();
-        assertEquals(3, allOpts.size());
-        assertTrue(allOpts.contains(optA));
-        assertTrue(allOpts.contains(optB));
-        assertTrue(allOpts.contains(optC));
-
-        List<Option> helpOpts = options.helpOptions();
-        assertEquals(3, helpOpts.size());
+        assertTrue(options.hasOption("-s"));
+        assertTrue(options.hasOption("--silent"));
+        assertTrue(options.hasShortOption("-s"));
+        assertTrue(options.hasLongOption("--silent"));
+        assertFalse(options.hasShortOption("--silent"));
+        assertFalse(options.hasLongOption("-s"));
     }
 
-    // Tests getOptions returns unmodifiable collection
-    @Test(expected = UnsupportedOperationException.class)
-    public void testGetOptions_modifyReturnedCollection_throwsException()
+    // Tests adding an OptionGroup and verifying group associations
+    @Test
+    public void testAddOptionGroup_validOptionGroup_associatesGroupCorrectly()
     {
-        options.addOption("a", "description a");
-        Collection<Option> opts = options.getOptions();
-        opts.clear();
+        OptionGroup group = new OptionGroup();
+        Option opt1 = new Option("f", "file", false, "file option");
+        Option opt2 = new Option("d", "dir", false, "directory option");
+        group.addOption(opt1);
+        group.addOption(opt2);
+
+        options.addOptionGroup(group);
+
+        Collection<OptionGroup> groups = options.getOptionGroups();
+        assertEquals(1, groups.size());
+        assertTrue(groups.contains(group));
+        assertEquals(group, options.getOptionGroup(opt1));
+        assertEquals(group, options.getOptionGroup(opt2));
+        assertFalse(opt1.isRequired());
+        assertFalse(opt2.isRequired());
     }
 
-    // Tests getRequiredOptions returns unmodifiable list
-    @Test(expected = UnsupportedOperationException.class)
-    public void testGetRequiredOptions_modifyReturnedList_throwsException()
+    // Tests adding a required OptionGroup
+    @Test
+    public void testAddOptionGroup_requiredGroup_addsGroupToRequiredOptions()
     {
-        Option opt = new Option("r", true, "req");
+        OptionGroup group = new OptionGroup();
+        group.setRequired(true);
+        Option opt = new Option("x", "exclusive", false, "exclusive opt");
+        group.addOption(opt);
+
+        options.addOptionGroup(group);
+
+        List<?> requiredOpts = options.getRequiredOptions();
+        assertEquals(1, requiredOpts.size());
+        assertTrue(requiredOpts.contains(group));
+    }
+
+    // Tests getOptionGroup for option not belonging to any group
+    @Test
+    public void testGetOptionGroup_optionNotInGroup_returnsNull()
+    {
+        Option opt = new Option("n", "none", false, "no group");
+        options.addOption(opt);
+
+        assertNull(options.getOptionGroup(opt));
+    }
+
+    // Tests getOptions returns read-only collection containing all added options
+    @Test
+    public void testGetOptions_afterAddingOptions_returnsUnmodifiableCollection()
+    {
+        options.addOption("a", "optA");
+        options.addOption("b", "optB");
+
+        Collection<Option> allOptions = options.getOptions();
+        assertEquals(2, allOptions.size());
+    }
+
+    // Tests modifying getOptions collection throws UnsupportedOperationException
+    @Test(expected = UnsupportedOperationException.class)
+    public void testGetOptions_attemptModification_throwsException()
+    {
+        options.addOption("a", "optA");
+        Collection<Option> allOptions = options.getOptions();
+        allOptions.clear();
+    }
+
+    // Tests modifying getRequiredOptions list throws UnsupportedOperationException
+    @Test(expected = UnsupportedOperationException.class)
+    public void testGetRequiredOptions_attemptModification_throwsException()
+    {
+        Option opt = new Option("r", "req", false, "desc");
         opt.setRequired(true);
         options.addOption(opt);
-        options.getRequiredOptions().clear();
+
+        List required = options.getRequiredOptions();
+        required.clear();
     }
 
-    // Tests toString method contains short and long option representations
+    // Tests toString method returns non-empty formatted debug string
     @Test
-    public void testToString_formatsCorrectly()
+    public void testToString_withOptions_returnsFormattedString()
     {
-        options.addOption("a", "alpha", false, "description a");
+        options.addOption("h", "help", false, "display help");
+
         String result = options.toString();
         assertNotNull(result);
         assertTrue(result.contains("[ Options: [ short "));
-        assertTrue(result.contains("alpha"));
+        assertTrue(result.contains("help"));
     }
 }

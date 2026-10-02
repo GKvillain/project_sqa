@@ -13,327 +13,496 @@ import org.apache.commons.cli2.DisplaySetting;
 import org.apache.commons.cli2.HelpLine;
 import org.apache.commons.cli2.Option;
 import org.apache.commons.cli2.OptionException;
+import org.apache.commons.cli2.WriteableCommandLine;
 import org.apache.commons.cli2.builder.ArgumentBuilder;
 import org.apache.commons.cli2.builder.DefaultOptionBuilder;
 import org.apache.commons.cli2.builder.GroupBuilder;
+import org.apache.commons.cli2.builder.SwitchBuilder;
 import org.apache.commons.cli2.commandline.WriteableCommandLineImpl;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class GroupImplTest {
 
-    private DefaultOption optionHelp;
-    private DefaultOption optionVersion;
-    private Argument argumentFile;
-    private GroupImpl group;
+    private Option helpOption;
+    private Option versionOption;
+    private Argument targetArg;
+    private DefaultOptionBuilder obuilder;
+    private ArgumentBuilder abuilder;
+    private GroupBuilder gbuilder;
 
     @Before
     public void setUp() {
-        final DefaultOptionBuilder obuilder = new DefaultOptionBuilder();
-        final ArgumentBuilder abuilder = new ArgumentBuilder();
+        this.obuilder = new DefaultOptionBuilder();
+        this.abuilder = new ArgumentBuilder();
+        this.gbuilder = new GroupBuilder();
 
-        optionHelp = obuilder
-            .withShortName("h")
-            .withLongName("help")
-            .withDescription("print help message")
-            .create();
+        this.helpOption = obuilder
+                .withShortName("h")
+                .withLongName("help")
+                .withDescription("displays the help message")
+                .create();
 
-        optionVersion = obuilder
-            .withShortName("v")
-            .withLongName("version")
-            .withDescription("print version info")
-            .create();
+        this.versionOption = obuilder
+                .withShortName("v")
+                .withLongName("version")
+                .withDescription("displays the version information")
+                .create();
 
-        argumentFile = abuilder
-            .withName("file")
-            .withMinimum(0)
-            .withMaximum(1)
-            .create();
-
-        final List options = new ArrayList();
-        options.add(optionHelp);
-        options.add(optionVersion);
-        options.add(argumentFile);
-
-        group = new GroupImpl(options, "options", "Available options", 0, 2);
+        this.targetArg = abuilder
+                .withName("target")
+                .withMinimum(1)
+                .withMaximum(1)
+                .create();
     }
 
-    // Tests getter methods and initial state
+    // Tests construction and property getters
     @Test
-    public void testGetters_validGroup_returnsConfiguredValues() {
+    public void testGetters_validGroup_returnsProperties() {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(versionOption);
+        options.add(targetArg);
+
+        GroupImpl group = new GroupImpl(options, "options", "Available options", 1, 2);
+
         assertEquals("options", group.getPreferredName());
         assertEquals("Available options", group.getDescription());
-        assertEquals(0, group.getMinimum());
+        assertEquals(1, group.getMinimum());
         assertEquals(2, group.getMaximum());
-        assertFalse(group.isRequired());
-
+        assertTrue(group.isRequired());
         assertEquals(2, group.getOptions().size());
-        assertTrue(group.getOptions().contains(optionHelp));
-        assertTrue(group.getOptions().contains(optionVersion));
-
         assertEquals(1, group.getAnonymous().size());
-        assertTrue(group.getAnonymous().contains(argumentFile));
-
-        assertTrue(group.getTriggers().contains("--help"));
-        assertTrue(group.getTriggers().contains("-h"));
-        assertTrue(group.getTriggers().contains("--version"));
-        assertTrue(group.getTriggers().contains("-v"));
-        assertTrue(group.getPrefixes().contains("-"));
-        assertTrue(group.getPrefixes().contains("--"));
     }
 
-    // Tests isRequired when minimum is greater than zero
+    // Tests isRequired when minimum is 0
     @Test
-    public void testIsRequired_minimumGreaterThanZero_returnsTrue() {
-        final List options = new ArrayList();
-        options.add(optionHelp);
-        final GroupImpl requiredGroup = new GroupImpl(options, "req", "Required group", 1, 1);
+    public void testIsRequired_zeroMinimum_returnsFalse() {
+        List options = new ArrayList();
+        options.add(helpOption);
 
-        assertTrue(requiredGroup.isRequired());
-        assertEquals(1, requiredGroup.getMinimum());
+        GroupImpl group = new GroupImpl(options, "options", "desc", 0, 1);
+        assertFalse(group.isRequired());
     }
 
-    // Tests findOption with existing and non-existing triggers
+    // Tests getPrefixes and getTriggers extraction from options
     @Test
-    public void testFindOption_existingAndNonExistingTriggers_returnsExpectedResult() {
-        assertEquals(optionHelp, group.findOption("-h"));
-        assertEquals(optionHelp, group.findOption("--help"));
-        assertEquals(optionVersion, group.findOption("-v"));
+    public void testGetPrefixesAndTriggers_standardOptions_returnsPopulatedSets() {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(versionOption);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 2);
+
+        Set triggers = group.getTriggers();
+        assertTrue(triggers.contains("-h"));
+        assertTrue(triggers.contains("--help"));
+        assertTrue(triggers.contains("-v"));
+        assertTrue(triggers.contains("--version"));
+
+        Set prefixes = group.getPrefixes();
+        assertTrue(prefixes.contains("-"));
+        assertTrue(prefixes.contains("--"));
+    }
+
+    // Tests findOption by existing trigger and non-existing trigger
+    @Test
+    public void testFindOption_existingAndNonExistingTrigger_findsOptionOrNull() {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(versionOption);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 2);
+
+        assertSame(helpOption, group.findOption("-h"));
+        assertSame(helpOption, group.findOption("--help"));
+        assertSame(versionOption, group.findOption("-v"));
         assertNull(group.findOption("-unknown"));
     }
 
-    // Tests canProcess with null argument
+    // Tests canProcess for null, direct match, bursting, anonymous argument and unknown option
     @Test
-    public void testCanProcess_nullArgument_returnsFalse() {
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        assertFalse(group.canProcess(cmdLine, (String) null));
+    public void testCanProcess_variousInputs_returnsExpectedResult() {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(targetArg);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 1);
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+
+        assertFalse(group.canProcess(commandLine, (String) null));
+        assertTrue(group.canProcess(commandLine, "--help"));
+        assertTrue(group.canProcess(commandLine, "-h"));
+        assertTrue(group.canProcess(commandLine, "file.txt"));
+        assertFalse(group.canProcess(commandLine, "--unknown"));
     }
 
-    // Tests canProcess with matching trigger
+    // Tests canProcess without anonymous arguments
     @Test
-    public void testCanProcess_validTrigger_returnsTrue() {
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        assertTrue(group.canProcess(cmdLine, "--help"));
-        assertTrue(group.canProcess(cmdLine, "-v"));
+    public void testCanProcess_withoutAnonymousArguments_rejectsNonOption() {
+        List options = new ArrayList();
+        options.add(helpOption);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 1);
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+
+        assertFalse(group.canProcess(commandLine, "file.txt"));
     }
 
-    // Tests canProcess with anonymous argument present
+    // Tests process method with valid options and arguments
     @Test
-    public void testCanProcess_nonOptionArgumentWithAnonymous_returnsTrue() {
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        assertTrue(group.canProcess(cmdLine, "filename.txt"));
-    }
+    public void testProcess_validOptionAndArgument_processesSuccessfully() throws OptionException {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(targetArg);
 
-    // Tests canProcess when no anonymous argument is available
-    @Test
-    public void testCanProcess_nonOptionArgumentWithoutAnonymous_returnsFalse() {
-        final List options = new ArrayList();
-        options.add(optionHelp);
-        final GroupImpl groupNoAnon = new GroupImpl(options, "noAnon", "desc", 0, 1);
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(groupNoAnon, new ArrayList());
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 2);
 
-        assertFalse(groupNoAnon.canProcess(cmdLine, "filename.txt"));
-    }
-
-    // Tests canProcess with unknown option-like argument
-    @Test
-    public void testCanProcess_unknownOptionLikeArgument_returnsFalse() {
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        assertFalse(group.canProcess(cmdLine, "--unknown"));
-    }
-
-    // Tests canProcess with ListIterator
-    @Test
-    public void testCanProcess_listIterator_processesNextElementWithoutConsuming() {
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        final List args = new ArrayList();
+        List args = new ArrayList();
         args.add("--help");
+        args.add("targetVal");
 
-        final ListIterator iterator = args.listIterator();
-        assertTrue(group.canProcess(cmdLine, iterator));
-        assertTrue(iterator.hasNext());
-        assertEquals("--help", iterator.next());
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+        ListIterator iterator = args.listIterator();
 
-        assertFalse(group.canProcess(cmdLine, iterator));
-    }
+        group.process(commandLine, iterator);
 
-    // Tests process method with valid option tokens
-    @Test
-    public void testProcess_validOptionTokens_processesSuccessfully() throws OptionException {
-        final List args = new ArrayList();
-        args.add("--help");
-        args.add("--version");
-
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        final ListIterator iterator = args.listIterator();
-
-        group.process(cmdLine, iterator);
-
-        assertTrue(cmdLine.hasOption(optionHelp));
-        assertTrue(cmdLine.hasOption(optionVersion));
+        assertTrue(commandLine.hasOption(helpOption));
+        assertTrue(commandLine.hasOption(targetArg));
+        assertEquals("targetVal", commandLine.getValue(targetArg));
         assertFalse(iterator.hasNext());
     }
 
-    // Tests process method with anonymous arguments
-    @Test
-    public void testProcess_anonymousArguments_processesValues() throws OptionException {
-        final List args = new ArrayList();
-        args.add("file1.txt");
-
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        final ListIterator iterator = args.listIterator();
-
-        group.process(cmdLine, iterator);
-
-        assertTrue(cmdLine.hasOption(argumentFile));
-        assertEquals("file1.txt", cmdLine.getValue(argumentFile));
-    }
-
-    // Tests process method stops when encountering unhandled option token
+    // Tests process method when encountering an unexpected option-like argument
     @Test
     public void testProcess_unrecognizedOption_abortsProcessing() throws OptionException {
-        final List args = new ArrayList();
+        List options = new ArrayList();
+        options.add(helpOption);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 1);
+
+        List args = new ArrayList();
         args.add("--unknown");
 
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        final ListIterator iterator = args.listIterator();
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+        ListIterator iterator = args.listIterator();
 
-        group.process(cmdLine, iterator);
+        group.process(commandLine, iterator);
 
+        assertFalse(commandLine.hasOption(helpOption));
         assertTrue(iterator.hasNext());
         assertEquals("--unknown", iterator.next());
     }
 
-    // Tests validate successfully when criteria are met
-    @Test
-    public void testValidate_validCommandLine_noExceptionThrown() throws OptionException {
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        cmdLine.addOption(optionHelp);
-
-        group.validate(cmdLine);
-    }
-
-    // Tests validate throws OptionException when minimum required options not met
+    // Tests validate method when required minimum count is not met
     @Test(expected = OptionException.class)
-    public void testValidate_fewerThanMinimumOptions_throwsOptionException() throws OptionException {
-        final List options = new ArrayList();
-        options.add(optionHelp);
-        options.add(optionVersion);
-        final GroupImpl requiredGroup = new GroupImpl(options, "req", "desc", 1, 2);
+    public void testValidate_missingRequiredOption_throwsOptionException() throws OptionException {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(versionOption);
 
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(requiredGroup, new ArrayList());
-        requiredGroup.validate(cmdLine);
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 1, 2);
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+
+        group.validate(commandLine);
     }
 
-    // Tests validate throws OptionException when options exceed maximum
+    // Tests validate method when maximum option count is exceeded
     @Test(expected = OptionException.class)
-    public void testValidate_moreThanMaximumOptions_throwsOptionException() throws OptionException {
-        final List options = new ArrayList();
-        options.add(optionHelp);
-        options.add(optionVersion);
-        final GroupImpl maxGroup = new GroupImpl(options, "max", "desc", 0, 1);
+    public void testValidate_exceedsMaximumOptions_throwsOptionException() throws OptionException {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(versionOption);
 
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(maxGroup, new ArrayList());
-        cmdLine.addOption(optionHelp);
-        cmdLine.addOption(optionVersion);
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 1);
 
-        maxGroup.validate(cmdLine);
+        List args = new ArrayList();
+        args.add("-h");
+        args.add("-v");
+
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+        ListIterator iterator = args.listIterator();
+        group.process(commandLine, iterator);
+
+        group.validate(commandLine);
     }
 
-    // Tests validate with optional anonymous argument not supplied (Defects4J Cli-14 regression check)
+    // Tests validate method when constraints are satisfied
     @Test
-    public void testValidate_optionalAnonymousArgumentNotSupplied_validatesSuccessfully() throws OptionException {
-        final ArgumentBuilder abuilder = new ArgumentBuilder();
-        final Argument optionalArg = abuilder
-            .withName("target")
-            .withMinimum(0)
-            .withMaximum(1)
-            .create();
+    public void testValidate_withinBounds_passesValidation() throws OptionException {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(versionOption);
 
-        final List options = new ArrayList();
-        options.add(optionHelp);
-        options.add(optionalArg);
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 1, 2);
 
-        final GroupImpl testGroup = new GroupImpl(options, "grp", "desc", 0, 1);
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(testGroup, new ArrayList());
+        List args = new ArrayList();
+        args.add("-h");
 
-        testGroup.validate(cmdLine);
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+        ListIterator iterator = args.listIterator();
+        group.process(commandLine, iterator);
+
+        group.validate(commandLine);
     }
 
-    // Tests appendUsage with expanded and optional settings
+    // Tests validate method for nested required group (Defects4J Cli-14 bug check)
     @Test
-    public void testAppendUsage_optionalAndExpandedSettings_buildsUsageString() {
-        final StringBuffer buffer = new StringBuffer();
-        final Set settings = new HashSet();
+    public void testValidate_nestedRequiredGroup_validatesChildGroup() {
+        List subOptions = new patrioticOptions();
+        subOptions.add(helpOption);
+        GroupImpl subGroup = new GroupImpl(subOptions, "sub", "sub group", 1, 1);
+
+        List rootOptions = new ArrayList();
+        rootOptions.add(subGroup);
+        GroupImpl rootGroup = new GroupImpl(rootOptions, "root", "root group", 0, 1);
+
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(rootGroup, new ArrayList());
+
+        try {
+            rootGroup.validate(commandLine);
+            fail("Expected OptionException for missing required subGroup");
+        } catch (OptionException e) {
+            assertNotNull(e.getMessage());
+        }
+    }
+
+    private List patrioticOptions() {
+        return new ArrayList();
+    }
+
+    // Tests appendUsage with different display settings
+    @Test
+    public void testAppendUsage_withSettings_buildsExpectedUsageString() {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(versionOption);
+
+        GroupImpl group = new GroupImpl(options, "options", "desc", 0, 2);
+
+        Set settings = new HashSet();
         settings.add(DisplaySetting.DISPLAY_OPTIONAL);
         settings.add(DisplaySetting.DISPLAY_GROUP_EXPANDED);
         settings.add(DisplaySetting.DISPLAY_GROUP_NAME);
 
-        group.appendUsage(buffer, settings, null);
+        StringBuffer buffer = new StringBuffer();
+        group.appendUsage(buffer, settings, null, "|");
 
-        final String usage = buffer.toString();
+        String usage = buffer.toString();
         assertTrue(usage.startsWith("["));
         assertTrue(usage.contains("options"));
         assertTrue(usage.contains("-h"));
         assertTrue(usage.contains("-v"));
-        assertTrue(usage.endsWith("]"));
     }
 
-    // Tests appendUsage without expanded display displays only the group name
+    // Tests helpLines generation with group name and expanded options
     @Test
-    public void testAppendUsage_withoutExpanded_displaysNameOnly() {
-        final StringBuffer buffer = new StringBuffer();
-        final Set settings = new HashSet();
-        settings.add(DisplaySetting.DISPLAY_GROUP_NAME);
+    public void testHelpLines_expandedAndNamed_returnsHelpLineList() {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(versionOption);
 
-        group.appendUsage(buffer, settings, null);
+        GroupImpl group = new GroupImpl(options, "options", "desc", 0, 2);
 
-        assertEquals("options", buffer.toString().trim());
-    }
-
-    // Tests appendUsage with custom separator and comparator
-    @Test
-    public void testAppendUsage_withComparatorAndCustomSeparator_formatsCorrectly() {
-        final StringBuffer buffer = new StringBuffer();
-        final Set settings = new HashSet();
-        settings.add(DisplaySetting.DISPLAY_GROUP_EXPANDED);
-
-        final Comparator reverseComp = Collections.reverseOrder();
-        group.appendUsage(buffer, settings, reverseComp, " AND ");
-
-        final String usage = buffer.toString();
-        assertTrue(usage.contains(" AND "));
-    }
-
-    // Tests helpLines generation with display settings
-    @Test
-    public void testHelpLines_withGroupNameAndExpanded_returnsHelpLines() {
-        final Set settings = new HashSet();
+        Set settings = new HashSet();
         settings.add(DisplaySetting.DISPLAY_GROUP_NAME);
         settings.add(DisplaySetting.DISPLAY_GROUP_EXPANDED);
-        settings.add(DisplaySetting.DISPLAY_GROUP_ARGUMENT);
 
-        final List lines = group.helpLines(0, settings, null);
-
+        List lines = group.helpLines(0, settings, null);
         assertNotNull(lines);
         assertFalse(lines.isEmpty());
-        assertTrue(lines.size() >= 3);
-
-        final HelpLine firstLine = (HelpLine) lines.get(0);
-        assertEquals(0, firstLine.getIndent());
-        assertEquals(group, firstLine.getOption());
     }
 
-    // Tests defaults populates command line defaults
+    // Tests defaults method propagation to child options and arguments
     @Test
-    public void testDefaults_commandLine_invokesDefaultsOnChildren() {
-        final WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(group, new ArrayList());
-        group.defaults(cmdLine);
+    public void testDefaults_commandLine_populatesDefaults() {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(targetArg);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 2);
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+
+        group.defaults(commandLine);
+        assertFalse(commandLine.hasOption(helpOption));
+    }
+
+    // Tests null list in constructor creates empty option and anonymous lists
+    @Test
+    public void testConstructor_nullOptionsList_initializesEmpty() {
+        GroupImpl group = new GroupImpl(null, "emptyGroup", "empty desc", 0, 0);
+        assertTrue(group.getOptions().isEmpty());
+        assertTrue(group.getAnonymous().isEmpty());
+        assertTrue(group.getTriggers().isEmpty());
+        assertTrue(group.getPrefixes().isEmpty());
+        assertEquals("emptyGroup", group.getPreferredName());
+        assertEquals("emptyDesc", group.getDescription().replace(" ", ""));
+    }
+
+    // Tests canProcess using ListIterator overload and arguments
+    @Test
+    public void testCanProcess_listIterator_iteratesAndMatches() {
+        List options = new ArrayList();
+        options.add(helpOption);
+        options.add(targetArg);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 2);
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+
+        List args = new ArrayList();
+        args.add("-h");
+        args.add("targetValue");
+
+        ListIterator it = args.listIterator();
+        assertTrue(group.canProcess(commandLine, it));
+        assertEquals(0, it.nextIndex()); // Verifies iterator is rewound
+
+        it.next(); // advance to targetValue
+        assertTrue(group.canProcess(commandLine, it));
+        assertEquals(1, it.nextIndex());
+    }
+
+    // Tests canProcess bursting with switch options
+    @Test
+    public void testCanProcess_switchOptionBursting_returnsTrue() {
+        SwitchBuilder sbuilder = new SwitchBuilder();
+        Option switchOpt = sbuilder.withShortName("a").withShortName("b").create();
+
+        List options = new ArrayList();
+        options.add(switchOpt);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 1);
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+
+        assertTrue(group.canProcess(commandLine, "+a"));
+        assertTrue(group.canProcess(commandLine, "-ab"));
+        assertFalse(group.canProcess(commandLine, "-xyz"));
+    }
+
+    // Tests appendUsage with DISPLAY_GROUP_OUTER, DISPLAY_GROUP_ARGUMENT, sort comparator, and unexpected combinations
+    @Test
+    public void testAppendUsage_outerAndArgumentSettingsAndComparator() {
+        List options = new ArrayList();
+        options.add(versionOption);
+        options.add(helpOption);
+        options.add(targetArg);
+
+        GroupImpl group = new GroupImpl(options, "myGroup", "group desc", 1, 1);
+
+        Set settings = new HashSet();
+        settings.add(DisplaySetting.DISPLAY_GROUP_EXPANDED);
+        settings.add(DisplaySetting.DISPLAY_GROUP_ARGUMENT);
+        settings.add(DisplaySetting.DISPLAY_GROUP_OUTER);
+
+        Comparator comp = new Comparator() {
+            public int compare(Object o1, Object o2) {
+                return ((Option) o1).getPreferredName().compareTo(((Option) o2).getPreferredName());
+            }
+        };
+
+        StringBuffer buffer = new StringBuffer();
+        group.appendUsage(buffer, settings, comp, "|");
+
+        String usage = buffer.toString();
+        assertTrue(usage.startsWith("("));
+        assertTrue(usage.endsWith(")"));
+        assertTrue(usage.contains("target"));
+    }
+
+    // Tests appendUsage with DISPLAY_GROUP_NAME only and no DISPLAY_GROUP_EXPANDED
+    @Test
+    public void testAppendUsage_groupNameOnly_notExpanded() {
+        List options = new ArrayList();
+        options.add(helpOption);
+
+        GroupImpl group = new GroupImpl(options, "namedGrp", "desc", 0, 1);
+
+        Set settings = new HashSet();
+        settings.add(DisplaySetting.DISPLAY_GROUP_NAME);
+
+        StringBuffer buffer = new StringBuffer();
+        group.appendUsage(buffer, settings, null);
+
+        assertEquals("[namedGrp]", buffer.toString());
+    }
+
+    // Tests appendUsage without group name fallback to preferred name
+    @Test
+    public void testAppendUsage_noGroupName_notExpanded() {
+        List options = new ArrayList();
+        options.add(helpOption);
+
+        GroupImpl group = new GroupImpl(options, "fallbackName", "desc", 1, 1);
+
+        Set settings = new HashSet();
+
+        StringBuffer buffer = new StringBuffer();
+        group.appendUsage(buffer, settings, null);
+
+        assertEquals("fallbackName", buffer.toString());
+    }
+
+    // Tests helpLines with comparator and without expanded setting
+    @Test
+    public void testHelpLines_withComparatorAndNoExpanded() {
+        List options = new ArrayList();
+        options.add(versionOption);
+        options.add(helpOption);
+
+        GroupImpl group = new GroupImpl(options, "namedGroup", "group description", 0, 2);
+
+        Set settings = new HashSet();
+        settings.add(DisplaySetting.DISPLAY_GROUP_NAME);
+
+        Comparator comp = new Comparator() {
+            public int compare(Object o1, Object o2) {
+                return ((Option) o1).getPreferredName().compareTo(((Option) o2).getPreferredName());
+            }
+        };
+
+        List lines = group.helpLines(1, settings, comp);
+        assertEquals(1, lines.size());
+        HelpLine line = (HelpLine) lines.get(0);
+        assertEquals(1, line.getIndent());
+        assertSame(group, line.getOption());
+    }
+
+    // Tests validate missing anonymous argument
+    @Test(expected = OptionException.class)
+    public void testValidate_missingAnonymousArgument_throwsOptionException() throws OptionException {
+        List options = new ArrayList();
+        options.add(targetArg);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 1);
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+
+        group.validate(commandLine);
+    }
+
+    // Tests validate missing required child option when minimum count is met but required child is not present
+    @Test(expected = OptionException.class)
+    public void testValidate_requiredChildOptionMissing_throwsOptionException() throws OptionException {
+        Option reqOpt = obuilder
+                .withShortName("r")
+                .withLongName("required")
+                .withRequired(true)
+                .create();
+
+        List options = new ArrayList();
+        options.add(reqOpt);
+        options.add(helpOption);
+
+        GroupImpl group = new GroupImpl(options, "grp", "desc", 0, 2);
+
+        List args = new ArrayList();
+        args.add("-h");
+
+        WriteableCommandLine commandLine = new WriteableCommandLineImpl(group, new ArrayList());
+        ListIterator iterator = args.listIterator();
+        group.process(commandLine, iterator);
+
+        group.validate(commandLine);
     }
 }

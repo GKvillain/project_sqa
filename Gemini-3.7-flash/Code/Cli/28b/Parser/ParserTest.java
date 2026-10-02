@@ -5,229 +5,426 @@ import org.junit.Test;
 
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
-public class ParserTest {
+public class ParserTest
+{
+    private Parser parser;
+    private Options options;
 
-    private static class DummyParser extends Parser {
+    private static class DummyParser extends Parser
+    {
         @Override
-        protected String[] flatten(Options opts, String[] arguments, boolean stopAtNonOption) {
+        protected String[] flatten(Options opts, String[] arguments, boolean stopAtNonOption)
+        {
             return arguments != null ? arguments : new String[0];
         }
     }
 
-    private Parser parser;
-    private Options options;
-
     @Before
-    public void setUp() {
+    public void setUp()
+    {
         parser = new DummyParser();
         options = new Options();
     }
 
-    // Tests normal parsing with a single option without arguments
+    // Tests parsing simple option without arguments
     @Test
-    public void testParse_simpleOption_parsedSuccessfully() throws Exception {
-        options.addOption("a", "alpha", false, "alpha option");
-        CommandLine cl = parser.parse(options, new String[]{"-a"});
+    public void testParse_simpleOption_success() throws Exception
+    {
+        options.addOption("a", "all", false, "toggle all");
+        String[] args = new String[]{"-a"};
+
+        CommandLine cl = parser.parse(options, args);
 
         assertTrue(cl.hasOption("a"));
-        assertTrue(cl.hasOption("alpha"));
+        assertTrue(cl.hasOption("all"));
     }
 
-    // Tests parsing with null arguments array defaulting to empty array
+    // Tests parsing option with single argument
     @Test
-    public void testParse_nullArguments_returnsEmptyCommandLine() throws Exception {
-        options.addOption("a", false, "alpha option");
-        CommandLine cl = parser.parse(options, (String[]) null);
+    public void testParse_optionWithArg_success() throws Exception
+    {
+        options.addOption("f", "file", true, "specify file");
+        String[] args = new String[]{"-f", "test.txt"};
 
-        assertFalse(cl.hasOption("a"));
-        assertEquals(0, cl.getArgs().length);
+        CommandLine cl = parser.parse(options, args);
+
+        assertTrue(cl.hasOption("f"));
+        assertEquals("test.txt", cl.getOptionValue("f"));
     }
 
-    // Tests parsing arguments following double-dash
+    // Tests missing required argument triggers MissingArgumentException
+    @Test(expected = MissingArgumentException.class)
+    public void testParse_missingArgument_throwsException() throws Exception
+    {
+        options.addOption("f", "file", true, "specify file");
+        String[] args = new String[]{"-f"};
+
+        parser.parse(options, args);
+    }
+
+    // Tests optional argument when value is omitted
     @Test
-    public void testParse_doubleDashToken_eatsRemainingTokensAsArgs() throws Exception {
-        options.addOption("a", false, "alpha option");
-        CommandLine cl = parser.parse(options, new String[]{"-a", "--", "-b", "foo"});
+    public void testParse_optionalArgumentOmitted_success() throws Exception
+    {
+        Option opt = new Option("f", "file", true, "specify file");
+        opt.setOptionalArg(true);
+        options.addOption(opt);
+        String[] args = new String[]{"-f"};
+
+        CommandLine cl = parser.parse(options, args);
+
+        assertTrue(cl.hasOption("f"));
+        assertNull(cl.getOptionValue("f"));
+    }
+
+    // Tests missing required option triggers MissingOptionException
+    @Test(expected = MissingOptionException.class)
+    public void testParse_missingRequiredOption_throwsException() throws Exception
+    {
+        Option opt = new Option("r", "require", false, "required option");
+        opt.setRequired(true);
+        options.addOption(opt);
+        String[] args = new String[]{};
+
+        parser.parse(options, args);
+    }
+
+    // Tests required option satisfied
+    @Test
+    public void testParse_requiredOptionProvided_success() throws Exception
+    {
+        Option opt = new Option("r", "require", false, "required option");
+        opt.setRequired(true);
+        options.addOption(opt);
+        String[] args = new String[]{"-r"};
+
+        CommandLine cl = parser.parse(options, args);
+
+        assertTrue(cl.hasOption("r"));
+    }
+
+    // Tests unrecognized option triggers UnrecognizedOptionException
+    @Test(expected = UnrecognizedOptionException.class)
+    public void testParse_unrecognizedOption_throwsException() throws Exception
+    {
+        options.addOption("a", false, "alpha");
+        String[] args = new String[]{"-b"};
+
+        parser.parse(options, args);
+    }
+
+    // Tests unrecognized option with stopAtNonOption enabled stops parsing
+    @Test
+    public void testParse_unrecognizedOptionWithStopAtNonOption_stopsParsing() throws Exception
+    {
+        options.addOption("a", false, "alpha");
+        String[] args = new String[]{"-a", "-b", "extra"};
+
+        CommandLine cl = parser.parse(options, args, true);
 
         assertTrue(cl.hasOption("a"));
+        assertFalse(cl.hasOption("b"));
         assertEquals(2, cl.getArgs().length);
         assertEquals("-b", cl.getArgs()[0]);
-        assertEquals("foo", cl.getArgs()[1]);
-    }
-
-    // Tests single dash token when stopAtNonOption is false
-    @Test
-    public void testParse_singleDashWithoutStopAtNonOption_addsDashAsArg() throws Exception {
-        CommandLine cl = parser.parse(options, new String[]{"-", "arg1"}, false);
-
-        assertEquals(2, cl.getArgs().length);
-        assertEquals("-", cl.getArgs()[0]);
-        assertEquals("arg1", cl.getArgs()[1]);
-    }
-
-    // Tests single dash token when stopAtNonOption is true
-    @Test
-    public void testParse_singleDashWithStopAtNonOption_eatsRemainingTokens() throws Exception {
-        CommandLine cl = parser.parse(options, new String[]{"-", "arg1"}, true);
-
-        assertEquals(2, cl.getArgs().length);
-        assertEquals("-", cl.getArgs()[0]);
-        assertEquals("arg1", cl.getArgs()[1]);
-    }
-
-    // Tests unrecognized option when stopAtNonOption is false throws exception
-    @Test(expected = UnrecognizedOptionException.class)
-    public void testParse_unrecognizedOptionNoStopAtNonOption_throwsException() throws Exception {
-        parser.parse(options, new String[]{"-unknown"});
-    }
-
-    // Tests unrecognized option when stopAtNonOption is true adds to arguments and stops
-    @Test
-    public void testParse_unrecognizedOptionWithStopAtNonOption_eatsRemainingTokens() throws Exception {
-        options.addOption("a", false, "alpha");
-        CommandLine cl = parser.parse(options, new String[]{"-a", "-unknown", "extra"}, true);
-
-        assertTrue(cl.hasOption("a"));
-        assertEquals(2, cl.getArgs().length);
-        assertEquals("-unknown", cl.getArgs()[0]);
         assertEquals("extra", cl.getArgs()[1]);
     }
 
-    // Tests normal argument following option when stopAtNonOption is true
+    // Tests double dash stops parsing and collects remaining arguments
     @Test
-    public void testParse_nonOptionArgWithStopAtNonOption_eatsRemainingTokens() throws Exception {
+    public void testParse_doubleDash_eatsRemainingArguments() throws Exception
+    {
         options.addOption("a", false, "alpha");
-        CommandLine cl = parser.parse(options, new String[]{"arg1", "-a"}, true);
+        options.addOption("b", false, "beta");
+        String[] args = new String[]{"-a", "--", "-b", "arg1"};
+
+        CommandLine cl = parser.parse(options, args);
+
+        assertTrue(cl.hasOption("a"));
+        assertFalse(cl.hasOption("b"));
+        assertEquals(2, cl.getArgs().length);
+        assertEquals("-b", cl.getArgs()[0]);
+        assertEquals("arg1", cl.getArgs()[1]);
+    }
+
+    // Tests single dash as argument
+    @Test
+    public void testParse_singleDash_handledCorrectly() throws Exception
+    {
+        options.addOption("a", false, "alpha");
+        String[] args = new String[]{"-a", "-"};
+
+        CommandLine cl = parser.parse(options, args);
+
+        assertTrue(cl.hasOption("a"));
+        assertEquals(1, cl.getArgs().length);
+        assertEquals("-", cl.getArgs()[0]);
+    }
+
+    // Tests single dash with stopAtNonOption stops parsing
+    @Test
+    public void testParse_singleDashWithStopAtNonOption_stopsParsing() throws Exception
+    {
+        options.addOption("a", false, "alpha");
+        String[] args = new String[]{"-", "-a"};
+
+        CommandLine cl = parser.parse(options, args, true);
 
         assertFalse(cl.hasOption("a"));
-        assertEquals(2, cl.getArgs().length);
-        assertEquals("arg1", cl.getArgs()[0]);
-        assertEquals("-a", cl.getArgs()[1]);
+        assertEquals(1, cl.getArgs().length);
+        assertEquals("-a", cl.getArgs()[0]);
     }
 
-    // Tests missing required option throws MissingOptionException
-    @Test(expected = MissingOptionException.class)
-    public void testParse_missingRequiredOption_throwsException() throws Exception {
-        Option opt = new Option("r", "req", false, "required option");
-        opt.setRequired(true);
-        options.addOption(opt);
-
-        parser.parse(options, new String[]{});
-    }
-
-    // Tests option requiring an argument but none provided throws MissingArgumentException
-    @Test(expected = MissingArgumentException.class)
-    public void testParse_missingOptionArgument_throwsException() throws Exception {
-        Option opt = new Option("v", true, "value option");
-        options.addOption(opt);
-
-        parser.parse(options, new String[]{"-v"});
-    }
-
-    // Tests option with optional argument provided
+    // Tests null arguments array handles gracefully
     @Test
-    public void testParse_optionalArgumentProvided_returnsArgumentValue() throws Exception {
-        Option opt = new Option("v", true, "optional value");
-        opt.setOptionalArg(true);
-        options.addOption(opt);
+    public void testParse_nullArguments_returnsEmptyCommandLine() throws Exception
+    {
+        CommandLine cl = parser.parse(options, (String[]) null);
 
-        CommandLine cl = parser.parse(options, new String[]{"-v", "val"});
-        assertTrue(cl.hasOption("v"));
-        assertEquals("val", cl.getOptionValue("v"));
+        assertNotNull(cl);
+        assertEquals(0, cl.getArgs().length);
     }
 
-    // Tests option with optional argument missing
+    // Tests OptionGroup handling and required OptionGroup
     @Test
-    public void testParse_optionalArgumentMissing_parsedWithoutError() throws Exception {
-        Option opt = new Option("v", true, "optional value");
-        opt.setOptionalArg(true);
-        options.addOption(opt);
-
-        CommandLine cl = parser.parse(options, new String[]{"-v"});
-        assertTrue(cl.hasOption("v"));
-        assertEquals(null, cl.getOptionValue("v"));
-    }
-
-    // Tests OptionGroup selection and requirement
-    @Test
-    public void testParse_requiredOptionGroup_selectedProperly() throws Exception {
+    public void testParse_optionGroupRequired_success() throws Exception
+    {
         OptionGroup group = new OptionGroup();
         group.setRequired(true);
-        Option opt1 = new Option("a", "alpha");
-        Option opt2 = new Option("b", "beta");
-        group.addOption(opt1);
-        group.addOption(opt2);
+        group.addOption(new Option("a", "alpha", false, "option A"));
+        group.addOption(new Option("b", "beta", false, "option B"));
         options.addOptionGroup(group);
 
-        CommandLine cl = parser.parse(options, new String[]{"-b"});
+        String[] args = new String[]{"-b"};
+        CommandLine cl = parser.parse(options, args);
+
         assertTrue(cl.hasOption("b"));
         assertFalse(cl.hasOption("a"));
         assertEquals("b", group.getSelected());
     }
 
-    // Tests properties processing for options with arguments
-    @Test
-    public void testProcessProperties_optionWithArg_setsValueFromProperty() throws Exception {
-        options.addOption("prop", true, "property with arg");
+    // Tests missing required OptionGroup triggers MissingOptionException
+    @Test(expected = MissingOptionException.class)
+    public void testParse_missingOptionGroup_throwsException() throws Exception
+    {
+        OptionGroup group = new OptionGroup();
+        group.setRequired(true);
+        group.addOption(new Option("a", "alpha", false, "option A"));
+        group.addOption(new Option("b", "beta", false, "option B"));
+        options.addOptionGroup(group);
 
-        Properties props = new Properties();
-        props.setProperty("prop", "propValue");
-
-        CommandLine cl = parser.parse(options, new String[]{}, props);
-        assertTrue(cl.hasOption("prop"));
-        assertEquals("propValue", cl.getOptionValue("prop"));
+        String[] args = new String[]{};
+        parser.parse(options, args);
     }
 
-    // Tests properties processing with multiple boolean flags (Cli-28 regression check)
+    // Tests property values applied to options with arguments
     @Test
-    public void testProcessProperties_multiplePropertiesWithFalseFlag_processesSubsequentProperties() throws Exception {
-        Option optA = new Option("a", false, "flag a");
-        Option optB = new Option("b", false, "flag b");
-        Option optC = new Option("c", true, "arg c");
+    public void testProcessProperties_optionWithArg_setsValue() throws Exception
+    {
+        options.addOption("f", "file", true, "specify file");
+        Properties props = new Properties();
+        props.setProperty("f", "config.xml");
 
-        options.addOption(optA);
-        options.addOption(optB);
-        options.addOption(optC);
+        CommandLine cl = parser.parse(options, new String[]{}, props);
+
+        assertTrue(cl.hasOption("f"));
+        assertEquals("config.xml", cl.getOptionValue("f"));
+    }
+
+    // Tests property boolean flag processing and continues loop for subsequent properties
+    @Test
+    public void testProcessProperties_multiplePropertiesWithFalseAndTrue_processesAll() throws Exception
+    {
+        options.addOption("a", false, "toggle a");
+        options.addOption("b", false, "toggle b");
+        options.addOption("c", false, "toggle c");
 
         Properties props = new Properties();
         props.setProperty("a", "false");
         props.setProperty("b", "true");
-        props.setProperty("c", "cValue");
+        props.setProperty("c", "yes");
 
         CommandLine cl = parser.parse(options, new String[]{}, props);
 
-        assertFalse("Option 'a' should not be set for 'false'", cl.hasOption("a"));
-        assertTrue("Option 'b' should be set for 'true'", cl.hasOption("b"));
-        assertTrue("Option 'c' should be set", cl.hasOption("c"));
-        assertEquals("cValue", cl.getOptionValue("c"));
+        assertFalse(cl.hasOption("a"));
+        assertTrue(cl.hasOption("b"));
+        assertTrue(cl.hasOption("c"));
     }
 
-    // Tests properties processing with "yes" and "1" flag values
+    // Tests null properties does not throw exception
     @Test
-    public void testProcessProperties_flagWithYesAndOneValues_setsOption() throws Exception {
-        options.addOption("y", false, "yes flag");
-        options.addOption("o", false, "one flag");
+    public void testProcessProperties_nullProperties_noException() throws Exception
+    {
+        options.addOption("a", false, "toggle a");
+        CommandLine cl = parser.parse(options, new String[]{"-a"}, null);
+
+        assertTrue(cl.hasOption("a"));
+    }
+
+    // Tests option with multiple arguments processed successfully
+    @Test
+    public void testParse_multipleArgs_success() throws Exception
+    {
+        Option opt = new Option("m", "multi", true, "multiple args");
+        opt.setArgs(2);
+        options.addOption(opt);
+        String[] args = new String[]{"-m", "val1", "val2"};
+
+        CommandLine cl = parser.parse(options, args);
+
+        assertTrue(cl.hasOption("m"));
+        assertArrayEquals(new String[]{"val1", "val2"}, cl.getOptionValues("m"));
+    }
+
+    // Tests option with multiple arguments stops consuming when next option is encountered
+    @Test
+    public void testParse_multipleArgsStoppedByNextOption() throws Exception
+    {
+        Option opt = new Option("m", "multi", true, "multiple args");
+        opt.setArgs(2);
+        options.addOption(opt);
+        options.addOption("a", "all", false, "toggle all");
+        String[] args = new String[]{"-m", "val1", "-a"};
+
+        CommandLine cl = parser.parse(options, args);
+
+        assertTrue(cl.hasOption("m"));
+        assertArrayEquals(new String[]{"val1"}, cl.getOptionValues("m"));
+        assertTrue(cl.hasOption("a"));
+    }
+
+    // Tests optional argument provided with value
+    @Test
+    public void testParse_optionalArgumentProvided_success() throws Exception
+    {
+        Option opt = new Option("f", "file", true, "specify file");
+        opt.setOptionalArg(true);
+        options.addOption(opt);
+        String[] args = new String[]{"-f", "value.txt"};
+
+        CommandLine cl = parser.parse(options, args);
+
+        assertTrue(cl.hasOption("f"));
+        assertEquals("value.txt", cl.getOptionValue("f"));
+    }
+
+    // Tests optional argument not consuming following option as its value
+    @Test
+    public void testParse_optionalArgumentFollowedByOption_doesNotConsumeOption() throws Exception
+    {
+        Option opt = new Option("f", "file", true, "specify file");
+        opt.setOptionalArg(true);
+        options.addOption(opt);
+        options.addOption("a", "all", false, "toggle all");
+        String[] args = new String[]{"-f", "-a"};
+
+        CommandLine cl = parser.parse(options, args);
+
+        assertTrue(cl.hasOption("f"));
+        assertNull(cl.getOptionValue("f"));
+        assertTrue(cl.hasOption("a"));
+    }
+
+    // Tests selecting multiple options from same OptionGroup triggers AlreadySelectedException
+    @Test(expected = AlreadySelectedException.class)
+    public void testParse_optionGroupMultipleOptions_throwsAlreadySelectedException() throws Exception
+    {
+        OptionGroup group = new OptionGroup();
+        group.addOption(new Option("a", "alpha", false, "option A"));
+        group.addOption(new Option("b", "beta", false, "option B"));
+        options.addOptionGroup(group);
+
+        String[] args = new String[]{"-a", "-b"};
+        parser.parse(options, args);
+    }
+
+    // Tests non-option arguments interspersed when stopAtNonOption is false
+    @Test
+    public void testParse_nonOptionArgsWithStopAtNonOptionFalse() throws Exception
+    {
+        options.addOption("a", "all", false, "toggle all");
+        String[] args = new String[]{"arg1", "-a", "arg2"};
+
+        CommandLine cl = parser.parse(options, args, false);
+
+        assertTrue(cl.hasOption("a"));
+        assertArrayEquals(new String[]{"arg1", "arg2"}, cl.getArgs());
+    }
+
+    // Tests property for unknown option key is ignored
+    @Test
+    public void testProcessProperties_unknownProperty_ignored() throws Exception
+    {
+        Properties props = new Properties();
+        props.setProperty("unknown", "someValue");
+
+        CommandLine cl = parser.parse(options, new String[]{}, props);
+
+        assertFalse(cl.hasOption("unknown"));
+    }
+
+    // Tests property value ignored when option was already provided via command line args
+    @Test
+    public void testProcessProperties_optionAlreadySetOnCommandLine_propertyIgnored() throws Exception
+    {
+        options.addOption("f", "file", true, "specify file");
+        Properties props = new Properties();
+        props.setProperty("f", "from-props.txt");
+
+        CommandLine cl = parser.parse(options, new String[]{"-f", "from-cli.txt"}, props);
+
+        assertTrue(cl.hasOption("f"));
+        assertEquals("from-cli.txt", cl.getOptionValue("f"));
+    }
+
+    // Tests property with value "1" sets boolean flag
+    @Test
+    public void testProcessProperties_numericOneFlag_processed() throws Exception
+    {
+        options.addOption("b", false, "boolean flag");
+        Properties props = new Properties();
+        props.setProperty("b", "1");
+
+        CommandLine cl = parser.parse(options, new String[]{}, props);
+
+        assertTrue(cl.hasOption("b"));
+    }
+
+    // Tests required option requirement satisfied via property
+    @Test
+    public void testProcessProperties_requiredOptionSatisfiedByProperty() throws Exception
+    {
+        Option opt = new Option("r", "require", true, "required option");
+        opt.setRequired(true);
+        options.addOption(opt);
 
         Properties props = new Properties();
-        props.setProperty("y", "yes");
-        props.setProperty("o", "1");
+        props.setProperty("r", "req-val");
 
         CommandLine cl = parser.parse(options, new String[]{}, props);
-        assertTrue(cl.hasOption("y"));
-        assertTrue(cl.hasOption("o"));
+
+        assertTrue(cl.hasOption("r"));
+        assertEquals("req-val", cl.getOptionValue("r"));
     }
 
-    // Tests stripping leading and trailing quotes from option value
+    // Tests required OptionGroup requirement satisfied via property
     @Test
-    public void testProcessArgs_quotedValue_stripsQuotes() throws Exception {
-        options.addOption("v", true, "value option");
-        CommandLine cl = parser.parse(options, new String[]{"-v", "\"quoted value\""});
+    public void testProcessProperties_requiredOptionGroupSatisfiedByProperty() throws Exception
+    {
+        OptionGroup group = new OptionGroup();
+        group.setRequired(true);
+        group.addOption(new Option("a", "alpha", true, "option A"));
+        group.addOption(new Option("b", "beta", true, "option B"));
+        options.addOptionGroup(group);
 
-        assertEquals("quoted value", cl.getOptionValue("v"));
+        Properties props = new Properties();
+        props.setProperty("a", "valA");
+
+        CommandLine cl = parser.parse(options, new String[]{}, props);
+
+        assertTrue(cl.hasOption("a"));
+        assertEquals("valA", cl.getOptionValue("a"));
+        assertEquals("a", group.getSelected());
     }
 }

@@ -2,34 +2,23 @@ package org.apache.commons.cli;
 
 import java.io.File;
 import java.net.URL;
-import java.util.Date;
 import org.junit.Test;
-import static org.junit.Assert.*;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TypeHandlerTest {
 
-    // Tests default constructor instantiation
-    @Test
-    public void testTypeHandler_instantiation() {
-        TypeHandler handler = new TypeHandler();
-        assertNotNull(handler);
-    }
-
-    // Tests createValue with PatternOptionBuilder.STRING_VALUE
+    // Tests createValue with String type
     @Test
     public void testCreateValue_stringType_returnsString() {
         Object result = TypeHandler.createValue("testString", PatternOptionBuilder.STRING_VALUE);
         assertEquals("testString", result);
     }
 
-    // Tests createValue with Object parameter overload
-    @Test
-    public void testCreateValue_objectTypeParam_returnsCorrectValue() {
-        Object result = TypeHandler.createValue("java.lang.String", (Object) PatternOptionBuilder.CLASS_VALUE);
-        assertEquals(String.class, result);
-    }
-
-    // Tests createValue with PatternOptionBuilder.OBJECT_VALUE
+    // Tests createValue with Object type
     @Test
     public void testCreateValue_objectType_returnsInstantiatedObject() {
         Object result = TypeHandler.createValue("java.lang.String", PatternOptionBuilder.OBJECT_VALUE);
@@ -37,186 +26,183 @@ public class TypeHandlerTest {
         assertTrue(result instanceof String);
     }
 
-    // Tests createValue with PatternOptionBuilder.NUMBER_VALUE (Defects4J Cli-3 pattern)
+    // Tests createValue with Number type (integer)
     @Test
-    public void testCreateValue_numberType_returnsNumber() {
+    public void testCreateValue_numberTypeInteger_returnsNumber() {
         Object result = TypeHandler.createValue("123", PatternOptionBuilder.NUMBER_VALUE);
         assertNotNull(result);
         assertTrue(result instanceof Number);
         assertEquals(123L, ((Number) result).longValue());
     }
 
-    // Tests createValue with decimal number and PatternOptionBuilder.NUMBER_VALUE
+    // Tests createValue with Number type (decimal)
     @Test
-    public void testCreateValue_decimalNumberType_returnsDouble() {
+    public void testCreateValue_numberTypeDouble_returnsNumber() {
         Object result = TypeHandler.createValue("123.45", PatternOptionBuilder.NUMBER_VALUE);
         assertNotNull(result);
-        assertTrue(result instanceof Double);
-        assertEquals(123.45, ((Double) result).doubleValue(), 0.0001);
+        assertTrue(result instanceof Number);
+        assertEquals(123.45, ((Number) result).doubleValue(), 0.0001);
     }
 
-    // Tests createValue with PatternOptionBuilder.DATE_VALUE
+    // Tests createValue with Date type
     @Test
-    public void testCreateValue_dateType_returnsDateOrNull() {
+    public void testCreateValue_dateType_returnsNull() {
         Object result = TypeHandler.createValue("2023-01-01", PatternOptionBuilder.DATE_VALUE);
         assertNull(result);
     }
 
-    // Tests createValue with PatternOptionBuilder.CLASS_VALUE
+    // Tests createValue with Class type
     @Test
     public void testCreateValue_classType_returnsClass() {
-        Object result = TypeHandler.createValue("java.lang.Object", PatternOptionBuilder.CLASS_VALUE);
-        assertEquals(Object.class, result);
+        Object result = TypeHandler.createValue("java.lang.String", PatternOptionBuilder.CLASS_VALUE);
+        assertEquals(String.class, result);
     }
 
-    // Tests createValue with PatternOptionBuilder.FILE_VALUE
+    // Tests createValue with File type
     @Test
     public void testCreateValue_fileType_returnsFile() {
         Object result = TypeHandler.createValue("test.txt", PatternOptionBuilder.FILE_VALUE);
         assertNotNull(result);
         assertTrue(result instanceof File);
-        assertEquals("test.txt", ((File) result).getPath());
+        assertEquals("test.txt", ((File) result).getName());
     }
 
-    // Tests createValue with PatternOptionBuilder.EXISTING_FILE_VALUE
+    // Tests createValue with Existing File type
     @Test
     public void testCreateValue_existingFileType_returnsFile() {
         Object result = TypeHandler.createValue("test.txt", PatternOptionBuilder.EXISTING_FILE_VALUE);
         assertNotNull(result);
         assertTrue(result instanceof File);
-        assertEquals("test.txt", ((File) result).getPath());
+        assertEquals("test.txt", ((File) result).getName());
     }
 
-    // Tests createValue with PatternOptionBuilder.FILES_VALUE
+    // Tests createValue with Files type
     @Test
     public void testCreateValue_filesType_returnsNull() {
         Object result = TypeHandler.createValue("test.txt", PatternOptionBuilder.FILES_VALUE);
         assertNull(result);
     }
 
-    // Tests createValue with PatternOptionBuilder.URL_VALUE
+    // Tests createValue with URL type
     @Test
     public void testCreateValue_urlType_returnsURL() {
-        Object result = TypeHandler.createValue("http://www.apache.org", PatternOptionBuilder.URL_VALUE);
+        Object result = TypeHandler.createValue("http://commons.apache.org", PatternOptionBuilder.URL_VALUE);
         assertNotNull(result);
         assertTrue(result instanceof URL);
-        assertEquals("http://www.apache.org", ((URL) result).toExternalForm());
+        assertEquals("http://commons.apache.org", result.toString());
     }
 
-    // Tests createValue with unknown/unsupported class type
+    // Tests createValue with an unknown/unsupported class type
     @Test
     public void testCreateValue_unknownType_returnsNull() {
-        Object result = TypeHandler.createValue("test", Integer.class);
+        Object result = TypeHandler.createValue("value", Void.class);
         assertNull(result);
     }
 
-    // Tests createValue with non-Class object parameter
+    // Tests createValue accepting Object as clazz argument
     @Test
-    public void testCreateValue_nonClassObjectParam_returnsNull() {
-        Object result = TypeHandler.createValue("test", "NotAClass");
-        assertNull(result);
+    public void testCreateValue_objectParam_returnsExpectedResult() {
+        Object result = TypeHandler.createValue("hello", (Object) PatternOptionBuilder.STRING_VALUE);
+        assertEquals("hello", result);
     }
 
-    // Tests createObject with valid class name
+    // Tests createObject with a valid class name
     @Test
-    public void testCreateObject_validClass_returnsInstance() {
-        Object result = TypeHandler.createObject("java.lang.StringBuffer");
+    public void testCreateObject_validClass_returnsNewInstance() {
+        Object result = TypeHandler.createObject("java.lang.Object");
         assertNotNull(result);
-        assertTrue(result instanceof StringBuffer);
     }
 
-    // Tests createObject with interface / uninstantiable class
-    @Test
-    public void testCreateObject_uninstantiableClass_returnsNull() {
-        Object result = TypeHandler.createObject("java.util.List");
-        assertNull(result);
-    }
-
-    // Tests createObject with class having private constructor
-    @Test
-    public void testCreateObject_privateConstructor_returnsNull() {
-        Object result = TypeHandler.createObject("java.lang.System");
-        assertNull(result);
-    }
-
-    // Tests createObject with invalid class name
+    // Tests createObject with a non-existent class name
     @Test
     public void testCreateObject_classNotFound_returnsNull() {
         Object result = TypeHandler.createObject("non.existent.ClassName");
         assertNull(result);
     }
 
-    // Tests createNumber with integer representation
+    // Tests createObject with an abstract class (cannot instantiate)
     @Test
-    public void testCreateNumber_integerString_returnsLong() {
-        Number number = TypeHandler.createNumber("42");
-        assertNotNull(number);
-        assertEquals(42L, number.longValue());
+    public void testCreateObject_abstractClass_returnsNull() {
+        Object result = TypeHandler.createObject("java.util.AbstractList");
+        assertNull(result);
     }
 
-    // Tests createNumber with decimal representation
+    // Tests createNumber with an invalid number string
     @Test
-    public void testCreateNumber_decimalString_returnsDouble() {
-        Number number = TypeHandler.createNumber("42.5");
-        assertNotNull(number);
-        assertEquals(42.5, number.doubleValue(), 0.0001);
+    public void testCreateNumber_invalidFormat_returnsNull() {
+        Number result = TypeHandler.createNumber("not-a-number");
+        assertNull(result);
     }
 
-    // Tests createNumber with invalid number string
+    // Tests createClass with a valid class name
     @Test
-    public void testCreateNumber_invalidString_returnsNull() {
-        Number number = TypeHandler.createNumber("notANumber");
-        assertNull(number);
+    public void testCreateClass_validClass_returnsClass() {
+        Class result = TypeHandler.createClass("java.lang.Integer");
+        assertEquals(Integer.class, result);
     }
 
-    // Tests createClass with valid class name
+    // Tests createClass with an invalid class name
     @Test
-    public void testCreateClass_validName_returnsClass() {
-        Class clazz = TypeHandler.createClass("java.lang.String");
-        assertEquals(String.class, clazz);
+    public void testCreateClass_invalidClass_returnsNull() {
+        Class result = TypeHandler.createClass("invalid.Class");
+        assertNull(result);
     }
 
-    // Tests createClass with invalid class name
+    // Tests createDate implementation
     @Test
-    public void testCreateClass_invalidName_returnsNull() {
-        Class clazz = TypeHandler.createClass("non.existent.ClassName");
-        assertNull(clazz);
+    public void testCreateDate_anyInput_returnsNull() {
+        assertNull(TypeHandler.createDate("2023-01-01"));
     }
 
-    // Tests createDate method
+    // Tests createURL with a malformed URL string
     @Test
-    public void testCreateDate_anyString_returnsNull() {
-        Date date = TypeHandler.createDate("2023-01-01");
-        assertNull(date);
+    public void testCreateURL_malformedURL_returnsNull() {
+        URL result = TypeHandler.createURL("malformed-url-string");
+        assertNull(result);
     }
 
-    // Tests createURL with valid URL string
-    @Test
-    public void testCreateURL_validURL_returnsURL() {
-        URL url = TypeHandler.createURL("http://localhost");
-        assertNotNull(url);
-        assertEquals("http://localhost", url.toExternalForm());
-    }
-
-    // Tests createURL with invalid URL string
-    @Test
-    public void testCreateURL_invalidURL_returnsNull() {
-        URL url = TypeHandler.createURL("invalid-url-string");
-        assertNull(url);
-    }
-
-    // Tests createFile with string path
+    // Tests createFile with a valid file path
     @Test
     public void testCreateFile_validPath_returnsFile() {
-        File file = TypeHandler.createFile("myFile.txt");
+        File file = TypeHandler.createFile("path/to/file.txt");
         assertNotNull(file);
-        assertEquals("myFile.txt", file.getPath());
+        assertEquals("file.txt", file.getName());
     }
 
-    // Tests createFiles method
+    // Tests createFiles implementation
     @Test
-    public void testCreateFiles_anyString_returnsNull() {
-        File[] files = TypeHandler.createFiles("myFile.txt");
+    public void testCreateFiles_anyInput_returnsNull() {
+        File[] files = TypeHandler.createFiles("some/path");
         assertNull(files);
+    }
+
+    // Tests default constructor instantiation
+    @Test
+    public void testConstructor() {
+        assertNotNull(new TypeHandler());
+    }
+
+    // Tests createNumber with valid integer string directly
+    @Test
+    public void testCreateNumber_validInteger_returnsLong() {
+        Number result = TypeHandler.createNumber("123");
+        assertNotNull(result);
+        assertEquals(Long.valueOf(123), result);
+    }
+
+    // Tests createNumber with valid decimal string directly
+    @Test
+    public void testCreateNumber_validDouble_returnsDouble() {
+        Number result = TypeHandler.createNumber("123.45");
+        assertNotNull(result);
+        assertEquals(Double.valueOf(123.45), result);
+    }
+
+    // Tests createURL with a valid URL string directly
+    @Test
+    public void testCreateURL_validURL_returnsURL() {
+        URL result = TypeHandler.createURL("http://commons.apache.org");
+        assertNotNull(result);
+        assertEquals("http://commons.apache.org", result.toString());
     }
 }

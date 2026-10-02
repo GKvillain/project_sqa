@@ -5,8 +5,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
 public class PosixParserTest {
 
@@ -19,166 +18,148 @@ public class PosixParserTest {
         options = new Options();
     }
 
-    // Tests flattening with empty arguments array
+    // Tests flattening when arguments array is empty
     @Test
-    public void testFlatten_emptyArguments_returnsEmptyArray() {
-        String[] args = new String[] {};
+    public void testFlatten_emptyArgs_returnsEmptyArray() {
+        String[] args = new String[]{};
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] {}, result);
+        assertNotNull(result);
+        assertEquals(0, result.length);
     }
 
-    // Tests standard single hyphen token
+    // Tests handling of double hyphen token without equals sign
     @Test
-    public void testFlatten_singleHyphen_retainsHyphenToken() {
-        String[] args = new String[] { "-" };
+    public void testFlatten_doubleHyphenWithoutEquals_preservesToken() {
+        options.addOption("test", false, "test option");
+        String[] args = new String[]{"--test"};
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "-" }, result);
+        assertArrayEquals(new String[]{"--test"}, result);
     }
 
-    // Tests double hyphen token without options
+    // Tests splitting of double hyphen token containing an equals sign
     @Test
-    public void testFlatten_doubleHyphen_retainsDoubleHyphen() {
-        String[] args = new String[] { "--" };
+    public void testFlatten_doubleHyphenWithEquals_splitsKeyAndValue() {
+        options.addOption("foo", true, "foo option");
+        String[] args = new String[]{"--foo=bar"};
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "--" }, result);
+        assertArrayEquals(new String[]{"--foo", "bar"}, result);
     }
 
-    // Tests long option token with value separated by equal sign
+    // Tests single hyphen argument preservation
     @Test
-    public void testFlatten_longOptionWithEqualSign_splitsKeyAndValue() {
-        options.addOption("foo", "foo-opt", true, "desc");
-        String[] args = new String[] { "--foo=bar" };
+    public void testFlatten_singleHyphen_addsSingleHyphenDirectly() {
+        String[] args = new String[]{"-"};
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "--foo", "bar" }, result);
+        assertArrayEquals(new String[]{"-"}, result);
     }
 
-    // Tests long option token without value
+    // Tests valid 2-character single option flag
     @Test
-    public void testFlatten_longOptionWithoutEqualSign_retainsOption() {
-        options.addOption("foo", "foo-opt", false, "desc");
-        String[] args = new String[] { "--foo" };
+    public void testFlatten_validTwoCharOption_addsOptionToken() {
+        options.addOption("a", false, "option a");
+        String[] args = new String[]{"-a"};
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "--foo" }, result);
+        assertArrayEquals(new String[]{"-a"}, result);
     }
 
-    // Tests single character valid option token
+    // Tests invalid 2-character option with stopAtNonOption set to false
     @Test
-    public void testFlatten_validSingleCharOption_addsOptionToTokens() {
-        options.addOption("a", false, "Option a");
-        String[] args = new String[] { "-a" };
+    public void testFlatten_invalidTwoCharOptionNoStop_ignoresToken() {
+        String[] args = new String[]{"-x"};
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "-a" }, result);
+        assertArrayEquals(new String[]{}, result);
     }
 
-    // Tests single character option with argument when stopAtNonOption is true
+    // Tests invalid 2-character option with stopAtNonOption set to true
     @Test
-    public void testFlatten_optionWithArgWhenStopAtNonOption_addsArgToTokens() {
-        options.addOption("a", true, "Option a");
-        String[] args = new String[] { "-a", "val", "extra" };
+    public void testFlatten_invalidTwoCharOptionStopAtNonOption_eatsRemainingTokens() {
+        String[] args = new String[]{"-x", "extra1", "extra2"};
         String[] result = parser.flatten(options, args, true);
-        assertArrayEquals(new String[] { "-a", "val", "--", "extra" }, result);
+        assertArrayEquals(new String[]{"extra1", "extra2"}, result);
     }
 
-    // Tests non-option argument with stopAtNonOption set to false
+    // Tests multi-character option defined directly in Options
     @Test
-    public void testFlatten_nonOptionArgumentStopAtNonOptionFalse_retainsArgument() {
-        String[] args = new String[] { "foo", "bar" };
+    public void testFlatten_definedLongOptionStartingWithSingleHyphen_addsTokenDirectly() {
+        options.addOption("foo", false, "option foo");
+        String[] args = new String[]{"-foo"};
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "foo", "bar" }, result);
+        assertArrayEquals(new String[]{"-foo"}, result);
     }
 
-    // Tests non-option argument with stopAtNonOption set to true
+    // Tests bursting multiple valid single-character options
     @Test
-    public void testFlatten_nonOptionArgumentStopAtNonOptionTrue_addsDoubleHyphenAndGobbles() {
-        String[] args = new String[] { "foo", "bar" };
+    public void testFlatten_burstValidFlags_splitsIntoSeparateOptions() {
+        options.addOption("a", false, "option a");
+        options.addOption("b", false, "option b");
+        options.addOption("c", false, "option c");
+        String[] args = new String[]{"-abc"};
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[]{"-a", "-b", "-c"}, result);
+    }
+
+    // Tests bursting option with attached argument value
+    @Test
+    public void testFlatten_burstOptionWithArgument_extractsArgumentAndStopsBursting() {
+        options.addOption("a", false, "option a");
+        options.addOption("b", true, "option b with argument");
+        String[] args = new String[]{"-abValue"};
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[]{"-a", "-b", "Value"}, result);
+    }
+
+    // Tests bursting unrecognized character when stopAtNonOption is false
+    @Test
+    public void testFlatten_burstUnrecognizedCharacterNoStop_addsPrefixedToken() {
+        options.addOption("a", false, "option a");
+        String[] args = new String[]{"-az"};
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[]{"-a", "-z"}, result);
+    }
+
+    // Tests bursting unrecognized character when stopAtNonOption is true
+    @Test
+    public void testFlatten_burstUnrecognizedCharacterStopAtNonOption_stopsAndProcessesRemaining() {
+        options.addOption("a", false, "option a");
+        String[] args = new String[]{"-az", "remainder"};
         String[] result = parser.flatten(options, args, true);
-        assertArrayEquals(new String[] { "--", "foo", "bar" }, result);
+        assertArrayEquals(new String[]{"-a", "--", "z", "remainder"}, result);
     }
 
-    // Tests bursting of concatenated single-character options
+    // Tests argument consumption for preceding option token
     @Test
-    public void testFlatten_burstMultipleSingleCharOptions_splitsIntoSeparateTokens() {
-        options.addOption("a", false, "Option a");
-        options.addOption("b", false, "Option b");
-        options.addOption("c", false, "Option c");
-        String[] args = new String[] { "-abc" };
-        String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "-a", "-b", "-c" }, result);
-    }
-
-    // Tests bursting of concatenated options where last option takes argument
-    @Test
-    public void testFlatten_burstOptionWithInlineArgument_splitsOptionAndArgument() {
-        options.addOption("a", false, "Option a");
-        options.addOption("f", true, "Option f with arg");
-        String[] args = new String[] { "-afbar" };
-        String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "-a", "-f", "bar" }, result);
-    }
-
-    // Tests bursting with invalid option when stopAtNonOption is false
-    @Test
-    public void testFlatten_burstUnrecognizedOptionStopAtNonOptionFalse_splitsCharsWithHyphens() {
-        options.addOption("a", false, "Option a");
-        String[] args = new String[] { "-ax" };
-        String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "-a", "-x" }, result);
-    }
-
-    // Tests bursting with invalid option when stopAtNonOption is true
-    @Test
-    public void testFlatten_burstUnrecognizedOptionStopAtNonOptionTrue_addsRemainingAsNonOption() {
-        options.addOption("a", false, "Option a");
-        String[] args = new String[] { "-axyz", "extra" };
+    public void testFlatten_nonOptionValueForPreviousOption_consumesAsArgument() {
+        options.addOption("d", true, "option d with argument");
+        String[] args = new String[]{"-d", "file.txt"};
         String[] result = parser.flatten(options, args, true);
-        assertArrayEquals(new String[] { "-a", "--", "xyz", "extra" }, result);
+        assertArrayEquals(new String[]{"-d", "file.txt"}, result);
     }
 
-    // Tests option starting with hyphen that is defined as long option with single hyphen
+    // Tests non-option token with stopAtNonOption set to true
     @Test
-    public void testFlatten_singleHyphenLongOption_retainsOption() {
-        options.addOption("foo", false, "Option foo");
-        String[] args = new String[] { "-foo" };
-        String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[] { "-foo" }, result);
-    }
-
-    // Tests unrecognized 2-char option token with stopAtNonOption set to true (Defects4J Cli-2 regression)
-    @Test
-    public void testFlatten_unrecognizedTwoCharOptionStopAtNonOptionTrue_preservesTokenAndStops() {
-        options.addOption("a", false, "Option a");
-        String[] args = new String[] { "-u", "arg1", "arg2" };
+    public void testFlatten_nonOptionTokenStopAtNonOptionTrue_insertsDoubleHyphenAndEatsRest() {
+        String[] args = new String[]{"cmd", "arg1", "arg2"};
         String[] result = parser.flatten(options, args, true);
-        assertArrayEquals(new String[] { "--", "-u", "arg1", "arg2" }, result);
+        assertArrayEquals(new String[]{"--", "cmd", "arg1", "arg2"}, result);
     }
 
-    // Tests full parse integration through Parser base class
+    // Tests non-option token with stopAtNonOption set to false
     @Test
-    public void testParse_multipleOptionsAndArgs_parsedSuccessfully() throws Exception {
-        options.addOption("a", false, "flag a");
-        options.addOption("b", true, "option b with arg");
-        String[] args = new String[] { "-a", "-b", "bValue", "extra1", "extra2" };
-        
-        CommandLine cl = parser.parse(options, args);
-        assertTrue(cl.hasOption("a"));
-        assertTrue(cl.hasOption("b"));
-        assertEquals("bValue", cl.getOptionValue("b"));
-        assertEquals(2, cl.getArgs().length);
-        assertEquals("extra1", cl.getArgs()[0]);
-        assertEquals("extra2", cl.getArgs()[1]);
+    public void testFlatten_nonOptionTokenStopAtNonOptionFalse_addsTokenDirectly() {
+        String[] args = new String[]{"file1.txt", "file2.txt"};
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[]{"file1.txt", "file2.txt"}, result);
     }
 
-    // Tests parser reusability ensuring init resets previous parse state
+    // Tests state reset on reuse of the PosixParser instance
     @Test
-    public void testParse_reusedParserInstance_resetsStateCorrectly() throws Exception {
-        options.addOption("a", false, "flag a");
-        
-        CommandLine cl1 = parser.parse(options, new String[] { "-a" });
-        assertTrue(cl1.hasOption("a"));
+    public void testFlatten_parserReuse_resetsInternalStateCorrectly() {
+        options.addOption("a", false, "option a");
+        String[] firstArgs = new String[]{"-x", "leftover"};
+        parser.flatten(options, firstArgs, true);
 
-        CommandLine cl2 = parser.parse(options, new String[] { "argOnly" });
-        assertFalse(cl2.hasOption("a"));
-        assertEquals(1, cl2.getArgs().length);
-        assertEquals("argOnly", cl2.getArgs()[0]);
+        String[] secondArgs = new String[]{"-a"};
+        String[] secondResult = parser.flatten(options, secondArgs, false);
+        assertArrayEquals(new String[]{"-a"}, secondResult);
     }
 }

@@ -4,199 +4,306 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.cli2.builder.DefaultOptionBuilder;
 import org.apache.commons.cli2.builder.GroupBuilder;
-import org.apache.commons.cli2.builder.SwitchBuilder;
+import org.apache.commons.cli2.builder.PropertyOptionBuilder;
 import org.apache.commons.cli2.commandline.WriteableCommandLineImpl;
-import org.apache.commons.cli2.option.DefaultOption;
-import org.apache.commons.cli2.option.Group;
-import org.apache.commons.cli2.option.PropertyOption;
-import org.apache.commons.cli2.option.Switch;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class WriteableCommandLineTest {
 
+    private Option helpOption;
+    private Option verboseOption;
+    private Option propertyOption;
+    private Option rootOption;
     private WriteableCommandLine commandLine;
-    private DefaultOption helpOption;
-    private DefaultOption fileOption;
-    private Switch debugSwitch;
-    private PropertyOption propertyOption;
-    private Group rootGroup;
 
     @Before
     public void setUp() {
-        helpOption = new DefaultOptionBuilder()
-                .withShortName("h")
-                .withLongName("help")
-                .withDescription("displays help")
-                .create();
+        final DefaultOptionBuilder optionBuilder = new DefaultOptionBuilder();
+        final PropertyOptionBuilder propertyBuilder = new PropertyOptionBuilder();
+        final GroupBuilder groupBuilder = new GroupBuilder();
 
-        fileOption = new DefaultOptionBuilder()
-                .withShortName("f")
-                .withLongName("file")
-                .withDescription("target file")
-                .create();
+        helpOption = optionBuilder.withShortName("h").withLongName("help").create();
+        verboseOption = optionBuilder.withShortName("v").withLongName("verbose").create();
+        propertyOption = propertyBuilder.create();
+        rootOption = groupBuilder.withOption(helpOption).withOption(verboseOption).withOption(propertyOption).create();
 
-        debugSwitch = new SwitchBuilder()
-                .withShortName("d")
-                .withLongName("debug")
-                .create();
-
-        propertyOption = new PropertyOption();
-
-        rootGroup = new GroupBuilder()
-                .withOption(helpOption)
-                .withOption(fileOption)
-                .withOption(debugSwitch)
-                .withOption(propertyOption)
-                .create();
-
-        commandLine = new WriteableCommandLineImpl(rootGroup, new ArrayList());
+        commandLine = new WriteableCommandLineImpl(rootOption, new ArrayList());
     }
 
-    // Tests normal case: adding an option and verifying it is present
+    // Tests adding an option and verifying hasOption returns true
     @Test
-    public void testAddOption_validOption_optionIsPresent() {
-        assertFalse(commandLine.hasOption(helpOption));
+    public void testAddOption_validOption_hasOptionReturnsTrue() {
         commandLine.addOption(helpOption);
         assertTrue(commandLine.hasOption(helpOption));
         assertTrue(commandLine.hasOption("-h"));
         assertTrue(commandLine.hasOption("--help"));
     }
 
-    // Tests normal case: adding a single value to an option
+    // Tests unadded option returns false
     @Test
-    public void testAddValue_singleValue_valueIsRetrievable() {
-        commandLine.addOption(fileOption);
-        commandLine.addValue(fileOption, "data.txt");
-
-        assertEquals("data.txt", commandLine.getValue(fileOption));
-        assertEquals("data.txt", commandLine.getValue("-f"));
-        List values = commandLine.getValues(fileOption);
-        assertEquals(1, values.size());
-        assertEquals("data.txt", values.get(0));
+    public void testHasOption_unaddedOption_returnsFalse() {
+        assertFalse(commandLine.hasOption(helpOption));
+        assertFalse(commandLine.hasOption("-h"));
     }
 
-    // Tests normal case: adding multiple values to an option in order
+    // Tests adding a single value to an option
     @Test
-    public void testAddValue_multipleValues_valuesAreRetrievedInOrder() {
-        commandLine.addOption(fileOption);
-        commandLine.addValue(fileOption, "file1.txt");
-        commandLine.addValue(fileOption, "file2.txt");
-
-        List values = commandLine.getValues(fileOption);
-        assertEquals(2, values.size());
-        assertEquals("file1.txt", values.get(0));
-        assertEquals("file2.txt", values.get(1));
+    public void testAddValue_singleValue_getValueReturnsValue() {
+        commandLine.addValue(helpOption, "value1");
+        assertEquals("value1", commandLine.getValue(helpOption));
+        assertEquals(Collections.singletonList("value1"), commandLine.getValues(helpOption));
     }
 
-    // Tests normal case: setting default values when no value was added
+    // Tests adding multiple values to an option
     @Test
-    public void testSetDefaultValues_noExplicitValues_returnsDefaults() {
-        List defaults = Arrays.asList("default1.txt", "default2.txt");
-        commandLine.setDefaultValues(fileOption, defaults);
-
-        List values = commandLine.getValues(fileOption);
-        assertEquals(2, values.size());
-        assertEquals("default1.txt", values.get(0));
-        assertEquals("default2.txt", values.get(1));
+    public void testAddValue_multipleValues_getValuesReturnsAllValues() {
+        commandLine.addValue(helpOption, "val1");
+        commandLine.addValue(helpOption, "val2");
+        final List expected = Arrays.asList(new Object[]{"val1", "val2"});
+        assertEquals(expected, commandLine.getValues(helpOption));
     }
 
-    // Tests branch: explicit value overrides default values
+    // Tests default values when no explicit value is added
     @Test
-    public void testSetDefaultValues_explicitValueAdded_overridesDefaults() {
-        commandLine.setDefaultValues(fileOption, Collections.singletonList("default.txt"));
-        commandLine.addOption(fileOption);
-        commandLine.addValue(fileOption, "custom.txt");
-
-        List values = commandLine.getValues(fileOption);
-        assertEquals(1, values.size());
-        assertEquals("custom.txt", values.get(0));
+    public void testSetDefaultValues_noValuesAdded_returnsDefaultValues() {
+        final List defaults = Arrays.asList(new Object[]{"defaultVal1", "defaultVal2"});
+        commandLine.setDefaultValues(helpOption, defaults);
+        assertEquals(defaults, commandLine.getValues(helpOption));
+        assertEquals("defaultVal1", commandLine.getValue(helpOption));
     }
 
-    // Tests edge case: setting empty list as default values
+    // Tests explicit value overrides default values
     @Test
-    public void testSetDefaultValues_emptyList_returnsEmptyList() {
-        commandLine.setDefaultValues(fileOption, Collections.emptyList());
-        List values = commandLine.getValues(fileOption);
-        assertTrue(values.isEmpty());
+    public void testSetDefaultValues_explicitValueAdded_returnsExplicitValue() {
+        final List defaults = Collections.singletonList("defaultVal");
+        commandLine.setDefaultValues(helpOption, defaults);
+        commandLine.addValue(helpOption, "explicitVal");
+        assertEquals(Collections.singletonList("explicitVal"), commandLine.getValues(helpOption));
+        assertEquals("explicitVal", commandLine.getValue(helpOption));
     }
 
-    // Tests normal case: adding a switch with true value
+    // Tests adding a boolean switch as true
     @Test
-    public void testAddSwitch_trueValue_switchIsTrue() {
-        commandLine.addSwitch(debugSwitch, true);
-        assertTrue(commandLine.hasOption(debugSwitch));
-        assertEquals(Boolean.TRUE, commandLine.getSwitch(debugSwitch));
+    public void testAddSwitch_trueValue_getSwitchReturnsTrue() {
+        commandLine.addSwitch(helpOption, true);
+        assertEquals(Boolean.TRUE, commandLine.getSwitch(helpOption));
+        assertTrue(commandLine.hasOption(helpOption));
     }
 
-    // Tests normal case: adding a switch with false value
+    // Tests adding a boolean switch as false
     @Test
-    public void testAddSwitch_falseValue_switchIsFalse() {
-        commandLine.addSwitch(debugSwitch, false);
-        assertTrue(commandLine.hasOption(debugSwitch));
-        assertEquals(Boolean.FALSE, commandLine.getSwitch(debugSwitch));
+    public void testAddSwitch_falseValue_getSwitchReturnsFalse() {
+        commandLine.addSwitch(helpOption, false);
+        assertEquals(Boolean.FALSE, commandLine.getSwitch(helpOption));
+        assertTrue(commandLine.hasOption(helpOption));
     }
 
-    // Tests exception path: adding duplicate switch throws IllegalStateException
+    // Tests duplicate switch addition throws IllegalStateException
     @Test(expected = IllegalStateException.class)
     public void testAddSwitch_duplicateSwitch_throwsIllegalStateException() {
-        commandLine.addSwitch(debugSwitch, true);
-        commandLine.addSwitch(debugSwitch, false);
+        commandLine.addSwitch(helpOption, true);
+        commandLine.addSwitch(helpOption, false);
     }
 
-    // Tests normal case: default switch value returned when no switch added
+    // Tests default switch when no switch is explicitly added
     @Test
-    public void testSetDefaultSwitch_noExplicitSwitch_returnsDefault() {
-        commandLine.setDefaultSwitch(debugSwitch, Boolean.TRUE);
-        assertEquals(Boolean.TRUE, commandLine.getSwitch(debugSwitch));
+    public void testSetDefaultSwitch_noSwitchAdded_returnsDefaultSwitch() {
+        commandLine.setDefaultSwitch(helpOption, Boolean.TRUE);
+        assertEquals(Boolean.TRUE, commandLine.getSwitch(helpOption));
     }
 
-    // Tests branch: explicit switch overrides default switch value
+    // Tests explicit switch overrides default switch
     @Test
-    public void testSetDefaultSwitch_explicitSwitchAdded_overridesDefault() {
-        commandLine.setDefaultSwitch(debugSwitch, Boolean.TRUE);
-        commandLine.addSwitch(debugSwitch, false);
-        assertEquals(Boolean.FALSE, commandLine.getSwitch(debugSwitch));
+    public void testSetDefaultSwitch_explicitSwitchAdded_returnsExplicitSwitch() {
+        commandLine.setDefaultSwitch(helpOption, Boolean.FALSE);
+        commandLine.addSwitch(helpOption, true);
+        assertEquals(Boolean.TRUE, commandLine.getSwitch(helpOption));
     }
 
-    // Tests normal case: adding property value
+    // Tests adding a property and retrieving its value
     @Test
-    public void testAddProperty_singleProperty_propertyIsRetrievable() {
+    public void testAddProperty_singleProperty_getPropertyReturnsValue() {
         commandLine.addProperty("key1", "value1");
         assertEquals("value1", commandLine.getProperty("key1"));
     }
 
-    // Tests normal case: overwriting existing property value
+    // Tests adding a property with same key overwrites existing value
     @Test
-    public void testAddProperty_duplicateProperty_overwritesPreviousValue() {
-        commandLine.addProperty("key1", "value1");
-        commandLine.addProperty("key1", "value2");
-        assertEquals("value2", commandLine.getProperty("key1"));
+    public void testAddProperty_duplicateKey_overwritesExistingValue() {
+        commandLine.addProperty("key1", "initial");
+        commandLine.addProperty("key1", "updated");
+        assertEquals("updated", commandLine.getProperty("key1"));
     }
 
-    // Tests branch true: argument looks like an option trigger
+    // Tests retrieving non-existent property returns null
     @Test
-    public void testLooksLikeOption_matchingTrigger_returnsTrue() {
+    public void testGetProperty_nonExistentProperty_returnsNull() {
+        assertNull(commandLine.getProperty("nonExistent"));
+    }
+
+    // Tests looksLikeOption with valid option prefix triggers
+    @Test
+    public void testLooksLikeOption_validPrefix_returnsTrue() {
         assertTrue(commandLine.looksLikeOption("-h"));
         assertTrue(commandLine.looksLikeOption("--help"));
-        assertTrue(commandLine.looksLikeOption("-f"));
     }
 
-    // Tests branch false: argument does not look like an option trigger
+    // Tests looksLikeOption with non-option string
     @Test
-    public void testLooksLikeOption_nonMatchingString_returnsFalse() {
-        assertFalse(commandLine.looksLikeOption("nonOption"));
+    public void testLooksLikeOption_nonPrefixString_returnsFalse() {
+        assertFalse(commandLine.looksLikeOption("argumentValue"));
+    }
+
+    // Tests looksLikeOption with empty string
+    @Test
+    public void testLooksLikeOption_emptyString_returnsFalse() {
         assertFalse(commandLine.looksLikeOption(""));
     }
 
-    // Tests edge case: null argument returns false
+    // Tests looksLikeOption with null input
     @Test
-    public void testLooksLikeOption_nullArgument_returnsFalse() {
+    public void testLooksLikeOption_nullInput_returnsFalse() {
         assertFalse(commandLine.looksLikeOption(null));
+    }
+
+    @Test
+    public void testGetOption_byTrigger_returnsOption() {
+        assertEquals(helpOption, commandLine.getOption("-h"));
+        assertEquals(helpOption, commandLine.getOption("--help"));
+        assertEquals(verboseOption, commandLine.getOption("-v"));
+        assertNull(commandLine.getOption("-unknown"));
+    }
+
+    @Test
+    public void testGetOptions_returnsAllAddedOptions() {
+        commandLine.addOption(helpOption);
+        commandLine.addOption(verboseOption);
+        final List options = commandLine.getOptions();
+        assertTrue(options.contains(helpOption));
+        assertTrue(options.contains(verboseOption));
+        assertEquals(2, options.size());
+    }
+
+    @Test
+    public void testGetOptionTriggers_returnsTriggersForAddedOptions() {
+        commandLine.addOption(helpOption);
+        final Set triggers = commandLine.getOptionTriggers();
+        assertTrue(triggers.contains("-h") || triggers.contains("--help"));
+    }
+
+    @Test
+    public void testGetValue_byTrigger_returnsValue() {
+        commandLine.addValue(helpOption, "helpVal");
+        assertEquals("helpVal", commandLine.getValue("-h"));
+        assertEquals("helpVal", commandLine.getValue("--help"));
+        assertNull(commandLine.getValue("-v"));
+    }
+
+    @Test
+    public void testGetValue_withDefaultObject_returnsValueOrDefault() {
+        assertEquals("default", commandLine.getValue(helpOption, "default"));
+        assertEquals("default", commandLine.getValue("-h", "default"));
+
+        commandLine.addValue(helpOption, "actual");
+        assertEquals("actual", commandLine.getValue(helpOption, "default"));
+        assertEquals("actual", commandLine.getValue("-h", "default"));
+    }
+
+    @Test
+    public void testGetValues_byTrigger_returnsValues() {
+        commandLine.addValue(helpOption, "val1");
+        commandLine.addValue(helpOption, "val2");
+        final List expected = Arrays.asList(new Object[]{"val1", "val2"});
+        assertEquals(expected, commandLine.getValues("-h"));
+        assertEquals(expected, commandLine.getValues("--help"));
+        assertTrue(commandLine.getValues("-v").isEmpty());
+    }
+
+    @Test
+    public void testGetValues_withDefaultList_returnsValuesOrDefault() {
+        final List defaultList = Arrays.asList(new Object[]{"d1", "d2"});
+        assertEquals(defaultList, commandLine.getValues(helpOption, defaultList));
+        assertEquals(defaultList, commandLine.getValues("-h", defaultList));
+
+        commandLine.addValue(helpOption, "actual");
+        final List expected = Collections.singletonList("actual");
+        assertEquals(expected, commandLine.getValues(helpOption, defaultList));
+        assertEquals(expected, commandLine.getValues("-h", defaultList));
+    }
+
+    @Test
+    public void testGetUndefaultedValues_returnsOnlyExplicitValues() {
+        commandLine.setDefaultValues(helpOption, Arrays.asList(new Object[]{"defaultVal"}));
+        assertTrue(commandLine.getUndefaultedValues(helpOption).isEmpty());
+
+        commandLine.addValue(helpOption, "explicitVal");
+        assertEquals(Collections.singletonList("explicitVal"), commandLine.getUndefaultedValues(helpOption));
+    }
+
+    @Test
+    public void testGetSwitch_byTrigger_returnsSwitchValue() {
+        commandLine.addSwitch(helpOption, true);
+        assertEquals(Boolean.TRUE, commandLine.getSwitch("-h"));
+        assertEquals(Boolean.TRUE, commandLine.getSwitch("--help"));
+        assertNull(commandLine.getSwitch("-v"));
+    }
+
+    @Test
+    public void testGetSwitch_withDefault_returnsSwitchOrDefault() {
+        assertEquals(Boolean.TRUE, commandLine.getSwitch(helpOption, Boolean.TRUE));
+        assertEquals(Boolean.TRUE, commandLine.getSwitch("-h", Boolean.TRUE));
+
+        commandLine.addSwitch(helpOption, false);
+        assertEquals(Boolean.FALSE, commandLine.getSwitch(helpOption, Boolean.TRUE));
+        assertEquals(Boolean.FALSE, commandLine.getSwitch("-h", Boolean.TRUE));
+    }
+
+    @Test
+    public void testAddProperty_withOption_retrievesPropertyCorrectly() {
+        commandLine.addProperty(propertyOption, "propKey", "propValue");
+        assertEquals("propValue", commandLine.getProperty(propertyOption, "propKey"));
+        assertEquals("propValue", commandLine.getProperty("propKey"));
+
+        final Set names = commandLine.getPropertyNames(propertyOption);
+        assertTrue(names.contains("propKey"));
+    }
+
+    @Test
+    public void testGetProperty_withDefaultValue_returnsValueOrDefault() {
+        assertEquals("defaultVal", commandLine.getProperty("missingKey", "defaultVal"));
+        assertEquals("defaultVal", commandLine.getProperty(propertyOption, "missingKey", "defaultVal"));
+
+        commandLine.addProperty(propertyOption, "existingKey", "actualVal");
+        assertEquals("actualVal", commandLine.getProperty("existingKey", "defaultVal"));
+        assertEquals("actualVal", commandLine.getProperty(propertyOption, "existingKey", "defaultVal"));
+    }
+
+    @Test
+    public void testGetPropertyNames_returnsAllPropertyNames() {
+        commandLine.addProperty("k1", "v1");
+        commandLine.addProperty("k2", "v2");
+        final Set names = commandLine.getPropertyNames();
+        assertTrue(names.contains("k1"));
+        assertTrue(names.contains("k2"));
+    }
+
+    @Test
+    public void testToString_returnsNonNullStringRepresentation() {
+        commandLine.addOption(helpOption);
+        commandLine.addValue(helpOption, "arg");
+        final String str = commandLine.toString();
+        assertNotNull(str);
+        assertTrue(str.length() > 0);
     }
 }

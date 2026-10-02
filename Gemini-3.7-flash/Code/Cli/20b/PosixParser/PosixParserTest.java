@@ -2,11 +2,9 @@ package org.apache.commons.cli;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
-/**
- * Unit tests for {@link PosixParser}.
- */
 public class PosixParserTest {
 
     private PosixParser parser;
@@ -18,159 +16,214 @@ public class PosixParserTest {
         options = new Options();
     }
 
-    // Tests flattening with empty arguments
+    // Tests empty arguments array
     @Test
-    public void testFlatten_emptyArguments_returnsEmptyArray() throws Exception {
+    public void testFlatten_emptyArguments_returnsEmptyArray() {
         String[] args = new String[0];
         String[] result = parser.flatten(options, args, false);
-        assertEquals(0, result.length);
-    }
-
-    // Tests flattening with long option without value
-    @Test
-    public void testFlatten_longOption_returnsLongOptionToken() throws Exception {
-        options.addOption("f", "foo", false, "foo option");
-        String[] args = new String[]{"--foo"};
-        String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"--foo"}, result);
-    }
-
-    // Tests flattening with long option containing equals sign
-    @Test
-    public void testFlatten_longOptionWithEquals_splitsIntoTwoTokens() throws Exception {
-        options.addOption("f", "foo", true, "foo option");
-        String[] args = new String[]{"--foo=bar"};
-        String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"--foo", "bar"}, result);
+        assertArrayEquals(new String[0], result);
     }
 
     // Tests single hyphen argument
     @Test
-    public void testFlatten_singleHyphen_returnsHyphenToken() throws Exception {
-        String[] args = new String[]{"-"};
+    public void testFlatten_singleHyphen_preservedAsToken() {
+        String[] args = new String[] { "-" };
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"-"}, result);
+        assertArrayEquals(new String[] { "-" }, result);
     }
 
-    // Tests recognized single-character option
+    // Tests long option without value
     @Test
-    public void testFlatten_validSingleCharOption_returnsOptionToken() throws Exception {
+    public void testFlatten_longOptionWithoutEquals_returnsLongOption() {
+        options.addOption("f", "foo", false, "foo option");
+        String[] args = new String[] { "--foo" };
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[] { "--foo" }, result);
+    }
+
+    // Tests long option with equals sign split into option and value
+    @Test
+    public void testFlatten_longOptionWithEquals_splitsTokenAndValue() {
+        options.addOption("f", "foo", true, "foo option");
+        String[] args = new String[] { "--foo=bar" };
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[] { "--foo", "bar" }, result);
+    }
+
+    // Tests double hyphen stops option processing
+    @Test
+    public void testFlatten_doubleHyphen_preservedInTokens() {
+        String[] args = new String[] { "--", "-a", "arg" };
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[] { "--", "-a", "arg" }, result);
+    }
+
+    // Tests valid single-character option
+    @Test
+    public void testFlatten_validShortOption_setsCurrentOption() {
         options.addOption("a", false, "option a");
-        String[] args = new String[]{"-a"};
+        String[] args = new String[] { "-a" };
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"-a"}, result);
+        assertArrayEquals(new String[] { "-a" }, result);
     }
 
-    // Tests unrecognized single-character option with stopAtNonOption false
+    // Tests invalid short option with stopAtNonOption false
     @Test
-    public void testFlatten_unrecognizedSingleCharOptionNoStop_returnsOptionToken() throws Exception {
-        String[] args = new String[]{"-z"};
+    public void testFlatten_invalidShortOptionNoStopAtNonOption_addsToken() {
+        String[] args = new String[] { "-z" };
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"-z"}, result);
+        assertArrayEquals(new String[] { "-z" }, result);
     }
 
-    // Tests unrecognized single-character option with stopAtNonOption true
+    // Tests invalid short option with stopAtNonOption true triggers gobble
     @Test
-    public void testFlatten_unrecognizedSingleCharOptionStopAtNonOption_gobblesRemainingTokens() throws Exception {
-        String[] args = new String[]{"-z", "extra1", "extra2"};
+    public void testFlatten_invalidShortOptionStopAtNonOption_eatsTheRest() {
+        String[] args = new String[] { "-z", "remaining1", "remaining2" };
         String[] result = parser.flatten(options, args, true);
-        assertArrayEquals(new String[]{"-z", "extra1", "extra2"}, result);
+        assertArrayEquals(new String[] { "-z", "remaining1", "remaining2" }, result);
     }
 
-    // Tests multi-character option defined in Options
+    // Tests option token recognized directly in options
     @Test
-    public void testFlatten_multiCharOptionDefinedInOptions_returnsMultiCharToken() throws Exception {
-        options.addOption("foo", false, "option foo");
-        String[] args = new String[]{"-foo"};
+    public void testFlatten_recognizedMultiCharOption_addedDirectly() {
+        options.addOption("foo", false, "multi-char option");
+        String[] args = new String[] { "-foo" };
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"-foo"}, result);
+        assertArrayEquals(new String[] { "-foo" }, result);
     }
 
-    // Tests bursting multiple single-character flag options
+    // Tests bursting multiple bundled single-char options
     @Test
-    public void testFlatten_burstMultipleFlags_burstsIntoIndividualTokens() throws Exception {
+    public void testFlatten_burstMultipleShortOptions_burstsIntoSeparateTokens() {
         options.addOption("a", false, "option a");
         options.addOption("b", false, "option b");
         options.addOption("c", false, "option c");
-        String[] args = new String[]{"-abc"};
+        String[] args = new String[] { "-abc" };
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"-a", "-b", "-c"}, result);
+        assertArrayEquals(new String[] { "-a", "-b", "-c" }, result);
     }
 
-    // Tests bursting flag options with attached argument value
+    // Tests bursting short option that accepts an argument attached to it
     @Test
-    public void testFlatten_burstFlagsWithAttachedArgument_separatesArgValue() throws Exception {
+    public void testFlatten_burstOptionWithAttachedArgument_separatesArg() {
         options.addOption("a", false, "option a");
         options.addOption("b", true, "option b with arg");
-        String[] args = new String[]{"-abvalue"};
+        String[] args = new String[] { "-abfoo" };
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"-a", "-b", "value"}, result);
+        assertArrayEquals(new String[] { "-a", "-b", "foo" }, result);
     }
 
-    // Tests bursting unrecognized option with stopAtNonOption false
+    // Tests bursting with unknown option and stopAtNonOption false
     @Test
-    public void testFlatten_burstUnrecognizedOptionNoStop_returnsOriginalToken() throws Exception {
+    public void testFlatten_burstUnknownOptionNoStopAtNonOption_addsRemainingAsSingleToken() {
         options.addOption("a", false, "option a");
-        String[] args = new String[]{"-az"};
+        String[] args = new String[] { "-az" };
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"-a", "-az"}, result);
+        assertArrayEquals(new String[] { "-a", "-az" }, result);
     }
 
-    // Tests bursting unrecognized option with stopAtNonOption true
+    // Tests bursting with unknown option and stopAtNonOption true
     @Test
-    public void testFlatten_burstUnrecognizedOptionStopAtNonOption_addsSpecialTokens() throws Exception {
+    public void testFlatten_burstUnknownOptionStopAtNonOption_addsDoubleHyphenAndEatsRest() {
         options.addOption("a", false, "option a");
-        String[] args = new String[]{"-az", "remaining"};
+        String[] args = new String[] { "-az", "extra" };
         String[] result = parser.flatten(options, args, true);
-        assertArrayEquals(new String[]{"-a", "--", "z", "remaining"}, result);
+        assertArrayEquals(new String[] { "-a", "--", "z", "extra" }, result);
     }
 
-    // Tests non-option arguments with stopAtNonOption false
+    // Tests non-option argument following an option that requires an argument
     @Test
-    public void testFlatten_nonOptionNoStop_addsTokenDirectly() throws Exception {
-        String[] args = new String[]{"arg1", "arg2"};
+    public void testFlatten_optionExpectingArgFollowedByValue_passesArg() {
+        options.addOption("a", true, "option a with arg");
+        String[] args = new String[] { "-a", "val", "nonOption" };
+        String[] result = parser.flatten(options, args, true);
+        assertArrayEquals(new String[] { "-a", "val", "--", "nonOption" }, result);
+    }
+
+    // Tests non-option argument when stopAtNonOption is false
+    @Test
+    public void testFlatten_nonOptionNoStopAtNonOption_addsToken() {
+        String[] args = new String[] { "nonOption1", "nonOption2" };
         String[] result = parser.flatten(options, args, false);
-        assertArrayEquals(new String[]{"arg1", "arg2"}, result);
+        assertArrayEquals(new String[] { "nonOption1", "nonOption2" }, result);
     }
 
-    // Tests non-option arguments with stopAtNonOption true when no current option exists
+    // Tests non-option argument when stopAtNonOption is true
     @Test
-    public void testFlatten_nonOptionStopAtNonOptionNoCurrentOption_addsSeparatorAndGobbles() throws Exception {
-        String[] args = new String[]{"arg1", "arg2"};
+    public void testFlatten_nonOptionStopAtNonOption_insertsDoubleHyphenAndEatsRest() {
+        String[] args = new String[] { "nonOption1", "nonOption2" };
         String[] result = parser.flatten(options, args, true);
-        assertArrayEquals(new String[]{"--", "arg1", "arg2"}, result);
+        assertArrayEquals(new String[] { "--", "nonOption1", "nonOption2" }, result);
     }
 
-    // Tests non-option argument provided after option expecting an argument with stopAtNonOption true
+    // Tests parser reusability and state reset in init()
     @Test
-    public void testFlatten_nonOptionWithCurrentOptionExpectingArg_consumesArgProperly() throws Exception {
-        options.addOption("a", true, "option a requiring arg");
-        String[] args = new String[]{"-a", "val", "nonOption"};
+    public void testFlatten_consecutiveCalls_resetsInternalState() {
+        options.addOption("a", true, "option a with arg");
+        String[] args1 = new String[] { "-a", "foo" };
+        String[] result1 = parser.flatten(options, args1, false);
+        assertArrayEquals(new String[] { "-a", "foo" }, result1);
+
+        String[] args2 = new String[] { "standalone" };
+        String[] result2 = parser.flatten(options, args2, false);
+        assertArrayEquals(new String[] { "standalone" }, result2);
+    }
+
+    // Tests unrecognized long option with equals sign and stopAtNonOption true
+    @Test
+    public void testFlatten_unrecognizedLongOptionWithEqualsStopAtNonOption_eatsTheRest() {
+        String[] args = new String[] { "--unknown=value", "extra" };
         String[] result = parser.flatten(options, args, true);
-        assertArrayEquals(new String[]{"-a", "val", "--", "nonOption"}, result);
+        assertArrayEquals(new String[] { "--unknown=value", "extra" }, result);
     }
 
-    // Tests full command line parse end-to-end
+    // Tests unrecognized long option with equals sign and stopAtNonOption false
     @Test
-    public void testParse_standardCommandLine_parsesOptionsAndArguments() throws Exception {
-        options.addOption("a", false, "flag a");
-        options.addOption("b", true, "option b");
-        CommandLine cmd = parser.parse(options, new String[]{"-a", "-b", "val", "extra"});
-        assertTrue(cmd.hasOption("a"));
-        assertEquals("val", cmd.getOptionValue("b"));
-        assertEquals(1, cmd.getArgs().length);
-        assertEquals("extra", cmd.getArgs()[0]);
+    public void testFlatten_unrecognizedLongOptionWithEqualsNoStopAtNonOption_addsToken() {
+        String[] args = new String[] { "--unknown=value" };
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[] { "--unknown=value" }, result);
     }
 
-    // Tests multiple calls to flatten on the same parser instance to verify state re-initialization
+    // Tests unrecognized long option without equals sign and stopAtNonOption true
     @Test
-    public void testFlatten_multipleCalls_resetsInternalStateCorrectly() throws Exception {
+    public void testFlatten_unrecognizedLongOptionWithoutEqualsStopAtNonOption_eatsTheRest() {
+        String[] args = new String[] { "--unknown", "extra1", "extra2" };
+        String[] result = parser.flatten(options, args, true);
+        assertArrayEquals(new String[] { "--unknown", "extra1", "extra2" }, result);
+    }
+
+    // Tests unrecognized long option without equals sign and stopAtNonOption false
+    @Test
+    public void testFlatten_unrecognizedLongOptionWithoutEqualsNoStopAtNonOption_addsToken() {
+        String[] args = new String[] { "--unknown" };
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[] { "--unknown" }, result);
+    }
+
+    // Tests bursting where last character in bundle is an option requiring an argument
+    @Test
+    public void testFlatten_burstLastOptionRequiresArgument_keepsOptionWaitingForNextToken() {
         options.addOption("a", false, "option a");
-        String[] firstArgs = new String[]{"-a", "nonOption"};
-        parser.flatten(options, firstArgs, true);
+        options.addOption("b", true, "option b with arg");
+        String[] args = new String[] { "-ab", "val", "nonOption" };
+        String[] result = parser.flatten(options, args, true);
+        assertArrayEquals(new String[] { "-a", "-b", "val", "--", "nonOption" }, result);
+    }
 
-        String[] secondArgs = new String[]{"-a"};
-        String[] result = parser.flatten(options, secondArgs, false);
-        assertArrayEquals(new String[]{"-a"}, result);
+    // Tests bursting when first character is unknown with stopAtNonOption true
+    @Test
+    public void testFlatten_burstFirstCharacterUnknownStopAtNonOption_addsDoubleHyphenAndEatsRest() {
+        String[] args = new String[] { "-xyz", "extra" };
+        String[] result = parser.flatten(options, args, true);
+        assertArrayEquals(new String[] { "--", "-xyz", "extra" }, result);
+    }
+
+    // Tests bursting when first character is unknown with stopAtNonOption false
+    @Test
+    public void testFlatten_burstFirstCharacterUnknownNoStopAtNonOption_addsWholeToken() {
+        String[] args = new String[] { "-xyz" };
+        String[] result = parser.flatten(options, args, false);
+        assertArrayEquals(new String[] { "-xyz" }, result);
     }
 }

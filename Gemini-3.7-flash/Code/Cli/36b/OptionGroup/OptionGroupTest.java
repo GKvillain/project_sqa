@@ -7,126 +7,50 @@ import java.util.Collection;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class OptionGroupTest
 {
     private OptionGroup group;
-    private Option optionA;
-    private Option optionB;
 
     @Before
     public void setUp()
     {
         group = new OptionGroup();
-        optionA = new Option("a", "alpha", false, "option A description");
-        optionB = new Option("b", "beta", false, "option B description");
     }
 
-    // Tests adding an option and retrieving names and options collections
+    // Tests default initial state of OptionGroup
     @Test
-    public void testAddOption_validOption_addsToGroup()
+    public void testInitialState_defaultConstructor_returnsEmptyAndNotRequired()
     {
-        group.addOption(optionA);
+        assertTrue(group.getNames().isEmpty());
+        assertTrue(group.getOptions().isEmpty());
+        assertNull(group.getSelected());
+        assertFalse(group.isRequired());
+    }
 
+    // Tests adding an option and retrieving names and options
+    @Test
+    public void testAddOption_validOption_storesOptionCorrectly()
+    {
+        Option opt = new Option("a", "first option");
+        OptionGroup returnedGroup = group.addOption(opt);
+
+        assertEquals(group, returnedGroup);
         Collection<String> names = group.getNames();
         Collection<Option> options = group.getOptions();
 
         assertEquals(1, names.size());
         assertTrue(names.contains("a"));
         assertEquals(1, options.size());
-        assertTrue(options.contains(optionA));
+        assertTrue(options.contains(opt));
     }
 
-    // Tests initial state of default OptionGroup
+    // Tests setting and getting required flag
     @Test
-    public void testInitialState_defaultValues_returnsDefaults()
-    {
-        assertNull(group.getSelected());
-        assertFalse(group.isRequired());
-        assertTrue(group.getNames().isEmpty());
-        assertTrue(group.getOptions().isEmpty());
-    }
-
-    // Tests selecting an option when no option is currently selected
-    @Test
-    public void testSetSelected_initialSelection_setsSelectedSuccessfully() throws AlreadySelectedException
-    {
-        group.addOption(optionA);
-        group.setSelected(optionA);
-
-        assertEquals("a", group.getSelected());
-    }
-
-    // Tests selecting an option by long option key
-    @Test
-    public void testSetSelected_longOptOnlyOption_setsSelectedSuccessfully() throws AlreadySelectedException
-    {
-        Option longOnly = new Option(null, "longOpt", false, "long only desc");
-        group.addOption(longOnly);
-        group.setSelected(longOnly);
-
-        assertEquals("longOpt", group.getSelected());
-    }
-
-    // Tests reselecting the same option does not throw exception
-    @Test
-    public void testSetSelected_sameOptionReselected_noExceptionThrown() throws AlreadySelectedException
-    {
-        group.addOption(optionA);
-        group.setSelected(optionA);
-        group.setSelected(optionA);
-
-        assertEquals("a", group.getSelected());
-    }
-
-    // Tests selecting a different option when one is already selected throws AlreadySelectedException
-    @Test(expected = AlreadySelectedException.class)
-    public void testSetSelected_differentOptionSelected_throwsAlreadySelectedException() throws AlreadySelectedException
-    {
-        group.addOption(optionA);
-        group.addOption(optionB);
-
-        group.setSelected(optionA);
-        group.setSelected(optionB);
-    }
-
-    // Tests passing null resets the selected option
-    @Test
-    public void testSetSelected_nullInput_resetsSelected() throws AlreadySelectedException
-    {
-        group.addOption(optionA);
-        group.setSelected(optionA);
-        assertEquals("a", group.getSelected());
-
-        group.setSelected(null);
-        assertNull(group.getSelected());
-    }
-
-    // Tests selecting a new option after resetting to null
-    @Test
-    public void testSetSelected_resetThenSelectAnother_setsNewSelected() throws AlreadySelectedException
-    {
-        group.addOption(optionA);
-        group.addOption(optionB);
-
-        group.setSelected(optionA);
-        assertEquals("a", group.getSelected());
-
-        group.setSelected(null);
-        assertNull(group.getSelected());
-
-        group.setSelected(optionB);
-        assertEquals("b", group.getSelected());
-    }
-
-    // Tests setting and checking the required property
-    @Test
-    public void testSetRequired_trueAndFalse_updatesRequiredFlag()
+    public void testSetRequired_booleanValues_updatesRequiredField()
     {
         group.setRequired(true);
         assertTrue(group.isRequired());
@@ -135,121 +59,183 @@ public class OptionGroupTest
         assertFalse(group.isRequired());
     }
 
-    // Tests toString on an empty OptionGroup
+    // Tests selecting an option when none was selected
+    @Test
+    public void testSetSelected_noPriorSelection_setsSelectedOption() throws AlreadySelectedException
+    {
+        Option optA = new Option("a", "option A");
+        group.setSelected(optA);
+
+        assertEquals("a", group.getSelected());
+    }
+
+    // Tests re-selecting the exact same option
+    @Test
+    public void testSetSelected_sameOptionReselected_succeedsWithoutException() throws AlreadySelectedException
+    {
+        Option optA = new Option("a", "option A");
+        group.setSelected(optA);
+        group.setSelected(optA);
+
+        assertEquals("a", group.getSelected());
+    }
+
+    // Tests resetting selection by passing null
+    @Test
+    public void testSetSelected_nullInput_resetsSelectedToNull() throws AlreadySelectedException
+    {
+        Option optA = new Option("a", "option A");
+        group.setSelected(optA);
+        assertEquals("a", group.getSelected());
+
+        group.setSelected(null);
+        assertNull(group.getSelected());
+    }
+
+    // Tests selecting a different option throws AlreadySelectedException
+    @Test(expected = AlreadySelectedException.class)
+    public void testSetSelected_differentOption_throwsAlreadySelectedException() throws AlreadySelectedException
+    {
+        Option optA = new Option("a", "option A");
+        Option optB = new Option("b", "option B");
+
+        group.setSelected(optA);
+        group.setSelected(optB);
+    }
+
+    // Tests setting selected option that has only a longOpt
+    @Test
+    public void testSetSelected_longOptOnlyOption_setsSelectedKey() throws AlreadySelectedException
+    {
+        Option optLong = new Option(null, "foo", false, "long option");
+        group.setSelected(optLong);
+
+        assertEquals("foo", group.getSelected());
+    }
+
+    // Tests toString with no options
     @Test
     public void testToString_emptyGroup_returnsEmptyBrackets()
     {
         assertEquals("[]", group.toString());
     }
 
-    // Tests toString with short option having description
+    // Tests toString with a single short option and description
     @Test
-    public void testToString_singleOptionWithDescription_formatsCorrectly()
+    public void testToString_singleShortOptionWithDescription_returnsFormattedString()
     {
-        Option opt = new Option("f", "file description");
-        group.addOption(opt);
+        Option optA = new Option("a", "first option");
+        group.addOption(optA);
 
-        assertEquals("[-f file description]", group.toString());
+        assertEquals("[-a first option]", group.toString());
     }
 
-    // Tests toString with short option having null description
+    // Tests toString with a single short option without description
     @Test
-    public void testToString_singleOptionWithoutDescription_formatsCorrectly()
+    public void testToString_singleShortOptionNoDescription_returnsFormattedString()
     {
-        Option opt = new Option("f", null);
-        group.addOption(opt);
+        Option optA = new Option("a", null);
+        group.addOption(optA);
 
-        assertEquals("[-f]", group.toString());
+        assertEquals("[-a]", group.toString());
     }
 
-    // Tests toString with long-only option
+    // Tests toString with a long option only and description
     @Test
-    public void testToString_longOptOnlyOption_formatsWithDoubleDash()
+    public void testToString_longOptionOnlyWithDescription_returnsFormattedString()
     {
-        Option opt = new Option(null, "file", false, "file description");
-        group.addOption(opt);
+        Option optFoo = new Option(null, "foo", false, "foo description");
+        group.addOption(optFoo);
 
-        assertEquals("[--file file description]", group.toString());
+        assertEquals("[--foo foo description]", group.toString());
     }
 
-    // Tests toString with multiple options contains all representations
+    // Tests toString with a long option only without description
     @Test
-    public void testToString_multipleOptions_containsAllOptions()
+    public void testToString_longOptionOnlyNoDescription_returnsFormattedString()
     {
-        Option opt1 = new Option("a", "first");
-        Option opt2 = new Option("b", "second");
-        group.addOption(opt1);
-        group.addOption(opt2);
+        Option optFoo = new Option(null, "foo", false, null);
+        group.addOption(optFoo);
+
+        assertEquals("[--foo]", group.toString());
+    }
+
+    // Tests toString with multiple options separated by comma
+    @Test
+    public void testToString_multipleOptions_containsBothOptionsSeparatedByComma()
+    {
+        Option optA = new Option("a", "desc A");
+        Option optB = new Option("b", "desc B");
+        group.addOption(optA);
+        group.addOption(optB);
 
         String result = group.toString();
         assertTrue(result.startsWith("["));
         assertTrue(result.endsWith("]"));
-        assertTrue(result.contains("-a first"));
-        assertTrue(result.contains("-b second"));
+        assertTrue(result.contains("-a desc A"));
+        assertTrue(result.contains("-b desc B"));
         assertTrue(result.contains(", "));
     }
 
-    // Tests toString with long-only option without description
+    // Tests adding an option with longOpt only and retrieving names and options
     @Test
-    public void testToString_longOptOnlyWithoutDescription_formatsCorrectly()
+    public void testAddOption_longOptOnlyOption_storesOptionUsingLongOptKey()
     {
-        Option opt = new Option(null, "file", false, null);
-        group.addOption(opt);
+        Option optLong = new Option(null, "bar", false, "bar description");
+        group.addOption(optLong);
 
-        assertEquals("[--file]", group.toString());
+        Collection<String> names = group.getNames();
+        Collection<Option> options = group.getOptions();
+
+        assertEquals(1, names.size());
+        assertTrue(names.contains("bar"));
+        assertEquals(1, options.size());
+        assertTrue(options.contains(optLong));
     }
 
-    // Tests addOption returns the OptionGroup instance for method chaining
+    // Tests re-selecting a distinct Option instance that has the same opt key
     @Test
-    public void testAddOption_returnsSelfForChaining()
-    {
-        OptionGroup returned = group.addOption(optionA);
-        assertSame(group, returned);
-    }
-
-    // Tests reselecting a different Option instance with the same key
-    @Test
-    public void testSetSelected_differentOptionInstanceWithSameKey_noExceptionThrown() throws AlreadySelectedException
+    public void testSetSelected_differentOptionInstanceSameKey_succeedsWithoutException() throws AlreadySelectedException
     {
         Option opt1 = new Option("a", "first instance");
         Option opt2 = new Option("a", "second instance");
-        group.addOption(opt1);
+
         group.setSelected(opt1);
         group.setSelected(opt2);
 
         assertEquals("a", group.getSelected());
     }
 
-    // Tests reselecting a different long-only Option instance with the same long opt key
+    // Tests re-selecting a distinct Option instance that has the same longOpt key
     @Test
-    public void testSetSelected_differentLongOptionInstanceWithSameKey_noExceptionThrown() throws AlreadySelectedException
+    public void testSetSelected_differentOptionInstanceSameLongOptKey_succeedsWithoutException() throws AlreadySelectedException
     {
-        Option opt1 = new Option(null, "foo", false, "desc1");
-        Option opt2 = new Option(null, "foo", false, "desc2");
-        group.addOption(opt1);
+        Option opt1 = new Option(null, "foo", false, "first instance");
+        Option opt2 = new Option(null, "foo", false, "second instance");
+
         group.setSelected(opt1);
         group.setSelected(opt2);
 
         assertEquals("foo", group.getSelected());
     }
 
-    // Tests AlreadySelectedException contains references to group and option
+    // Tests AlreadySelectedException contains references to the OptionGroup and conflicting Option
     @Test
-    public void testSetSelected_conflict_exceptionContainsGroupAndOption()
+    public void testSetSelected_alreadySelectedException_containsCorrectGroupAndOption()
     {
-        group.addOption(optionA);
-        group.addOption(optionB);
+        Option optA = new Option("a", "option A");
+        Option optB = new Option("b", "option B");
 
         try
         {
-            group.setSelected(optionA);
-            group.setSelected(optionB);
-            fail("Expected AlreadySelectedException");
+            group.setSelected(optA);
+            group.setSelected(optB);
+            fail("Expected AlreadySelectedException to be thrown");
         }
         catch (AlreadySelectedException e)
         {
-            assertSame(group, e.getOptionGroup());
-            assertSame(optionB, e.getOption());
+            assertEquals(group, e.getOptionGroup());
+            assertEquals(optB, e.getOption());
         }
     }
 }

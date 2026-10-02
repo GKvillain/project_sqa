@@ -1,7 +1,9 @@
 package org.apache.commons.cli2.option;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -11,263 +13,377 @@ import org.apache.commons.cli2.DisplaySetting;
 import org.apache.commons.cli2.HelpLine;
 import org.apache.commons.cli2.Option;
 import org.apache.commons.cli2.OptionException;
-import org.apache.commons.cli2.WriteableCommandLine;
 import org.apache.commons.cli2.commandline.WriteableCommandLineImpl;
 import org.apache.commons.cli2.validation.InvalidArgumentException;
 import org.apache.commons.cli2.validation.Validator;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class ArgumentImplTest {
 
+    private ArgumentImpl argument;
+
+    @Before
+    public void setUp() {
+        argument = new ArgumentImpl("arg", "argument description", 1, 2, '=', ',', null, "--", null, 0);
+    }
+
     // Tests default name assignment when name is null
     @Test
     public void testConstructor_nullName_defaultsToArg() {
-        ArgumentImpl arg = new ArgumentImpl(null, "desc", 0, 1, '=', ',', null, null, null, 1);
+        ArgumentImpl arg = new ArgumentImpl(null, "desc", 0, 1, '\0', '\0', null, "--", null, 0);
         assertEquals("arg", arg.getPreferredName());
-        assertEquals("desc", arg.getDescription());
-        assertEquals(0, arg.getMinimum());
-        assertEquals(1, arg.getMaximum());
-        assertEquals('=', arg.getInitialSeparator());
-        assertEquals(',', arg.getSubsequentSeparator());
-        assertNull(arg.getValidator());
-        assertNull(arg.getConsumeRemaining());
-        assertNull(arg.getDefaultValues());
-        assertFalse(arg.isRequired());
     }
 
-    // Tests exception when minimum exceeds maximum
+    // Tests minimum greater than maximum throws exception
     @Test(expected = IllegalArgumentException.class)
-    public void testConstructor_minGreaterThanMax_throwsIllegalArgumentException() {
-        new ArgumentImpl("test", "desc", 5, 2, '\0', '\0', null, null, null, 1);
+    public void testConstructor_minExceedsMax_throwsIllegalArgumentException() {
+        new ArgumentImpl("test", "desc", 3, 2, '\0', '\0', null, "--", null, 0);
     }
 
-    // Tests exception when default values count is less than minimum
+    // Tests defaults list smaller than minimum throws exception
     @Test(expected = IllegalArgumentException.class)
     public void testConstructor_tooFewDefaults_throwsIllegalArgumentException() {
-        List defaults = Collections.singletonList("default1");
-        new ArgumentImpl("test", "desc", 2, 5, '\0', '\0', null, null, defaults, 1);
+        List defaults = Collections.singletonList("val1");
+        new ArgumentImpl("test", "desc", 2, 3, '\0', '\0', null, "--", defaults, 0);
     }
 
-    // Tests exception when default values count exceeds maximum
+    // Tests defaults list greater than maximum throws exception
     @Test(expected = IllegalArgumentException.class)
     public void testConstructor_tooManyDefaults_throwsIllegalArgumentException() {
-        List defaults = new ArrayList();
-        defaults.add("def1");
-        defaults.add("def2");
-        defaults.add("def3");
-        new ArgumentImpl("test", "desc", 1, 2, '\0', '\0', null, null, defaults, 1);
+        List defaults = Arrays.asList(new String[]{"val1", "val2", "val3"});
+        new ArgumentImpl("test", "desc", 1, 2, '\0', '\0', null, "--", defaults, 0);
     }
 
-    // Tests stripBoundaryQuotes method with quoted and unquoted strings
+    // Tests getters return correctly configured values
     @Test
-    public void testStripBoundaryQuotes_variousInputs_stripsQuotesCorrectly() {
-        ArgumentImpl arg = new ArgumentImpl("test", "desc", 0, 1, '\0', '\0', null, null, null, 1);
-        assertEquals("hello", arg.stripBoundaryQuotes("\"hello\""));
-        assertEquals("\"hello", arg.stripBoundaryQuotes("\"hello"));
-        assertEquals("hello\"", arg.stripBoundaryQuotes("hello\""));
-        assertEquals("hello", arg.stripBoundaryQuotes("hello"));
-        assertEquals("", arg.stripBoundaryQuotes("\"\""));
-    }
+    public void testGetters_validConfiguration_returnsExpectedValues() {
+        Validator dummyValidator = new Validator() {
+            public void validate(List values) throws InvalidArgumentException {
+            }
+        };
+        List defaults = Arrays.asList(new String[]{"def1", "def2"});
+        ArgumentImpl arg = new ArgumentImpl("myArg", "myDesc", 1, 2, '=', ';', dummyValidator, "++", defaults, 10);
 
-    // Tests isRequired when minimum is positive
-    @Test
-    public void testIsRequired_minPositive_returnsTrue() {
-        ArgumentImpl arg = new ArgumentImpl("test", "desc", 1, 2, '\0', '\0', null, null, null, 1);
+        assertEquals("myArg", arg.getPreferredName());
+        assertEquals("myDesc", arg.getDescription());
+        assertEquals(1, arg.getMinimum());
+        assertEquals(2, arg.getMaximum());
+        assertEquals('=', arg.getInitialSeparator());
+        assertEquals(';', arg.getSubsequentSeparator());
+        assertEquals("++", arg.getConsumeRemaining());
+        assertEquals(defaults, arg.getDefaultValues());
+        assertEquals(dummyValidator, arg.getValidator());
+        assertEquals(10, arg.getId());
         assertTrue(arg.isRequired());
+        assertEquals(Collections.EMPTY_SET, arg.getPrefixes());
+        assertEquals(Collections.EMPTY_SET, arg.getTriggers());
     }
 
-    // Tests canProcess, getPrefixes, and getTriggers behavior
+    // Tests canProcess returns true
     @Test
-    public void testGettersAndBasicProperties_validState_returnsExpected() {
-        ArgumentImpl arg = new ArgumentImpl("argName", "desc", 1, 1, '\0', '\0', null, "--", null, 42);
-        assertTrue(arg.canProcess(null, "anything"));
-        assertTrue(arg.getPrefixes().isEmpty());
-        assertTrue(arg.getTriggers().isEmpty());
-        assertEquals("--", arg.getConsumeRemaining());
+    public void testCanProcess_anyArgument_returnsTrue() {
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(argument, new ArrayList());
+        assertTrue(argument.canProcess(cmdLine, "any"));
+        assertTrue(argument.canProcess(cmdLine, (String) null));
     }
 
-    // Tests processValues consuming all remaining arguments with consumeRemaining token
+    // Tests stripBoundaryQuotes with double quotes
     @Test
-    public void testProcessValues_consumeRemainingToken_addsAllRemainingValues() throws OptionException {
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 5, '\0', '\0', null, "--", null, 1);
-        WriteableCommandLine commandLine = new WriteableCommandLineImpl(arg, new ArrayList());
+    public void testStripBoundaryQuotes_quotedString_stripsQuotes() {
+        assertEquals("value", argument.stripBoundaryQuotes("\"value\""));
+    }
 
-        List args = new ArrayList();
-        args.add("--");
-        args.add("-notAnOption");
-        args.add("value2");
+    // Tests stripBoundaryQuotes without quotes
+    @Test
+    public void testStripBoundaryQuotes_unquotedString_returnsSame() {
+        assertEquals("value", argument.stripBoundaryQuotes("value"));
+        assertEquals("\"value", argument.stripBoundaryQuotes("\"value"));
+        assertEquals("value\"", argument.stripBoundaryQuotes("value\""));
+    }
 
-        ListIterator iterator = args.listIterator();
-        arg.processValues(commandLine, iterator, arg);
+    // Tests stripBoundaryQuotes with empty string and edge quote strings
+    @Test
+    public void testStripBoundaryQuotes_emptyAndShortQuotes() {
+        assertEquals("", argument.stripBoundaryQuotes(""));
+        assertEquals("", argument.stripBoundaryQuotes("\"\""));
+    }
 
-        List values = commandLine.getValues((Option) arg);
+    // Tests processing normal values
+    @Test
+    public void testProcessValues_normalValues_addsToCommandLine() throws Exception {
+        List argsList = new ArrayList(Arrays.asList(new String[]{"val1", "val2"}));
+        ListIterator it = argsList.listIterator();
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(argument, new ArrayList());
+
+        argument.process(cmdLine, it);
+
+        List values = cmdLine.getValues(argument);
         assertEquals(2, values.size());
-        assertEquals("-notAnOption", values.get(0));
-        assertEquals("value2", values.get(1));
-    }
-
-    // Tests processValues stopping when encountering an argument that looks like an option
-    @Test
-    public void testProcessValues_looksLikeOption_stopsProcessing() throws OptionException {
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 5, '\0', '\0', null, "--", null, 1);
-        WriteableCommandLine commandLine = new WriteableCommandLineImpl(arg, new ArrayList());
-
-        List args = new ArrayList();
-        args.add("-opt");
-        args.add("value");
-
-        ListIterator iterator = args.listIterator();
-        arg.processValues(commandLine, iterator, arg);
-
-        List values = commandLine.getValues((Option) arg);
-        assertEquals(0, values.size());
-        assertTrue(iterator.hasNext());
-        assertEquals("-opt", iterator.next());
-    }
-
-    // Tests processValues with subsequent separator splitting tokens
-    @Test
-    public void testProcessValues_subsequentSeparator_splitsTokensCorrectly() throws OptionException {
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 5, '\0', ',', null, "--", null, 1);
-        WriteableCommandLine commandLine = new WriteableCommandLineImpl(arg, new ArrayList());
-
-        List args = new ArrayList();
-        args.add("val1,val2,val3");
-
-        ListIterator iterator = args.listIterator();
-        arg.processValues(commandLine, iterator, arg);
-
-        List values = commandLine.getValues((Option) arg);
-        assertEquals(3, values.size());
         assertEquals("val1", values.get(0));
         assertEquals("val2", values.get(1));
-        assertEquals("val3", values.get(2));
+        assertFalse(it.hasNext());
     }
 
-    // Tests processValues throwing exception when subsequent split exceeds maximum
-    @Test(expected = OptionException.class)
-    public void testProcessValues_subsequentSplitExceedsMaximum_throwsOptionException() throws OptionException {
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 2, '\0', ',', null, "--", null, 1);
-        WriteableCommandLine commandLine = new WriteableCommandLineImpl(arg, new ArrayList());
+    // Tests consume remaining token
+    @Test
+    public void testProcessValues_consumeRemaining_addsRemainingValues() throws Exception {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 5, '\0', '\0', null, "--", null, 0);
+        List argsList = new ArrayList(Arrays.asList(new String[]{"--", "-opt1", "val1"}));
+        ListIterator it = argsList.listIterator();
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
 
-        List args = new ArrayList();
-        args.add("val1,val2,val3");
+        arg.processValues(cmdLine, it, arg);
 
-        ListIterator iterator = args.listIterator();
-        arg.processValues(commandLine, iterator, arg);
+        List values = cmdLine.getValues(arg);
+        assertEquals(2, values.size());
+        assertEquals("-opt1", values.get(0));
+        assertEquals("val1", values.get(1));
     }
 
-    // Tests validate when values are fewer than minimum
-    @Test(expected = OptionException.class)
-    public void testValidate_fewerThanMinimumValues_throwsOptionException() throws OptionException {
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 2, 3, '\0', '\0', null, null, null, 1);
-        WriteableCommandLine commandLine = new WriteableCommandLineImpl(arg, new ArrayList());
+    // Tests stopping value processing when option is encountered
+    @Test
+    public void testProcessValues_looksLikeOption_stopsProcessing() throws Exception {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 5, '\0', '\0', null, "--", null, 0);
+        List argsList = new ArrayList(Arrays.asList(new String[]{"val1", "-opt"}));
+        ListIterator it = argsList.listIterator();
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
 
-        commandLine.addValue(arg, "val1");
-        arg.validate(commandLine);
+        arg.processValues(cmdLine, it, arg);
+
+        List values = cmdLine.getValues(arg);
+        assertEquals(1, values.size());
+        assertEquals("val1", values.get(0));
+        assertTrue(it.hasNext());
+        assertEquals("-opt", it.next());
     }
 
-    // Tests validate when values exceed maximum
-    @Test(expected = OptionException.class)
-    public void testValidate_moreThanMaximumValues_throwsOptionException() throws OptionException {
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 1, 2, '\0', '\0', null, null, null, 1);
-        WriteableCommandLine commandLine = new WriteableCommandLineImpl(arg, new ArrayList());
+    // Tests subsequent separator splitting
+    @Test
+    public void testProcessValues_subsequentSeparator_splitsTokens() throws Exception {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 3, '\0', ',', null, "--", null, 0);
+        List argsList = new ArrayList(Collections.singletonList("a,b,c"));
+        ListIterator it = argsList.listIterator();
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
 
-        commandLine.addValue(arg, "val1");
-        commandLine.addValue(arg, "val2");
-        commandLine.addValue(arg, "val3");
-        arg.validate(commandLine);
+        arg.processValues(cmdLine, it, arg);
+
+        List values = cmdLine.getValues(arg);
+        assertEquals(3, values.size());
+        assertEquals("a", values.get(0));
+        assertEquals("b", values.get(1));
+        assertEquals("c", values.get(2));
     }
 
-    // Tests validate with a custom validator throwing InvalidArgumentException
+    // Tests subsequent separator splitting with excess tokens throwing OptionException
     @Test(expected = OptionException.class)
-    public void testValidate_validatorThrowsInvalidArgument_throwsOptionException() throws OptionException {
+    public void testProcessValues_subsequentSeparatorTooManyTokens_throwsOptionException() throws Exception {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 2, '\0', ',', null, "--", null, 0);
+        List argsList = new ArrayList(Collections.singletonList("a,b,c"));
+        ListIterator it = argsList.listIterator();
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
+
+        arg.processValues(cmdLine, it, arg);
+    }
+
+    // Tests validation when fewer values than minimum are present
+    @Test(expected = OptionException.class)
+    public void testValidate_missingValues_throwsOptionException() throws Exception {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 2, 4, '\0', '\0', null, "--", null, 0);
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
+        cmdLine.addValue(arg, "one");
+
+        arg.validate(cmdLine);
+    }
+
+    // Tests validation when validator fails
+    @Test(expected = OptionException.class)
+    public void testValidate_validatorFails_throwsOptionException() throws Exception {
         Validator failingValidator = new Validator() {
             public void validate(List values) throws InvalidArgumentException {
-                throw new InvalidArgumentException("Invalid argument value");
+                throw new InvalidArgumentException("Invalid argument");
             }
         };
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 1, 2, '\0', '\0', failingValidator, "--", null, 0);
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
+        cmdLine.addValue(arg, "badValue");
 
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 1, 1, '\0', '\0', failingValidator, null, null, 1);
-        WriteableCommandLine commandLine = new WriteableCommandLineImpl(arg, new ArrayList());
-        commandLine.addValue(arg, "invalidVal");
-
-        arg.validate(commandLine);
+        arg.validate(cmdLine);
     }
 
-    // Tests validate with a passing validator
+    // Tests appendUsage with optional and bracketed settings
     @Test
-    public void testValidate_validInput_passesWithoutException() throws OptionException {
+    public void testAppendUsage_optionalAndBracketed() {
+        ArgumentImpl arg = new ArgumentImpl("file", "desc", 1, 3, '\0', '\0', null, "--", null, 0);
+        Set helpSettings = new HashSet();
+        helpSettings.add(DisplaySetting.DISPLAY_OPTIONAL);
+        helpSettings.add(DisplaySetting.DISPLAY_ARGUMENT_BRACKETED);
+        helpSettings.add(DisplaySetting.DISPLAY_ARGUMENT_NUMBERED);
+
+        StringBuffer buffer = new StringBuffer();
+        arg.appendUsage(buffer, helpSettings, null);
+
+        assertEquals("<file1> [<file2> [<file3>]]", buffer.toString());
+    }
+
+    // Tests appendUsage with infinite maximum
+    @Test
+    public void testAppendUsage_infiniteMaximum() {
+        ArgumentImpl arg = new ArgumentImpl("file", "desc", 0, Integer.MAX_VALUE, '\0', '\0', null, "--", null, 0);
+        Set helpSettings = new HashSet();
+        helpSettings.add(DisplaySetting.DISPLAY_OPTIONAL);
+
+        StringBuffer buffer = new StringBuffer();
+        arg.appendUsage(buffer, helpSettings, null);
+
+        assertEquals("[file [file] ...]", buffer.toString());
+    }
+
+    // Tests helpLines generation
+    @Test
+    public void testHelpLines_returnsHelpLineList() {
+        List lines = argument.helpLines(0, Collections.EMPTY_SET, null);
+        assertNotNull(lines);
+        assertEquals(1, lines.size());
+        HelpLine line = (HelpLine) lines.get(0);
+        assertEquals(argument, line.getOption());
+        assertEquals(0, line.getIndent());
+    }
+
+    // Tests defaults method populates default values on command line
+    @Test
+    public void testDefaults_appliesDefaultValues() {
+        List defaults = Arrays.asList(new String[]{"d1", "d2"});
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 2, '\0', '\0', null, "--", defaults, 0);
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
+
+        arg.defaults(cmdLine);
+
+        List values = cmdLine.getValues(arg);
+        assertEquals(defaults, values);
+    }
+
+    // Tests canProcess using ListIterator overload
+    @Test
+    public void testCanProcess_listIterator_returnsTrueWhenHasNext() {
+        List argsList = Collections.singletonList("val");
+        ListIterator it = argsList.listIterator();
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(argument, new ArrayList());
+        assertTrue(argument.canProcess(cmdLine, it));
+    }
+
+    // Tests canProcess using ListIterator overload when empty
+    @Test
+    public void testCanProcess_listIteratorEmpty_returnsFalse() {
+        List argsList = Collections.emptyList();
+        ListIterator it = argsList.listIterator();
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(argument, new ArrayList());
+        assertFalse(argument.canProcess(cmdLine, it));
+    }
+
+    // Tests single character quote string handling in stripBoundaryQuotes
+    @Test
+    public void testStripBoundaryQuotes_singleQuoteChar_returnsOriginal() {
+        assertEquals("\"", argument.stripBoundaryQuotes("\""));
+    }
+
+    // Tests initial separator splitting in processValues
+    @Test
+    public void testProcessValues_initialSeparator_splitsToken() throws Exception {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 2, '=', '\0', null, "--", null, 0);
+        List argsList = new ArrayList(Collections.singletonList("key=value"));
+        ListIterator it = argsList.listIterator();
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
+
+        arg.processValues(cmdLine, it, arg);
+
+        List values = cmdLine.getValues(arg);
+        assertEquals(1, values.size());
+        assertEquals("value", values.get(0));
+    }
+
+    // Tests initial and subsequent separator combined in processValues
+    @Test
+    public void testProcessValues_initialAndSubsequentSeparator_splitsTokens() throws Exception {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 3, '=', ',', null, "--", null, 0);
+        List argsList = new ArrayList(Collections.singletonList("key=v1,v2"));
+        ListIterator it = argsList.listIterator();
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
+
+        arg.processValues(cmdLine, it, arg);
+
+        List values = cmdLine.getValues(arg);
+        assertEquals(2, values.size());
+        assertEquals("v1", values.get(0));
+        assertEquals("v2", values.get(1));
+    }
+
+    // Tests validate method when validator passes successfully
+    @Test
+    public void testValidate_validatorPasses_noExceptionThrown() throws Exception {
         Validator passingValidator = new Validator() {
             public void validate(List values) throws InvalidArgumentException {
-                // validation succeeds
             }
         };
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 1, 2, '\0', '\0', passingValidator, "--", null, 0);
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
+        cmdLine.addValue(arg, "validValue");
 
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 1, 2, '\0', '\0', passingValidator, null, null, 1);
-        WriteableCommandLine commandLine = new WriteableCommandLineImpl(arg, new ArrayList());
-        commandLine.addValue(arg, "val1");
-
-        arg.validate(commandLine);
-        assertSame(passingValidator, arg.getValidator());
+        arg.validate(cmdLine);
     }
 
-    // Tests appendUsage with optional, bracketed, and numbered settings
+    // Tests validate method when minimum is 0 and no values are provided
     @Test
-    public void testAppendUsage_optionalBracketedNumbered_appendsCorrectly() {
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 1, 3, '\0', '\0', null, null, null, 1);
-        Set settings = new HashSet();
-        settings.add(DisplaySetting.DISPLAY_OPTIONAL);
-        settings.add(DisplaySetting.DISPLAY_ARGUMENT_BRACKETED);
-        settings.add(DisplaySetting.DISPLAY_ARGUMENT_NUMBERED);
+    public void testValidate_zeroMinimumNoValues_noExceptionThrown() throws Exception {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 2, '\0', '\0', null, "--", null, 0);
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
+
+        arg.validate(cmdLine);
+    }
+
+    // Tests appendUsage with fixed bounds without optional brackets
+    @Test
+    public void testAppendUsage_fixedBoundsWithoutOptional() {
+        ArgumentImpl arg = new ArgumentImpl("param", "desc", 2, 2, '\0', '\0', null, "--", null, 0);
+        Set helpSettings = new HashSet();
 
         StringBuffer buffer = new StringBuffer();
-        arg.appendUsage(buffer, settings, null);
+        arg.appendUsage(buffer, helpSettings, null);
 
-        assertEquals("<arg1> [<arg2> [<arg3>]]", buffer.toString());
+        assertEquals("param1 param2", buffer.toString());
     }
 
-    // Tests appendUsage with infinite maximum arguments
+    // Tests defaults method when defaultValues is null
     @Test
-    public void testAppendUsage_infiniteMaximum_appendsEllipsis() {
-        ArgumentImpl arg = new ArgumentImpl("file", "desc", 1, Integer.MAX_VALUE, '\0', '\0', null, null, null, 1);
-        Set settings = new HashSet();
-        settings.add(DisplaySetting.DISPLAY_OPTIONAL);
+    public void testDefaults_nullDefaultValues_doesNothing() {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 2, '\0', '\0', null, "--", null, 0);
+        WriteableCommandLineImpl cmdLine = new WriteableCommandLineImpl(arg, new ArrayList());
 
-        StringBuffer buffer = new StringBuffer();
-        arg.appendUsage(buffer, settings, null);
+        arg.defaults(cmdLine);
 
-        assertEquals("file [file] ...]", buffer.toString());
+        List values = cmdLine.getValues(arg);
+        assertTrue(values.isEmpty());
     }
 
-    // Tests helpLines method returns single HelpLine element
+    // Tests checkPrefixes does not throw exception
     @Test
-    public void testHelpLines_singleArgument_returnsSingleHelpLine() {
-        ArgumentImpl arg = new ArgumentImpl("arg", "description", 0, 1, '\0', '\0', null, null, null, 1);
-        List helpLines = arg.helpLines(0, Collections.EMPTY_SET, null);
-        assertNotNull(helpLines);
-        assertEquals(1, helpLines.size());
-        HelpLine line = (HelpLine) helpLines.get(0);
-        assertEquals("arg", line.getOption().getPreferredName());
+    public void testCheckPrefixes_emptyOrNonEmpty_doesNotThrow() {
+        Set prefixes = new HashSet();
+        prefixes.add("-");
+        prefixes.add("--");
+        argument.checkPrefixes(prefixes);
     }
 
-    // Tests defaults and defaultValues population on CommandLine
+    // Tests isRequired returns false when minimum is 0
     @Test
-    public void testDefaults_withDefaultValues_populatesCommandLine() {
-        List defaultValues = new ArrayList();
-        defaultValues.add("defaultVal");
-
-        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 1, '\0', '\0', null, null, defaultValues, 1);
-        WriteableCommandLine commandLine = new WriteableCommandLineImpl(arg, new ArrayList());
-
-        arg.defaults(commandLine);
-        assertEquals(defaultValues, commandLine.getValues((Option) arg));
+    public void testIsRequired_zeroMinimum_returnsFalse() {
+        ArgumentImpl arg = new ArgumentImpl("arg", "desc", 0, 2, '\0', '\0', null, "--", null, 0);
+        assertFalse(arg.isRequired());
     }
 }

@@ -1,406 +1,289 @@
 package org.apache.commons.cli2;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+
+import org.apache.commons.cli2.commandline.WriteableCommandLineImpl;
+import org.apache.commons.cli2.option.PropertyOption;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class WriteableCommandLineTest {
 
     private WriteableCommandLine commandLine;
-    private Option testOption;
+    private Option option;
 
     @Before
     public void setUp() {
-        commandLine = new MockWriteableCommandLine();
-        testOption = new MockOption("test", "test option");
+        option = new PropertyOption();
+        commandLine = new WriteableCommandLineImpl(option, new ArrayList());
     }
 
-    // Tests adding an option to the command line
+    // Tests adding an option and verifying its presence
     @Test
-    public void testAddOption_validOption_optionStoredSuccessfully() {
-        commandLine.addOption(testOption);
-        assertTrue(commandLine.hasOption(testOption));
+    public void testAddOption_validOption_optionIsPresent() {
+        commandLine.addOption(option);
+        assertTrue(commandLine.hasOption(option));
     }
 
     // Tests adding a single value to an option
     @Test
     public void testAddValue_singleValue_valueRetrieved() {
-        commandLine.addOption(testOption);
-        commandLine.addValue(testOption, "value1");
-
-        assertEquals("value1", commandLine.getValue(testOption));
+        commandLine.addValue(option, "value1");
+        assertEquals("value1", commandLine.getValue(option));
     }
 
     // Tests adding multiple values to an option
     @Test
     public void testAddValue_multipleValues_allValuesRetrieved() {
-        commandLine.addOption(testOption);
-        commandLine.addValue(testOption, "value1");
-        commandLine.addValue(testOption, "value2");
-
-        List values = commandLine.getValues(testOption);
-        assertEquals(2, values.size());
-        assertEquals("value1", values.get(0));
-        assertEquals("value2", values.get(1));
+        commandLine.addValue(option, "value1");
+        commandLine.addValue(option, "value2");
+        List expected = Arrays.asList("value1", "value2");
+        assertEquals(expected, commandLine.getValues(option));
     }
 
-    // Tests getting undefaulted values when none are added
+    // Tests getUndefaultedValues returns only explicitly added values
     @Test
-    public void testGetUndefaultedValues_noValues_returnsEmptyList() {
-        List values = commandLine.getUndefaultedValues(testOption);
-        assertNotNull(values);
-        assertTrue(values.isEmpty());
-    }
+    public void testGetUndefaultedValues_withDefaultValues_returnsOnlyUndefaultedValues() {
+        commandLine.setDefaultValues(option, Arrays.asList("default1", "default2"));
+        commandLine.addValue(option, "explicitValue");
 
-    // Tests getting undefaulted values when explicit values are present
-    @Test
-    public void testGetUndefaultedValues_withExplicitValues_returnsOnlyUndefaulted() {
-        commandLine.addOption(testOption);
-        commandLine.addValue(testOption, "explicitValue");
-
-        List defaultList = new ArrayList();
-        defaultList.add("defaultValue");
-        commandLine.setDefaultValues(testOption, defaultList);
-
-        List undefaulted = commandLine.getUndefaultedValues(testOption);
+        List undefaulted = commandLine.getUndefaultedValues(option);
         assertEquals(1, undefaulted.size());
         assertEquals("explicitValue", undefaulted.get(0));
     }
 
-    // Tests setting default values for an option
+    // Tests getUndefaultedValues returns an empty list when no values are added
     @Test
-    public void testSetDefaultValues_defaultSupplied_returnsDefaultWhenNoExplicitValue() {
-        List defaultList = new ArrayList();
-        defaultList.add("defaultVal");
-        commandLine.setDefaultValues(testOption, defaultList);
-
-        assertEquals("defaultVal", commandLine.getValue(testOption));
+    public void testGetUndefaultedValues_noValuesAdded_returnsEmptyList() {
+        commandLine.setDefaultValues(option, Collections.singletonList("defaultVal"));
+        List undefaulted = commandLine.getUndefaultedValues(option);
+        assertNotNull(undefaulted);
+        assertTrue(undefaulted.isEmpty());
     }
 
-    // Tests setting default values with null
+    // Tests setDefaultValues applies default values when no explicit value is present
     @Test
-    public void testSetDefaultValues_nullDefaults_handlesGracefully() {
-        commandLine.setDefaultValues(testOption, null);
-        assertNull(commandLine.getValue(testOption));
+    public void testSetDefaultValues_validList_defaultValuesAppliedWhenNoValueAdded() {
+        List defaults = Arrays.asList("default1", "default2");
+        commandLine.setDefaultValues(option, defaults);
+        assertEquals(defaults, commandLine.getValues(option));
     }
 
-    // Tests adding a boolean switch set to true
+    // Tests adding a true switch value
     @Test
-    public void testAddSwitch_trueValue_returnsTrue() {
-        commandLine.addSwitch(testOption, true);
-        assertEquals(Boolean.TRUE, commandLine.getSwitch(testOption));
+    public void testAddSwitch_trueValue_switchIsTrue() {
+        commandLine.addSwitch(option, true);
+        assertEquals(Boolean.TRUE, commandLine.getSwitch(option));
     }
 
-    // Tests adding a boolean switch set to false
+    // Tests adding a false switch value
     @Test
-    public void testAddSwitch_falseValue_returnsFalse() {
-        commandLine.addSwitch(testOption, false);
-        assertEquals(Boolean.FALSE, commandLine.getSwitch(testOption));
+    public void testAddSwitch_falseValue_switchIsFalse() {
+        commandLine.addSwitch(option, false);
+        assertEquals(Boolean.FALSE, commandLine.getSwitch(option));
     }
 
-    // Tests that adding a duplicate switch throws IllegalStateException
+    // Tests adding duplicate switch throws IllegalStateException
     @Test(expected = IllegalStateException.class)
     public void testAddSwitch_alreadyAdded_throwsIllegalStateException() {
-        commandLine.addSwitch(testOption, true);
-        commandLine.addSwitch(testOption, false);
+        commandLine.addSwitch(option, true);
+        commandLine.addSwitch(option, false);
     }
 
     // Tests setting default switch state
     @Test
-    public void testSetDefaultSwitch_validBoolean_returnsDefaultWhenNoSwitchAdded() {
-        commandLine.setDefaultSwitch(testOption, Boolean.TRUE);
-        assertEquals(Boolean.TRUE, commandLine.getSwitch(testOption));
+    public void testSetDefaultSwitch_booleanDefault_defaultStateApplied() {
+        commandLine.setDefaultSwitch(option, Boolean.TRUE);
+        assertEquals(Boolean.TRUE, commandLine.getSwitch(option));
     }
 
-    // Tests adding property with option
+    // Tests setting default switch to null
     @Test
-    public void testAddProperty_withOption_propertyRetrieved() {
-        commandLine.addProperty(testOption, "key1", "val1");
-        assertEquals("val1", commandLine.getProperty(testOption, "key1"));
+    public void testSetDefaultSwitch_nullDefault_returnsNull() {
+        commandLine.setDefaultSwitch(option, null);
+        assertNull(commandLine.getSwitch(option));
     }
 
-    // Tests adding property without option (default property set)
+    // Tests adding a property associated with a specific option
     @Test
-    public void testAddProperty_withoutOption_propertyRetrieved() {
-        commandLine.addProperty("key2", "val2");
-        assertEquals("val2", commandLine.getProperty("key2"));
+    public void testAddProperty_withOption_propertyRetrievedByOption() {
+        commandLine.addProperty(option, "key1", "val1");
+        assertEquals("val1", commandLine.getProperty(option, "key1"));
     }
 
-    // Tests replacing property value
+    // Tests replacing an existing property value associated with an option
     @Test
-    public void testAddProperty_existingKey_replacesValue() {
-        commandLine.addProperty("key", "val1");
-        commandLine.addProperty("key", "val2");
-        assertEquals("val2", commandLine.getProperty("key"));
+    public void testAddProperty_withOptionOverwrite_replacesExistingValue() {
+        commandLine.addProperty(option, "key1", "val1");
+        commandLine.addProperty(option, "key1", "val2");
+        assertEquals("val2", commandLine.getProperty(option, "key1"));
     }
 
-    // Tests looksLikeOption when argument matches option prefix
+    // Tests adding a property to default property set
     @Test
-    public void testLooksLikeOption_matchingPrefix_returnsTrue() {
-        assertTrue(commandLine.looksLikeOption("--test"));
+    public void testAddProperty_defaultPropertySet_propertyRetrieved() {
+        commandLine.addProperty("globalKey", "globalValue");
+        assertEquals("globalValue", commandLine.getProperty("globalKey"));
     }
 
-    // Tests looksLikeOption when argument does not match option prefix
+    // Tests replacing an existing property value in default property set
     @Test
-    public void testLooksLikeOption_nonMatchingPrefix_returnsFalse() {
-        assertFalse(commandLine.looksLikeOption("regularArgument"));
+    public void testAddProperty_defaultPropertySetOverwrite_replacesExistingValue() {
+        commandLine.addProperty("globalKey", "val1");
+        commandLine.addProperty("globalKey", "val2");
+        assertEquals("val2", commandLine.getProperty("globalKey"));
     }
 
-    /**
-     * Test mock implementation of WriteableCommandLine.
-     */
-    private static class MockWriteableCommandLine implements WriteableCommandLine {
-        private final Set options = new HashSet();
-        private final Map values = new HashMap();
-        private final Map defaultValues = new HashMap();
-        private final Map switches = new HashMap();
-        private final Map defaultSwitches = new HashMap();
-        private final Map properties = new HashMap();
-        private final Map defaultProperties = new HashMap();
-
-        public void addOption(Option option) {
-            options.add(option);
-        }
-
-        public void addValue(Option option, Object value) {
-            List list = (List) values.get(option);
-            if (list == null) {
-                list = new ArrayList();
-                values.put(option, list);
-            }
-            list.add(value);
-        }
-
-        public List getUndefaultedValues(Option option) {
-            List list = (List) values.get(option);
-            return list != null ? list : Collections.EMPTY_LIST;
-        }
-
-        public void setDefaultValues(Option option, List defaults) {
-            defaultValues.put(option, defaults);
-        }
-
-        public void addSwitch(Option option, boolean value) throws IllegalStateException {
-            if (switches.containsKey(option)) {
-                throw new IllegalStateException("Switch already present");
-            }
-            switches.put(option, Boolean.valueOf(value));
-        }
-
-        public void setDefaultSwitch(Option option, Boolean defaultSwitch) {
-            defaultSwitches.put(option, defaultSwitch);
-        }
-
-        public void addProperty(Option option, String property, String value) {
-            Map map = (Map) properties.get(option);
-            if (map == null) {
-                map = new HashMap();
-                properties.put(option, map);
-            }
-            map.put(property, value);
-        }
-
-        public void addProperty(String property, String value) {
-            defaultProperties.put(property, value);
-        }
-
-        public boolean looksLikeOption(String argument) {
-            return argument != null && argument.startsWith("-");
-        }
-
-        public boolean hasOption(Option option) {
-            return options.contains(option);
-        }
-
-        public boolean hasOption(String trigger) {
-            return false;
-        }
-
-        public Option getOption(String trigger) {
-            return null;
-        }
-
-        public List getValues(Option option) {
-            List valList = (List) values.get(option);
-            if (valList != null && !valList.isEmpty()) {
-                return valList;
-            }
-            return (List) defaultValues.get(option);
-        }
-
-        public List getValues(Option option, List defaultValuesList) {
-            List valList = getValues(option);
-            return valList != null ? valList : defaultValuesList;
-        }
-
-        public List getValues(String trigger) {
-            return Collections.EMPTY_LIST;
-        }
-
-        public List getValues(String trigger, List defaultValuesList) {
-            return defaultValuesList;
-        }
-
-        public Object getValue(Option option) {
-            List valList = getValues(option);
-            return (valList != null && !valList.isEmpty()) ? valList.get(0) : null;
-        }
-
-        public Object getValue(Option option, Object defaultValue) {
-            Object val = getValue(option);
-            return val != null ? val : defaultValue;
-        }
-
-        public Object getValue(String trigger) {
-            return null;
-        }
-
-        public Object getValue(String trigger, Object defaultValue) {
-            return defaultValue;
-        }
-
-        public Boolean getSwitch(Option option) {
-            Boolean sw = (Boolean) switches.get(option);
-            return sw != null ? sw : (Boolean) defaultSwitches.get(option);
-        }
-
-        public Boolean getSwitch(Option option, Boolean defaultValue) {
-            Boolean sw = getSwitch(option);
-            return sw != null ? sw : defaultValue;
-        }
-
-        public Boolean getSwitch(String trigger) {
-            return null;
-        }
-
-        public Boolean getSwitch(String trigger, Boolean defaultValue) {
-            return defaultValue;
-        }
-
-        public String getProperty(Option option, String property) {
-            Map map = (Map) properties.get(option);
-            return map != null ? (String) map.get(property) : null;
-        }
-
-        public String getProperty(Option option, String property, String defaultValue) {
-            String val = getProperty(option, property);
-            return val != null ? val : defaultValue;
-        }
-
-        public String getProperty(String property) {
-            return (String) defaultProperties.get(property);
-        }
-
-        public String getProperty(String property, String defaultValue) {
-            String val = getProperty(property);
-            return val != null ? val : defaultValue;
-        }
-
-        public Set getProperties(Option option) {
-            Map map = (Map) properties.get(option);
-            return map != null ? map.keySet() : Collections.EMPTY_SET;
-        }
-
-        public Set getProperties() {
-            return defaultProperties.keySet();
-        }
-
-        public List getOptions() {
-            return new ArrayList(options);
-        }
-
-        public Set getOptionTriggers() {
-            return Collections.EMPTY_SET;
-        }
-
-        public int getOptionCount(Option option) {
-            return options.contains(option) ? 1 : 0;
-        }
-
-        public int getOptionCount(String trigger) {
-            return 0;
-        }
-
-        public Iterator iterator() {
-            return options.iterator();
-        }
+    // Tests looksLikeOption with valid option prefix
+    @Test
+    public void testLooksLikeOption_validOptionTrigger_returnsTrue() {
+        assertTrue(commandLine.looksLikeOption("-D"));
     }
 
-    /**
-     * Test mock implementation of Option.
-     */
-    private static class MockOption implements Option {
-        private final String preferredName;
-        private final String description;
+    // Tests looksLikeOption with non-option argument
+    @Test
+    public void testLooksLikeOption_nonOptionString_returnsFalse() {
+        assertFalse(commandLine.looksLikeOption("nonOptionArgument"));
+    }
 
-        MockOption(String preferredName, String description) {
-            this.preferredName = preferredName;
-            this.description = description;
-        }
+    // Tests looksLikeOption with null input
+    @Test
+    public void testLooksLikeOption_nullArgument_returnsFalse() {
+        assertFalse(commandLine.looksLikeOption(null));
+    }
 
-        public boolean canProcess(WriteableCommandLine commandLine, String argument) {
-            return false;
-        }
+    // Tests hasOption by trigger string
+    @Test
+    public void testHasOption_byTrigger_returnsCorrectStatus() {
+        assertFalse(commandLine.hasOption("-D"));
+        commandLine.addOption(option);
+        assertTrue(commandLine.hasOption("-D"));
+        assertFalse(commandLine.hasOption("-unknown"));
+    }
 
-        public boolean canProcess(WriteableCommandLine commandLine, ListIterator arguments) {
-            return false;
-        }
+    // Tests getOption by trigger string and by option instance
+    @Test
+    public void testGetOption_byTriggerAndOption() {
+        assertNull(commandLine.getOption("-D"));
+        commandLine.addOption(option);
+        assertEquals(option, commandLine.getOption("-D"));
+        assertEquals(option, commandLine.getOption(option));
+        assertNull(commandLine.getOption("-unknown"));
+    }
 
-        public void process(WriteableCommandLine commandLine, ListIterator arguments) throws OptionException {
-        }
+    // Tests getValue with default value fallback
+    @Test
+    public void testGetValue_withDefaultFallback() {
+        assertEquals("defaultVal", commandLine.getValue(option, "defaultVal"));
+        assertEquals("defaultVal", commandLine.getValue("-D", "defaultVal"));
 
-        public void validate(WriteableCommandLine commandLine) throws OptionException {
-        }
+        commandLine.addValue(option, "realVal");
+        assertEquals("realVal", commandLine.getValue(option, "defaultVal"));
+        assertEquals("realVal", commandLine.getValue("-D", "defaultVal"));
+        assertEquals("realVal", commandLine.getValue("-D"));
+    }
 
-        public void appendUsage(StringBuffer buffer, Set helpSettings, java.util.Comparator comp) {
-        }
+    // Tests getValues with fallback defaults and by trigger string
+    @Test
+    public void testGetValues_withTriggerAndDefaultFallback() {
+        List fallback = Arrays.asList("fb1", "fb2");
+        assertEquals(fallback, commandLine.getValues(option, fallback));
+        assertEquals(fallback, commandLine.getValues("-D", fallback));
 
-        public String getPreferredName() {
-            return preferredName;
-        }
+        commandLine.addValue(option, "v1");
+        assertEquals(Collections.singletonList("v1"), commandLine.getValues("-D"));
+        assertEquals(Collections.singletonList("v1"), commandLine.getValues("-D", fallback));
+    }
 
-        public String getDescription() {
-            return description;
-        }
+    // Tests getSwitch by trigger string and with default fallback
+    @Test
+    public void testGetSwitch_byTriggerAndWithDefaultFallback() {
+        assertEquals(Boolean.FALSE, commandLine.getSwitch(option, Boolean.FALSE));
+        assertEquals(Boolean.TRUE, commandLine.getSwitch("-D", Boolean.TRUE));
+        assertNull(commandLine.getSwitch("-D"));
 
-        public String getHelpPage() {
-            return null;
-        }
+        commandLine.addSwitch(option, true);
+        assertEquals(Boolean.TRUE, commandLine.getSwitch("-D"));
+        assertEquals(Boolean.TRUE, commandLine.getSwitch("-D", Boolean.FALSE));
+    }
 
-        public Set getHelpSettings() {
-            return Collections.EMPTY_SET;
-        }
+    // Tests getProperty with default fallback
+    @Test
+    public void testGetProperty_withDefaultFallback() {
+        assertEquals("def", commandLine.getProperty(option, "k1", "def"));
+        assertEquals("defGlobal", commandLine.getProperty("k2", "defGlobal"));
 
-        public Set getTriggers() {
-            return Collections.singleton(preferredName);
-        }
+        commandLine.addProperty(option, "k1", "v1");
+        commandLine.addProperty("k2", "v2");
 
-        public Set getPrefixes() {
-            return Collections.singleton("-");
-        }
+        assertEquals("v1", commandLine.getProperty(option, "k1", "def"));
+        assertEquals("v2", commandLine.getProperty("k2", "defGlobal"));
+    }
 
-        public boolean isRequired() {
-            return false;
-        }
+    // Tests getProperties retrieving all properties
+    @Test
+    public void testGetProperties_withOptionAndGlobal() {
+        commandLine.addProperty(option, "prop1", "val1");
+        commandLine.addProperty(option, "prop2", "val2");
+        commandLine.addProperty("global1", "gval1");
 
-        public void checkPrefixes(Set prefixes) {
-        }
+        Set optionProps = commandLine.getProperties(option);
+        assertNotNull(optionProps);
+        assertTrue(optionProps.contains("prop1"));
+        assertTrue(optionProps.contains("prop2"));
 
-        public Option findOption(String trigger) {
-            return preferredName.equals(trigger) ? this : null;
-        }
+        Set globalProps = commandLine.getProperties();
+        assertNotNull(globalProps);
+        assertTrue(globalProps.contains("global1"));
+    }
 
-        public int getId() {
-            return 0;
-        }
+    // Tests getOptionCount by option and by trigger
+    @Test
+    public void testGetOptionCount_byOptionAndTrigger() {
+        assertEquals(0, commandLine.getOptionCount(option));
+        assertEquals(0, commandLine.getOptionCount("-D"));
+
+        commandLine.addOption(option);
+        assertEquals(1, commandLine.getOptionCount(option));
+        assertEquals(1, commandLine.getOptionCount("-D"));
+
+        commandLine.addOption(option);
+        assertEquals(2, commandLine.getOptionCount(option));
+        assertEquals(2, commandLine.getOptionCount("-D"));
+    }
+
+    // Tests getOptions and getOptionTriggers
+    @Test
+    public void testGetOptionsAndOptionTriggers() {
+        assertTrue(commandLine.getOptions().isEmpty());
+        assertTrue(commandLine.getOptionTriggers().isEmpty());
+
+        commandLine.addOption(option);
+        List options = commandLine.getOptions();
+        assertEquals(1, options.size());
+        assertTrue(options.contains(option));
+
+        Set triggers = commandLine.getOptionTriggers();
+        assertTrue(triggers.contains("-D"));
+    }
+
+    // Tests toString method of WriteableCommandLine
+    @Test
+    public void testToString_formatsCorrectly() {
+        commandLine.addOption(option);
+        commandLine.addValue(option, "val");
+        String result = commandLine.toString();
+        assertNotNull(result);
     }
 }

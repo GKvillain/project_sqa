@@ -3,13 +3,20 @@ package org.apache.commons.cli;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+/**
+ * Unit tests for {@link CommandLine}.
+ */
 public class CommandLineTest {
 
     private CommandLine cmd;
@@ -19,182 +26,209 @@ public class CommandLineTest {
         cmd = new CommandLine();
     }
 
-    // Tests hasOption with short option string when option is present
+    // Tests querying an existing option by short string name
     @Test
-    public void testHasOption_shortOptStringPresent_returnsTrue() {
-        Option opt = new Option("a", "alpha", false, "Option a");
+    public void testHasOption_existingShortOpt_returnsTrue() {
+        Option opt = new Option("a", "alpha", false, "Alpha option");
         cmd.addOption(opt);
 
         assertTrue(cmd.hasOption("a"));
     }
 
-    // Tests hasOption with char when option is present
+    // Tests querying a non-existing option by string name
     @Test
-    public void testHasOption_charOptPresent_returnsTrue() {
-        Option opt = new Option("a", "alpha", false, "Option a");
+    public void testHasOption_nonExistingOpt_returnsFalse() {
+        assertFalse(cmd.hasOption("nonexisting"));
+    }
+
+    // Tests querying an existing option by character
+    @Test
+    public void testHasOption_charExistingOpt_returnsTrue() {
+        Option opt = new Option("c", "charlie", false, "Charlie option");
         cmd.addOption(opt);
 
-        assertTrue(cmd.hasOption('a'));
+        assertTrue(cmd.hasOption('c'));
     }
 
-    // Tests hasOption when option is not present
+    // Tests querying a non-existing option by character
     @Test
-    public void testHasOption_optNotPresent_returnsFalse() {
-        assertFalse(cmd.hasOption("x"));
-        assertFalse(cmd.hasOption('x'));
+    public void testHasOption_charNonExistingOpt_returnsFalse() {
+        assertFalse(cmd.hasOption('z'));
     }
 
-    // Tests getOptionValue with short option string
+    // Tests retrieving single value for existing option
     @Test
-    public void testGetOptionValue_shortOptString_returnsValue() {
-        Option opt = new Option("a", "alpha", true, "Option a");
-        opt.addValue("value1");
+    public void testGetOptionValue_existingOptWithValue_returnsValue() {
+        Option opt = new Option("f", "file", true, "File option");
+        opt.addValue("test.txt");
         cmd.addOption(opt);
 
-        assertEquals("value1", cmd.getOptionValue("a"));
+        assertEquals("test.txt", cmd.getOptionValue("f"));
     }
 
-    // Tests getOptionValue with char option
+    // Tests retrieving single value when option exists but has no values
     @Test
-    public void testGetOptionValue_charOpt_returnsValue() {
-        Option opt = new Option("b", "beta", true, "Option b");
-        opt.addValue("valueB");
+    public void testGetOptionValue_existingOptWithoutValue_returnsNull() {
+        Option opt = new Option("n", "none", false, "No arg option");
         cmd.addOption(opt);
 
-        assertEquals("valueB", cmd.getOptionValue('b'));
+        assertNull(cmd.getOptionValue("n"));
     }
 
-    // Tests getOptionValue returning null when option is not present or has no value
+    // Tests retrieving value for non-existing option
     @Test
-    public void testGetOptionValue_notPresent_returnsNull() {
-        assertNull(cmd.getOptionValue("nonexistent"));
-        assertNull(cmd.getOptionValue('z'));
+    public void testGetOptionValue_nonExistingOpt_returnsNull() {
+        assertNull(cmd.getOptionValue("unknown"));
     }
 
-    // Tests getOptionValue with default value when option is present vs not present
+    // Tests retrieving single value by character
     @Test
-    public void testGetOptionValue_withDefaultValue_returnsCorrectValue() {
-        Option opt = new Option("c", "gamma", true, "Option c");
-        opt.addValue("custom");
+    public void testGetOptionValue_charExistingOpt_returnsValue() {
+        Option opt = new Option("v", true, "Version");
+        opt.addValue("1.0.0");
         cmd.addOption(opt);
 
-        assertEquals("custom", cmd.getOptionValue("c", "default"));
-        assertEquals("default", cmd.getOptionValue("notset", "default"));
-        assertEquals("custom", cmd.getOptionValue('c', "default"));
-        assertEquals("default", cmd.getOptionValue('z', "default"));
+        assertEquals("1.0.0", cmd.getOptionValue('v'));
     }
 
-    // Tests getOptionValues with multiple values on an option
+    // Tests retrieving single value by character for non-existing option
+    @Test
+    public void testGetOptionValue_charNonExistingOpt_returnsNull() {
+        assertNull(cmd.getOptionValue('x'));
+    }
+
+    // Tests retrieving option value with default fallback (String overload)
+    @Test
+    public void testGetOptionValue_withDefaultValueString_returnsCorrectValue() {
+        Option opt = new Option("p", true, "Port");
+        opt.addValue("8080");
+        cmd.addOption(opt);
+
+        assertEquals("8080", cmd.getOptionValue("p", "9090"));
+        assertEquals("defaultPort", cmd.getOptionValue("missing", "defaultPort"));
+    }
+
+    // Tests retrieving option value with default fallback (char overload)
+    @Test
+    public void testGetOptionValue_withDefaultValueChar_returnsCorrectValue() {
+        Option opt = new Option("h", true, "Host");
+        opt.addValue("localhost");
+        cmd.addOption(opt);
+
+        assertEquals("localhost", cmd.getOptionValue('h', "127.0.0.1"));
+        assertEquals("defaultHost", cmd.getOptionValue('m', "defaultHost"));
+    }
+
+    // Tests retrieving multiple values for an option
     @Test
     public void testGetOptionValues_multipleValues_returnsAllValues() {
-        Option opt = new Option("m", "multi", true, "Option m");
+        Option opt = new Option("m", "multi", true, "Multiple values");
         opt.addValue("val1");
         opt.addValue("val2");
+        opt.addValue("val3");
         cmd.addOption(opt);
 
-        String[] values = cmd.getOptionValues("m");
-        assertNotNull(values);
-        assertEquals(2, values.length);
-        assertEquals("val1", values[0]);
-        assertEquals("val2", values[1]);
-
-        String[] charValues = cmd.getOptionValues('m');
-        assertNotNull(charValues);
-        assertEquals(2, charValues.length);
-        assertEquals("val1", charValues[0]);
-        assertEquals("val2", charValues[1]);
+        String[] expected = new String[]{"val1", "val2", "val3"};
+        assertArrayEquals(expected, cmd.getOptionValues("m"));
     }
 
-    // Tests getOptionValues with long option and leading hyphens
+    // Tests retrieving values with hyphens and long option name
     @Test
-    public void testGetOptionValues_longOptAndLeadingHyphens_returnsValues() {
-        Option opt = new Option("f", "file", true, "File option");
-        opt.addValue("output.txt");
+    public void testGetOptionValues_withHyphensAndLongOpt_returnsValues() {
+        Option opt = new Option("s", "server", true, "Server option");
+        opt.addValue("srv1");
         cmd.addOption(opt);
 
-        String[] valuesByLongOpt = cmd.getOptionValues("file");
-        assertNotNull(valuesByLongOpt);
-        assertEquals(1, valuesByLongOpt.length);
-        assertEquals("output.txt", valuesByLongOpt[0]);
-
-        String[] valuesWithHyphen = cmd.getOptionValues("-f");
-        assertNotNull(valuesWithHyphen);
-        assertEquals("output.txt", valuesWithHyphen[0]);
-
-        String[] valuesWithDoubleHyphen = cmd.getOptionValues("--file");
-        assertNotNull(valuesWithDoubleHyphen);
-        assertEquals("output.txt", valuesWithDoubleHyphen[0]);
+        assertArrayEquals(new String[]{"srv1"}, cmd.getOptionValues("-s"));
+        assertArrayEquals(new String[]{"srv1"}, cmd.getOptionValues("--server"));
+        assertArrayEquals(new String[]{"srv1"}, cmd.getOptionValues("server"));
     }
 
-    // Tests getOptionValues returning null when option does not exist
+    // Tests retrieving values by character
     @Test
-    public void testGetOptionValues_notPresent_returnsNull() {
-        assertNull(cmd.getOptionValues("unknown"));
-        assertNull(cmd.getOptionValues('u'));
-    }
-
-    // Tests getOptionObject when option is not present
-    @Test
-    public void testGetOptionObject_notPresent_returnsNull() {
-        assertNull(cmd.getOptionObject("absent"));
-        assertNull(cmd.getOptionObject('x'));
-    }
-
-    // Tests getOptionObject with String type
-    @Test
-    public void testGetOptionObject_stringType_returnsParsedObject() {
-        Option opt = new Option("s", "stringOpt", true, "String option");
-        opt.addValue("hello");
-        opt.setType(PatternOptionBuilder.STRING_VALUE);
+    public void testGetOptionValues_charExistingOpt_returnsValues() {
+        Option opt = new Option("k", true, "Key");
+        opt.addValue("secret");
         cmd.addOption(opt);
 
-        Object resultStr = cmd.getOptionObject("s");
-        assertEquals("hello", resultStr);
+        assertArrayEquals(new String[]{"secret"}, cmd.getOptionValues('k'));
+    }
 
-        Object resultChar = cmd.getOptionObject('s');
-        assertEquals("hello", resultChar);
+    // Tests retrieving values for non-existing option
+    @Test
+    public void testGetOptionValues_nonExistingOpt_returnsNull() {
+        assertNull(cmd.getOptionValues("nonexistent"));
+        assertNull(cmd.getOptionValues('z'));
+    }
+
+    // Tests getOptionObject with valid type and value
+    @Test
+    public void testGetOptionObject_validType_returnsConvertedObject() {
+        Option opt = new Option("n", true, "Number");
+        opt.addValue("123");
+        opt.setType(PatternOptionBuilder.NUMBER_VALUE);
+        cmd.addOption(opt);
+
+        Object obj = cmd.getOptionObject("n");
+        assertNotNull(obj);
+        assertEquals(new Long(123), obj);
+    }
+
+    // Tests getOptionObject using character overload
+    @Test
+    public void testGetOptionObject_charOpt_returnsConvertedObject() {
+        Option opt = new Option("n", true, "Number");
+        opt.addValue("456");
+        opt.setType(PatternOptionBuilder.NUMBER_VALUE);
+        cmd.addOption(opt);
+
+        Object obj = cmd.getOptionObject('n');
+        assertNotNull(obj);
+        assertEquals(new Long(456), obj);
+    }
+
+    // Tests getOptionObject when option does not exist
+    @Test
+    public void testGetOptionObject_nonExistingOpt_returnsNull() {
+        assertNull(cmd.getOptionObject("nonexistent"));
+        assertNull(cmd.getOptionObject('u'));
     }
 
     // Tests getOptionObject when option has no value
     @Test
-    public void testGetOptionObject_noValue_returnsNull() {
-        Option opt = new Option("n", "noValue", false, "No value option");
+    public void testGetOptionObject_optWithoutValue_returnsNull() {
+        Option opt = new Option("x", false, "Flag");
+        opt.setType(PatternOptionBuilder.STRING_VALUE);
         cmd.addOption(opt);
 
-        assertNull(cmd.getOptionObject("n"));
+        assertNull(cmd.getOptionObject("x"));
     }
 
-    // Tests addArg, getArgs, and getArgList
+    // Tests adding and retrieving unrecognized arguments
     @Test
-    public void testArgs_addAndRetrieve_returnsExpectedArguments() {
+    public void testAddArg_getArgsAndGetArgList_returnsArguments() {
+        assertEquals(0, cmd.getArgs().length);
+        assertEquals(0, cmd.getArgList().size());
+
         cmd.addArg("arg1");
         cmd.addArg("arg2");
 
-        String[] argsArray = cmd.getArgs();
-        assertNotNull(argsArray);
-        assertEquals(2, argsArray.length);
-        assertEquals("arg1", argsArray[0]);
-        assertEquals("arg2", argsArray[1]);
+        String[] args = cmd.getArgs();
+        assertArrayEquals(new String[]{"arg1", "arg2"}, args);
 
         List argList = cmd.getArgList();
-        assertNotNull(argList);
         assertEquals(2, argList.size());
         assertEquals("arg1", argList.get(0));
         assertEquals("arg2", argList.get(1));
     }
 
-    // Tests getOptions and iterator methods
+    // Tests iterator over added options
     @Test
-    public void testGetOptionsAndIterator_multipleOptions_returnsOptions() {
-        Option opt1 = new Option("a", "alpha", false, "Option A");
-        Option opt2 = new Option("b", "beta", false, "Option B");
-
+    public void testIterator_optionsPresent_iteratesOptions() {
+        Option opt1 = new Option("a", "Option A");
+        Option opt2 = new Option("b", "Option B");
         cmd.addOption(opt1);
         cmd.addOption(opt2);
-
-        Option[] optionsArray = cmd.getOptions();
-        assertNotNull(optionsArray);
-        assertEquals(2, optionsArray.length);
 
         Iterator it = cmd.iterator();
         assertNotNull(it);
@@ -206,113 +240,87 @@ public class CommandLineTest {
         assertEquals(2, count);
     }
 
-    // Tests addOption with Option having only longOpt (no short opt)
+    // Tests getOptions returning array of processed options
     @Test
-    public void testAddOption_longOptOnly_storesAndRetrievesCorrectly() {
-        Option opt = new Option(null, "onlyLong", true, "Only long option");
-        opt.addValue("valLong");
-        cmd.addOption(opt);
-
-        assertTrue(cmd.hasOption("onlyLong"));
-        assertEquals("valLong", cmd.getOptionValue("onlyLong"));
-        assertNotNull(cmd.getOptionValues("onlyLong"));
-    }
-
-    // Tests getOptionProperties when option is not present
-    @Test
-    public void testGetOptionProperties_notPresent_returnsEmptyProperties() {
-        Properties props = cmd.getOptionProperties("D");
-        assertNotNull(props);
-        assertTrue(props.isEmpty());
-    }
-
-    // Tests getOptionProperties with key-value pairs
-    @Test
-    public void testGetOptionProperties_propertyOption_returnsProperties() {
-        Option opt = new Option("D", "property", true, "Property option");
-        opt.setArgs(2);
-        opt.setValueSeparator('=');
-        opt.addValue("key1");
-        opt.addValue("value1");
-        cmd.addOption(opt);
-
-        Option opt2 = new Option("D", "property", true, "Property option");
-        opt2.setArgs(2);
-        opt2.setValueSeparator('=');
-        opt2.addValue("key2");
-        opt2.addValue("value2");
+    public void testGetOptions_optionsPresent_returnsOptionsArray() {
+        Option opt1 = new Option("a", "Option A");
+        Option opt2 = new Option("b", "Option B");
+        cmd.addOption(opt1);
         cmd.addOption(opt2);
 
-        Properties props = cmd.getOptionProperties("D");
-        assertNotNull(props);
-        assertEquals(2, props.size());
-        assertEquals("value1", props.getProperty("key1"));
-        assertEquals("value2", props.getProperty("key2"));
+        Option[] options = cmd.getOptions();
+        assertNotNull(options);
+        assertEquals(2, options.length);
     }
 
-    // Tests getOptionProperties with single value (unary property)
+    // Tests adding an option with only long opt (null key branch)
     @Test
-    public void testGetOptionProperties_singleValue_returnsTrueValue() {
+    public void testAddOption_longOptOnly_storedSuccessfully() {
+        Option opt = new Option(null, "verbose", false, "Verbose output");
+        cmd.addOption(opt);
+
+        assertTrue(cmd.hasOption("verbose"));
+        Option[] options = cmd.getOptions();
+        assertEquals(1, options.length);
+        assertEquals("verbose", options[0].getLongOpt());
+    }
+
+    // Tests getOptionProperties when option has key and value
+    @Test
+    public void testGetOptionProperties_twoValues_returnsKeyValueProperty() {
         Option opt = new Option("D", "property", true, "Property option");
-        opt.addValue("flagKey");
+        opt.addValue("property.name");
+        opt.addValue("property.value");
         cmd.addOption(opt);
 
         Properties props = cmd.getOptionProperties("D");
         assertNotNull(props);
         assertEquals(1, props.size());
-        assertEquals("true", props.getProperty("flagKey"));
+        assertEquals("property.value", props.getProperty("property.name"));
     }
 
-    // Tests getOptionProperties with multiple values on same option instance
+    // Tests getOptionProperties when option has single value (defaults to "true")
     @Test
-    public void testGetOptionProperties_multiplePairsInSingleOption_returnsProperties() {
+    public void testGetOptionProperties_oneValue_returnsKeyWithTrue() {
         Option opt = new Option("D", "property", true, "Property option");
-        opt.setArgs(Option.UNLIMITED_VALUES);
-        opt.addValue("k1");
-        opt.addValue("v1");
-        opt.addValue("k2");
-        opt.addValue("v2");
+        opt.addValue("flag.name");
         cmd.addOption(opt);
 
         Properties props = cmd.getOptionProperties("D");
         assertNotNull(props);
-        assertEquals(2, props.size());
-        assertEquals("v1", props.getProperty("k1"));
-        assertEquals("v2", props.getProperty("k2"));
+        assertEquals(1, props.size());
+        assertEquals("true", props.getProperty("flag.name"));
     }
 
-    // Tests getOptionObject with non-string types such as Number and File
+    // Tests getOptionProperties by long opt name
     @Test
-    public void testGetOptionObject_numberAndFileType_returnsParsedObjects() {
-        Option numOpt = new Option("n", "num", true, "Number opt");
-        numOpt.addValue("123");
-        numOpt.setType(PatternOptionBuilder.NUMBER_VALUE);
-        cmd.addOption(numOpt);
-
-        Object numResult = cmd.getOptionObject("n");
-        assertNotNull(numResult);
-        assertTrue(numResult instanceof Number);
-        assertEquals(123L, ((Number) numResult).longValue());
-
-        Option fileOpt = new Option("f", "file", true, "File opt");
-        fileOpt.addValue("test.txt");
-        fileOpt.setType(PatternOptionBuilder.FILE_VALUE);
-        cmd.addOption(fileOpt);
-
-        Object fileResult = cmd.getOptionObject("f");
-        assertNotNull(fileResult);
-        assertTrue(fileResult instanceof File);
-        assertEquals("test.txt", ((File) fileResult).getName());
-    }
-
-    // Tests getOptionObject with invalid value throws ParseException internally and returns null
-    @Test
-    public void testGetOptionObject_invalidValue_returnsNull() {
-        Option opt = new Option("c", "class", true, "Class opt");
-        opt.addValue("non.existent.ClassName12345");
-        opt.setType(PatternOptionBuilder.CLASS_VALUE);
+    public void testGetOptionProperties_byLongOpt_returnsProperties() {
+        Option opt = new Option("D", "define", true, "Define property");
+        opt.addValue("key");
+        opt.addValue("val");
         cmd.addOption(opt);
 
-        assertNull(cmd.getOptionObject("c"));
+        Properties props = cmd.getOptionProperties("define");
+        assertNotNull(props);
+        assertEquals("val", props.getProperty("key"));
+    }
+
+    // Tests getOptionProperties on non-existing option returns empty Properties
+    @Test
+    public void testGetOptionProperties_nonExistingOpt_returnsEmptyProperties() {
+        Properties props = cmd.getOptionProperties("unknown");
+        assertNotNull(props);
+        assertTrue(props.isEmpty());
+    }
+
+    // Tests getOptionObject with conversion failure returning null
+    @Test
+    public void testGetOptionObject_invalidValueConversion_returnsNull() {
+        Option opt = new Option("n", true, "Number");
+        opt.addValue("not-a-number");
+        opt.setType(PatternOptionBuilder.NUMBER_VALUE);
+        cmd.addOption(opt);
+
+        assertNull(cmd.getOptionObject("n"));
     }
 }

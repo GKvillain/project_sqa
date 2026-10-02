@@ -2,13 +2,18 @@ package org.apache.commons.cli;
 
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-/**
- * Unit tests for {@link Util}.
- */
 public class UtilTest
 {
+    // Tests instantiation of Util class for constructor coverage
+    @Test
+    public void testUtilConstructor()
+    {
+        assertNotNull(new Util());
+    }
+
     // Tests null input for stripLeadingHyphens
     @Test
     public void testStripLeadingHyphens_nullInput_returnsNull()
@@ -16,108 +21,108 @@ public class UtilTest
         assertNull(Util.stripLeadingHyphens(null));
     }
 
-    // Tests string starting with double hyphens
+    // Tests double hyphen prefix branch
     @Test
-    public void testStripLeadingHyphens_doubleHyphenPrefix_returnsStrippedString()
+    public void testStripLeadingHyphens_doubleHyphen_returnsStrippedString()
     {
         assertEquals("foo", Util.stripLeadingHyphens("--foo"));
     }
 
-    // Tests string containing only double hyphens
+    // Tests single hyphen prefix branch
     @Test
-    public void testStripLeadingHyphens_doubleHyphenOnly_returnsEmptyString()
+    public void testStripLeadingHyphens_singleHyphen_returnsStrippedString()
     {
-        assertEquals("", Util.stripLeadingHyphens("--"));
+        assertEquals("foo", Util.stripLeadingHyphens("-foo"));
     }
 
-    // Tests string starting with a single hyphen
+    // Tests string with no leading hyphens
     @Test
-    public void testStripLeadingHyphens_singleHyphenPrefix_returnsStrippedString()
+    public void testStripLeadingHyphens_noHyphens_returnsOriginalString()
     {
-        assertEquals("bar", Util.stripLeadingHyphens("-bar"));
+        assertEquals("foo", Util.stripLeadingHyphens("foo"));
     }
 
-    // Tests string containing only a single hyphen
+    // Tests string with three leading hyphens
+    @Test
+    public void testStripLeadingHyphens_tripleHyphen_returnsRemainingHyphen()
+    {
+        assertEquals("-foo", Util.stripLeadingHyphens("---foo"));
+    }
+
+    // Tests single hyphen boundary case
     @Test
     public void testStripLeadingHyphens_singleHyphenOnly_returnsEmptyString()
     {
         assertEquals("", Util.stripLeadingHyphens("-"));
     }
 
-    // Tests string with three hyphens
+    // Tests double hyphen boundary case
     @Test
-    public void testStripLeadingHyphens_tripleHyphenPrefix_returnsSingleHyphenPrefixedString()
+    public void testStripLeadingHyphens_doubleHyphenOnly_returnsEmptyString()
     {
-        assertEquals("-baz", Util.stripLeadingHyphens("---baz"));
+        assertEquals("", Util.stripLeadingHyphens("--"));
     }
 
-    // Tests string with no leading hyphens
-    @Test
-    public void testStripLeadingHyphens_noLeadingHyphen_returnsOriginalString()
-    {
-        assertEquals("foo", Util.stripLeadingHyphens("foo"));
-    }
-
-    // Tests empty string for stripLeadingHyphens
+    // Tests empty string input for stripLeadingHyphens
     @Test
     public void testStripLeadingHyphens_emptyString_returnsEmptyString()
     {
         assertEquals("", Util.stripLeadingHyphens(""));
     }
 
-    // Tests string enclosed in double quotes
+    // Tests standard string with leading and trailing quotes
     @Test
-    public void testStripLeadingAndTrailingQuotes_enclosedInQuotes_returnsStrippedString()
+    public void testStripLeadingAndTrailingQuotes_enclosedQuotes_returnsStrippedString()
     {
-        assertEquals("one two", Util.stripLeadingAndTrailingQuotes("\"one two\""));
+        assertEquals("foo", Util.stripLeadingAndTrailingQuotes("\"foo\""));
     }
 
-    // Tests string with only leading double quote
+    // Tests empty pair of quotes
     @Test
-    public void testStripLeadingAndTrailingQuotes_leadingQuoteOnly_returnsStrippedString()
+    public void testStripLeadingAndTrailingQuotes_emptyQuotes_returnsEmptyString()
     {
-        assertEquals("foo", Util.stripLeadingAndTrailingQuotes("\"foo"));
+        assertEquals("", Util.stripLeadingAndTrailingQuotes("\"\""));
     }
 
-    // Tests string with only trailing double quote
-    @Test
-    public void testStripLeadingAndTrailingQuotes_trailingQuoteOnly_returnsStrippedString()
-    {
-        assertEquals("bar", Util.stripLeadingAndTrailingQuotes("bar\""));
-    }
-
-    // Tests string without double quotes
+    // Tests string without quotes
     @Test
     public void testStripLeadingAndTrailingQuotes_noQuotes_returnsOriginalString()
     {
-        assertEquals("baz", Util.stripLeadingAndTrailingQuotes("baz"));
+        assertEquals("foo", Util.stripLeadingAndTrailingQuotes("foo"));
     }
 
-    // Tests empty string for stripLeadingAndTrailingQuotes
+    // Tests empty string input for stripLeadingAndTrailingQuotes
     @Test
     public void testStripLeadingAndTrailingQuotes_emptyString_returnsEmptyString()
     {
         assertEquals("", Util.stripLeadingAndTrailingQuotes(""));
     }
 
-    // Tests string containing only a pair of double quotes
+    // Tests string with only a leading quote (defect detection: should not strip if not paired)
     @Test
-    public void testStripLeadingAndTrailingQuotes_quotesOnly_returnsEmptyString()
+    public void testStripLeadingAndTrailingQuotes_onlyLeadingQuote_returnsOriginalString()
     {
-        assertEquals("", Util.stripLeadingAndTrailingQuotes("\"\""));
+        assertEquals("\"foo", Util.stripLeadingAndTrailingQuotes("\"foo"));
     }
 
-    // Tests string containing only a single double quote
+    // Tests string with only a trailing quote (defect detection: should not strip if not paired)
     @Test
-    public void testStripLeadingAndTrailingQuotes_singleQuoteOnly_returnsEmptyString()
+    public void testStripLeadingAndTrailingQuotes_onlyTrailingQuote_returnsOriginalString()
     {
-        assertEquals("", Util.stripLeadingAndTrailingQuotes("\""));
+        assertEquals("foo\"", Util.stripLeadingAndTrailingQuotes("foo\""));
     }
 
-    // Tests string with quotes inside content
+    // Tests single quote character boundary case
     @Test
-    public void testStripLeadingAndTrailingQuotes_innerQuotes_retainsInnerQuotes()
+    public void testStripLeadingAndTrailingQuotes_singleQuoteOnly_returnsOriginalString()
     {
-        assertEquals("foo\"bar", Util.stripLeadingAndTrailingQuotes("\"foo\"bar\""));
+        assertEquals("\"", Util.stripLeadingAndTrailingQuotes("\""));
+    }
+
+    // Tests multiple words enclosed in quotes
+    @Test
+    public void testStripLeadingAndTrailingQuotes_quotedSentence_returnsStrippedSentence()
+    {
+        assertEquals("one two", Util.stripLeadingAndTrailingQuotes("\"one two\""));
     }
 }
