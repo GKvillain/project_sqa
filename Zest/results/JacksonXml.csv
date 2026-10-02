@@ -1,0 +1,7 @@
+project,bug_id,method,run,line_coverage,branch_coverage,fault_detected,time_sec,test_cases,test_length,mutation_score,statements
+JacksonXml,1,Zest,1,3.03,0.0,no,127,6,6,97.65,659281
+JacksonXml,2,Zest,1,2.14,0.0,yes,125,5,5,97.51,660084
+JacksonXml,3,Zest,1,3.06,0.0,no,128,6,6,97.62,620694
+JacksonXml,4,Zest,1,17.21,10.0,yes,127,28,28,95.12,477996
+JacksonXml,5,Zest,1,26.04,12.5,no,127,24,24,93.65,432130
+JacksonXml,6,Zest,1,1.89,0.0,yes,127,6,6,99.25,636528
